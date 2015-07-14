@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"os/signal"
 	"sync"
@@ -50,7 +51,9 @@ func start(c *cli.Context) {
 
 	for {
 		wg.Add(1)
-		updater.Run()
+		if err := updater.Run(); err != nil {
+			fmt.Println(err)
+		}
 		wg.Done()
 
 		time.Sleep(secs)

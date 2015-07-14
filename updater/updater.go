@@ -1,81 +1,71 @@
 package updater
 
 import (
-	"log"
-
-	"github.com/samalba/dockerclient"
+	"github.com/CenturyLinkLabs/watchtower/docker"
 )
-
-var (
-	client dockerclient.Client
-)
-
-func init() {
-	docker, err := dockerclient.NewDockerClient("unix:///var/run/docker.sock", nil)
-	if err != nil {
-		log.Fatalf("Error instantiating Docker client: %s\n", err)
-	}
-
-	client = docker
-}
 
 func Run() error {
-	containers, _ := client.ListContainers(false, false, "")
+	client := docker.NewClient()
+	containers, err := client.ListContainers()
+	if err != nil {
+		return err
+	}
 
-	for _, container := range containers {
-
-		oldContainerInfo, _ := client.InspectContainer(container.Id)
-		name := oldContainerInfo.Name
-		oldImageId := oldContainerInfo.Image
-		log.Printf("Running: %s (%s)\n", container.Image, oldImageId)
-
-		oldImageInfo, _ := client.InspectImage(oldImageId)
-
-		// First check to see if a newer image has already been built
-		newImageInfo, _ := client.InspectImage(container.Image)
-
-		if newImageInfo.Id == oldImageInfo.Id {
-			_ = client.PullImage(container.Image, nil)
-			newImageInfo, _ = client.InspectImage(container.Image)
+	for i := range containers {
+		if err := client.RefreshImage(&containers[i]); err != nil {
+			return err
 		}
+	}
 
-		newImageId := newImageInfo.Id
-		log.Printf("Latest:  %s (%s)\n", container.Image, newImageId)
+	containers, err = sortContainers(containers)
+	if err != nil {
+		return err
+	}
 
-		if newImageId != oldImageId {
-			log.Printf("Restarting %s with new image\n", name)
-			if err := stopContainer(oldContainerInfo); err != nil {
+	checkDependencies(containers)
+
+	// Stop stale containers in reverse order
+	for i := len(containers) - 1; i >= 0; i-- {
+		container := containers[i]
+		if container.Stale {
+			if err := client.Stop(container); err != nil {
+				return err
 			}
+		}
+	}
 
-			config := GenerateContainerConfig(oldContainerInfo, oldImageInfo.Config)
-
-			hostConfig := oldContainerInfo.HostConfig
-			_ = startContainer(name, config, hostConfig)
+	// Restart stale containers in sorted order
+	for _, container := range containers {
+		if container.Stale {
+			if err := client.Start(container); err != nil {
+				return err
+			}
 		}
 	}
 
 	return nil
 }
 
-func stopContainer(container *dockerclient.ContainerInfo) error {
-	signal := "SIGTERM"
-
-	if sig, ok := container.Config.Labels["com.centurylinklabs.watchtower.stop-signal"]; ok {
-		signal = sig
-	}
-
-	if err := client.KillContainer(container.Id, signal); err != nil {
-		return err
-	}
-
-	return client.RemoveContainer(container.Id, true, false)
+func sortContainers(containers []docker.Container) ([]docker.Container, error) {
+	sorter := ContainerSorter{}
+	return sorter.Sort(containers)
 }
 
-func startContainer(name string, config *dockerclient.ContainerConfig, hostConfig *dockerclient.HostConfig) error {
-	newContainerId, err := client.CreateContainer(config, name)
-	if err != nil {
-		return err
-	}
+func checkDependencies(containers []docker.Container) {
 
-	return client.StartContainer(newContainerId, hostConfig)
+	for i, parent := range containers {
+		if parent.Stale {
+			continue
+		}
+
+	LinkLoop:
+		for _, linkName := range parent.Links() {
+			for _, child := range containers {
+				if child.Name() == linkName && child.Stale {
+					containers[i].Stale = true
+					break LinkLoop
+				}
+			}
+		}
+	}
 }
