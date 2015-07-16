@@ -80,8 +80,8 @@ func TestRefreshImage_NotStaleSuccess(t *testing.T) {
 	newImageInfo := &dockerclient.ImageInfo{Id: "abc123"}
 
 	api := mockclient.NewMockClient()
-	api.On("PullImage", "bar", mock.Anything).Return(nil)
-	api.On("InspectImage", "bar").Return(newImageInfo, nil)
+	api.On("PullImage", "bar:latest", mock.Anything).Return(nil)
+	api.On("InspectImage", "bar:latest").Return(newImageInfo, nil)
 
 	client := DockerClient{api: api}
 	err := client.RefreshImage(c)
@@ -95,15 +95,15 @@ func TestRefreshImage_StaleSuccess(t *testing.T) {
 	c := &Container{
 		containerInfo: &dockerclient.ContainerInfo{
 			Name:   "foo",
-			Config: &dockerclient.ContainerConfig{Image: "bar"},
+			Config: &dockerclient.ContainerConfig{Image: "bar:1.0"},
 		},
 		imageInfo: &dockerclient.ImageInfo{Id: "abc123"},
 	}
 	newImageInfo := &dockerclient.ImageInfo{Id: "xyz789"}
 
 	api := mockclient.NewMockClient()
-	api.On("PullImage", "bar", mock.Anything).Return(nil)
-	api.On("InspectImage", "bar").Return(newImageInfo, nil)
+	api.On("PullImage", "bar:1.0", mock.Anything).Return(nil)
+	api.On("InspectImage", "bar:1.0").Return(newImageInfo, nil)
 
 	client := DockerClient{api: api}
 	err := client.RefreshImage(c)
@@ -117,13 +117,13 @@ func TestRefreshImage_PullImageError(t *testing.T) {
 	c := &Container{
 		containerInfo: &dockerclient.ContainerInfo{
 			Name:   "foo",
-			Config: &dockerclient.ContainerConfig{Image: "bar"},
+			Config: &dockerclient.ContainerConfig{Image: "bar:latest"},
 		},
 		imageInfo: &dockerclient.ImageInfo{Id: "abc123"},
 	}
 
 	api := mockclient.NewMockClient()
-	api.On("PullImage", "bar", mock.Anything).Return(errors.New("oops"))
+	api.On("PullImage", "bar:latest", mock.Anything).Return(errors.New("oops"))
 
 	client := DockerClient{api: api}
 	err := client.RefreshImage(c)
@@ -137,15 +137,15 @@ func TestRefreshImage_InspectImageError(t *testing.T) {
 	c := &Container{
 		containerInfo: &dockerclient.ContainerInfo{
 			Name:   "foo",
-			Config: &dockerclient.ContainerConfig{Image: "bar"},
+			Config: &dockerclient.ContainerConfig{Image: "bar:latest"},
 		},
 		imageInfo: &dockerclient.ImageInfo{Id: "abc123"},
 	}
 	newImageInfo := &dockerclient.ImageInfo{}
 
 	api := mockclient.NewMockClient()
-	api.On("PullImage", "bar", mock.Anything).Return(nil)
-	api.On("InspectImage", "bar").Return(newImageInfo, errors.New("uh-oh"))
+	api.On("PullImage", "bar:latest", mock.Anything).Return(nil)
+	api.On("InspectImage", "bar:latest").Return(newImageInfo, errors.New("uh-oh"))
 
 	client := DockerClient{api: api}
 	err := client.RefreshImage(c)

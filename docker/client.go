@@ -1,7 +1,9 @@
 package docker
 
 import (
+	"fmt"
 	"log"
+	"strings"
 
 	"github.com/samalba/dockerclient"
 )
@@ -66,6 +68,10 @@ func (client DockerClient) RefreshImage(c *Container) error {
 	imageName := containerInfo.Config.Image
 
 	if pullImages {
+		if !strings.Contains(imageName, ":") {
+			imageName = fmt.Sprintf("%s:latest", imageName)
+		}
+
 		log.Printf("Pulling %s for %s\n", imageName, c.Name())
 		if err := client.api.PullImage(imageName, nil); err != nil {
 			return err
