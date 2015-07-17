@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 
 	"github.com/samalba/dockerclient"
 )
@@ -102,6 +103,22 @@ func (client DockerClient) Stop(c Container) error {
 
 	if err := client.api.KillContainer(c.containerInfo.Id, signal); err != nil {
 		return err
+	}
+
+	// Wait for container to exit, but proceed anyway after 10 seconds
+	timeout := time.After(10 * time.Second)
+PollLoop:
+	for {
+		select {
+		case <-timeout:
+			break PollLoop
+		default:
+			ci, err := client.api.InspectContainer(c.containerInfo.Id)
+			if err != nil || !ci.State.Running {
+				break PollLoop
+			}
+			time.Sleep(1 * time.Second)
+		}
 	}
 
 	return client.api.RemoveContainer(c.containerInfo.Id, true, false)

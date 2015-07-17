@@ -164,8 +164,15 @@ func TestStop_DefaultSuccess(t *testing.T) {
 		},
 	}
 
+	ci := &dockerclient.ContainerInfo{
+		State: &dockerclient.State{
+			Running: false,
+		},
+	}
+
 	api := mockclient.NewMockClient()
 	api.On("KillContainer", "abc123", "SIGTERM").Return(nil)
+	api.On("InspectContainer", "abc123").Return(ci, nil)
 	api.On("RemoveContainer", "abc123", true, false).Return(nil)
 
 	client := DockerClient{api: api}
@@ -185,8 +192,15 @@ func TestStop_CustomSignalSuccess(t *testing.T) {
 		},
 	}
 
+	ci := &dockerclient.ContainerInfo{
+		State: &dockerclient.State{
+			Running: false,
+		},
+	}
+
 	api := mockclient.NewMockClient()
 	api.On("KillContainer", "abc123", "SIGUSR1").Return(nil)
+	api.On("InspectContainer", "abc123").Return(ci, nil)
 	api.On("RemoveContainer", "abc123", true, false).Return(nil)
 
 	client := DockerClient{api: api}
@@ -227,6 +241,7 @@ func TestStop_RemoveContainerError(t *testing.T) {
 
 	api := mockclient.NewMockClient()
 	api.On("KillContainer", "abc123", "SIGTERM").Return(nil)
+	api.On("InspectContainer", "abc123").Return(&dockerclient.ContainerInfo{}, errors.New("dangit"))
 	api.On("RemoveContainer", "abc123", true, false).Return(errors.New("whoops"))
 
 	client := DockerClient{api: api}
