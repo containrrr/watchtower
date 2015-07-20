@@ -20,6 +20,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "watchtower"
 	app.Usage = "Automatically update running Docker containers"
+	app.Before = before
 	app.Action = start
 	app.Flags = []cli.Flag{
 		cli.IntFlag{
@@ -44,6 +45,10 @@ func handleSignals() {
 		wg.Wait()
 		os.Exit(1)
 	}()
+}
+
+func before(c *cli.Context) error {
+	return updater.CheckPrereqs()
 }
 
 func start(c *cli.Context) {

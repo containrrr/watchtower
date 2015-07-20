@@ -17,11 +17,17 @@ func init() {
 	pullImages = true
 }
 
+type ContainerFilter func(Container) bool
+
+func AllContainersFilter(Container) bool          { return true }
+func WatchtowerContainersFilter(c Container) bool { return c.IsWatchtower() }
+
 type Client interface {
-	ListContainers() ([]Container, error)
-	RefreshImage(container *Container) error
-	Stop(container Container) error
-	Start(container Container) error
+	ListContainers(ContainerFilter) ([]Container, error)
+	RefreshImage(*Container) error
+	Stop(Container, time.Duration) error
+	Start(Container) error
+	Rename(Container, string) error
 }
 
 func NewClient() Client {
@@ -38,7 +44,7 @@ type DockerClient struct {
 	api dockerclient.Client
 }
 
-func (client DockerClient) ListContainers() ([]Container, error) {
+func (client DockerClient) ListContainers(fn ContainerFilter) ([]Container, error) {
 	cs := []Container{}
 
 	runningContainers, err := client.api.ListContainers(false, false, "")
@@ -57,7 +63,10 @@ func (client DockerClient) ListContainers() ([]Container, error) {
 			return nil, err
 		}
 
-		cs = append(cs, Container{containerInfo: containerInfo, imageInfo: imageInfo})
+		c := Container{containerInfo: containerInfo, imageInfo: imageInfo}
+		if fn(c) {
+			cs = append(cs, Container{containerInfo: containerInfo, imageInfo: imageInfo})
+		}
 	}
 
 	return cs, nil
@@ -92,7 +101,7 @@ func (client DockerClient) RefreshImage(c *Container) error {
 	return nil
 }
 
-func (client DockerClient) Stop(c Container) error {
+func (client DockerClient) Stop(c Container, timeout time.Duration) error {
 	signal := "SIGTERM"
 
 	if sig, ok := c.containerInfo.Config.Labels["com.centurylinklabs.watchtower.stop-signal"]; ok {
@@ -106,20 +115,7 @@ func (client DockerClient) Stop(c Container) error {
 	}
 
 	// Wait for container to exit, but proceed anyway after 10 seconds
-	timeout := time.After(10 * time.Second)
-PollLoop:
-	for {
-		select {
-		case <-timeout:
-			break PollLoop
-		default:
-			ci, err := client.api.InspectContainer(c.containerInfo.Id)
-			if err != nil || !ci.State.Running {
-				break PollLoop
-			}
-			time.Sleep(1 * time.Second)
-		}
-	}
+	client.waitForStop(c, timeout)
 
 	return client.api.RemoveContainer(c.containerInfo.Id, true, false)
 }
@@ -127,13 +123,41 @@ PollLoop:
 func (client DockerClient) Start(c Container) error {
 	config := c.runtimeConfig()
 	hostConfig := c.hostConfig()
+	name := c.Name()
 
-	log.Printf("Starting: %s\n", c.Name())
+	if name == "" {
+		log.Printf("Starting new container from %s", c.containerInfo.Config.Image)
+	} else {
+		log.Printf("Starting %s\n", name)
+	}
 
-	newContainerId, err := client.api.CreateContainer(config, c.Name())
+	newContainerId, err := client.api.CreateContainer(config, name)
 	if err != nil {
 		return err
 	}
 
 	return client.api.StartContainer(newContainerId, hostConfig)
+}
+
+func (client DockerClient) Rename(c Container, newName string) error {
+	return client.api.RenameContainer(c.containerInfo.Id, newName)
+}
+
+func (client DockerClient) waitForStop(c Container, waitTime time.Duration) error {
+	timeout := time.After(waitTime)
+
+	for {
+		select {
+		case <-timeout:
+			return nil
+		default:
+			if ci, err := client.api.InspectContainer(c.containerInfo.Id); err != nil {
+				return err
+			} else if !ci.State.Running {
+				return nil
+			}
+
+			time.Sleep(1 * time.Second)
+		}
+	}
 }

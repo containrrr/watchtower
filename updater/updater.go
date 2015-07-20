@@ -1,12 +1,37 @@
 package updater
 
 import (
+	"math/rand"
+	"sort"
+
 	"github.com/CenturyLinkLabs/watchtower/docker"
 )
 
+var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+func CheckPrereqs() error {
+	client := docker.NewClient()
+
+	containers, err := client.ListContainers(docker.WatchtowerContainersFilter)
+	if err != nil {
+		return err
+	}
+
+	if len(containers) > 1 {
+		sort.Sort(docker.ByCreated(containers))
+
+		// Iterate over all containers execept the last one
+		for _, c := range containers[0 : len(containers)-1] {
+			client.Stop(c, 60)
+		}
+	}
+
+	return nil
+}
+
 func Run() error {
 	client := docker.NewClient()
-	containers, err := client.ListContainers()
+	containers, err := client.ListContainers(docker.AllContainersFilter)
 	if err != nil {
 		return err
 	}
@@ -27,8 +52,13 @@ func Run() error {
 	// Stop stale containers in reverse order
 	for i := len(containers) - 1; i >= 0; i-- {
 		container := containers[i]
+
+		if container.IsWatchtower() {
+			break
+		}
+
 		if container.Stale {
-			if err := client.Stop(container); err != nil {
+			if err := client.Stop(container, 10); err != nil {
 				return err
 			}
 		}
@@ -37,6 +67,16 @@ func Run() error {
 	// Restart stale containers in sorted order
 	for _, container := range containers {
 		if container.Stale {
+			// Since we can't shutdown a watchtower container immediately, we need to
+			// start the new one while the old one is still running. This prevents us
+			// from re-using the same container name so we first rename the current
+			// instance so that the new one can adopt the old name.
+			if container.IsWatchtower() {
+				if err := client.Rename(container, randName()); err != nil {
+					return err
+				}
+			}
+
 			if err := client.Start(container); err != nil {
 				return err
 			}
@@ -68,4 +108,12 @@ func checkDependencies(containers []docker.Container) {
 			}
 		}
 	}
+}
+
+func randName() string {
+	b := make([]rune, 32)
+	for i := range b {
+		b[i] = letters[rand.Intn(len(letters))]
+	}
+	return string(b)
 }

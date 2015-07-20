@@ -3,6 +3,7 @@ package docker
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/samalba/dockerclient"
 )
@@ -31,6 +32,11 @@ func (c Container) Links() []string {
 	return links
 }
 
+func (c Container) IsWatchtower() bool {
+	val, ok := c.containerInfo.Config.Labels["com.centurylinklabs.watchtower"]
+	return ok && val == "true"
+}
+
 // Ideally, we'd just be able to take the ContainerConfig from the old container
 // and use it as the starting point for creating the new container; however,
 // the ContainerConfig that comes back from the Inspect call merges the default
@@ -55,11 +61,11 @@ func (c Container) runtimeConfig() *dockerclient.ContainerConfig {
 	}
 
 	if sliceEqual(config.Cmd, imageConfig.Cmd) {
-		config.Cmd = []string{}
+		config.Cmd = nil
 	}
 
 	if sliceEqual(config.Entrypoint, imageConfig.Entrypoint) {
-		config.Entrypoint = []string{}
+		config.Entrypoint = nil
 	}
 
 	config.Env = sliceSubtract(config.Env, imageConfig.Env)
@@ -89,6 +95,26 @@ func (c Container) hostConfig() *dockerclient.HostConfig {
 	}
 
 	return hostConfig
+}
+
+// Sort containers by Created date
+type ByCreated []Container
+
+func (c ByCreated) Len() int      { return len(c) }
+func (c ByCreated) Swap(i, j int) { c[i], c[j] = c[j], c[i] }
+
+func (c ByCreated) Less(i, j int) bool {
+	t1, err := time.Parse(time.RFC3339Nano, c[i].containerInfo.Created)
+	if err != nil {
+		t1 = time.Now()
+	}
+
+	t2, _ := time.Parse(time.RFC3339Nano, c[j].containerInfo.Created)
+	if err != nil {
+		t1 = time.Now()
+	}
+
+	return t1.Before(t2)
 }
 
 func NewTestContainer(name string, links []string) Container {

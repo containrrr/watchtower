@@ -3,12 +3,16 @@ package docker
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/samalba/dockerclient"
 	"github.com/samalba/dockerclient/mockclient"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
+
+func allContainers(Container) bool { return true }
+func noContainers(Container) bool  { return false }
 
 func TestListContainers_Success(t *testing.T) {
 	ci := &dockerclient.ContainerInfo{Image: "abc123"}
@@ -19,7 +23,7 @@ func TestListContainers_Success(t *testing.T) {
 	api.On("InspectImage", "abc123").Return(ii, nil)
 
 	client := DockerClient{api: api}
-	cs, err := client.ListContainers()
+	cs, err := client.ListContainers(allContainers)
 
 	assert.NoError(t, err)
 	assert.Len(t, cs, 1)
@@ -28,12 +32,28 @@ func TestListContainers_Success(t *testing.T) {
 	api.AssertExpectations(t)
 }
 
+func TestListContainers_Filter(t *testing.T) {
+	ci := &dockerclient.ContainerInfo{Image: "abc123"}
+	ii := &dockerclient.ImageInfo{}
+	api := mockclient.NewMockClient()
+	api.On("ListContainers", false, false, "").Return([]dockerclient.Container{{Id: "foo"}}, nil)
+	api.On("InspectContainer", "foo").Return(ci, nil)
+	api.On("InspectImage", "abc123").Return(ii, nil)
+
+	client := DockerClient{api: api}
+	cs, err := client.ListContainers(noContainers)
+
+	assert.NoError(t, err)
+	assert.Len(t, cs, 0)
+	api.AssertExpectations(t)
+}
+
 func TestListContainers_ListError(t *testing.T) {
 	api := mockclient.NewMockClient()
 	api.On("ListContainers", false, false, "").Return([]dockerclient.Container{}, errors.New("oops"))
 
 	client := DockerClient{api: api}
-	_, err := client.ListContainers()
+	_, err := client.ListContainers(allContainers)
 
 	assert.Error(t, err)
 	assert.EqualError(t, err, "oops")
@@ -46,7 +66,7 @@ func TestListContainers_InspectContainerError(t *testing.T) {
 	api.On("InspectContainer", "foo").Return(&dockerclient.ContainerInfo{}, errors.New("uh-oh"))
 
 	client := DockerClient{api: api}
-	_, err := client.ListContainers()
+	_, err := client.ListContainers(allContainers)
 
 	assert.Error(t, err)
 	assert.EqualError(t, err, "uh-oh")
@@ -62,7 +82,7 @@ func TestListContainers_InspectImageError(t *testing.T) {
 	api.On("InspectImage", "abc123").Return(ii, errors.New("whoops"))
 
 	client := DockerClient{api: api}
-	_, err := client.ListContainers()
+	_, err := client.ListContainers(allContainers)
 
 	assert.Error(t, err)
 	assert.EqualError(t, err, "whoops")
@@ -176,7 +196,7 @@ func TestStop_DefaultSuccess(t *testing.T) {
 	api.On("RemoveContainer", "abc123", true, false).Return(nil)
 
 	client := DockerClient{api: api}
-	err := client.Stop(c)
+	err := client.Stop(c, time.Second)
 
 	assert.NoError(t, err)
 	api.AssertExpectations(t)
@@ -204,7 +224,7 @@ func TestStop_CustomSignalSuccess(t *testing.T) {
 	api.On("RemoveContainer", "abc123", true, false).Return(nil)
 
 	client := DockerClient{api: api}
-	err := client.Stop(c)
+	err := client.Stop(c, time.Second)
 
 	assert.NoError(t, err)
 	api.AssertExpectations(t)
@@ -223,7 +243,7 @@ func TestStop_KillContainerError(t *testing.T) {
 	api.On("KillContainer", "abc123", "SIGTERM").Return(errors.New("oops"))
 
 	client := DockerClient{api: api}
-	err := client.Stop(c)
+	err := client.Stop(c, time.Second)
 
 	assert.Error(t, err)
 	assert.EqualError(t, err, "oops")
@@ -245,7 +265,7 @@ func TestStop_RemoveContainerError(t *testing.T) {
 	api.On("RemoveContainer", "abc123", true, false).Return(errors.New("whoops"))
 
 	client := DockerClient{api: api}
-	err := client.Stop(c)
+	err := client.Stop(c, time.Second)
 
 	assert.Error(t, err)
 	assert.EqualError(t, err, "whoops")
@@ -319,5 +339,40 @@ func TestStart_StartContainerError(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.EqualError(t, err, "whoops")
+	api.AssertExpectations(t)
+}
+
+func TestRename_Success(t *testing.T) {
+	c := Container{
+		containerInfo: &dockerclient.ContainerInfo{
+			Id: "abc123",
+		},
+	}
+
+	api := mockclient.NewMockClient()
+	api.On("RenameContainer", "abc123", "foo").Return(nil)
+
+	client := DockerClient{api: api}
+	err := client.Rename(c, "foo")
+
+	assert.NoError(t, err)
+	api.AssertExpectations(t)
+}
+
+func TestRename_Error(t *testing.T) {
+	c := Container{
+		containerInfo: &dockerclient.ContainerInfo{
+			Id: "abc123",
+		},
+	}
+
+	api := mockclient.NewMockClient()
+	api.On("RenameContainer", "abc123", "foo").Return(errors.New("oops"))
+
+	client := DockerClient{api: api}
+	err := client.Rename(c, "foo")
+
+	assert.Error(t, err)
+	assert.EqualError(t, err, "oops")
 	api.AssertExpectations(t)
 }
