@@ -1,7 +1,6 @@
-package docker
+package container
 
 import (
-	"sort"
 	"testing"
 
 	"github.com/samalba/dockerclient"
@@ -66,27 +65,4 @@ func TestIsWatchtower_NoLabel(t *testing.T) {
 	}
 
 	assert.False(t, c.IsWatchtower())
-}
-
-func TestByCreated(t *testing.T) {
-	c1 := Container{
-		containerInfo: &dockerclient.ContainerInfo{
-			Created: "2015-07-01T12:00:01.000000000Z",
-		},
-	}
-	c2 := Container{
-		containerInfo: &dockerclient.ContainerInfo{
-			Created: "2015-07-01T12:00:02.000000000Z",
-		},
-	}
-	c3 := Container{
-		containerInfo: &dockerclient.ContainerInfo{
-			Created: "2015-07-01T12:00:02.000000001Z",
-		},
-	}
-	cs := []Container{c3, c2, c1}
-
-	sort.Sort(ByCreated(cs))
-
-	assert.Equal(t, []Container{c1, c2, c3}, cs)
 }

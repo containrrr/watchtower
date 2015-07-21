@@ -1,4 +1,4 @@
-package docker
+package container
 
 import (
 	"fmt"
@@ -7,6 +7,11 @@ import (
 	"time"
 
 	"github.com/samalba/dockerclient"
+)
+
+const (
+	defaultStopSignal = "SIGTERM"
+	signalLabel       = "com.centurylinklabs.watchtower.stop-signal"
 )
 
 var (
@@ -18,9 +23,6 @@ func init() {
 }
 
 type ContainerFilter func(Container) bool
-
-func AllContainersFilter(Container) bool          { return true }
-func WatchtowerContainersFilter(c Container) bool { return c.IsWatchtower() }
 
 type Client interface {
 	ListContainers(ContainerFilter) ([]Container, error)
@@ -102,9 +104,9 @@ func (client DockerClient) RefreshImage(c *Container) error {
 }
 
 func (client DockerClient) Stop(c Container, timeout time.Duration) error {
-	signal := "SIGTERM"
+	signal := defaultStopSignal
 
-	if sig, ok := c.containerInfo.Config.Labels["com.centurylinklabs.watchtower.stop-signal"]; ok {
+	if sig, ok := c.containerInfo.Config.Labels[signalLabel]; ok {
 		signal = sig
 	}
 
@@ -114,7 +116,7 @@ func (client DockerClient) Stop(c Container, timeout time.Duration) error {
 		return err
 	}
 
-	// Wait for container to exit, but proceed anyway after 10 seconds
+	// Wait for container to exit, but proceed anyway after the timeout elapses
 	client.waitForStop(c, timeout)
 
 	return client.api.RemoveContainer(c.containerInfo.Id, true, false)

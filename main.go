@@ -8,7 +8,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/CenturyLinkLabs/watchtower/updater"
+	"github.com/CenturyLinkLabs/watchtower/actions"
 	"github.com/codegangsta/cli"
 )
 
@@ -48,7 +48,7 @@ func handleSignals() {
 }
 
 func before(c *cli.Context) error {
-	return updater.CheckPrereqs()
+	return actions.CheckPrereqs()
 }
 
 func start(c *cli.Context) {
@@ -56,7 +56,7 @@ func start(c *cli.Context) {
 
 	for {
 		wg.Add(1)
-		if err := updater.Run(); err != nil {
+		if err := actions.Update(); err != nil {
 			fmt.Println(err)
 		}
 		wg.Done()

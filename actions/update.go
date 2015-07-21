@@ -1,37 +1,20 @@
-package updater
+package actions
 
 import (
 	"math/rand"
-	"sort"
 
-	"github.com/CenturyLinkLabs/watchtower/docker"
+	"github.com/CenturyLinkLabs/watchtower/container"
 )
 
-var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+var (
+	letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+)
 
-func CheckPrereqs() error {
-	client := docker.NewClient()
+func allContainersFilter(container.Container) bool { return true }
 
-	containers, err := client.ListContainers(docker.WatchtowerContainersFilter)
-	if err != nil {
-		return err
-	}
-
-	if len(containers) > 1 {
-		sort.Sort(docker.ByCreated(containers))
-
-		// Iterate over all containers execept the last one
-		for _, c := range containers[0 : len(containers)-1] {
-			client.Stop(c, 60)
-		}
-	}
-
-	return nil
-}
-
-func Run() error {
-	client := docker.NewClient()
-	containers, err := client.ListContainers(docker.AllContainersFilter)
+func Update() error {
+	client := container.NewClient()
+	containers, err := client.ListContainers(allContainersFilter)
 	if err != nil {
 		return err
 	}
@@ -42,7 +25,7 @@ func Run() error {
 		}
 	}
 
-	containers, err = sortContainers(containers)
+	containers, err = container.SortByDependencies(containers)
 	if err != nil {
 		return err
 	}
@@ -86,12 +69,7 @@ func Run() error {
 	return nil
 }
 
-func sortContainers(containers []docker.Container) ([]docker.Container, error) {
-	sorter := ContainerSorter{}
-	return sorter.Sort(containers)
-}
-
-func checkDependencies(containers []docker.Container) {
+func checkDependencies(containers []container.Container) {
 
 	for i, parent := range containers {
 		if parent.Stale {
@@ -110,10 +88,12 @@ func checkDependencies(containers []docker.Container) {
 	}
 }
 
+// Generates a random, 32-character, Docker-compatible container name.
 func randName() string {
 	b := make([]rune, 32)
 	for i := range b {
 		b[i] = letters[rand.Intn(len(letters))]
 	}
+
 	return string(b)
 }
