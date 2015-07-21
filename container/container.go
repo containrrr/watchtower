@@ -7,6 +7,13 @@ import (
 	"github.com/samalba/dockerclient"
 )
 
+func NewContainer(containerInfo *dockerclient.ContainerInfo, imageInfo *dockerclient.ImageInfo) *Container {
+	return &Container{
+		containerInfo: containerInfo,
+		imageInfo:     imageInfo,
+	}
+}
+
 type Container struct {
 	Stale bool
 
@@ -94,15 +101,4 @@ func (c Container) hostConfig() *dockerclient.HostConfig {
 	}
 
 	return hostConfig
-}
-
-func NewTestContainer(name string, links []string) Container {
-	return Container{
-		containerInfo: &dockerclient.ContainerInfo{
-			Name: name,
-			HostConfig: &dockerclient.HostConfig{
-				Links: links,
-			},
-		},
-	}
 }

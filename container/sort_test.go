@@ -32,12 +32,12 @@ func TestByCreated(t *testing.T) {
 }
 
 func TestSortByDependencies_Success(t *testing.T) {
-	c1 := NewTestContainer("1", []string{})
-	c2 := NewTestContainer("2", []string{"1:"})
-	c3 := NewTestContainer("3", []string{"2:"})
-	c4 := NewTestContainer("4", []string{"3:"})
-	c5 := NewTestContainer("5", []string{"4:"})
-	c6 := NewTestContainer("6", []string{"5:", "3:"})
+	c1 := newTestContainer("1", []string{})
+	c2 := newTestContainer("2", []string{"1:"})
+	c3 := newTestContainer("3", []string{"2:"})
+	c4 := newTestContainer("4", []string{"3:"})
+	c5 := newTestContainer("5", []string{"4:"})
+	c6 := newTestContainer("6", []string{"5:", "3:"})
 	containers := []Container{c6, c2, c4, c1, c3, c5}
 
 	result, err := SortByDependencies(containers)
@@ -47,13 +47,25 @@ func TestSortByDependencies_Success(t *testing.T) {
 }
 
 func TestSortByDependencies_Error(t *testing.T) {
-	c1 := NewTestContainer("1", []string{"3:"})
-	c2 := NewTestContainer("2", []string{"1:"})
-	c3 := NewTestContainer("3", []string{"2:"})
+	c1 := newTestContainer("1", []string{"3:"})
+	c2 := newTestContainer("2", []string{"1:"})
+	c3 := newTestContainer("3", []string{"2:"})
 	containers := []Container{c1, c2, c3}
 
 	_, err := SortByDependencies(containers)
 
 	assert.Error(t, err)
 	assert.EqualError(t, err, "Circular reference to 1")
+}
+
+func newTestContainer(name string, links []string) Container {
+	return *NewContainer(
+		&dockerclient.ContainerInfo{
+			Name: name,
+			HostConfig: &dockerclient.HostConfig{
+				Links: links,
+			},
+		},
+		nil,
+	)
 }

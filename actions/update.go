@@ -12,8 +12,7 @@ var (
 
 func allContainersFilter(container.Container) bool { return true }
 
-func Update() error {
-	client := container.NewClient()
+func Update(client container.Client) error {
 	containers, err := client.ListContainers(allContainersFilter)
 	if err != nil {
 		return err

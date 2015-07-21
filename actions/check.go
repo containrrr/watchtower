@@ -8,9 +8,7 @@ import (
 
 func watchtowerContainersFilter(c container.Container) bool { return c.IsWatchtower() }
 
-func CheckPrereqs() error {
-	client := container.NewClient()
-
+func CheckPrereqs(client container.Client) error {
 	containers, err := client.ListContainers(watchtowerContainersFilter)
 	if err != nil {
 		return err

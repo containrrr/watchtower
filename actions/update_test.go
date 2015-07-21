@@ -5,17 +5,18 @@ import (
 	"testing"
 
 	"github.com/CenturyLinkLabs/watchtower/container"
+	"github.com/samalba/dockerclient"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestCheckDependencies(t *testing.T) {
 	cs := []container.Container{
-		container.NewTestContainer("1", []string{}),
-		container.NewTestContainer("2", []string{"1:"}),
-		container.NewTestContainer("3", []string{"2:"}),
-		container.NewTestContainer("4", []string{"3:"}),
-		container.NewTestContainer("5", []string{"4:"}),
-		container.NewTestContainer("6", []string{"5:"}),
+		newTestContainer("1", []string{}),
+		newTestContainer("2", []string{"1:"}),
+		newTestContainer("3", []string{"2:"}),
+		newTestContainer("4", []string{"3:"}),
+		newTestContainer("5", []string{"4:"}),
+		newTestContainer("6", []string{"5:"}),
 	}
 	cs[3].Stale = true
 
@@ -35,4 +36,16 @@ func TestRandName(t *testing.T) {
 	name := randName()
 
 	assert.True(t, validPattern.MatchString(name))
+}
+
+func newTestContainer(name string, links []string) container.Container {
+	return *container.NewContainer(
+		&dockerclient.ContainerInfo{
+			Name: name,
+			HostConfig: &dockerclient.HostConfig{
+				Links: links,
+			},
+		},
+		nil,
+	)
 }

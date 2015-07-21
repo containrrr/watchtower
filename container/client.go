@@ -32,8 +32,8 @@ type Client interface {
 	Rename(Container, string) error
 }
 
-func NewClient() Client {
-	docker, err := dockerclient.NewDockerClient("unix:///var/run/docker.sock", nil)
+func NewClient(dockerHost string) Client {
+	docker, err := dockerclient.NewDockerClient(dockerHost, nil)
 
 	if err != nil {
 		log.Fatalf("Error instantiating Docker client: %s\n", err)
