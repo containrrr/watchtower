@@ -35,6 +35,10 @@ func main() {
 			Value: 300,
 			Usage: "poll interval (in seconds)",
 		},
+		cli.BoolFlag{
+			Name:  "no-pull",
+			Usage: "do not pull new images",
+		},
 	}
 
 	handleSignals()
@@ -76,5 +80,6 @@ func start(c *cli.Context) {
 
 func newContainerClient(c *cli.Context) container.Client {
 	dockerHost := c.GlobalString("host")
-	return container.NewClient(dockerHost)
+	noPull := c.GlobalBool("no-pull")
+	return container.NewClient(dockerHost, !noPull)
 }

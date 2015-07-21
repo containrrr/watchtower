@@ -14,14 +14,6 @@ const (
 	signalLabel       = "com.centurylinklabs.watchtower.stop-signal"
 )
 
-var (
-	pullImages bool
-)
-
-func init() {
-	pullImages = true
-}
-
 type Filter func(Container) bool
 
 type Client interface {
@@ -32,18 +24,19 @@ type Client interface {
 	IsContainerStale(Container) (bool, error)
 }
 
-func NewClient(dockerHost string) Client {
+func NewClient(dockerHost string, pullImages bool) Client {
 	docker, err := dockerclient.NewDockerClient(dockerHost, nil)
 
 	if err != nil {
 		log.Fatalf("Error instantiating Docker client: %s\n", err)
 	}
 
-	return DockerClient{api: docker}
+	return DockerClient{api: docker, pullImages: pullImages}
 }
 
 type DockerClient struct {
-	api dockerclient.Client
+	api        dockerclient.Client
+	pullImages bool
 }
 
 func (client DockerClient) ListContainers(fn Filter) ([]Container, error) {
@@ -121,7 +114,7 @@ func (client DockerClient) IsContainerStale(c Container) (bool, error) {
 	oldImageInfo := c.imageInfo
 	imageName := containerInfo.Config.Image
 
-	if pullImages {
+	if client.pullImages {
 		if !strings.Contains(imageName, ":") {
 			imageName = fmt.Sprintf("%s:latest", imageName)
 		}

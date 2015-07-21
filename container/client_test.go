@@ -305,7 +305,7 @@ func TestIsContainerStale_NotStaleSuccess(t *testing.T) {
 	api.On("PullImage", "bar:latest", mock.Anything).Return(nil)
 	api.On("InspectImage", "bar:latest").Return(newImageInfo, nil)
 
-	client := DockerClient{api: api}
+	client := DockerClient{api: api, pullImages: true}
 	stale, err := client.IsContainerStale(c)
 
 	assert.NoError(t, err)
@@ -327,7 +327,28 @@ func TestIsContainerStale_StaleSuccess(t *testing.T) {
 	api.On("PullImage", "bar:1.0", mock.Anything).Return(nil)
 	api.On("InspectImage", "bar:1.0").Return(newImageInfo, nil)
 
-	client := DockerClient{api: api}
+	client := DockerClient{api: api, pullImages: true}
+	stale, err := client.IsContainerStale(c)
+
+	assert.NoError(t, err)
+	assert.True(t, stale)
+	api.AssertExpectations(t)
+}
+
+func TestIsContainerStale_NoPullSuccess(t *testing.T) {
+	c := Container{
+		containerInfo: &dockerclient.ContainerInfo{
+			Name:   "foo",
+			Config: &dockerclient.ContainerConfig{Image: "bar:1.0"},
+		},
+		imageInfo: &dockerclient.ImageInfo{Id: "abc123"},
+	}
+	newImageInfo := &dockerclient.ImageInfo{Id: "xyz789"}
+
+	api := mockclient.NewMockClient()
+	api.On("InspectImage", "bar:1.0").Return(newImageInfo, nil)
+
+	client := DockerClient{api: api, pullImages: false}
 	stale, err := client.IsContainerStale(c)
 
 	assert.NoError(t, err)
@@ -347,7 +368,7 @@ func TestIsContainerStale_PullImageError(t *testing.T) {
 	api := mockclient.NewMockClient()
 	api.On("PullImage", "bar:latest", mock.Anything).Return(errors.New("oops"))
 
-	client := DockerClient{api: api}
+	client := DockerClient{api: api, pullImages: true}
 	_, err := client.IsContainerStale(c)
 
 	assert.Error(t, err)
@@ -369,7 +390,7 @@ func TestIsContainerStale_InspectImageError(t *testing.T) {
 	api.On("PullImage", "bar:latest", mock.Anything).Return(nil)
 	api.On("InspectImage", "bar:latest").Return(newImageInfo, errors.New("uh-oh"))
 
-	client := DockerClient{api: api}
+	client := DockerClient{api: api, pullImages: true}
 	_, err := client.IsContainerStale(c)
 
 	assert.Error(t, err)
