@@ -22,14 +22,14 @@ func init() {
 	pullImages = true
 }
 
-type ContainerFilter func(Container) bool
+type Filter func(Container) bool
 
 type Client interface {
-	ListContainers(ContainerFilter) ([]Container, error)
-	RefreshImage(*Container) error
-	Stop(Container, time.Duration) error
-	Start(Container) error
-	Rename(Container, string) error
+	ListContainers(Filter) ([]Container, error)
+	StopContainer(Container, time.Duration) error
+	StartContainer(Container) error
+	RenameContainer(Container, string) error
+	IsContainerStale(Container) (bool, error)
 }
 
 func NewClient(dockerHost string) Client {
@@ -46,7 +46,7 @@ type DockerClient struct {
 	api dockerclient.Client
 }
 
-func (client DockerClient) ListContainers(fn ContainerFilter) ([]Container, error) {
+func (client DockerClient) ListContainers(fn Filter) ([]Container, error) {
 	cs := []Container{}
 
 	runningContainers, err := client.api.ListContainers(false, false, "")
@@ -74,36 +74,7 @@ func (client DockerClient) ListContainers(fn ContainerFilter) ([]Container, erro
 	return cs, nil
 }
 
-func (client DockerClient) RefreshImage(c *Container) error {
-	containerInfo := c.containerInfo
-	oldImageInfo := c.imageInfo
-	imageName := containerInfo.Config.Image
-
-	if pullImages {
-		if !strings.Contains(imageName, ":") {
-			imageName = fmt.Sprintf("%s:latest", imageName)
-		}
-
-		log.Printf("Pulling %s for %s\n", imageName, c.Name())
-		if err := client.api.PullImage(imageName, nil); err != nil {
-			return err
-		}
-	}
-
-	newImageInfo, err := client.api.InspectImage(imageName)
-	if err != nil {
-		return err
-	}
-
-	if newImageInfo.Id != oldImageInfo.Id {
-		log.Printf("Found new %s image (%s)\n", imageName, newImageInfo.Id)
-		c.Stale = true
-	}
-
-	return nil
-}
-
-func (client DockerClient) Stop(c Container, timeout time.Duration) error {
+func (client DockerClient) StopContainer(c Container, timeout time.Duration) error {
 	signal := defaultStopSignal
 
 	if sig, ok := c.containerInfo.Config.Labels[signalLabel]; ok {
@@ -122,7 +93,7 @@ func (client DockerClient) Stop(c Container, timeout time.Duration) error {
 	return client.api.RemoveContainer(c.containerInfo.Id, true, false)
 }
 
-func (client DockerClient) Start(c Container) error {
+func (client DockerClient) StartContainer(c Container) error {
 	config := c.runtimeConfig()
 	hostConfig := c.hostConfig()
 	name := c.Name()
@@ -141,8 +112,37 @@ func (client DockerClient) Start(c Container) error {
 	return client.api.StartContainer(newContainerID, hostConfig)
 }
 
-func (client DockerClient) Rename(c Container, newName string) error {
+func (client DockerClient) RenameContainer(c Container, newName string) error {
 	return client.api.RenameContainer(c.containerInfo.Id, newName)
+}
+
+func (client DockerClient) IsContainerStale(c Container) (bool, error) {
+	containerInfo := c.containerInfo
+	oldImageInfo := c.imageInfo
+	imageName := containerInfo.Config.Image
+
+	if pullImages {
+		if !strings.Contains(imageName, ":") {
+			imageName = fmt.Sprintf("%s:latest", imageName)
+		}
+
+		log.Printf("Pulling %s for %s\n", imageName, c.Name())
+		if err := client.api.PullImage(imageName, nil); err != nil {
+			return false, err
+		}
+	}
+
+	newImageInfo, err := client.api.InspectImage(imageName)
+	if err != nil {
+		return false, err
+	}
+
+	if newImageInfo.Id != oldImageInfo.Id {
+		log.Printf("Found new %s image (%s)\n", imageName, newImageInfo.Id)
+		return true, nil
+	}
+
+	return false, nil
 }
 
 func (client DockerClient) waitForStop(c Container, waitTime time.Duration) error {

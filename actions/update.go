@@ -18,10 +18,12 @@ func Update(client container.Client) error {
 		return err
 	}
 
-	for i := range containers {
-		if err := client.RefreshImage(&containers[i]); err != nil {
+	for i, container := range containers {
+		stale, err := client.IsContainerStale(container)
+		if err != nil {
 			return err
 		}
+		containers[i].Stale = stale
 	}
 
 	containers, err = container.SortByDependencies(containers)
@@ -40,7 +42,7 @@ func Update(client container.Client) error {
 		}
 
 		if container.Stale {
-			if err := client.Stop(container, 10); err != nil {
+			if err := client.StopContainer(container, 10); err != nil {
 				return err
 			}
 		}
@@ -54,12 +56,12 @@ func Update(client container.Client) error {
 			// from re-using the same container name so we first rename the current
 			// instance so that the new one can adopt the old name.
 			if container.IsWatchtower() {
-				if err := client.Rename(container, randName()); err != nil {
+				if err := client.RenameContainer(container, randName()); err != nil {
 					return err
 				}
 			}
 
-			if err := client.Start(container); err != nil {
+			if err := client.StartContainer(container); err != nil {
 				return err
 			}
 		}

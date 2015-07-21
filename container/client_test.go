@@ -89,93 +89,7 @@ func TestListContainers_InspectImageError(t *testing.T) {
 	api.AssertExpectations(t)
 }
 
-func TestRefreshImage_NotStaleSuccess(t *testing.T) {
-	c := &Container{
-		containerInfo: &dockerclient.ContainerInfo{
-			Name:   "foo",
-			Config: &dockerclient.ContainerConfig{Image: "bar"},
-		},
-		imageInfo: &dockerclient.ImageInfo{Id: "abc123"},
-	}
-	newImageInfo := &dockerclient.ImageInfo{Id: "abc123"}
-
-	api := mockclient.NewMockClient()
-	api.On("PullImage", "bar:latest", mock.Anything).Return(nil)
-	api.On("InspectImage", "bar:latest").Return(newImageInfo, nil)
-
-	client := DockerClient{api: api}
-	err := client.RefreshImage(c)
-
-	assert.NoError(t, err)
-	assert.False(t, c.Stale)
-	api.AssertExpectations(t)
-}
-
-func TestRefreshImage_StaleSuccess(t *testing.T) {
-	c := &Container{
-		containerInfo: &dockerclient.ContainerInfo{
-			Name:   "foo",
-			Config: &dockerclient.ContainerConfig{Image: "bar:1.0"},
-		},
-		imageInfo: &dockerclient.ImageInfo{Id: "abc123"},
-	}
-	newImageInfo := &dockerclient.ImageInfo{Id: "xyz789"}
-
-	api := mockclient.NewMockClient()
-	api.On("PullImage", "bar:1.0", mock.Anything).Return(nil)
-	api.On("InspectImage", "bar:1.0").Return(newImageInfo, nil)
-
-	client := DockerClient{api: api}
-	err := client.RefreshImage(c)
-
-	assert.NoError(t, err)
-	assert.True(t, c.Stale)
-	api.AssertExpectations(t)
-}
-
-func TestRefreshImage_PullImageError(t *testing.T) {
-	c := &Container{
-		containerInfo: &dockerclient.ContainerInfo{
-			Name:   "foo",
-			Config: &dockerclient.ContainerConfig{Image: "bar:latest"},
-		},
-		imageInfo: &dockerclient.ImageInfo{Id: "abc123"},
-	}
-
-	api := mockclient.NewMockClient()
-	api.On("PullImage", "bar:latest", mock.Anything).Return(errors.New("oops"))
-
-	client := DockerClient{api: api}
-	err := client.RefreshImage(c)
-
-	assert.Error(t, err)
-	assert.EqualError(t, err, "oops")
-	api.AssertExpectations(t)
-}
-
-func TestRefreshImage_InspectImageError(t *testing.T) {
-	c := &Container{
-		containerInfo: &dockerclient.ContainerInfo{
-			Name:   "foo",
-			Config: &dockerclient.ContainerConfig{Image: "bar:latest"},
-		},
-		imageInfo: &dockerclient.ImageInfo{Id: "abc123"},
-	}
-	newImageInfo := &dockerclient.ImageInfo{}
-
-	api := mockclient.NewMockClient()
-	api.On("PullImage", "bar:latest", mock.Anything).Return(nil)
-	api.On("InspectImage", "bar:latest").Return(newImageInfo, errors.New("uh-oh"))
-
-	client := DockerClient{api: api}
-	err := client.RefreshImage(c)
-
-	assert.Error(t, err)
-	assert.EqualError(t, err, "uh-oh")
-	api.AssertExpectations(t)
-}
-
-func TestStop_DefaultSuccess(t *testing.T) {
+func TestStopContainer_DefaultSuccess(t *testing.T) {
 	c := Container{
 		containerInfo: &dockerclient.ContainerInfo{
 			Name:   "foo",
@@ -196,13 +110,13 @@ func TestStop_DefaultSuccess(t *testing.T) {
 	api.On("RemoveContainer", "abc123", true, false).Return(nil)
 
 	client := DockerClient{api: api}
-	err := client.Stop(c, time.Second)
+	err := client.StopContainer(c, time.Second)
 
 	assert.NoError(t, err)
 	api.AssertExpectations(t)
 }
 
-func TestStop_CustomSignalSuccess(t *testing.T) {
+func TestStopContainer_CustomSignalSuccess(t *testing.T) {
 	c := Container{
 		containerInfo: &dockerclient.ContainerInfo{
 			Name: "foo",
@@ -224,13 +138,13 @@ func TestStop_CustomSignalSuccess(t *testing.T) {
 	api.On("RemoveContainer", "abc123", true, false).Return(nil)
 
 	client := DockerClient{api: api}
-	err := client.Stop(c, time.Second)
+	err := client.StopContainer(c, time.Second)
 
 	assert.NoError(t, err)
 	api.AssertExpectations(t)
 }
 
-func TestStop_KillContainerError(t *testing.T) {
+func TestStopContainer_KillContainerError(t *testing.T) {
 	c := Container{
 		containerInfo: &dockerclient.ContainerInfo{
 			Name:   "foo",
@@ -243,14 +157,14 @@ func TestStop_KillContainerError(t *testing.T) {
 	api.On("KillContainer", "abc123", "SIGTERM").Return(errors.New("oops"))
 
 	client := DockerClient{api: api}
-	err := client.Stop(c, time.Second)
+	err := client.StopContainer(c, time.Second)
 
 	assert.Error(t, err)
 	assert.EqualError(t, err, "oops")
 	api.AssertExpectations(t)
 }
 
-func TestStop_RemoveContainerError(t *testing.T) {
+func TestStopContainer_RemoveContainerError(t *testing.T) {
 	c := Container{
 		containerInfo: &dockerclient.ContainerInfo{
 			Name:   "foo",
@@ -265,14 +179,14 @@ func TestStop_RemoveContainerError(t *testing.T) {
 	api.On("RemoveContainer", "abc123", true, false).Return(errors.New("whoops"))
 
 	client := DockerClient{api: api}
-	err := client.Stop(c, time.Second)
+	err := client.StopContainer(c, time.Second)
 
 	assert.Error(t, err)
 	assert.EqualError(t, err, "whoops")
 	api.AssertExpectations(t)
 }
 
-func TestStart_Success(t *testing.T) {
+func TestStartContainer_Success(t *testing.T) {
 	c := Container{
 		containerInfo: &dockerclient.ContainerInfo{
 			Name:       "foo",
@@ -289,13 +203,13 @@ func TestStart_Success(t *testing.T) {
 	api.On("StartContainer", "def789", mock.AnythingOfType("*dockerclient.HostConfig")).Return(nil)
 
 	client := DockerClient{api: api}
-	err := client.Start(c)
+	err := client.StartContainer(c)
 
 	assert.NoError(t, err)
 	api.AssertExpectations(t)
 }
 
-func TestStart_CreateContainerError(t *testing.T) {
+func TestStartContainer_CreateContainerError(t *testing.T) {
 	c := Container{
 		containerInfo: &dockerclient.ContainerInfo{
 			Name:       "foo",
@@ -311,14 +225,14 @@ func TestStart_CreateContainerError(t *testing.T) {
 	api.On("CreateContainer", mock.Anything, "foo").Return("", errors.New("oops"))
 
 	client := DockerClient{api: api}
-	err := client.Start(c)
+	err := client.StartContainer(c)
 
 	assert.Error(t, err)
 	assert.EqualError(t, err, "oops")
 	api.AssertExpectations(t)
 }
 
-func TestStart_StartContainerError(t *testing.T) {
+func TestStartContainer_StartContainerError(t *testing.T) {
 	c := Container{
 		containerInfo: &dockerclient.ContainerInfo{
 			Name:       "foo",
@@ -335,14 +249,14 @@ func TestStart_StartContainerError(t *testing.T) {
 	api.On("StartContainer", "def789", mock.Anything).Return(errors.New("whoops"))
 
 	client := DockerClient{api: api}
-	err := client.Start(c)
+	err := client.StartContainer(c)
 
 	assert.Error(t, err)
 	assert.EqualError(t, err, "whoops")
 	api.AssertExpectations(t)
 }
 
-func TestRename_Success(t *testing.T) {
+func TestRenameContainer_Success(t *testing.T) {
 	c := Container{
 		containerInfo: &dockerclient.ContainerInfo{
 			Id: "abc123",
@@ -353,13 +267,13 @@ func TestRename_Success(t *testing.T) {
 	api.On("RenameContainer", "abc123", "foo").Return(nil)
 
 	client := DockerClient{api: api}
-	err := client.Rename(c, "foo")
+	err := client.RenameContainer(c, "foo")
 
 	assert.NoError(t, err)
 	api.AssertExpectations(t)
 }
 
-func TestRename_Error(t *testing.T) {
+func TestRenameContainer_Error(t *testing.T) {
 	c := Container{
 		containerInfo: &dockerclient.ContainerInfo{
 			Id: "abc123",
@@ -370,9 +284,95 @@ func TestRename_Error(t *testing.T) {
 	api.On("RenameContainer", "abc123", "foo").Return(errors.New("oops"))
 
 	client := DockerClient{api: api}
-	err := client.Rename(c, "foo")
+	err := client.RenameContainer(c, "foo")
 
 	assert.Error(t, err)
 	assert.EqualError(t, err, "oops")
+	api.AssertExpectations(t)
+}
+
+func TestIsContainerStale_NotStaleSuccess(t *testing.T) {
+	c := Container{
+		containerInfo: &dockerclient.ContainerInfo{
+			Name:   "foo",
+			Config: &dockerclient.ContainerConfig{Image: "bar"},
+		},
+		imageInfo: &dockerclient.ImageInfo{Id: "abc123"},
+	}
+	newImageInfo := &dockerclient.ImageInfo{Id: "abc123"}
+
+	api := mockclient.NewMockClient()
+	api.On("PullImage", "bar:latest", mock.Anything).Return(nil)
+	api.On("InspectImage", "bar:latest").Return(newImageInfo, nil)
+
+	client := DockerClient{api: api}
+	stale, err := client.IsContainerStale(c)
+
+	assert.NoError(t, err)
+	assert.False(t, stale)
+	api.AssertExpectations(t)
+}
+
+func TestIsContainerStale_StaleSuccess(t *testing.T) {
+	c := Container{
+		containerInfo: &dockerclient.ContainerInfo{
+			Name:   "foo",
+			Config: &dockerclient.ContainerConfig{Image: "bar:1.0"},
+		},
+		imageInfo: &dockerclient.ImageInfo{Id: "abc123"},
+	}
+	newImageInfo := &dockerclient.ImageInfo{Id: "xyz789"}
+
+	api := mockclient.NewMockClient()
+	api.On("PullImage", "bar:1.0", mock.Anything).Return(nil)
+	api.On("InspectImage", "bar:1.0").Return(newImageInfo, nil)
+
+	client := DockerClient{api: api}
+	stale, err := client.IsContainerStale(c)
+
+	assert.NoError(t, err)
+	assert.True(t, stale)
+	api.AssertExpectations(t)
+}
+
+func TestIsContainerStale_PullImageError(t *testing.T) {
+	c := Container{
+		containerInfo: &dockerclient.ContainerInfo{
+			Name:   "foo",
+			Config: &dockerclient.ContainerConfig{Image: "bar:latest"},
+		},
+		imageInfo: &dockerclient.ImageInfo{Id: "abc123"},
+	}
+
+	api := mockclient.NewMockClient()
+	api.On("PullImage", "bar:latest", mock.Anything).Return(errors.New("oops"))
+
+	client := DockerClient{api: api}
+	_, err := client.IsContainerStale(c)
+
+	assert.Error(t, err)
+	assert.EqualError(t, err, "oops")
+	api.AssertExpectations(t)
+}
+
+func TestIsContainerStale_InspectImageError(t *testing.T) {
+	c := Container{
+		containerInfo: &dockerclient.ContainerInfo{
+			Name:   "foo",
+			Config: &dockerclient.ContainerConfig{Image: "bar:latest"},
+		},
+		imageInfo: &dockerclient.ImageInfo{Id: "abc123"},
+	}
+	newImageInfo := &dockerclient.ImageInfo{}
+
+	api := mockclient.NewMockClient()
+	api.On("PullImage", "bar:latest", mock.Anything).Return(nil)
+	api.On("InspectImage", "bar:latest").Return(newImageInfo, errors.New("uh-oh"))
+
+	client := DockerClient{api: api}
+	_, err := client.IsContainerStale(c)
+
+	assert.Error(t, err)
+	assert.EqualError(t, err, "uh-oh")
 	api.AssertExpectations(t)
 }

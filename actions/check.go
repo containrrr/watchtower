@@ -19,7 +19,7 @@ func CheckPrereqs(client container.Client) error {
 
 		// Iterate over all containers execept the last one
 		for _, c := range containers[0 : len(containers)-1] {
-			client.Stop(c, 60)
+			client.StopContainer(c, 60)
 		}
 	}
 

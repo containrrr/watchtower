@@ -35,8 +35,8 @@ func TestCheckPrereqs_Success(t *testing.T) {
 	cs := []container.Container{c1, c2}
 
 	client := &mockclient.MockClient{}
-	client.On("ListContainers", mock.AnythingOfType("container.ContainerFilter")).Return(cs, nil)
-	client.On("Stop", c2, time.Duration(60)).Return(nil)
+	client.On("ListContainers", mock.AnythingOfType("container.Filter")).Return(cs, nil)
+	client.On("StopContainer", c2, time.Duration(60)).Return(nil)
 
 	err := CheckPrereqs(client)
 
@@ -59,7 +59,7 @@ func TestCheckPrereqs_OnlyOneContainer(t *testing.T) {
 	cs := []container.Container{c1}
 
 	client := &mockclient.MockClient{}
-	client.On("ListContainers", mock.AnythingOfType("container.ContainerFilter")).Return(cs, nil)
+	client.On("ListContainers", mock.AnythingOfType("container.Filter")).Return(cs, nil)
 
 	err := CheckPrereqs(client)
 
@@ -71,7 +71,7 @@ func TestCheckPrereqs_ListError(t *testing.T) {
 	cs := []container.Container{}
 
 	client := &mockclient.MockClient{}
-	client.On("ListContainers", mock.AnythingOfType("container.ContainerFilter")).Return(cs, errors.New("oops"))
+	client.On("ListContainers", mock.AnythingOfType("container.Filter")).Return(cs, errors.New("oops"))
 
 	err := CheckPrereqs(client)
 
