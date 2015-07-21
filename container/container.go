@@ -26,7 +26,7 @@ func (c Container) Name() string {
 }
 
 func (c Container) Links() []string {
-	links := []string{}
+	var links []string
 
 	if (c.containerInfo != nil) && (c.containerInfo.HostConfig != nil) {
 		for _, link := range c.containerInfo.HostConfig.Links {
@@ -81,7 +81,7 @@ func (c Container) runtimeConfig() *dockerclient.ContainerConfig {
 	config.Volumes = structMapSubtract(config.Volumes, imageConfig.Volumes)
 
 	config.ExposedPorts = structMapSubtract(config.ExposedPorts, imageConfig.ExposedPorts)
-	for p, _ := range c.containerInfo.HostConfig.PortBindings {
+	for p := range c.containerInfo.HostConfig.PortBindings {
 		config.ExposedPorts[p] = struct{}{}
 	}
 

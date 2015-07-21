@@ -67,7 +67,7 @@ func (client DockerClient) ListContainers(fn ContainerFilter) ([]Container, erro
 
 		c := Container{containerInfo: containerInfo, imageInfo: imageInfo}
 		if fn(c) {
-			cs = append(cs, Container{containerInfo: containerInfo, imageInfo: imageInfo})
+			cs = append(cs, c)
 		}
 	}
 
@@ -133,12 +133,12 @@ func (client DockerClient) Start(c Container) error {
 		log.Printf("Starting %s\n", name)
 	}
 
-	newContainerId, err := client.api.CreateContainer(config, name)
+	newContainerID, err := client.api.CreateContainer(config, name)
 	if err != nil {
 		return err
 	}
 
-	return client.api.StartContainer(newContainerId, hostConfig)
+	return client.api.StartContainer(newContainerID, hostConfig)
 }
 
 func (client DockerClient) Rename(c Container, newName string) error {

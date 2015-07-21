@@ -5,7 +5,8 @@ import (
 	"time"
 )
 
-// Sort containers by Created date
+// ByCreated allows a list of Container structs to be sorted by the container's
+// created date.
 type ByCreated []Container
 
 func (c ByCreated) Len() int      { return len(c) }
