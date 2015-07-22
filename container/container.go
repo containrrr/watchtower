@@ -7,6 +7,11 @@ import (
 	"github.com/samalba/dockerclient"
 )
 
+const (
+	watchtowerLabel = "com.centurylinklabs.watchtower"
+	signalLabel     = "com.centurylinklabs.watchtower.stop-signal"
+)
+
 func NewContainer(containerInfo *dockerclient.ContainerInfo, imageInfo *dockerclient.ImageInfo) *Container {
 	return &Container{
 		containerInfo: containerInfo,
@@ -21,8 +26,22 @@ type Container struct {
 	imageInfo     *dockerclient.ImageInfo
 }
 
+func (c Container) ID() string {
+	return c.containerInfo.Id
+}
+
 func (c Container) Name() string {
 	return c.containerInfo.Name
+}
+
+func (c Container) ImageName() string {
+	imageName := c.containerInfo.Config.Image
+
+	if !strings.Contains(imageName, ":") {
+		imageName = fmt.Sprintf("%s:latest", imageName)
+	}
+
+	return imageName
 }
 
 func (c Container) Links() []string {
@@ -39,8 +58,16 @@ func (c Container) Links() []string {
 }
 
 func (c Container) IsWatchtower() bool {
-	val, ok := c.containerInfo.Config.Labels["com.centurylinklabs.watchtower"]
+	val, ok := c.containerInfo.Config.Labels[watchtowerLabel]
 	return ok && val == "true"
+}
+
+func (c Container) StopSignal() string {
+	if val, ok := c.containerInfo.Config.Labels[signalLabel]; ok {
+		return val
+	}
+
+	return ""
 }
 
 // Ideally, we'd just be able to take the ContainerConfig from the old container

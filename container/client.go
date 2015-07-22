@@ -1,8 +1,6 @@
 package container
 
 import (
-	"fmt"
-	"strings"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -11,7 +9,6 @@ import (
 
 const (
 	defaultStopSignal = "SIGTERM"
-	signalLabel       = "com.centurylinklabs.watchtower.stop-signal"
 )
 
 type Filter func(Container) bool
@@ -74,24 +71,23 @@ func (client DockerClient) ListContainers(fn Filter) ([]Container, error) {
 }
 
 func (client DockerClient) StopContainer(c Container, timeout time.Duration) error {
-	signal := defaultStopSignal
-
-	if sig, ok := c.containerInfo.Config.Labels[signalLabel]; ok {
-		signal = sig
+	signal := c.StopSignal()
+	if signal == "" {
+		signal = defaultStopSignal
 	}
 
-	log.Infof("Stopping %s (%s) with %s", c.Name(), c.containerInfo.Id, signal)
+	log.Infof("Stopping %s (%s) with %s", c.Name(), c.ID(), signal)
 
-	if err := client.api.KillContainer(c.containerInfo.Id, signal); err != nil {
+	if err := client.api.KillContainer(c.ID(), signal); err != nil {
 		return err
 	}
 
 	// Wait for container to exit, but proceed anyway after the timeout elapses
 	client.waitForStop(c, timeout)
 
-	log.Debugf("Removing container %s", c.containerInfo.Id)
+	log.Debugf("Removing container %s", c.ID())
 
-	return client.api.RemoveContainer(c.containerInfo.Id, true, false)
+	return client.api.RemoveContainer(c.ID(), true, false)
 }
 
 func (client DockerClient) StartContainer(c Container) error {
@@ -112,20 +108,15 @@ func (client DockerClient) StartContainer(c Container) error {
 }
 
 func (client DockerClient) RenameContainer(c Container, newName string) error {
-	log.Debugf("Renaming container %s (%s) to %s", c.Name(), c.containerInfo.Id, newName)
-	return client.api.RenameContainer(c.containerInfo.Id, newName)
+	log.Debugf("Renaming container %s (%s) to %s", c.Name(), c.ID(), newName)
+	return client.api.RenameContainer(c.ID(), newName)
 }
 
 func (client DockerClient) IsContainerStale(c Container) (bool, error) {
-	containerInfo := c.containerInfo
 	oldImageInfo := c.imageInfo
-	imageName := containerInfo.Config.Image
+	imageName := c.ImageName()
 
 	if client.pullImages {
-		if !strings.Contains(imageName, ":") {
-			imageName = fmt.Sprintf("%s:latest", imageName)
-		}
-
 		log.Debugf("Pulling %s for %s", imageName, c.Name())
 		if err := client.api.PullImage(imageName, nil); err != nil {
 			return false, err
@@ -153,7 +144,7 @@ func (client DockerClient) waitForStop(c Container, waitTime time.Duration) erro
 		case <-timeout:
 			return nil
 		default:
-			if ci, err := client.api.InspectContainer(c.containerInfo.Id); err != nil {
+			if ci, err := client.api.InspectContainer(c.ID()); err != nil {
 				return err
 			} else if !ci.State.Running {
 				return nil

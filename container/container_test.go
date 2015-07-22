@@ -7,14 +7,44 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestID(t *testing.T) {
+	c := Container{
+		containerInfo: &dockerclient.ContainerInfo{Id: "foo"},
+	}
+
+	assert.Equal(t, "foo", c.ID())
+}
+
 func TestName(t *testing.T) {
 	c := Container{
 		containerInfo: &dockerclient.ContainerInfo{Name: "foo"},
 	}
 
-	name := c.Name()
+	assert.Equal(t, "foo", c.Name())
+}
 
-	assert.Equal(t, "foo", name)
+func TestImageName_Tagged(t *testing.T) {
+	c := Container{
+		containerInfo: &dockerclient.ContainerInfo{
+			Config: &dockerclient.ContainerConfig{
+				Image: "foo:latest",
+			},
+		},
+	}
+
+	assert.Equal(t, "foo:latest", c.ImageName())
+}
+
+func TestImageName_Untagged(t *testing.T) {
+	c := Container{
+		containerInfo: &dockerclient.ContainerInfo{
+			Config: &dockerclient.ContainerConfig{
+				Image: "foo",
+			},
+		},
+	}
+
+	assert.Equal(t, "foo:latest", c.ImageName())
 }
 
 func TestLinks(t *testing.T) {
@@ -65,4 +95,30 @@ func TestIsWatchtower_NoLabel(t *testing.T) {
 	}
 
 	assert.False(t, c.IsWatchtower())
+}
+
+func TestStopSignal_Present(t *testing.T) {
+	c := Container{
+		containerInfo: &dockerclient.ContainerInfo{
+			Config: &dockerclient.ContainerConfig{
+				Labels: map[string]string{
+					"com.centurylinklabs.watchtower.stop-signal": "SIGQUIT",
+				},
+			},
+		},
+	}
+
+	assert.Equal(t, "SIGQUIT", c.StopSignal())
+}
+
+func TestStopSignal_NoLabel(t *testing.T) {
+	c := Container{
+		containerInfo: &dockerclient.ContainerInfo{
+			Config: &dockerclient.ContainerConfig{
+				Labels: map[string]string{},
+			},
+		},
+	}
+
+	assert.Equal(t, "", c.StopSignal())
 }
