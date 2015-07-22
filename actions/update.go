@@ -4,6 +4,7 @@ import (
 	"math/rand"
 
 	"github.com/CenturyLinkLabs/watchtower/container"
+	log "github.com/Sirupsen/logrus"
 )
 
 var (
@@ -13,6 +14,8 @@ var (
 func allContainersFilter(container.Container) bool { return true }
 
 func Update(client container.Client) error {
+	log.Info("Checking containers for updated images")
+
 	containers, err := client.ListContainers(allContainersFilter)
 	if err != nil {
 		return err

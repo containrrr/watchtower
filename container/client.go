@@ -2,10 +2,10 @@ package container
 
 import (
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/samalba/dockerclient"
 )
 
@@ -28,7 +28,7 @@ func NewClient(dockerHost string, pullImages bool) Client {
 	docker, err := dockerclient.NewDockerClient(dockerHost, nil)
 
 	if err != nil {
-		log.Fatalf("Error instantiating Docker client: %s\n", err)
+		log.Fatalf("Error instantiating Docker client: %s", err)
 	}
 
 	return DockerClient{api: docker, pullImages: pullImages}
@@ -42,16 +42,22 @@ type DockerClient struct {
 func (client DockerClient) ListContainers(fn Filter) ([]Container, error) {
 	cs := []Container{}
 
+	log.Debug("Retrieving running containers")
+
 	runningContainers, err := client.api.ListContainers(false, false, "")
 	if err != nil {
 		return nil, err
 	}
 
 	for _, runningContainer := range runningContainers {
+		log.Debugf("Inspecting container %s (%s)", runningContainer.Names[0], runningContainer.Id)
+
 		containerInfo, err := client.api.InspectContainer(runningContainer.Id)
 		if err != nil {
 			return nil, err
 		}
+
+		log.Debugf("Inspecting image %s (%s)", containerInfo.Config.Image, containerInfo.Image)
 
 		imageInfo, err := client.api.InspectImage(containerInfo.Image)
 		if err != nil {
@@ -74,7 +80,7 @@ func (client DockerClient) StopContainer(c Container, timeout time.Duration) err
 		signal = sig
 	}
 
-	log.Printf("Stopping: %s\n", c.Name())
+	log.Infof("Stopping %s (%s) with %s", c.Name(), c.containerInfo.Id, signal)
 
 	if err := client.api.KillContainer(c.containerInfo.Id, signal); err != nil {
 		return err
@@ -82,6 +88,8 @@ func (client DockerClient) StopContainer(c Container, timeout time.Duration) err
 
 	// Wait for container to exit, but proceed anyway after the timeout elapses
 	client.waitForStop(c, timeout)
+
+	log.Debugf("Removing container %s", c.containerInfo.Id)
 
 	return client.api.RemoveContainer(c.containerInfo.Id, true, false)
 }
@@ -91,21 +99,20 @@ func (client DockerClient) StartContainer(c Container) error {
 	hostConfig := c.hostConfig()
 	name := c.Name()
 
-	if name == "" {
-		log.Printf("Starting new container from %s", c.containerInfo.Config.Image)
-	} else {
-		log.Printf("Starting %s\n", name)
-	}
+	log.Infof("Starting %s", name)
 
 	newContainerID, err := client.api.CreateContainer(config, name)
 	if err != nil {
 		return err
 	}
 
+	log.Debugf("Starting container %s (%s)", name, newContainerID)
+
 	return client.api.StartContainer(newContainerID, hostConfig)
 }
 
 func (client DockerClient) RenameContainer(c Container, newName string) error {
+	log.Debugf("Renaming container %s (%s) to %s", c.Name(), c.containerInfo.Id, newName)
 	return client.api.RenameContainer(c.containerInfo.Id, newName)
 }
 
@@ -119,7 +126,7 @@ func (client DockerClient) IsContainerStale(c Container) (bool, error) {
 			imageName = fmt.Sprintf("%s:latest", imageName)
 		}
 
-		log.Printf("Pulling %s for %s\n", imageName, c.Name())
+		log.Debugf("Pulling %s for %s", imageName, c.Name())
 		if err := client.api.PullImage(imageName, nil); err != nil {
 			return false, err
 		}
@@ -131,7 +138,7 @@ func (client DockerClient) IsContainerStale(c Container) (bool, error) {
 	}
 
 	if newImageInfo.Id != oldImageInfo.Id {
-		log.Printf("Found new %s image (%s)\n", imageName, newImageInfo.Id)
+		log.Infof("Found new %s image (%s)", imageName, newImageInfo.Id)
 		return true, nil
 	}
 

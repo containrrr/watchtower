@@ -15,10 +15,10 @@ func allContainers(Container) bool { return true }
 func noContainers(Container) bool  { return false }
 
 func TestListContainers_Success(t *testing.T) {
-	ci := &dockerclient.ContainerInfo{Image: "abc123"}
+	ci := &dockerclient.ContainerInfo{Image: "abc123", Config: &dockerclient.ContainerConfig{Image: "img"}}
 	ii := &dockerclient.ImageInfo{}
 	api := mockclient.NewMockClient()
-	api.On("ListContainers", false, false, "").Return([]dockerclient.Container{{Id: "foo"}}, nil)
+	api.On("ListContainers", false, false, "").Return([]dockerclient.Container{{Id: "foo", Names: []string{"bar"}}}, nil)
 	api.On("InspectContainer", "foo").Return(ci, nil)
 	api.On("InspectImage", "abc123").Return(ii, nil)
 
@@ -33,10 +33,10 @@ func TestListContainers_Success(t *testing.T) {
 }
 
 func TestListContainers_Filter(t *testing.T) {
-	ci := &dockerclient.ContainerInfo{Image: "abc123"}
+	ci := &dockerclient.ContainerInfo{Image: "abc123", Config: &dockerclient.ContainerConfig{Image: "img"}}
 	ii := &dockerclient.ImageInfo{}
 	api := mockclient.NewMockClient()
-	api.On("ListContainers", false, false, "").Return([]dockerclient.Container{{Id: "foo"}}, nil)
+	api.On("ListContainers", false, false, "").Return([]dockerclient.Container{{Id: "foo", Names: []string{"bar"}}}, nil)
 	api.On("InspectContainer", "foo").Return(ci, nil)
 	api.On("InspectImage", "abc123").Return(ii, nil)
 
@@ -62,7 +62,7 @@ func TestListContainers_ListError(t *testing.T) {
 
 func TestListContainers_InspectContainerError(t *testing.T) {
 	api := mockclient.NewMockClient()
-	api.On("ListContainers", false, false, "").Return([]dockerclient.Container{{Id: "foo"}}, nil)
+	api.On("ListContainers", false, false, "").Return([]dockerclient.Container{{Id: "foo", Names: []string{"bar"}}}, nil)
 	api.On("InspectContainer", "foo").Return(&dockerclient.ContainerInfo{}, errors.New("uh-oh"))
 
 	client := DockerClient{api: api}
@@ -74,10 +74,10 @@ func TestListContainers_InspectContainerError(t *testing.T) {
 }
 
 func TestListContainers_InspectImageError(t *testing.T) {
-	ci := &dockerclient.ContainerInfo{Image: "abc123"}
+	ci := &dockerclient.ContainerInfo{Image: "abc123", Config: &dockerclient.ContainerConfig{Image: "img"}}
 	ii := &dockerclient.ImageInfo{}
 	api := mockclient.NewMockClient()
-	api.On("ListContainers", false, false, "").Return([]dockerclient.Container{{Id: "foo"}}, nil)
+	api.On("ListContainers", false, false, "").Return([]dockerclient.Container{{Id: "foo", Names: []string{"bar"}}}, nil)
 	api.On("InspectContainer", "foo").Return(ci, nil)
 	api.On("InspectImage", "abc123").Return(ii, errors.New("whoops"))
 

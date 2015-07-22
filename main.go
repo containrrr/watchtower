@@ -10,6 +10,7 @@ import (
 
 	"github.com/CenturyLinkLabs/watchtower/actions"
 	"github.com/CenturyLinkLabs/watchtower/container"
+	log "github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
 )
 
@@ -39,6 +40,10 @@ func main() {
 			Name:  "no-pull",
 			Usage: "do not pull new images",
 		},
+		cli.BoolFlag{
+			Name:  "debug",
+			Usage: "enable debug mode with verbose logging",
+		},
 	}
 
 	handleSignals()
@@ -59,6 +64,12 @@ func handleSignals() {
 }
 
 func before(c *cli.Context) error {
+	if c.GlobalBool("debug") {
+		log.SetLevel(log.DebugLevel)
+	} else {
+		log.SetLevel(log.InfoLevel)
+	}
+
 	client := newContainerClient(c)
 	return actions.CheckPrereqs(client)
 }
