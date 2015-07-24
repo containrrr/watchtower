@@ -41,7 +41,7 @@ func Update(client container.Client) error {
 		container := containers[i]
 
 		if container.IsWatchtower() {
-			break
+			continue
 		}
 
 		if container.Stale {
