@@ -1,6 +1,7 @@
 package container
 
 import (
+	"crypto/tls"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -21,8 +22,8 @@ type Client interface {
 	IsContainerStale(Container) (bool, error)
 }
 
-func NewClient(dockerHost string, pullImages bool) Client {
-	docker, err := dockerclient.NewDockerClient(dockerHost, nil)
+func NewClient(dockerHost string, tlsConfig *tls.Config, pullImages bool) Client {
+	docker, err := dockerclient.NewDockerClient(dockerHost, tlsConfig)
 
 	if err != nil {
 		log.Fatalf("Error instantiating Docker client: %s", err)
