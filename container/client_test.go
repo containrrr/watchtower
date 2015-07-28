@@ -106,8 +106,9 @@ func TestStopContainer_DefaultSuccess(t *testing.T) {
 
 	api := mockclient.NewMockClient()
 	api.On("KillContainer", "abc123", "SIGTERM").Return(nil)
-	api.On("InspectContainer", "abc123").Return(ci, nil)
+	api.On("InspectContainer", "abc123").Return(ci, nil).Once()
 	api.On("RemoveContainer", "abc123", true, false).Return(nil)
+	api.On("InspectContainer", "abc123").Return(&dockerclient.ContainerInfo{}, errors.New("Not Found"))
 
 	client := DockerClient{api: api}
 	err := client.StopContainer(c, time.Second)
@@ -134,8 +135,9 @@ func TestStopContainer_CustomSignalSuccess(t *testing.T) {
 
 	api := mockclient.NewMockClient()
 	api.On("KillContainer", "abc123", "SIGUSR1").Return(nil)
-	api.On("InspectContainer", "abc123").Return(ci, nil)
+	api.On("InspectContainer", "abc123").Return(ci, nil).Once()
 	api.On("RemoveContainer", "abc123", true, false).Return(nil)
+	api.On("InspectContainer", "abc123").Return(&dockerclient.ContainerInfo{}, errors.New("Not Found"))
 
 	client := DockerClient{api: api}
 	err := client.StopContainer(c, time.Second)

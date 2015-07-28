@@ -2,6 +2,7 @@ package container
 
 import (
 	"crypto/tls"
+	"fmt"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -88,7 +89,16 @@ func (client DockerClient) StopContainer(c Container, timeout time.Duration) err
 
 	log.Debugf("Removing container %s", c.ID())
 
-	return client.api.RemoveContainer(c.ID(), true, false)
+	if err := client.api.RemoveContainer(c.ID(), true, false); err != nil {
+		return err
+	}
+
+	// Wait for container to be removed. In this case an error is a good thing
+	if err := client.waitForStop(c, timeout); err == nil {
+		return fmt.Errorf("Container %s (%s) could not be removed", c.Name(), c.ID())
+	}
+
+	return nil
 }
 
 func (client DockerClient) StartContainer(c Container) error {
