@@ -160,8 +160,8 @@ func (client DockerClient) waitForStop(c Container, waitTime time.Duration) erro
 			} else if !ci.State.Running {
 				return nil
 			}
-
-			time.Sleep(1 * time.Second)
 		}
+
+		time.Sleep(1 * time.Second)
 	}
 }

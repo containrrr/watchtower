@@ -2,13 +2,15 @@ package actions
 
 import (
 	"math/rand"
+	"time"
 
 	"github.com/CenturyLinkLabs/watchtower/container"
 	log "github.com/Sirupsen/logrus"
 )
 
 var (
-	letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+	letters  = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+	waitTime = 10 * time.Second
 )
 
 func allContainersFilter(container.Container) bool { return true }
@@ -45,8 +47,8 @@ func Update(client container.Client) error {
 		}
 
 		if container.Stale {
-			if err := client.StopContainer(container, 10); err != nil {
-				return err
+			if err := client.StopContainer(container, waitTime); err != nil {
+				log.Error(err)
 			}
 		}
 	}
@@ -60,12 +62,13 @@ func Update(client container.Client) error {
 			// instance so that the new one can adopt the old name.
 			if container.IsWatchtower() {
 				if err := client.RenameContainer(container, randName()); err != nil {
-					return err
+					log.Error(err)
+					continue
 				}
 			}
 
 			if err := client.StartContainer(container); err != nil {
-				return err
+				log.Error(err)
 			}
 		}
 	}
