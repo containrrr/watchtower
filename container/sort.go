@@ -12,6 +12,8 @@ type ByCreated []Container
 func (c ByCreated) Len() int      { return len(c) }
 func (c ByCreated) Swap(i, j int) { c[i], c[j] = c[j], c[i] }
 
+// Less will compare two elements (identified by index) in the Container
+// list by created-date.
 func (c ByCreated) Less(i, j int) bool {
 	t1, err := time.Parse(time.RFC3339Nano, c[i].containerInfo.Created)
 	if err != nil {
@@ -26,6 +28,11 @@ func (c ByCreated) Less(i, j int) bool {
 	return t1.Before(t2)
 }
 
+// SortByDependencies will sort the list of containers taking into account any
+// links between containers. Container with no outgoing links will be sorted to
+// the front of the list while containers with links will be sorted after all
+// of their dependencies. This sort order ensures that linked containers can
+// be started in the correct order.
 func SortByDependencies(containers []Container) ([]Container, error) {
 	sorter := dependencySorter{}
 	return sorter.Sort(containers)

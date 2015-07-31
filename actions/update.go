@@ -15,6 +15,10 @@ var (
 
 func allContainersFilter(container.Container) bool { return true }
 
+// Update looks at the running Docker containers to see if any of the images
+// used to start those containers have been updated. If a change is detected in
+// any of the images, the associated containers are stopped and restarted with
+// the new image.
 func Update(client container.Client, cleanup bool) error {
 	log.Info("Checking containers for updated images")
 

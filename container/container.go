@@ -12,6 +12,8 @@ const (
 	signalLabel     = "com.centurylinklabs.watchtower.stop-signal"
 )
 
+// NewContainer returns a new Container instance instantiated with the
+// specified ContainerInfo and ImageInfo structs.
 func NewContainer(containerInfo *dockerclient.ContainerInfo, imageInfo *dockerclient.ImageInfo) *Container {
 	return &Container{
 		containerInfo: containerInfo,
@@ -19,6 +21,7 @@ func NewContainer(containerInfo *dockerclient.ContainerInfo, imageInfo *dockercl
 	}
 }
 
+// Container represents a running Docker container.
 type Container struct {
 	Stale bool
 
@@ -26,18 +29,25 @@ type Container struct {
 	imageInfo     *dockerclient.ImageInfo
 }
 
+// ID returns the Docker container ID.
 func (c Container) ID() string {
 	return c.containerInfo.Id
 }
 
+// Name returns the Docker container name.
 func (c Container) Name() string {
 	return c.containerInfo.Name
 }
 
+// ImageID returns the ID of the Docker image that was used to start the
+// container.
 func (c Container) ImageID() string {
 	return c.imageInfo.Id
 }
 
+// ImageName returns the name of the Docker image that was used to start the
+// container. If the original image was specified without a particular tag, the
+// "latest" tag is assumed.
 func (c Container) ImageName() string {
 	imageName := c.containerInfo.Config.Image
 
@@ -48,6 +58,8 @@ func (c Container) ImageName() string {
 	return imageName
 }
 
+// Links returns a list containing the names of all the containers to which
+// this container is linked.
 func (c Container) Links() []string {
 	var links []string
 
@@ -61,11 +73,18 @@ func (c Container) Links() []string {
 	return links
 }
 
+// IsWatchtower returns a boolean flag indicating whether or not the current
+// container is the watchtower container itself. The watchtower container is
+// identified by the presence of the "com.centurylinklabs.watchtower" label in
+// the container metadata.
 func (c Container) IsWatchtower() bool {
 	val, ok := c.containerInfo.Config.Labels[watchtowerLabel]
 	return ok && val == "true"
 }
 
+// StopSignal returns the custom stop signal (if any) that is encoded in the
+// container's metadata. If the container has not specified a custom stop
+// signal, the empty string "" is returned.
 func (c Container) StopSignal() string {
 	if val, ok := c.containerInfo.Config.Labels[signalLabel]; ok {
 		return val

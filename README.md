@@ -1,8 +1,9 @@
 # Watchtower
 ![Watchtower](http://panamax.ca.tier3.io/zodiac/logo-watchtower_thumb.png)
 
+[![Circle CI](https://circleci.com/gh/CenturyLinkLabs/watchtower.svg?style=svg)](https://circleci.com/gh/CenturyLinkLabs/watchtower)&nbsp; 
+[![GoDoc](https://godoc.org/github.com/CenturyLinkLabs/watchtower?status.svg)](https://godoc.org/github.com/CenturyLinkLabs/watchtower)&nbsp;
 [![](https://badge.imagelayers.io/centurylink/watchtower:latest.svg)](https://imagelayers.io/?images=centurylink/watchtower:latest 'Get your own badge on imagelayers.io')
-[![Circle CI](https://circleci.com/gh/CenturyLinkLabs/watchtower.svg?style=svg)](https://circleci.com/gh/CenturyLinkLabs/watchtower)
 
 A process for watching your Docker containers and automatically restarting them whenever their base image is refreshed.
 

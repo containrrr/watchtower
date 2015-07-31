@@ -13,8 +13,12 @@ const (
 	defaultStopSignal = "SIGTERM"
 )
 
+// A Filter is a prototype for a function that can be used to filter the
+// results from a call to the ListContainers() method on the Client.
 type Filter func(Container) bool
 
+// A Client is the interface through which watchtower interacts with the
+// Docker API.
 type Client interface {
 	ListContainers(Filter) ([]Container, error)
 	StopContainer(Container, time.Duration) error
@@ -24,6 +28,8 @@ type Client interface {
 	RemoveImage(Container) error
 }
 
+// NewClient returns a new Client instance which can be used to interact with
+// the Docker API.
 func NewClient(dockerHost string, tlsConfig *tls.Config, pullImages bool) Client {
 	docker, err := dockerclient.NewDockerClient(dockerHost, tlsConfig)
 
