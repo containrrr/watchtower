@@ -31,15 +31,15 @@ func NewClient(dockerHost string, tlsConfig *tls.Config, pullImages bool) Client
 		log.Fatalf("Error instantiating Docker client: %s", err)
 	}
 
-	return DockerClient{api: docker, pullImages: pullImages}
+	return dockerClient{api: docker, pullImages: pullImages}
 }
 
-type DockerClient struct {
+type dockerClient struct {
 	api        dockerclient.Client
 	pullImages bool
 }
 
-func (client DockerClient) ListContainers(fn Filter) ([]Container, error) {
+func (client dockerClient) ListContainers(fn Filter) ([]Container, error) {
 	cs := []Container{}
 
 	log.Debug("Retrieving running containers")
@@ -73,7 +73,7 @@ func (client DockerClient) ListContainers(fn Filter) ([]Container, error) {
 	return cs, nil
 }
 
-func (client DockerClient) StopContainer(c Container, timeout time.Duration) error {
+func (client dockerClient) StopContainer(c Container, timeout time.Duration) error {
 	signal := c.StopSignal()
 	if signal == "" {
 		signal = defaultStopSignal
@@ -102,7 +102,7 @@ func (client DockerClient) StopContainer(c Container, timeout time.Duration) err
 	return nil
 }
 
-func (client DockerClient) StartContainer(c Container) error {
+func (client dockerClient) StartContainer(c Container) error {
 	config := c.runtimeConfig()
 	hostConfig := c.hostConfig()
 	name := c.Name()
@@ -119,12 +119,12 @@ func (client DockerClient) StartContainer(c Container) error {
 	return client.api.StartContainer(newContainerID, hostConfig)
 }
 
-func (client DockerClient) RenameContainer(c Container, newName string) error {
+func (client dockerClient) RenameContainer(c Container, newName string) error {
 	log.Debugf("Renaming container %s (%s) to %s", c.Name(), c.ID(), newName)
 	return client.api.RenameContainer(c.ID(), newName)
 }
 
-func (client DockerClient) IsContainerStale(c Container) (bool, error) {
+func (client dockerClient) IsContainerStale(c Container) (bool, error) {
 	oldImageInfo := c.imageInfo
 	imageName := c.ImageName()
 
@@ -148,14 +148,14 @@ func (client DockerClient) IsContainerStale(c Container) (bool, error) {
 	return false, nil
 }
 
-func (client DockerClient) RemoveImage(c Container) error {
+func (client dockerClient) RemoveImage(c Container) error {
 	imageID := c.ImageID()
 	log.Infof("Removing image %s", imageID)
 	_, err := client.api.RemoveImage(imageID)
 	return err
 }
 
-func (client DockerClient) waitForStop(c Container, waitTime time.Duration) error {
+func (client dockerClient) waitForStop(c Container, waitTime time.Duration) error {
 	timeout := time.After(waitTime)
 
 	for {
