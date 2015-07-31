@@ -35,3 +35,8 @@ func (m *MockClient) IsContainerStale(c container.Container) (bool, error) {
 	args := m.Called(c)
 	return args.Bool(0), args.Error(1)
 }
+
+func (m *MockClient) RemoveImage(c container.Container) error {
+	args := m.Called(c)
+	return args.Error(0)
+}

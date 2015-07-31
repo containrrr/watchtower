@@ -399,3 +399,38 @@ func TestIsContainerStale_InspectImageError(t *testing.T) {
 	assert.EqualError(t, err, "uh-oh")
 	api.AssertExpectations(t)
 }
+
+func TestRemoveImage_Success(t *testing.T) {
+	c := Container{
+		imageInfo: &dockerclient.ImageInfo{
+			Id: "abc123",
+		},
+	}
+
+	api := mockclient.NewMockClient()
+	api.On("RemoveImage", "abc123").Return([]*dockerclient.ImageDelete{}, nil)
+
+	client := DockerClient{api: api}
+	err := client.RemoveImage(c)
+
+	assert.NoError(t, err)
+	api.AssertExpectations(t)
+}
+
+func TestRemoveImage_Error(t *testing.T) {
+	c := Container{
+		imageInfo: &dockerclient.ImageInfo{
+			Id: "abc123",
+		},
+	}
+
+	api := mockclient.NewMockClient()
+	api.On("RemoveImage", "abc123").Return([]*dockerclient.ImageDelete{}, errors.New("oops"))
+
+	client := DockerClient{api: api}
+	err := client.RemoveImage(c)
+
+	assert.Error(t, err)
+	assert.EqualError(t, err, "oops")
+	api.AssertExpectations(t)
+}

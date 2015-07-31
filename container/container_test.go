@@ -23,6 +23,16 @@ func TestName(t *testing.T) {
 	assert.Equal(t, "foo", c.Name())
 }
 
+func TestImageID(t *testing.T) {
+	c := Container{
+		imageInfo: &dockerclient.ImageInfo{
+			Id: "foo",
+		},
+	}
+
+	assert.Equal(t, "foo", c.ImageID())
+}
+
 func TestImageName_Tagged(t *testing.T) {
 	c := Container{
 		containerInfo: &dockerclient.ContainerInfo{

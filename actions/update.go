@@ -15,7 +15,7 @@ var (
 
 func allContainersFilter(container.Container) bool { return true }
 
-func Update(client container.Client) error {
+func Update(client container.Client, cleanup bool) error {
 	log.Info("Checking containers for updated images")
 
 	containers, err := client.ListContainers(allContainersFilter)
@@ -69,6 +69,10 @@ func Update(client container.Client) error {
 
 			if err := client.StartContainer(container); err != nil {
 				log.Error(err)
+			}
+
+			if cleanup {
+				client.RemoveImage(container)
 			}
 		}
 	}

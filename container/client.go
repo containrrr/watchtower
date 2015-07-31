@@ -21,6 +21,7 @@ type Client interface {
 	StartContainer(Container) error
 	RenameContainer(Container, string) error
 	IsContainerStale(Container) (bool, error)
+	RemoveImage(Container) error
 }
 
 func NewClient(dockerHost string, tlsConfig *tls.Config, pullImages bool) Client {
@@ -145,6 +146,13 @@ func (client DockerClient) IsContainerStale(c Container) (bool, error) {
 	}
 
 	return false, nil
+}
+
+func (client DockerClient) RemoveImage(c Container) error {
+	imageID := c.ImageID()
+	log.Infof("Removing image %s", imageID)
+	_, err := client.api.RemoveImage(imageID)
+	return err
 }
 
 func (client DockerClient) waitForStop(c Container, waitTime time.Duration) error {

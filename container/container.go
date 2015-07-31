@@ -34,6 +34,10 @@ func (c Container) Name() string {
 	return c.containerInfo.Name
 }
 
+func (c Container) ImageID() string {
+	return c.imageInfo.Id
+}
+
 func (c Container) ImageName() string {
 	imageName := c.containerInfo.Config.Image
 

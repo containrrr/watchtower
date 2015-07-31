@@ -8,7 +8,7 @@ import (
 
 func watchtowerContainersFilter(c container.Container) bool { return c.IsWatchtower() }
 
-func CheckPrereqs(client container.Client) error {
+func CheckPrereqs(client container.Client, cleanup bool) error {
 	containers, err := client.ListContainers(watchtowerContainersFilter)
 	if err != nil {
 		return err
@@ -20,6 +20,10 @@ func CheckPrereqs(client container.Client) error {
 		// Iterate over all containers execept the last one
 		for _, c := range containers[0 : len(containers)-1] {
 			client.StopContainer(c, 60)
+
+			if cleanup {
+				client.RemoveImage(c)
+			}
 		}
 	}
 

@@ -22,6 +22,7 @@ var (
 	wg           sync.WaitGroup
 	client       container.Client
 	pollInterval time.Duration
+	cleanup      bool
 )
 
 func init() {
@@ -55,6 +56,10 @@ func main() {
 		cli.BoolFlag{
 			Name:  "no-pull",
 			Usage: "do not pull new images",
+		},
+		cli.BoolFlag{
+			Name:  "cleanup",
+			Usage: "remove old images after updating",
 		},
 		cli.BoolFlag{
 			Name:  "tls",
@@ -97,6 +102,7 @@ func before(c *cli.Context) error {
 	}
 
 	pollInterval = time.Duration(c.Int("interval")) * time.Second
+	cleanup = c.GlobalBool("cleanup")
 
 	// Set-up container client
 	tls, err := tlsConfig(c)
@@ -111,13 +117,13 @@ func before(c *cli.Context) error {
 }
 
 func start(*cli.Context) {
-	if err := actions.CheckPrereqs(client); err != nil {
+	if err := actions.CheckPrereqs(client, cleanup); err != nil {
 		log.Fatal(err)
 	}
 
 	for {
 		wg.Add(1)
-		if err := actions.Update(client); err != nil {
+		if err := actions.Update(client, cleanup); err != nil {
 			fmt.Println(err)
 		}
 		wg.Done()
