@@ -15,14 +15,29 @@ var (
 
 func allContainersFilter(container.Container) bool { return true }
 
+func containerFilter(names []string) container.Filter {
+	if len(names) == 0 {
+		return allContainersFilter
+	}
+
+	return func(c container.Container) bool {
+		for _, name := range names {
+			if (name == c.Name()) || (name == c.Name()[1:]) {
+				return true
+			}
+		}
+		return false
+	}
+}
+
 // Update looks at the running Docker containers to see if any of the images
 // used to start those containers have been updated. If a change is detected in
 // any of the images, the associated containers are stopped and restarted with
 // the new image.
-func Update(client container.Client, cleanup bool) error {
+func Update(client container.Client, names []string, cleanup bool) error {
 	log.Info("Checking containers for updated images")
 
-	containers, err := client.ListContainers(allContainersFilter)
+	containers, err := client.ListContainers(containerFilter(names))
 	if err != nil {
 		return err
 	}

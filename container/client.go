@@ -56,14 +56,10 @@ func (client dockerClient) ListContainers(fn Filter) ([]Container, error) {
 	}
 
 	for _, runningContainer := range runningContainers {
-		log.Debugf("Inspecting container %s (%s)", runningContainer.Names[0], runningContainer.Id)
-
 		containerInfo, err := client.api.InspectContainer(runningContainer.Id)
 		if err != nil {
 			return nil, err
 		}
-
-		log.Debugf("Inspecting image %s (%s)", containerInfo.Config.Image, containerInfo.Image)
 
 		imageInfo, err := client.api.InspectImage(containerInfo.Image)
 		if err != nil {

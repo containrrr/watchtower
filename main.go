@@ -116,14 +116,16 @@ func before(c *cli.Context) error {
 	return nil
 }
 
-func start(*cli.Context) {
+func start(c *cli.Context) {
+	names := c.Args()
+
 	if err := actions.CheckPrereqs(client, cleanup); err != nil {
 		log.Fatal(err)
 	}
 
 	for {
 		wg.Add(1)
-		if err := actions.Update(client, cleanup); err != nil {
+		if err := actions.Update(client, names, cleanup); err != nil {
 			fmt.Println(err)
 		}
 		wg.Done()

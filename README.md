@@ -39,6 +39,21 @@ docker run -d \
   centurylink/watchtower
 ```
 
+### Arguments
+
+By default, watchtower will monitor all containers running within the Docker daemon to which it is pointed (in most cases this will be the local Docker daemon, but you can override it with the `--host` option described in the next section). However, you can restrict watchtower to monitoring a subset of the running containers by specifying the container names as arguments when launching watchtower.
+
+```
+docker run -d \
+  --name watchtower \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  centurylink/watchtower nginx redis
+```
+
+In the example above, watchtower will only monitor the containers named "nginx" and "redis" for updates -- all of the other running containers will be ignored.
+
+When no arguments are specified, watchtower will monitor all running containers.
+
 ### Options
 
 Any of the options described below can be passed to the watchtower process by setting them after the image name in the `docker run` string:
@@ -58,7 +73,6 @@ docker run --rm centurylink/watchtower --help
 * `--tlskey` - Client key for TLS authentication. Used in conjunction with the `--tls` or `--tlsverify` flags to identify the key to use for client authentication. The value for this flag can be either the fully-qualified path to the *.pem* file containing the client key or a string containing the key itself. Defaults to "/etc/ssl/docker/key.pem".
 * `--debug` - Enable debug mode. When this option is specified you'll see more verbose logging in the watchtower log file.
 * `--help` - Show documentation about the supported flags.
-
 
 ## Stopping Containers
 
