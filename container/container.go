@@ -10,6 +10,7 @@ import (
 const (
 	watchtowerLabel = "com.centurylinklabs.watchtower"
 	signalLabel     = "com.centurylinklabs.watchtower.stop-signal"
+	zodiacLabel     = "com.centurylinklabs.zodiac.original-image"
 )
 
 // NewContainer returns a new Container instance instantiated with the
@@ -49,7 +50,11 @@ func (c Container) ImageID() string {
 // container. If the original image was specified without a particular tag, the
 // "latest" tag is assumed.
 func (c Container) ImageName() string {
-	imageName := c.containerInfo.Config.Image
+	// Compatibility w/ Zodiac deployments
+	imageName, ok := c.containerInfo.Config.Labels[zodiacLabel]
+	if !ok {
+		imageName = c.containerInfo.Config.Image
+	}
 
 	if !strings.Contains(imageName, ":") {
 		imageName = fmt.Sprintf("%s:latest", imageName)
@@ -135,6 +140,7 @@ func (c Container) runtimeConfig() *dockerclient.ContainerConfig {
 		config.ExposedPorts[p] = struct{}{}
 	}
 
+	config.Image = c.ImageName()
 	return config
 }
 

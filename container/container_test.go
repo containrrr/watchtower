@@ -57,6 +57,19 @@ func TestImageName_Untagged(t *testing.T) {
 	assert.Equal(t, "foo:latest", c.ImageName())
 }
 
+func TestImageName_Zodiac(t *testing.T) {
+	c := Container{
+		containerInfo: &dockerclient.ContainerInfo{
+			Config: &dockerclient.ContainerConfig{
+				Labels: map[string]string{"com.centurylinklabs.zodiac.original-image": "foo"},
+				Image:  "1234567890",
+			},
+		},
+	}
+
+	assert.Equal(t, "foo:latest", c.ImageName())
+}
+
 func TestLinks(t *testing.T) {
 	c := Container{
 		containerInfo: &dockerclient.ContainerInfo{
