@@ -89,6 +89,14 @@ func main() {
 			Name:  "debug",
 			Usage: "enable debug mode with verbose logging",
 		},
+		cli.StringFlag{
+			Name:  "username, u",
+			Usage: "username for registry authentication",
+		},
+		cli.StringFlag{
+			Name:  "password, p",
+			Usage: "username for registry authentication",
+		},
 	}
 
 	if err := app.Run(os.Args); err != nil {
@@ -110,7 +118,7 @@ func before(c *cli.Context) error {
 		return err
 	}
 
-	client = container.NewClient(c.GlobalString("host"), tls, !c.GlobalBool("no-pull"))
+	client = container.NewClient(c.GlobalString("host"), tls, c.GlobalString("username"), c.GlobalString("password"), !c.GlobalBool("no-pull"))
 
 	handleSignals()
 	return nil
