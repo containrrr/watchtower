@@ -133,7 +133,7 @@ func (client dockerClient) IsContainerStale(c Container) (bool, error) {
 	imageName := c.ImageName()
 
 	if client.pullImages {
-		var a *dockerclient.AuthConfig = nil
+		var a *dockerclient.AuthConfig
 		if client.username!="" {
 			a = &dockerclient.AuthConfig{Username: client.username, Password: client.password, Email: ""}
 		}
