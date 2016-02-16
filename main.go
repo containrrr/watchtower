@@ -63,7 +63,7 @@ func main() {
 		cli.BoolFlag{
 			Name:   "no-restart",
 			Usage:  "do not restart containers",
-			EnvVar: "WATCHTOWER_NO_PULL",
+			EnvVar: "WATCHTOWER_NO_RESTART",
 		},
 		cli.BoolFlag{
 			Name:   "cleanup",
