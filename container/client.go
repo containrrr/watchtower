@@ -111,7 +111,7 @@ func (client dockerClient) StartContainer(c Container) error {
 
 	log.Infof("Starting %s", name)
 
-	newContainerID, err := client.api.CreateContainer(config, name)
+	newContainerID, err := client.api.CreateContainer(config, name, nil)
 	if err != nil {
 		return err
 	}
@@ -153,7 +153,7 @@ func (client dockerClient) IsContainerStale(c Container) (bool, error) {
 func (client dockerClient) RemoveImage(c Container) error {
 	imageID := c.ImageID()
 	log.Infof("Removing image %s", imageID)
-	_, err := client.api.RemoveImage(imageID)
+	_, err := client.api.RemoveImage(imageID, true)
 	return err
 }
 
