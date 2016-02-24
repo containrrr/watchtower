@@ -118,6 +118,7 @@ func (client dockerClient) StartContainer(c Container) error {
 	log.Infof("Starting %s", name)
 
 	newContainerID, err := client.api.CreateContainer(config, name, &auth)
+
 	if err != nil {
 		return err
 	}
