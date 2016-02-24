@@ -1,6 +1,4 @@
-FROM centurylink/ca-certs
-MAINTAINER CenturyLink Labs <innovationslab@ctl.io>
-LABEL "com.centurylinklabs.watchtower"="true"
+FROM ubuntu:14.04
 
 COPY watchtower /
 ENTRYPOINT ["/watchtower"]

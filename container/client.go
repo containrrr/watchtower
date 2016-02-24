@@ -13,6 +13,12 @@ const (
 	defaultStopSignal = "SIGTERM"
 )
 
+var auth = dockerclient.AuthConfig{
+	Username: "",
+	Password: "",
+	Email:    "",
+}
+
 // A Filter is a prototype for a function that can be used to filter the
 // results from a call to the ListContainers() method on the Client.
 type Filter func(Container) bool
@@ -111,7 +117,7 @@ func (client dockerClient) StartContainer(c Container) error {
 
 	log.Infof("Starting %s", name)
 
-	newContainerID, err := client.api.CreateContainer(config, name)
+	newContainerID, err := client.api.CreateContainer(config, name, &auth)
 	if err != nil {
 		return err
 	}
@@ -132,7 +138,7 @@ func (client dockerClient) IsContainerStale(c Container) (bool, error) {
 
 	if client.pullImages {
 		log.Debugf("Pulling %s for %s", imageName, c.Name())
-		if err := client.api.PullImage(imageName, nil); err != nil {
+		if err := client.api.PullImage(imageName, &auth); err != nil {
 			return false, err
 		}
 	}
@@ -153,7 +159,7 @@ func (client dockerClient) IsContainerStale(c Container) (bool, error) {
 func (client dockerClient) RemoveImage(c Container) error {
 	imageID := c.ImageID()
 	log.Infof("Removing image %s", imageID)
-	_, err := client.api.RemoveImage(imageID)
+	_, err := client.api.RemoveImage(imageID, true)
 	return err
 }
 
