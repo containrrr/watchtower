@@ -106,19 +106,19 @@ func (client dockerClient) StopContainer(c Container, timeout time.Duration) err
 
 func (client dockerClient) StartContainer(c Container) error {
 	config := c.runtimeConfig()
-	hostConfig := c.hostConfig()
+	config.HostConfig = *c.hostConfig()
 	name := c.Name()
 
 	log.Infof("Starting %s", name)
 
-	newContainerID, err := client.api.CreateContainer(config, name)
+	newContainerID, err := client.api.CreateContainer(config, name, nil)
 	if err != nil {
 		return err
 	}
 
 	log.Debugf("Starting container %s (%s)", name, newContainerID)
 
-	return client.api.StartContainer(newContainerID, hostConfig)
+	return client.api.StartContainer(newContainerID, nil)
 }
 
 func (client dockerClient) RenameContainer(c Container, newName string) error {
@@ -153,7 +153,7 @@ func (client dockerClient) IsContainerStale(c Container) (bool, error) {
 func (client dockerClient) RemoveImage(c Container) error {
 	imageID := c.ImageID()
 	log.Infof("Removing image %s", imageID)
-	_, err := client.api.RemoveImage(imageID)
+	_, err := client.api.RemoveImage(imageID, false)
 	return err
 }
 
