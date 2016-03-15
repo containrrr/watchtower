@@ -1,6 +1,6 @@
 {
 	"ImportPath": "github.com/CenturyLinkLabs/watchtower",
-	"GoVersion": "go1.4.2",
+	"GoVersion": "go1.5",
 	"Packages": [
 		"./..."
 	],
@@ -16,27 +16,39 @@
 			"Rev": "bca61c476e3c752594983e4c9bcd5f62fb09f157"
 		},
 		{
-			"ImportPath": "github.com/docker/docker/pkg/units",
-			"Comment": "v1.4.1-4520-g469e234",
-			"Rev": "469e234dedd84c13eea6271a8c6cc804e46cf22b"
+			"ImportPath": "github.com/davecgh/go-spew/spew",
+			"Rev": "5215b55f46b2b919f50a1df0eaa5886afe4e3b3d"
+		},
+		{
+			"ImportPath": "github.com/docker/go-units",
+			"Comment": "v0.3.0",
+			"Rev": "5d2041e26a699eaca682e2ea41c8f891e1060444"
+		},
+		{
+			"ImportPath": "github.com/pmezard/go-difflib/difflib",
+			"Rev": "792786c7400a136282c1664665ae0a8db921c6c2"
 		},
 		{
 			"ImportPath": "github.com/samalba/dockerclient",
-			"Rev": "15ebe064ca62ad0d64834e7ef0d4ed8ce9d02cde"
+			"Rev": "f274bbd0e2eb35ad1444dc6e6660214f9fbbc08c"
+		},
+		{
+			"ImportPath": "github.com/samalba/dockerclient/mockclient",
+			"Rev": "f274bbd0e2eb35ad1444dc6e6660214f9fbbc08c"
 		},
 		{
 			"ImportPath": "github.com/stretchr/objx",
-			"Rev": "cbeaeb16a013161a98496fad62933b1d21786672"
+			"Rev": "1a9d0bb9f541897e62256577b352fdbc1fb4fd94"
 		},
 		{
 			"ImportPath": "github.com/stretchr/testify/assert",
-			"Comment": "v1.0-17-g089c718",
-			"Rev": "089c7181b8c728499929ff09b62d3fdd8df8adff"
+			"Comment": "v1.1.3-6-g6fe211e",
+			"Rev": "6fe211e493929a8aac0469b93f28b1d0688a9a3a"
 		},
 		{
 			"ImportPath": "github.com/stretchr/testify/mock",
-			"Comment": "v1.0-17-g089c718",
-			"Rev": "089c7181b8c728499929ff09b62d3fdd8df8adff"
+			"Comment": "v1.1.3-6-g6fe211e",
+			"Rev": "6fe211e493929a8aac0469b93f28b1d0688a9a3a"
 		}
 	]
 }
