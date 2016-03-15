@@ -201,7 +201,7 @@ func TestStartContainer_Success(t *testing.T) {
 	}
 
 	api := mockclient.NewMockClient()
-	api.On("CreateContainer", mock.AnythingOfType("*dockerclient.ContainerConfig"), "foo").Return("def789", nil)
+	api.On("CreateContainer", mock.AnythingOfType("*dockerclient.ContainerConfig"), "foo", mock.AnythingOfType("*dockerclient.AuthConfig")).Return("def789", nil)
 	api.On("StartContainer", "def789", mock.AnythingOfType("*dockerclient.HostConfig")).Return(nil)
 
 	client := dockerClient{api: api}
@@ -224,7 +224,7 @@ func TestStartContainer_CreateContainerError(t *testing.T) {
 	}
 
 	api := mockclient.NewMockClient()
-	api.On("CreateContainer", mock.Anything, "foo").Return("", errors.New("oops"))
+	api.On("CreateContainer", mock.Anything, "foo", mock.AnythingOfType("*dockerclient.AuthConfig")).Return("", errors.New("oops"))
 
 	client := dockerClient{api: api}
 	err := client.StartContainer(c)
@@ -247,8 +247,8 @@ func TestStartContainer_StartContainerError(t *testing.T) {
 	}
 
 	api := mockclient.NewMockClient()
-	api.On("CreateContainer", mock.Anything, "foo").Return("def789", nil)
-	api.On("StartContainer", "def789", mock.Anything).Return(errors.New("whoops"))
+	api.On("CreateContainer", mock.Anything, "foo", mock.AnythingOfType("*dockerclient.AuthConfig")).Return("def789", nil)
+	api.On("StartContainer", "def789", mock.AnythingOfType("*dockerclient.HostConfig")).Return(errors.New("whoops"))
 
 	client := dockerClient{api: api}
 	err := client.StartContainer(c)
@@ -408,7 +408,7 @@ func TestRemoveImage_Success(t *testing.T) {
 	}
 
 	api := mockclient.NewMockClient()
-	api.On("RemoveImage", "abc123").Return([]*dockerclient.ImageDelete{}, nil)
+	api.On("RemoveImage", "abc123", false).Return([]*dockerclient.ImageDelete{}, nil)
 
 	client := dockerClient{api: api}
 	err := client.RemoveImage(c)
@@ -425,7 +425,7 @@ func TestRemoveImage_Error(t *testing.T) {
 	}
 
 	api := mockclient.NewMockClient()
-	api.On("RemoveImage", "abc123").Return([]*dockerclient.ImageDelete{}, errors.New("oops"))
+	api.On("RemoveImage", "abc123", false).Return([]*dockerclient.ImageDelete{}, errors.New("oops"))
 
 	client := dockerClient{api: api}
 	err := client.RemoveImage(c)
