@@ -3,6 +3,7 @@ package container
 import (
 	"crypto/tls"
 	"fmt"
+	"os"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -12,6 +13,10 @@ import (
 const (
 	defaultStopSignal = "SIGTERM"
 )
+
+var username = os.Getenv("REPO_USER")
+var password = os.Getenv("REPO_PASS")
+var email = os.Getenv("REPO_EMAIL")
 
 // A Filter is a prototype for a function that can be used to filter the
 // results from a call to the ListContainers() method on the Client.
@@ -111,7 +116,19 @@ func (client dockerClient) StartContainer(c Container) error {
 
 	log.Infof("Starting %s", name)
 
-	newContainerID, err := client.api.CreateContainer(config, name)
+	var err error
+	var newContainerID string
+	if username != "" && password != "" && email != "" {
+		auth := dockerclient.AuthConfig{
+			Username: username,
+			Password: password,
+			Email:    email,
+		}
+		newContainerID, err = client.api.CreateContainer(config, name, &auth)
+	} else {
+		newContainerID, err = client.api.CreateContainer(config, name, nil)
+	}
+
 	if err != nil {
 		return err
 	}
@@ -132,9 +149,22 @@ func (client dockerClient) IsContainerStale(c Container) (bool, error) {
 
 	if client.pullImages {
 		log.Debugf("Pulling %s for %s", imageName, c.Name())
-		if err := client.api.PullImage(imageName, nil); err != nil {
-			return false, err
+
+		if username != "" && password != "" && email != "" {
+			auth := dockerclient.AuthConfig{
+				Username: username,
+				Password: password,
+				Email:    email,
+			}
+			if err := client.api.PullImage(imageName, &auth); err != nil {
+				return false, err
+			}
+		} else {
+			if err := client.api.PullImage(imageName, nil); err != nil {
+				return false, err
+			}
 		}
+
 	}
 
 	newImageInfo, err := client.api.InspectImage(imageName)
@@ -153,7 +183,7 @@ func (client dockerClient) IsContainerStale(c Container) (bool, error) {
 func (client dockerClient) RemoveImage(c Container) error {
 	imageID := c.ImageID()
 	log.Infof("Removing image %s", imageID)
-	_, err := client.api.RemoveImage(imageID)
+	_, err := client.api.RemoveImage(imageID, true)
 	return err
 }
 
