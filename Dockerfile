@@ -1,4 +1,4 @@
-FROM ubuntu:14.04
+FROM centurylink/ca-certs
 
 COPY watchtower /
 ENTRYPOINT ["/watchtower"]
