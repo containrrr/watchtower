@@ -157,10 +157,12 @@ func (client dockerClient) IsContainerStale(c Container) (bool, error) {
 				Email:    email,
 			}
 			if err := client.api.PullImage(imageName, &auth); err != nil {
+				log.Debugf("Error pulling image %s with authentication, %s", imageName, err)
 				return false, err
 			}
 		} else {
 			if err := client.api.PullImage(imageName, nil); err != nil {
+				log.Debugf("Error pulling image %s, %s", imageName, err)
 				return false, err
 			}
 		}
