@@ -115,12 +115,12 @@ func before(c *cli.Context) error {
 	cleanup = c.GlobalBool("cleanup")
 
 	// Set-up container client
-	tls, err := tlsConfig(c)
+	_, err := tlsConfig(c)
 	if err != nil {
 		return err
 	}
 
-	client = container.NewClient(c.GlobalString("host"), tls, !c.GlobalBool("no-pull"))
+	client = container.NewClient(c.GlobalString("host"), !c.GlobalBool("no-pull"))
 	login(c)
 
 	handleSignals()

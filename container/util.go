@@ -1,5 +1,9 @@
 package container
 
+import (
+	"github.com/docker/go-connections/nat"
+)
+
 func sliceEqual(s1, s2 []string) bool {
 	if len(s1) != len(s2) {
 		return false
@@ -53,6 +57,18 @@ func stringMapSubtract(m1, m2 map[string]string) map[string]string {
 
 func structMapSubtract(m1, m2 map[string]struct{}) map[string]struct{} {
 	m := map[string]struct{}{}
+
+	for k1, v1 := range m1 {
+		if _, ok := m2[k1]; !ok {
+			m[k1] = v1
+		}
+	}
+
+	return m
+}
+
+func structMapPortSubtract(m1, m2 map[nat.Port]struct{}) map[nat.Port]struct{} {
+	m := map[nat.Port]struct{}{}
 
 	for k1, v1 := range m1 {
 		if _, ok := m2[k1]; !ok {
