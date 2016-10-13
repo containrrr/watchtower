@@ -11,18 +11,22 @@ import (
 	"sync"
 	"syscall"
 	"time"
+	"context"
 
 	"github.com/CenturyLinkLabs/watchtower/actions"
 	"github.com/CenturyLinkLabs/watchtower/container"
 	log "github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
+	dockerclient "github.com/docker/docker/client"
+	"github.com/docker/docker/api/types"
 )
 
 var (
-	wg           sync.WaitGroup
-	client       container.Client
-	pollInterval time.Duration
-	cleanup      bool
+	wg              sync.WaitGroup
+	client          container.Client
+	registryClient  container.Client
+	pollInterval    time.Duration
+	cleanup         bool
 )
 
 func init() {
@@ -47,6 +51,12 @@ func main() {
 			Usage:  "daemon socket to connect to",
 			Value:  "unix:///var/run/docker.sock",
 			EnvVar: "DOCKER_HOST",
+		},
+		cli.StringFlag{
+			Name:   "registry",
+			Usage:  "docker registry from which to pull images",
+			Value:  "unix:///var/run/docker.sock",
+			EnvVar: "DOCKER_REGISTRY",
 		},
 		cli.IntFlag{
 			Name:  "interval, i",
@@ -111,9 +121,31 @@ func before(c *cli.Context) error {
 	}
 
 	client = container.NewClient(c.GlobalString("host"), tls, !c.GlobalBool("no-pull"))
+	login(c)
 
 	handleSignals()
 	return nil
+}
+
+func login(c *cli.Context) {
+	registry := c.GlobalString("registry")
+	if registry != "" && registry != c.GlobalString("host") {
+		log.Debug("Logging into registry")
+		clint, err := dockerclient.NewEnvClient()
+		if err != nil {
+			panic(err)
+		}
+		regAuth := types.AuthConfig{
+					Username: "testuser",
+					Password: "testpassword",
+					ServerAddress: registry,
+		}
+		resp, err := clint.RegistryLogin(context.Background(), regAuth)
+		if err != nil {
+			panic(err)
+		}
+		log.Debugf("Authenticated client with registry %s, %s", registry, resp)
+	}
 }
 
 func start(c *cli.Context) {

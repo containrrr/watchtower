@@ -46,7 +46,9 @@ docker run -d \
   --name watchtower \
   -e REPO_USER="username" -e REPO_PASS="pass" -e REPO_EMAIL="email" \
   -v /var/run/docker.sock:/var/run/docker.sock \
-  drud/watchtower container_to_watch --debug
+  drud/watchtower container_to_watch \
+  --registry private.registry.net:port \
+  --debug
 ```
 
 ### Arguments
@@ -73,6 +75,7 @@ docker run --rm centurylink/watchtower --help
 ```
 
 * `--host, -h` Docker daemon socket to connect to. Defaults to "unix:///var/run/docker.sock" but can be pointed at a remote Docker host by specifying a TCP endpoint as "tcp://hostname:port". The host value can also be provided by setting the `DOCKER_HOST` environment variable.
+* `--registry` The private Docker registry from which to pull images, if different from `host`.
 * `--interval, -i` Poll interval (in seconds). This value controls how frequently watchtower will poll for new images. Defaults to 300 seconds (5 minutes).
 * `--no-pull` Do not pull new images. When this flag is specified, watchtower will not attempt to pull new images from the registry. Instead it will only monitor the local image cache for changes. Use this option if you are building new images directly on the Docker host without pushing them to a registry.
 * `--cleanup` Remove old images after updating. When this flag is specified, watchtower will remove the old image after restarting a container with a new image. Use this option to prevent the accumulation of orphaned images on your system as containers are updated.
