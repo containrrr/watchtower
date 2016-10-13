@@ -17,10 +17,6 @@
 			"ImportPath": "github.com/docker/go-units",
 			"Comment": "v0.3.1-6-gf2145db",
 			"Rev": "f2145db703495b2e525c59662db69a7344b00bb8"
-		},
-		{
-			"ImportPath": "github.com/samalba/dockerclient",
-			"Rev": "a3036261847103270e9f732509f43b5f98710ace"
 		}
 	]
 }
