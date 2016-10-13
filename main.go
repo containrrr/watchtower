@@ -1,7 +1,6 @@
 package main // import "github.com/CenturyLinkLabs/watchtower"
 
 import (
-	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
@@ -19,6 +18,7 @@ import (
 	"github.com/urfave/cli"
 	"github.com/docker/docker/api/types"
 	dockerclient "github.com/docker/docker/client"
+	"golang.org/x/net/context"
 )
 
 var (
