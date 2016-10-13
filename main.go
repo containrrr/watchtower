@@ -1,6 +1,7 @@
 package main // import "github.com/CenturyLinkLabs/watchtower"
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
@@ -11,22 +12,21 @@ import (
 	"sync"
 	"syscall"
 	"time"
-	"context"
 
 	"github.com/CenturyLinkLabs/watchtower/actions"
 	"github.com/CenturyLinkLabs/watchtower/container"
 	log "github.com/Sirupsen/logrus"
 	"github.com/codegangsta/cli"
-	dockerclient "github.com/docker/docker/client"
 	"github.com/docker/docker/api/types"
+	dockerclient "github.com/docker/docker/client"
 )
 
 var (
-	wg              sync.WaitGroup
-	client          container.Client
-	registryClient  container.Client
-	pollInterval    time.Duration
-	cleanup         bool
+	wg             sync.WaitGroup
+	client         container.Client
+	registryClient container.Client
+	pollInterval   time.Duration
+	cleanup        bool
 )
 
 func init() {
@@ -136,9 +136,9 @@ func login(c *cli.Context) {
 			panic(err)
 		}
 		regAuth := types.AuthConfig{
-					Username: "testuser",
-					Password: "testpassword",
-					ServerAddress: registry,
+			Username:      "testuser",
+			Password:      "testpassword",
+			ServerAddress: registry,
 		}
 		resp, err := clint.RegistryLogin(context.Background(), regAuth)
 		if err != nil {
