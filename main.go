@@ -16,7 +16,7 @@ import (
 	"github.com/CenturyLinkLabs/watchtower/actions"
 	"github.com/CenturyLinkLabs/watchtower/container"
 	log "github.com/Sirupsen/logrus"
-	"github.com/codegangsta/cli"
+	"github.com/urfave/cli"
 	"github.com/docker/docker/api/types"
 	dockerclient "github.com/docker/docker/client"
 )
@@ -121,7 +121,7 @@ func before(c *cli.Context) error {
 	}
 
 	client = container.NewClient(c.GlobalString("host"), !c.GlobalBool("no-pull"))
-	login(c)
+	//login(c)
 
 	handleSignals()
 	return nil

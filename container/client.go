@@ -172,7 +172,10 @@ func (client dockerClient) IsContainerStale(c Container) (bool, error) {
 	if newImageInfo.ID != oldImageInfo.ID {
 		log.Infof("Found new %s image (%s)", imageName, newImageInfo.ID)
 		return true, nil
+	} else {
+		log.Debugf("No new images found for %s", c.Name())
 	}
+	
 
 	return false, nil
 }
