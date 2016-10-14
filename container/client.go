@@ -2,7 +2,6 @@ package container
 
 import (
 	"fmt"
-	"os"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -14,11 +13,6 @@ import (
 const (
 	defaultStopSignal = "SIGTERM"
 )
-
-var username = os.Getenv("REPO_USER")
-var password = os.Getenv("REPO_PASS")
-var email = os.Getenv("REPO_EMAIL")
-var api_version = "1.24"
 
 // A Filter is a prototype for a function that can be used to filter the
 // results from a call to the ListContainers() method on the Client.
@@ -33,13 +27,16 @@ type Client interface {
 	RenameContainer(Container, string) error
 	IsContainerStale(Container) (bool, error)
 	RemoveImage(Container) error
-	RegistryLogin(string) error
 }
 
 // NewClient returns a new Client instance which can be used to interact with
 // the Docker API.
-func NewClient(dockerHost string, pullImages bool) Client {
-	cli, err := dockerclient.NewClient(dockerHost, api_version, nil, nil)
+// The client reads its configuration from the following environment variables:
+//  * DOCKER_HOST			the docker-engine host to send api requests to
+//  * DOCKER_TLS_VERIFY		whether to verify tls certificates
+//  * DOCKER_API_VERSION	the minimum docker api version to work with
+func NewClient(pullImages bool) Client {
+	cli, err := dockerclient.NewEnvClient()
 
 	if err != nil {
 		log.Fatalf("Error instantiating Docker client: %s", err)
@@ -51,11 +48,6 @@ func NewClient(dockerHost string, pullImages bool) Client {
 type dockerClient struct {
 	api        *dockerclient.Client
 	pullImages bool
-}
-
-func (client dockerClient) RegistryLogin(registryURL string) error {
-	log.Debug("Login not implemented")
-	return nil
 }
 
 func (client dockerClient) ListContainers(fn Filter) ([]Container, error) {
