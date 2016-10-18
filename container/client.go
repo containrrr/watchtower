@@ -7,6 +7,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	dockerclient "github.com/docker/docker/client"
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/cli/command"
 	"golang.org/x/net/context"
 )
 
@@ -144,16 +145,23 @@ func (client dockerClient) IsContainerStale(c Container) (bool, error) {
 
 	if client.pullImages {
 		log.Debugf("Pulling %s for %s", imageName, c.Name())
+		
+		auth := types.AuthConfig {
+			Username: "testuser",
+			Password: "testpassword",
+		}
+		encodedAuth, err := command.EncodeAuthToBase64(auth)
+		if err != nil {
+			return false, err
+		}
 
 		// Note: ImagePullOptions below can take a RegistryAuth arg if 401 on private registry
-		closer, err := client.api.ImagePull(bg, imageName, types.ImagePullOptions{})
-		if (err != nil) {
+		closer, err := client.api.ImagePull(bg, imageName, types.ImagePullOptions{RegistryAuth: encodedAuth})
+		if err != nil {
 			log.Debugf("Error pulling image %s, %s", imageName, err)
 			return false, err
-		} else {
-			closer.Close()
 		}
-		
+		defer closer.Close()
 	}
 
 	newImageInfo, _, err := client.api.ImageInspectWithRaw(bg, imageName)
@@ -166,6 +174,7 @@ func (client dockerClient) IsContainerStale(c Container) (bool, error) {
 		return true, nil
 	} else {
 		log.Debugf("No new images found for %s", c.Name())
+		log.Debugf("Old image ID %s is the same as New Image ID %s", oldImageInfo.ID, newImageInfo.ID)
 	}
 	
 
