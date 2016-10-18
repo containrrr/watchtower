@@ -4,7 +4,6 @@ import (
 	"errors"
 	"os"
 	"strings"
-	"fmt"
 	log "github.com/Sirupsen/logrus"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/reference"
@@ -12,19 +11,6 @@ import (
 	"github.com/docker/docker/cliconfig/configfile"
 	"github.com/docker/docker/cliconfig/credentials"
 )
-
-
-/*
- * Return an encoded auth config for the given registry
- * hardcoded for a test environment
- */
-func EncodedTestAuth(ref string) (string, error) {
-	auth := types.AuthConfig {
-		Username: "testuser",
-		Password: "testpassword",
-	}
-	return EncodeAuth(auth)
-}
 
 /*
  * Return an encoded auth config for the given registry
@@ -38,7 +24,7 @@ func EncodedEnvAuth(ref string) (string, error) {
 			Username: username,
 			Password: password,
 		}
-		log.Debugf("Loaded auth credentials %s from environment for %s", auth, ref)
+		log.Debugf("Loaded auth credentials %s for %s", auth, ref)
 		return EncodeAuth(auth)
 	} else {
 		return "", errors.New("Registry auth environment variables (REPO_USER, REPO_PASS) not set")
@@ -88,7 +74,12 @@ func EncodeAuth(auth types.AuthConfig) (string, error) {
 	return command.EncodeAuthToBase64(auth)
 }
 
+/**
+ * This function will be invoked if an AuthConfig is rejected
+ * It could be used to return a new value for the "X-Registry-Auth" authentication header,
+ * but there's no point trying again with the same value as used in AuthConfig
+ */
 func DefaultAuthHandler() (string, error) {
-	log.Error("Authentication requested")
-	return "", fmt.Errorf("Error requesting privilege")
+	log.Debug("Authentication request was rejected. Trying again without authentication")
+	return "", nil
 }
