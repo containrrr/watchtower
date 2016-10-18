@@ -149,10 +149,6 @@ func (client dockerClient) IsContainerStale(c Container) (bool, error) {
 		var opts types.ImagePullOptions // ImagePullOptions can take a RegistryAuth arg to authenticate against a private registry
 		auth, err := EncodedEnvAuth(imageName)
 		if err != nil {
-			// credentials environment vars not set, trying Docker config instead
-			auth, err = EncodedConfigAuth(imageName)
-		}
-		if err != nil {
 			log.Debug("No authentication credentials found")
 			opts = types.ImagePullOptions{}
 		} else {

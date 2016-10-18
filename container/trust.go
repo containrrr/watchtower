@@ -48,6 +48,7 @@ func EncodedEnvAuth(ref string) (string, error) {
 /*
  * Return an encoded auth config for the given registry
  * loaded from the docker config
+ * The docker config must be mounted on the container
  */
 func EncodedConfigAuth(ref string) (string, error) {
 	server, err := ParseServerAddress(ref)

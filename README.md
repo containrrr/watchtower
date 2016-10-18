@@ -39,7 +39,7 @@ docker run -d \
   centurylink/watchtower
 ```
 
-If pulling images from a private Docker registry, supply any authentication credentials with the environment variables `REPO_USER` and `REPO_PASS` or omit to leave watchtower load credentials from the default Docker config (`~/.docker/config.json`):
+If pulling images from a private Docker registry, supply any authentication credentials with the environment variables `REPO_USER` and `REPO_PASS`.
 
 ```
 docker run -d \
