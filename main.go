@@ -15,10 +15,10 @@ import (
 )
 
 var (
-	wg             sync.WaitGroup
-	client         container.Client
-	pollInterval   time.Duration
-	cleanup        bool
+	wg           sync.WaitGroup
+	client       container.Client
+	pollInterval time.Duration
+	cleanup      bool
 )
 
 func init() {
@@ -61,8 +61,8 @@ func main() {
 			Usage: "enable debug mode with verbose logging",
 		},
 		cli.StringFlag{
-			Name:  "apiversion",
-			Usage: "the version of the docker api",
+			Name:   "apiversion",
+			Usage:  "the version of the docker api",
 			EnvVar: "DOCKER_API_VERSION",
 		},
 	}
@@ -124,9 +124,9 @@ func handleSignals() {
 }
 
 func setEnvOptStr(env string, opt string) error {
-	if (opt != "" && opt != os.Getenv(env)) {
+	if opt != "" && opt != os.Getenv(env) {
 		err := os.Setenv(env, opt)
-		if (err != nil) {
+		if err != nil {
 			return err
 		}
 	}
@@ -134,7 +134,7 @@ func setEnvOptStr(env string, opt string) error {
 }
 
 func setEnvOptBool(env string, opt bool) error {
-	if (opt == true) {
+	if opt == true {
 		return setEnvOptStr(env, "1")
 	}
 	return nil
