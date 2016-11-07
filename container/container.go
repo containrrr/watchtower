@@ -136,7 +136,12 @@ func (c Container) runtimeConfig() *dockercontainer.Config {
 
 	config.Volumes = structMapSubtract(config.Volumes, imageConfig.Volumes)
 
-	config.ExposedPorts = structMapPortSubtract(config.ExposedPorts, imageConfig.ExposedPorts)
+	// subtract ports exposed in image from container
+	for k, _ := range config.ExposedPorts {
+		if _, ok := imageConfig.ExposedPorts[k]; ok {
+			delete(config.ExposedPorts, k)
+		}
+	}
 	for p := range c.containerInfo.HostConfig.PortBindings {
 		config.ExposedPorts[p] = struct{}{}
 	}
