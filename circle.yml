@@ -14,7 +14,7 @@ test:
 
 deployment:
   hub:
-    branch: master
+    branch: hub
     commands:
       - docker run -v $(pwd):/src centurylink/golang-builder:latest
       - docker build -t $IMAGE_NAME:latest .
