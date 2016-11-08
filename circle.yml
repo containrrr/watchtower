@@ -2,7 +2,7 @@ machine:
   services:
     - docker
   environment:
-    IMAGE_NAME: rosscado/watchtower
+    IMAGE_NAME: centurylink/watchtower
 
 dependencies:
   override:
@@ -14,14 +14,14 @@ test:
 
 deployment:
   hub:
-    branch: hub
+    branch: master
     commands:
       - docker run -v $(pwd):/src centurylink/golang-builder:latest
       - docker build -t $IMAGE_NAME:latest .
       - docker login -e $DOCKER_EMAIL -u $DOCKER_USER -p $DOCKER_PASS
       - docker push $IMAGE_NAME:latest
   hub_mirror:
-    branch: auth
+    branch: [master, auth]
     owner: rosscado
     commands:
       - docker run -v $(pwd):/src centurylink/golang-builder:latest
