@@ -39,12 +39,13 @@ docker run -d \
   centurylink/watchtower
 ```
 
-If pulling images from a private Docker registry, supply any authentication credentials with the environment variables `REPO_USER` and `REPO_PASS`.
+If pulling images from private Docker registries, supply registry authentication credentials with the environment variables `REPO_USER` and `REPO_PASS`
+or by mounting the host's docker config file into the container (at the root of the container filesystem `/`).
 
 ```
 docker run -d \
   --name watchtower \
-  -e REPO_USER="<username>" -e REPO_PASS="<password>" \
+  -v /home/<user>/.docker/config.json:/config.json \
   -v /var/run/docker.sock:/var/run/docker.sock \
   drud/watchtower container_to_watch --debug
 ```

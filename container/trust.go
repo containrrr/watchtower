@@ -8,13 +8,28 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/reference"
 	"github.com/docker/docker/cli/command"
+	"github.com/docker/docker/cliconfig"
 	"github.com/docker/docker/cliconfig/configfile"
 	"github.com/docker/docker/cliconfig/credentials"
 )
 
+/**
+ * Return an encoded auth config for the given registry
+ * loaded from environment variables or docker config
+ * as available in that order
+ */
+func EncodedAuth(ref string) (string, error) {
+	auth, err := EncodedEnvAuth(ref)
+	if err != nil {
+		auth, err = EncodedConfigAuth(ref)
+	}
+	return auth, err
+}
+
 /*
  * Return an encoded auth config for the given registry
  * loaded from environment variables
+ * Returns an error if authentication environment variables have not been set
  */
 func EncodedEnvAuth(ref string) (string, error) {
 	username := os.Getenv("REPO_USER")
@@ -34,17 +49,27 @@ func EncodedEnvAuth(ref string) (string, error) {
 /*
  * Return an encoded auth config for the given registry
  * loaded from the docker config
+ * Returns an empty string if credentials cannot be found for the referenced server
  * The docker config must be mounted on the container
  */
 func EncodedConfigAuth(ref string) (string, error) {
 	server, err := ParseServerAddress(ref)
-	configFile := command.LoadDefaultConfigFile(log.StandardLogger().Out)
-	credStore := CredentialsStore(*configFile)
-	auth, err := credStore.Get(server)
+	configDir := os.Getenv("DOCKER_CONFIG")
+	if configDir == "" {
+		configDir = "/"
+	}
+	configFile, err := cliconfig.Load(configDir)
 	if err != nil {
+		log.Errorf("Unable to find default config file %s", err)
 		return "", err
 	}
-	log.Debugf("Loaded auth credentials %s from Docker config for reference %s", auth, ref)
+	credStore := CredentialsStore(*configFile)
+	auth, err := credStore.Get(server) // returns (types.AuthConfig{}) if server not in credStore
+	if auth == (types.AuthConfig{}) {
+		log.Debugf("No credentials for %s in %s", server, configFile.Filename)
+		return "", nil
+	}
+	log.Debugf("Loaded auth credentials %s from %s", auth, configFile.Filename)
 	return EncodeAuth(auth)
 }
 
