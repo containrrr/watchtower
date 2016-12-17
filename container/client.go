@@ -8,6 +8,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	dockerclient "github.com/docker/docker/client"
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/network"
 	"golang.org/x/net/context"
 )
 
@@ -118,10 +119,11 @@ func (client dockerClient) StartContainer(c Container) error {
 	bg := context.Background();
 	config := c.runtimeConfig()
 	hostConfig := c.hostConfig()
+	networkConfig := &network.NetworkingConfig{EndpointsConfig: c.containerInfo.NetworkSettings.Networks}
 	name := c.Name()
 
 	log.Infof("Starting %s", name)
-	creation, err := client.api.ContainerCreate(bg, config, hostConfig, nil, name)
+	creation, err := client.api.ContainerCreate(bg, config, hostConfig, networkConfig, name)
 	if err != nil {
 		return err
 	}
