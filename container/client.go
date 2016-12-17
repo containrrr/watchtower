@@ -2,13 +2,13 @@ package container
 
 import (
 	"fmt"
-	"time"
 	"io/ioutil"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
-	dockerclient "github.com/docker/docker/client"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/network"
+	dockerclient "github.com/docker/docker/client"
 	"golang.org/x/net/context"
 )
 
@@ -77,7 +77,7 @@ func (client dockerClient) ListContainers(fn Filter) ([]Container, error) {
 		}
 
 		c := Container{containerInfo: &containerInfo, imageInfo: &imageInfo}
-		if (fn(c)) {
+		if fn(c) {
 			cs = append(cs, c)
 		}
 	}
@@ -116,7 +116,7 @@ func (client dockerClient) StopContainer(c Container, timeout time.Duration) err
 }
 
 func (client dockerClient) StartContainer(c Container) error {
-	bg := context.Background();
+	bg := context.Background()
 	config := c.runtimeConfig()
 	hostConfig := c.hostConfig()
 	networkConfig := &network.NetworkingConfig{EndpointsConfig: c.containerInfo.NetworkSettings.Networks}
@@ -178,7 +178,7 @@ func (client dockerClient) IsContainerStale(c Container) (bool, error) {
 
 	if client.pullImages {
 		log.Debugf("Pulling %s for %s", imageName, c.Name())
-		
+
 		var opts types.ImagePullOptions // ImagePullOptions can take a RegistryAuth arg to authenticate against a private registry
 		auth, err := EncodedAuth(imageName)
 		if err != nil {
@@ -197,7 +197,7 @@ func (client dockerClient) IsContainerStale(c Container) (bool, error) {
 			return false, err
 		}
 		defer response.Close()
-		
+
 		// the pull request will be aborted prematurely unless the response is read
 		_, err = ioutil.ReadAll(response)
 	}
@@ -213,7 +213,6 @@ func (client dockerClient) IsContainerStale(c Container) (bool, error) {
 	} else {
 		log.Debugf("No new images found for %s", c.Name())
 	}
-	
 
 	return false, nil
 }
