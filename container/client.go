@@ -120,17 +120,48 @@ func (client dockerClient) StartContainer(c Container) error {
 	config := c.runtimeConfig()
 	hostConfig := c.hostConfig()
 	networkConfig := &network.NetworkingConfig{EndpointsConfig: c.containerInfo.NetworkSettings.Networks}
+	// simpleNetworkConfig is a networkConfig with only 1 network.
+	// see: https://github.com/docker/docker/issues/29265
+	simpleNetworkConfig := func() *network.NetworkingConfig {
+		oneEndpoint := make(map[string]*network.EndpointSettings)
+		for k, v := range networkConfig.EndpointsConfig {
+			oneEndpoint[k] = v
+			// we only need 1
+			break
+		}
+		return &network.NetworkingConfig{EndpointsConfig: oneEndpoint}
+	}()
+
 	name := c.Name()
 
 	log.Infof("Starting %s", name)
-	creation, err := client.api.ContainerCreate(bg, config, hostConfig, networkConfig, name)
+	creation, err := client.api.ContainerCreate(bg, config, hostConfig, simpleNetworkConfig, name)
 	if err != nil {
 		return err
 	}
 
 	log.Debugf("Starting container %s (%s)", name, creation.ID)
 
-	return client.api.ContainerStart(bg, creation.ID, types.ContainerStartOptions{})
+	err = client.api.ContainerStart(bg, creation.ID, types.ContainerStartOptions{})
+	if err != nil {
+		return err
+	}
+
+	for k, _ := range simpleNetworkConfig.EndpointsConfig {
+		err = client.api.NetworkDisconnect(bg, k, creation.ID, true)
+		if err != nil {
+			return err
+		}
+	}
+
+	for k, v := range networkConfig.EndpointsConfig {
+		err = client.api.NetworkConnect(bg, k, creation.ID, v)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+
 }
 
 func (client dockerClient) RenameContainer(c Container, newName string) error {
