@@ -23,6 +23,7 @@ var (
 	client       container.Client
 	pollInterval time.Duration
 	cleanup      bool
+	noRestart    bool
 )
 
 func init() {
@@ -49,17 +50,25 @@ func main() {
 			EnvVar: "DOCKER_HOST",
 		},
 		cli.IntFlag{
-			Name:  "interval, i",
-			Usage: "poll interval (in seconds)",
-			Value: 300,
+			Name:   "interval, i",
+			Usage:  "poll interval (in seconds)",
+			Value:  300,
+			EnvVar: "WATCHTOWER_POLL_INTERVAL",
 		},
 		cli.BoolFlag{
-			Name:  "no-pull",
-			Usage: "do not pull new images",
+			Name:   "no-pull",
+			Usage:  "do not pull new images",
+			EnvVar: "WATCHTOWER_NO_PULL",
 		},
 		cli.BoolFlag{
-			Name:  "cleanup",
-			Usage: "remove old images after updating",
+			Name:   "no-restart",
+			Usage:  "do not restart containers",
+			EnvVar: "WATCHTOWER_NO_RESTART",
+		},
+		cli.BoolFlag{
+			Name:   "cleanup",
+			Usage:  "remove old images after updating",
+			EnvVar: "WATCHTOWER_CLEANUP",
 		},
 		cli.BoolFlag{
 			Name:  "tls",
@@ -103,6 +112,7 @@ func before(c *cli.Context) error {
 
 	pollInterval = time.Duration(c.Int("interval")) * time.Second
 	cleanup = c.GlobalBool("cleanup")
+	noRestart = c.GlobalBool("no-restart")
 
 	// Set-up container client
 	tls, err := tlsConfig(c)
@@ -125,7 +135,7 @@ func start(c *cli.Context) {
 
 	for {
 		wg.Add(1)
-		if err := actions.Update(client, names, cleanup); err != nil {
+		if err := actions.Update(client, names, cleanup, noRestart); err != nil {
 			fmt.Println(err)
 		}
 		wg.Done()
