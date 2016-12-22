@@ -1,13 +1,9 @@
 package main // import "github.com/CenturyLinkLabs/watchtower"
 
 import (
-	"crypto/tls"
-	"crypto/x509"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/signal"
-	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -15,7 +11,7 @@ import (
 	"github.com/CenturyLinkLabs/watchtower/actions"
 	"github.com/CenturyLinkLabs/watchtower/container"
 	log "github.com/Sirupsen/logrus"
-	"github.com/codegangsta/cli"
+	"github.com/urfave/cli"
 )
 
 var (
@@ -31,12 +27,6 @@ func init() {
 }
 
 func main() {
-	rootCertPath := "/etc/ssl/docker"
-
-	if os.Getenv("DOCKER_CERT_PATH") != "" {
-		rootCertPath = os.Getenv("DOCKER_CERT_PATH")
-	}
-
 	app := cli.NewApp()
 	app.Name = "watchtower"
 	app.Usage = "Automatically update running Docker containers"
@@ -71,32 +61,18 @@ func main() {
 			EnvVar: "WATCHTOWER_CLEANUP",
 		},
 		cli.BoolFlag{
-			Name:  "tls",
-			Usage: "use TLS; implied by --tlsverify",
-		},
-		cli.BoolFlag{
 			Name:   "tlsverify",
 			Usage:  "use TLS and verify the remote",
 			EnvVar: "DOCKER_TLS_VERIFY",
 		},
-		cli.StringFlag{
-			Name:  "tlscacert",
-			Usage: "trust certs signed only by this CA",
-			Value: fmt.Sprintf("%s/ca.pem", rootCertPath),
-		},
-		cli.StringFlag{
-			Name:  "tlscert",
-			Usage: "client certificate for TLS authentication",
-			Value: fmt.Sprintf("%s/cert.pem", rootCertPath),
-		},
-		cli.StringFlag{
-			Name:  "tlskey",
-			Usage: "client key for TLS authentication",
-			Value: fmt.Sprintf("%s/key.pem", rootCertPath),
-		},
 		cli.BoolFlag{
 			Name:  "debug",
 			Usage: "enable debug mode with verbose logging",
+		},
+		cli.StringFlag{
+			Name:   "apiversion",
+			Usage:  "the version of the docker api",
+			EnvVar: "DOCKER_API_VERSION",
 		},
 	}
 
@@ -114,13 +90,13 @@ func before(c *cli.Context) error {
 	cleanup = c.GlobalBool("cleanup")
 	noRestart = c.GlobalBool("no-restart")
 
-	// Set-up container client
-	tls, err := tlsConfig(c)
+	// configure environment vars for client
+	err := envConfig(c)
 	if err != nil {
 		return err
 	}
 
-	client = container.NewClient(c.GlobalString("host"), tls, !c.GlobalBool("no-pull"))
+	client = container.NewClient(!c.GlobalBool("no-pull"))
 
 	handleSignals()
 	return nil
@@ -157,56 +133,31 @@ func handleSignals() {
 	}()
 }
 
-// tlsConfig translates the command-line options into a tls.Config struct
-func tlsConfig(c *cli.Context) (*tls.Config, error) {
-	var tlsConfig *tls.Config
-	var err error
-	caCertFlag := c.GlobalString("tlscacert")
-	certFlag := c.GlobalString("tlscert")
-	keyFlag := c.GlobalString("tlskey")
-
-	if c.GlobalBool("tls") || c.GlobalBool("tlsverify") {
-		tlsConfig = &tls.Config{
-			InsecureSkipVerify: !c.GlobalBool("tlsverify"),
-		}
-
-		// Load CA cert
-		if caCertFlag != "" {
-			var caCert []byte
-
-			if strings.HasPrefix(caCertFlag, "/") {
-				caCert, err = ioutil.ReadFile(caCertFlag)
-				if err != nil {
-					return nil, err
-				}
-			} else {
-				caCert = []byte(caCertFlag)
-			}
-
-			caCertPool := x509.NewCertPool()
-			caCertPool.AppendCertsFromPEM(caCert)
-
-			tlsConfig.RootCAs = caCertPool
-		}
-
-		// Load client certificate
-		if certFlag != "" && keyFlag != "" {
-			var cert tls.Certificate
-
-			if strings.HasPrefix(certFlag, "/") && strings.HasPrefix(keyFlag, "/") {
-				cert, err = tls.LoadX509KeyPair(certFlag, keyFlag)
-				if err != nil {
-					return nil, err
-				}
-			} else {
-				cert, err = tls.X509KeyPair([]byte(certFlag), []byte(keyFlag))
-				if err != nil {
-					return nil, err
-				}
-			}
-			tlsConfig.Certificates = []tls.Certificate{cert}
+func setEnvOptStr(env string, opt string) error {
+	if opt != "" && opt != os.Getenv(env) {
+		err := os.Setenv(env, opt)
+		if err != nil {
+			return err
 		}
 	}
+	return nil
+}
 
-	return tlsConfig, nil
+func setEnvOptBool(env string, opt bool) error {
+	if opt == true {
+		return setEnvOptStr(env, "1")
+	}
+	return nil
+}
+
+// envConfig translates the command-line options into environment variables
+// that will initialize the api client
+func envConfig(c *cli.Context) error {
+	var err error
+
+	err = setEnvOptStr("DOCKER_HOST", c.GlobalString("host"))
+	err = setEnvOptBool("DOCKER_TLS_VERIFY", c.GlobalBool("tlsverify"))
+	err = setEnvOptStr("DOCKER_API_VERSION", c.GlobalString("apiversion"))
+
+	return err
 }

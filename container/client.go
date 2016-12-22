@@ -1,22 +1,19 @@
 package container
 
 import (
-	"crypto/tls"
 	"fmt"
-	"os"
 	"time"
+	"io/ioutil"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/samalba/dockerclient"
+	dockerclient "github.com/docker/docker/client"
+	"github.com/docker/docker/api/types"
+	"golang.org/x/net/context"
 )
 
 const (
 	defaultStopSignal = "SIGTERM"
 )
-
-var username = os.Getenv("REPO_USER")
-var password = os.Getenv("REPO_PASS")
-var email = os.Getenv("REPO_EMAIL")
 
 // A Filter is a prototype for a function that can be used to filter the
 // results from a call to the ListContainers() method on the Client.
@@ -35,44 +32,51 @@ type Client interface {
 
 // NewClient returns a new Client instance which can be used to interact with
 // the Docker API.
-func NewClient(dockerHost string, tlsConfig *tls.Config, pullImages bool) Client {
-	docker, err := dockerclient.NewDockerClient(dockerHost, tlsConfig)
+// The client reads its configuration from the following environment variables:
+//  * DOCKER_HOST			the docker-engine host to send api requests to
+//  * DOCKER_TLS_VERIFY		whether to verify tls certificates
+//  * DOCKER_API_VERSION	the minimum docker api version to work with
+func NewClient(pullImages bool) Client {
+	cli, err := dockerclient.NewEnvClient()
 
 	if err != nil {
 		log.Fatalf("Error instantiating Docker client: %s", err)
 	}
 
-	return dockerClient{api: docker, pullImages: pullImages}
+	return dockerClient{api: cli, pullImages: pullImages}
 }
 
 type dockerClient struct {
-	api        dockerclient.Client
+	api        *dockerclient.Client
 	pullImages bool
 }
 
 func (client dockerClient) ListContainers(fn Filter) ([]Container, error) {
 	cs := []Container{}
+	bg := context.Background()
 
 	log.Debug("Retrieving running containers")
 
-	runningContainers, err := client.api.ListContainers(false, false, "")
+	runningContainers, err := client.api.ContainerList(
+		bg,
+		types.ContainerListOptions{})
 	if err != nil {
 		return nil, err
 	}
 
 	for _, runningContainer := range runningContainers {
-		containerInfo, err := client.api.InspectContainer(runningContainer.Id)
+		containerInfo, err := client.api.ContainerInspect(bg, runningContainer.ID)
 		if err != nil {
 			return nil, err
 		}
 
-		imageInfo, err := client.api.InspectImage(containerInfo.Image)
+		imageInfo, _, err := client.api.ImageInspectWithRaw(bg, containerInfo.Image)
 		if err != nil {
 			return nil, err
 		}
 
-		c := Container{containerInfo: containerInfo, imageInfo: imageInfo}
-		if fn(c) {
+		c := Container{containerInfo: &containerInfo, imageInfo: &imageInfo}
+		if (fn(c)) {
 			cs = append(cs, c)
 		}
 	}
@@ -81,6 +85,7 @@ func (client dockerClient) ListContainers(fn Filter) ([]Container, error) {
 }
 
 func (client dockerClient) StopContainer(c Container, timeout time.Duration) error {
+	bg := context.Background()
 	signal := c.StopSignal()
 	if signal == "" {
 		signal = defaultStopSignal
@@ -88,7 +93,7 @@ func (client dockerClient) StopContainer(c Container, timeout time.Duration) err
 
 	log.Infof("Stopping %s (%s) with %s", c.Name(), c.ID(), signal)
 
-	if err := client.api.KillContainer(c.ID(), signal); err != nil {
+	if err := client.api.ContainerKill(bg, c.ID(), signal); err != nil {
 		return err
 	}
 
@@ -97,7 +102,7 @@ func (client dockerClient) StopContainer(c Container, timeout time.Duration) err
 
 	log.Debugf("Removing container %s", c.ID())
 
-	if err := client.api.RemoveContainer(c.ID(), true, false); err != nil {
+	if err := client.api.ContainerRemove(bg, c.ID(), types.ContainerRemoveOptions{Force: true, RemoveVolumes: false}); err != nil {
 		return err
 	}
 
@@ -110,72 +115,72 @@ func (client dockerClient) StopContainer(c Container, timeout time.Duration) err
 }
 
 func (client dockerClient) StartContainer(c Container) error {
+	bg := context.Background();
 	config := c.runtimeConfig()
 	hostConfig := c.hostConfig()
 	name := c.Name()
 
 	log.Infof("Starting %s", name)
-
-	var err error
-	var newContainerID string
-	if username != "" && password != "" && email != "" {
-		auth := dockerclient.AuthConfig{
-			Username: username,
-			Password: password,
-			Email:    email,
-		}
-		newContainerID, err = client.api.CreateContainer(config, name, &auth)
-	} else {
-		newContainerID, err = client.api.CreateContainer(config, name, nil)
-	}
-
+	creation, err := client.api.ContainerCreate(bg, config, hostConfig, nil, name)
 	if err != nil {
 		return err
 	}
 
-	log.Debugf("Starting container %s (%s)", name, newContainerID)
+	log.Debugf("Starting container %s (%s)", name, creation.ID)
 
-	return client.api.StartContainer(newContainerID, hostConfig)
+	return client.api.ContainerStart(bg, creation.ID, types.ContainerStartOptions{})
 }
 
 func (client dockerClient) RenameContainer(c Container, newName string) error {
 	log.Debugf("Renaming container %s (%s) to %s", c.Name(), c.ID(), newName)
-	return client.api.RenameContainer(c.ID(), newName)
+	//return client.api.ContainerRename(c.ID(), newName)
+	// no op
+	return nil
 }
 
 func (client dockerClient) IsContainerStale(c Container) (bool, error) {
+	bg := context.Background()
 	oldImageInfo := c.imageInfo
 	imageName := c.ImageName()
 
 	if client.pullImages {
 		log.Debugf("Pulling %s for %s", imageName, c.Name())
-
-		if username != "" && password != "" && email != "" {
-			auth := dockerclient.AuthConfig{
-				Username: username,
-				Password: password,
-				Email:    email,
-			}
-			if err := client.api.PullImage(imageName, &auth); err != nil {
-				return false, err
-			}
+		
+		var opts types.ImagePullOptions // ImagePullOptions can take a RegistryAuth arg to authenticate against a private registry
+		auth, err := EncodedAuth(imageName)
+		if err != nil {
+			log.Debugf("Error loading authentication credentials %s", err)
+			return false, err
+		} else if auth == "" {
+			log.Debugf("No authentication credentials found for %s", imageName)
+			opts = types.ImagePullOptions{} // empty/no auth credentials
 		} else {
-			if err := client.api.PullImage(imageName, nil); err != nil {
-				return false, err
-			}
+			opts = types.ImagePullOptions{RegistryAuth: auth, PrivilegeFunc: DefaultAuthHandler}
 		}
 
+		response, err := client.api.ImagePull(bg, imageName, opts)
+		if err != nil {
+			log.Debugf("Error pulling image %s, %s", imageName, err)
+			return false, err
+		}
+		defer response.Close()
+		
+		// the pull request will be aborted prematurely unless the response is read
+		_, err = ioutil.ReadAll(response)
 	}
 
-	newImageInfo, err := client.api.InspectImage(imageName)
+	newImageInfo, _, err := client.api.ImageInspectWithRaw(bg, imageName)
 	if err != nil {
 		return false, err
 	}
 
-	if newImageInfo.Id != oldImageInfo.Id {
-		log.Infof("Found new %s image (%s)", imageName, newImageInfo.Id)
+	if newImageInfo.ID != oldImageInfo.ID {
+		log.Infof("Found new %s image (%s)", imageName, newImageInfo.ID)
 		return true, nil
+	} else {
+		log.Debugf("No new images found for %s", c.Name())
 	}
+	
 
 	return false, nil
 }
@@ -183,11 +188,12 @@ func (client dockerClient) IsContainerStale(c Container) (bool, error) {
 func (client dockerClient) RemoveImage(c Container) error {
 	imageID := c.ImageID()
 	log.Infof("Removing image %s", imageID)
-	_, err := client.api.RemoveImage(imageID, true)
+	_, err := client.api.ImageRemove(context.Background(), imageID, types.ImageRemoveOptions{Force: true})
 	return err
 }
 
 func (client dockerClient) waitForStop(c Container, waitTime time.Duration) error {
+	bg := context.Background()
 	timeout := time.After(waitTime)
 
 	for {
@@ -195,7 +201,7 @@ func (client dockerClient) waitForStop(c Container, waitTime time.Duration) erro
 		case <-timeout:
 			return nil
 		default:
-			if ci, err := client.api.InspectContainer(c.ID()); err != nil {
+			if ci, err := client.api.ContainerInspect(bg, c.ID()); err != nil {
 				return err
 			} else if !ci.State.Running {
 				return nil

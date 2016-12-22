@@ -1,5 +1,8 @@
 package container
 
+import (
+)
+
 func sliceEqual(s1, s2 []string) bool {
 	if len(s1) != len(s2) {
 		return false
@@ -62,3 +65,4 @@ func structMapSubtract(m1, m2 map[string]struct{}) map[string]struct{} {
 
 	return m
 }
+

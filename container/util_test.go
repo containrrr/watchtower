@@ -63,3 +63,4 @@ func TestStructMapSubtract(t *testing.T) {
 	assert.Equal(t, map[string]struct{}{"a": x, "b": x, "c": x}, m1)
 	assert.Equal(t, map[string]struct{}{"a": x, "c": x}, m2)
 }
+
