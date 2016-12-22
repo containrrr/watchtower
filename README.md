@@ -26,7 +26,7 @@ Every few mintutes watchtower will pull the latest *centurylink/wetty-cli* image
 
 ## Usage
 
-Watchtower is itself packaged as a Docker container so installation is a simple as pulling the `centurylink/watchtower` image.
+Watchtower is itself packaged as a Docker container so installation is as simple as pulling the `centurylink/watchtower` image.
 
 Since the watchtower code needs to interact with the Docker API in order to monitor the running containers, you need to mount */var/run/docker.sock* into the container with the -v flag when you run it.
 
