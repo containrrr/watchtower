@@ -87,7 +87,7 @@ func ParseServerAddress(ref string) (string, error) {
 // on the settings provided in the configuration file.
 func CredentialsStore(configFile configfile.ConfigFile) credentials.Store {
 	if configFile.CredentialsStore != "" {
-		return credentials.NewNativeStore(&configFile)
+		return credentials.NewNativeStore(&configFile, configFile.CredentialsStore)
 	}
 	return credentials.NewFileStore(&configFile)
 }
