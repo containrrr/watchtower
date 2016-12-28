@@ -8,9 +8,9 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/reference"
 	"github.com/docker/docker/cli/command"
-	"github.com/docker/docker/cliconfig"
-	"github.com/docker/docker/cliconfig/configfile"
-	"github.com/docker/docker/cliconfig/credentials"
+	"github.com/docker/docker/cli/config"
+	"github.com/docker/docker/cli/config/configfile"
+	"github.com/docker/docker/cli/config/credentials"
 )
 
 /**
@@ -58,7 +58,7 @@ func EncodedConfigAuth(ref string) (string, error) {
 	if configDir == "" {
 		configDir = "/"
 	}
-	configFile, err := cliconfig.Load(configDir)
+	configFile, err := config.Load(configDir)
 	if err != nil {
 		log.Errorf("Unable to find default config file %s", err)
 		return "", err
