@@ -147,7 +147,7 @@ func (client dockerClient) StartContainer(c Container) error {
 		return err
 	}
 
-	for k, _ := range simpleNetworkConfig.EndpointsConfig {
+	for k := range simpleNetworkConfig.EndpointsConfig {
 		err = client.api.NetworkDisconnect(bg, k, creation.ID, true)
 		if err != nil {
 			return err
