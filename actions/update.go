@@ -4,8 +4,8 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/CenturyLinkLabs/watchtower/container"
 	log "github.com/Sirupsen/logrus"
+	"github.com/v2tec/watchtower/container"
 )
 
 var (
@@ -34,7 +34,7 @@ func containerFilter(names []string) container.Filter {
 // used to start those containers have been updated. If a change is detected in
 // any of the images, the associated containers are stopped and restarted with
 // the new image.
-func Update(client container.Client, names []string, cleanup bool) error {
+func Update(client container.Client, names []string, cleanup bool, noRestart bool) error {
 	log.Info("Checking containers for updated images")
 
 	containers, err := client.ListContainers(containerFilter(names))
@@ -88,8 +88,10 @@ func Update(client container.Client, names []string, cleanup bool) error {
 				}
 			}
 
-			if err := client.StartContainer(container); err != nil {
-				log.Error(err)
+			if !noRestart {
+				if err := client.StartContainer(container); err != nil {
+					log.Error(err)
+				}
 			}
 
 			if cleanup {

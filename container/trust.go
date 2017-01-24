@@ -2,6 +2,9 @@ package container
 
 import (
 	"errors"
+	"os"
+	"strings"
+
 	log "github.com/Sirupsen/logrus"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/reference"
@@ -9,8 +12,6 @@ import (
 	"github.com/docker/docker/cliconfig"
 	"github.com/docker/docker/cliconfig/configfile"
 	"github.com/docker/docker/cliconfig/credentials"
-	"os"
-	"strings"
 )
 
 /**
@@ -80,14 +81,13 @@ func ParseServerAddress(ref string) (string, error) {
 	}
 	parts := strings.Split(repository, "/")
 	return parts[0], nil
-
 }
 
 // CredentialsStore returns a new credentials store based
 // on the settings provided in the configuration file.
 func CredentialsStore(configFile configfile.ConfigFile) credentials.Store {
 	if configFile.CredentialsStore != "" {
-		return credentials.NewNativeStore(&configFile)
+		return credentials.NewNativeStore(&configFile, configFile.CredentialsStore)
 	}
 	return credentials.NewFileStore(&configFile)
 }

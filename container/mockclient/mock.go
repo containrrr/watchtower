@@ -3,8 +3,8 @@ package mockclient
 import (
 	"time"
 
-	"github.com/CenturyLinkLabs/watchtower/container"
 	"github.com/stretchr/testify/mock"
+	"github.com/v2tec/watchtower/container"
 )
 
 type MockClient struct {

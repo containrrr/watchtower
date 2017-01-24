@@ -1,24 +1,26 @@
-package main // import "github.com/CenturyLinkLabs/watchtower"
+package main // import "github.com/v2tec/watchtower"
 
 import (
 	"fmt"
 	"os"
 	"os/signal"
-	"sync"
 	"syscall"
 	"time"
 
-	"github.com/CenturyLinkLabs/watchtower/actions"
-	"github.com/CenturyLinkLabs/watchtower/container"
+	"strconv"
+
 	log "github.com/Sirupsen/logrus"
+	"github.com/robfig/cron"
 	"github.com/urfave/cli"
+	"github.com/v2tec/watchtower/actions"
+	"github.com/v2tec/watchtower/container"
 )
 
 var (
-	wg           sync.WaitGroup
 	client       container.Client
-	pollInterval time.Duration
+	scheduleSpec string
 	cleanup      bool
+	noRestart    bool
 )
 
 func init() {
@@ -39,17 +41,30 @@ func main() {
 			EnvVar: "DOCKER_HOST",
 		},
 		cli.IntFlag{
-			Name:  "interval, i",
-			Usage: "poll interval (in seconds)",
-			Value: 300,
+			Name:   "interval, i",
+			Usage:  "poll interval (in seconds)",
+			Value:  300,
+			EnvVar: "WATCHTOWER_POLL_INTERVAL",
+		},
+		cli.StringFlag{
+			Name:   "schedule, s",
+			Usage:  "the cron expression which defines when to update",
+			EnvVar: "WATCHTOWER_SCHEDULE",
 		},
 		cli.BoolFlag{
-			Name:  "no-pull",
-			Usage: "do not pull new images",
+			Name:   "no-pull",
+			Usage:  "do not pull new images",
+			EnvVar: "WATCHTOWER_NO_PULL",
 		},
 		cli.BoolFlag{
-			Name:  "cleanup",
-			Usage: "remove old images after updating",
+			Name:   "no-restart",
+			Usage:  "do not restart containers",
+			EnvVar: "WATCHTOWER_NO_RESTART",
+		},
+		cli.BoolFlag{
+			Name:   "cleanup",
+			Usage:  "remove old images after updating",
+			EnvVar: "WATCHTOWER_CLEANUP",
 		},
 		cli.BoolFlag{
 			Name:   "tlsverify",
@@ -77,8 +92,19 @@ func before(c *cli.Context) error {
 		log.SetLevel(log.DebugLevel)
 	}
 
-	pollInterval = time.Duration(c.Int("interval")) * time.Second
+	pollingSet := c.IsSet("interval")
+	cronSet := c.IsSet("schedule")
+
+	if pollingSet && cronSet {
+		log.Fatal("Only schedule or interval can be defined, not both.")
+	} else if cronSet {
+		scheduleSpec = c.String("schedule")
+	} else {
+		scheduleSpec = "@every " + strconv.Itoa(c.Int("interval")) + "s"
+	}
+
 	cleanup = c.GlobalBool("cleanup")
+	noRestart = c.GlobalBool("no-restart")
 
 	// configure environment vars for client
 	err := envConfig(c)
@@ -87,40 +113,57 @@ func before(c *cli.Context) error {
 	}
 
 	client = container.NewClient(!c.GlobalBool("no-pull"))
-
-	handleSignals()
 	return nil
 }
 
-func start(c *cli.Context) {
+func start(c *cli.Context) error {
 	names := c.Args()
 
 	if err := actions.CheckPrereqs(client, cleanup); err != nil {
 		log.Fatal(err)
 	}
 
-	for {
-		wg.Add(1)
-		if err := actions.Update(client, names, cleanup); err != nil {
-			fmt.Println(err)
-		}
-		wg.Done()
+	tryLockSem := make(chan bool, 1)
+	tryLockSem <- true
 
-		time.Sleep(pollInterval)
+	cron := cron.New()
+	err := cron.AddFunc(
+		scheduleSpec,
+		func() {
+			select {
+			case v := <-tryLockSem:
+				defer func() { tryLockSem <- v }()
+				if err := actions.Update(client, names, cleanup, noRestart); err != nil {
+					fmt.Println(err)
+				}
+			default:
+				log.Debug("Skipped another update already running.")
+			}
+
+			nextRuns := cron.Entries()
+			if len(nextRuns) > 0 {
+				log.Debug("Scheduled next run: " + nextRuns[0].Next.String())
+			}
+		})
+
+	if err != nil {
+		return err
 	}
-}
 
-func handleSignals() {
+	log.Info("First run: " + cron.Entries()[0].Schedule.Next(time.Now()).String())
+	cron.Start()
+
 	// Graceful shut-down on SIGINT/SIGTERM
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
-	signal.Notify(c, syscall.SIGTERM)
+	interrupt := make(chan os.Signal, 1)
+	signal.Notify(interrupt, os.Interrupt)
+	signal.Notify(interrupt, syscall.SIGTERM)
 
-	go func() {
-		<-c
-		wg.Wait()
-		os.Exit(1)
-	}()
+	<-interrupt
+	cron.Stop()
+	log.Info("Waiting for running update to be finished...")
+	<-tryLockSem
+	os.Exit(1)
+	return nil
 }
 
 func setEnvOptStr(env string, opt string) error {
