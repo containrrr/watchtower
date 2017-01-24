@@ -1,8 +1,6 @@
 machine:
   services:
     - docker
-  environment:
-    IMAGE_NAME: centurylink/watchtower
 
 dependencies:
   override:
@@ -11,12 +9,3 @@ dependencies:
 test:
   override:
     - docker run -v $(pwd):/src centurylink/golang-builder:latest --test
-
-deployment:
-  hub:
-    branch: master
-    commands:
-      - docker run -v $(pwd):/src centurylink/golang-builder:latest
-      - docker build -t $IMAGE_NAME:latest .
-      - docker login -e $DOCKER_EMAIL -u $DOCKER_USER -p $DOCKER_PASS
-      - docker push $IMAGE_NAME:latest

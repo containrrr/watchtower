@@ -1,4 +1,4 @@
-package main // import "github.com/CenturyLinkLabs/watchtower"
+package main // import "github.com/v2tec/watchtower"
 
 import (
 	"fmt"
@@ -8,10 +8,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/CenturyLinkLabs/watchtower/actions"
-	"github.com/CenturyLinkLabs/watchtower/container"
 	log "github.com/Sirupsen/logrus"
 	"github.com/urfave/cli"
+	"github.com/v2tec/watchtower/actions"
+	"github.com/v2tec/watchtower/container"
 )
 
 var (
