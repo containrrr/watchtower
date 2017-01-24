@@ -4,8 +4,8 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/v2tec/watchtower/container"
 	log "github.com/Sirupsen/logrus"
+	"github.com/v2tec/watchtower/container"
 )
 
 var (
