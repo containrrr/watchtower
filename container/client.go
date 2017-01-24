@@ -132,10 +132,9 @@ func (client dockerClient) StartContainer(c Container) error {
 }
 
 func (client dockerClient) RenameContainer(c Container, newName string) error {
+	bg := context.Background()
 	log.Debugf("Renaming container %s (%s) to %s", c.Name(), c.ID(), newName)
-	//return client.api.ContainerRename(c.ID(), newName)
-	// no op
-	return nil
+	return client.api.ContainerRename(bg, c.ID(), newName)
 }
 
 func (client dockerClient) IsContainerStale(c Container) (bool, error) {
