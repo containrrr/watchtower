@@ -77,7 +77,6 @@ docker run --rm v2tec/watchtower --help
 * `--no-pull` Do not pull new images. When this flag is specified, watchtower will not attempt to pull new images from the registry. Instead it will only monitor the local image cache for changes. Use this option if you are building new images directly on the Docker host without pushing them to a registry.
 * `--cleanup` Remove old images after updating. When this flag is specified, watchtower will remove the old image after restarting a container with a new image. Use this option to prevent the accumulation of orphaned images on your system as containers are updated.
 * `--tlsverify` Use TLS when connecting to the Docker socket and verify the server's certificate.
-* `--apiversion` Specify the minimum docker api version. watchtower will only communicate with docker servers running this api version or later.
 * `--debug` Enable debug mode. When this option is specified you'll see more verbose logging in the watchtower log file.
 * `--help` Show documentation about the supported flags.
 

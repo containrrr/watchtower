@@ -16,6 +16,10 @@ import (
 	"github.com/v2tec/watchtower/container"
 )
 
+// DockerAPIMinVersion is the version of the docker API, which is minimally required by
+// watchtower. Currently we require at least API 1.24 and therefore Docker 1.12 or later.
+const DockerAPIMinVersion string = "1.24"
+
 var (
 	client       container.Client
 	scheduleSpec string
@@ -74,11 +78,6 @@ func main() {
 		cli.BoolFlag{
 			Name:  "debug",
 			Usage: "enable debug mode with verbose logging",
-		},
-		cli.StringFlag{
-			Name:   "apiversion",
-			Usage:  "the version of the docker api",
-			EnvVar: "DOCKER_API_VERSION",
 		},
 	}
 
@@ -190,7 +189,7 @@ func envConfig(c *cli.Context) error {
 
 	err = setEnvOptStr("DOCKER_HOST", c.GlobalString("host"))
 	err = setEnvOptBool("DOCKER_TLS_VERIFY", c.GlobalBool("tlsverify"))
-	err = setEnvOptStr("DOCKER_API_VERSION", c.GlobalString("apiversion"))
+	err = setEnvOptStr("DOCKER_API_VERSION", DockerAPIMinVersion)
 
 	return err
 }
