@@ -4,13 +4,14 @@ import (
 	"errors"
 	"os"
 	"strings"
+
 	log "github.com/Sirupsen/logrus"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/reference"
 	"github.com/docker/docker/cli/command"
-	"github.com/docker/docker/cli/config"
-	"github.com/docker/docker/cli/config/configfile"
-	"github.com/docker/docker/cli/config/credentials"
+	"github.com/docker/docker/cliconfig"
+	"github.com/docker/docker/cliconfig/configfile"
+	"github.com/docker/docker/cliconfig/credentials"
 )
 
 /**
@@ -35,7 +36,7 @@ func EncodedEnvAuth(ref string) (string, error) {
 	username := os.Getenv("REPO_USER")
 	password := os.Getenv("REPO_PASS")
 	if username != "" && password != "" {
-		auth := types.AuthConfig {
+		auth := types.AuthConfig{
 			Username: username,
 			Password: password,
 		}
@@ -58,7 +59,7 @@ func EncodedConfigAuth(ref string) (string, error) {
 	if configDir == "" {
 		configDir = "/"
 	}
-	configFile, err := config.Load(configDir)
+	configFile, err := cliconfig.Load(configDir)
 	if err != nil {
 		log.Errorf("Unable to find default config file %s", err)
 		return "", err
@@ -80,7 +81,6 @@ func ParseServerAddress(ref string) (string, error) {
 	}
 	parts := strings.Split(repository, "/")
 	return parts[0], nil
-	
 }
 
 // CredentialsStore returns a new credentials store based

@@ -5,7 +5,9 @@ machine:
 dependencies:
   override:
     - docker pull centurylink/golang-builder:latest
+    - go get -u github.com/Masterminds/glide
 
 test:
   override:
+    - glide install
     - docker run -v $(pwd):/src centurylink/golang-builder:latest --test
