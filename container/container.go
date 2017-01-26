@@ -61,6 +61,10 @@ func (c Container) ImageName() string {
 		imageName = fmt.Sprintf("%s:latest", imageName)
 	}
 
+	if strings.Count(imageName, "/") == 1 {
+		imageName = strings.Join([]string{"index.docker.io/", imageName}, "")
+	}
+
 	return imageName
 }
 

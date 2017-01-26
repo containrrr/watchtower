@@ -1,3 +1,5 @@
 watchtower
 vendor
 .glide
+debug
+.vscode
