@@ -134,15 +134,8 @@ func (client dockerClient) StartContainer(c Container) error {
 
 	name := c.Name()
 
-	log.Infof("Starting %s", name)
+	log.Infof("Creating %s", name)
 	creation, err := client.api.ContainerCreate(bg, config, hostConfig, simpleNetworkConfig, name)
-	if err != nil {
-		return err
-	}
-
-	log.Debugf("Starting container %s (%s)", name, creation.ID)
-
-	err = client.api.ContainerStart(bg, creation.ID, types.ContainerStartOptions{})
 	if err != nil {
 		return err
 	}
@@ -160,6 +153,14 @@ func (client dockerClient) StartContainer(c Container) error {
 			return err
 		}
 	}
+
+	log.Debugf("Starting container %s (%s)", name, creation.ID)
+
+	err = client.api.ContainerStart(bg, creation.ID, types.ContainerStartOptions{})
+	if err != nil {
+		return err
+	}
+
 	return nil
 
 }
