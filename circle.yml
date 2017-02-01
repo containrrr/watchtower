@@ -11,3 +11,9 @@ test:
   override:
     - glide install
     - docker run -v $(pwd):/src centurylink/golang-builder:latest --test
+
+deployment:
+  ci:
+    branch: /.*/
+    commands:
+      - cp -r ./watchtower $CIRCLE_ARTIFACTS
