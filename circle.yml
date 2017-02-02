@@ -1,19 +1,30 @@
 machine:
   services:
     - docker
+  environment:
+    IS_RELEASE: $(if [ "$CIRCLE_TAG" != "" ] ; then echo release; else echo ci; fi;)
+    BUILD_IMAGE: v2tec/gobuilder:0.1.0_go1.7.4-glide0.12.3-goreleaser0.6.2
 
 dependencies:
   override:
-    - docker pull centurylink/golang-builder:latest
-    - go get -u github.com/Masterminds/glide
+    - git fetch --tags
+    - docker pull $BUILD_IMAGE
+
+compile:
+  override:
+    - docker run -v "$PWD":/src -e GITHUB_TOKEN=$GITHUB_TOKEN $BUILD_IMAGE $IS_RELEASE $CIRCLE_BRANCH-$CIRCLE_SHA1
 
 test:
   override:
-    - glide install
-    - docker run -v $(pwd):/src centurylink/golang-builder:latest --test
+    - echo "Tests included in compile step."
 
 deployment:
   ci:
     branch: /.*/
     commands:
-      - cp -r ./watchtower $CIRCLE_ARTIFACTS
+      - cp -r ./dist/* $CIRCLE_ARTIFACTS
+  release:
+    tag: /v[0-9]+(\.[0-9]+)*/
+    owner: v2tec
+    commands:
+      - cp -r ./dist/* $CIRCLE_ARTIFACTS

@@ -1,0 +1,55 @@
+# Build customization
+build:
+  # Path to main.go file.
+  # Default is `main.go`
+  main: ./main.go
+
+  # Custom ldflags.
+  # Default is `-s -w`
+  ldflags: -s -w
+
+  # GOOS list to build in.
+  # For more info refer to https://golang.org/doc/install/source#environment
+  # Defaults are darwin and linux
+  goos:
+    - linux
+
+  # GOARCH to build in.
+  # For more info refer to https://golang.org/doc/install/source#environment
+  # Defaults are 386 and amd64
+  goarch:
+    - amd64
+
+# Archive customization
+archive:
+  # You can change the name of the archive.
+  # This is parsed with Golang template engine and the following variables
+  # are available:
+  # - BinaryName
+  # - Version
+  # - Os
+  # - Arch
+  # The default is `{{.BinaryName}}_{{.Os}}_{{.Arch}}`
+  name_template: "{{.BinaryName}}_{{.Os}}_{{.Arch}}"
+
+  # Archive format. Valid options are `tar.gz` and `zip`.
+  # Default is `zip`
+  format: tar.gz
+
+  # Replacements for GOOS and GOARCH on the archive name.
+  # The keys should be valid GOOS or GOARCH values followed by your custom
+  # replacements.
+  # By default, `replacements` replace GOOS and GOARCH values with valid outputs
+  # of `uname -s` and `uname -m` respectively.
+  replacements:
+    arm: arm
+    amd64: amd64
+    386: 386
+    darwin: macOS
+    linux: linux
+
+  # Additional files you want to add to the archive.
+  # Defaults are any files matching `LICENCE*`, `LICENSE*`,
+  # `README*` and `CHANGELOG*` (case-insensitive)
+  files:
+    - LICENSE.md

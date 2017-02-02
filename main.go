@@ -20,6 +20,8 @@ import (
 // watchtower. Currently we require at least API 1.24 and therefore Docker 1.12 or later.
 const DockerAPIMinVersion string = "1.24"
 
+var version = "master"
+
 var (
 	client       container.Client
 	scheduleSpec string
@@ -34,6 +36,7 @@ func init() {
 func main() {
 	app := cli.NewApp()
 	app.Name = "watchtower"
+	app.Version = version
 	app.Usage = "Automatically update running Docker containers"
 	app.Before = before
 	app.Action = start
