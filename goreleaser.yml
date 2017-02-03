@@ -19,6 +19,7 @@ build:
   # Defaults are 386 and amd64
   goarch:
     - amd64
+    - arm
 
 # Archive customization
 archive:
