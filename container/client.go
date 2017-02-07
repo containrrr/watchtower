@@ -114,7 +114,7 @@ func (client dockerClient) StopContainer(c Container, timeout time.Duration) err
 	log.Infof("Stopping %s (%s) with %s", c.Name(), c.ID(), signal)
 
 	if err := client.api.ContainerKill(bg, c.ID(), signal); err != nil {
-		return err
+		fmt.Errorf("Container %s (%s) could not be killed", c.Name(), c.ID())
 	}
 
 	// Wait for container to exit, but proceed anyway after the timeout elapses
