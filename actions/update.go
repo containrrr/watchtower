@@ -1,6 +1,7 @@
 package actions
 
 import (
+	"fmt"
 	"math/rand"
 	"time"
 
@@ -34,12 +35,18 @@ func containerFilter(names []string) container.Filter {
 // used to start those containers have been updated. If a change is detected in
 // any of the images, the associated containers are stopped and restarted with
 // the new image.
-func Update(client container.Client, names []string, cleanup bool, noRestart bool) error {
+func Update(client container.Client, names []string, cleanup bool, noRestart bool) ([]string, []string, error) {
 	log.Info("Checking containers for updated images")
+
+	// helper vars for notification
+	var (
+		updatedContainers []string
+		errorMessages     []string
+	)
 
 	containers, err := client.ListContainers(containerFilter(names))
 	if err != nil {
-		return err
+		return updatedContainers, errorMessages, err
 	}
 
 	for i, container := range containers {
@@ -48,13 +55,14 @@ func Update(client container.Client, names []string, cleanup bool, noRestart boo
 			log.Infof("Unable to update container %s. Proceeding to next.", containers[i].Name())
 			log.Debug(err)
 			stale = false
+			errorMessages = append(errorMessages, fmt.Sprintf("Unable to update container %s: %v", container.Details(), err))
 		}
 		containers[i].Stale = stale
 	}
 
 	containers, err = container.SortByDependencies(containers)
 	if err != nil {
-		return err
+		return updatedContainers, errorMessages, err
 	}
 
 	checkDependencies(containers)
@@ -70,6 +78,7 @@ func Update(client container.Client, names []string, cleanup bool, noRestart boo
 		if container.Stale {
 			if err := client.StopContainer(container, waitTime); err != nil {
 				log.Error(err)
+				errorMessages = append(errorMessages, fmt.Sprintf("Unable to stop container %s: %v", container.Details(), err))
 			}
 		}
 	}
@@ -84,6 +93,7 @@ func Update(client container.Client, names []string, cleanup bool, noRestart boo
 			if container.IsWatchtower() {
 				if err := client.RenameContainer(container, randName()); err != nil {
 					log.Error(err)
+					errorMessages = append(errorMessages, fmt.Sprintf("Unable to rename container %s: %v", container.Details(), err))
 					continue
 				}
 			}
@@ -91,16 +101,19 @@ func Update(client container.Client, names []string, cleanup bool, noRestart boo
 			if !noRestart {
 				if err := client.StartContainer(container); err != nil {
 					log.Error(err)
+					errorMessages = append(errorMessages, fmt.Sprintf("Unable to restart container %s: %v", container.Details(), err))
 				}
 			}
 
 			if cleanup {
 				client.RemoveImage(container)
 			}
+
+			updatedContainers = append(updatedContainers, container.Details())
 		}
 	}
 
-	return nil
+	return updatedContainers, errorMessages, nil
 }
 
 func checkDependencies(containers []container.Container) {

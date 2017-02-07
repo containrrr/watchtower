@@ -1,10 +1,12 @@
-hash: 9ddd729b207d71ce16ae9a0282ac87a046b9161ac4f15b108e86a03367172516
-updated: 2017-01-24T20:45:43.1914053+01:00
+hash: 79bf30c3a98ecbe4c7668765f0033f5e487836d2011b21bcd219d321ace35f13
+updated: 2017-02-07T15:03:18.178257775+01:00
 imports:
 - name: github.com/Azure/go-ansiterm
   version: 388960b655244e76e24c75f48631564eaefade62
   subpackages:
   - winterm
+- name: github.com/bitly/go-simplejson
+  version: aabad6e819789e569bd6aabf444c935aa9ba1e44
 - name: github.com/davecgh/go-spew
   version: 6d212800a42e8ab5c146b8ace3490ee17e5225f9
   subpackages:
@@ -101,7 +103,7 @@ imports:
 - name: github.com/docker/libtrust
   version: 9cbd2a1374f46905c68a4eb3694a130610adc62a
 - name: github.com/golang/protobuf
-  version: 1f49d83d9aa00e6ce4fc8258c71cc7786aec968a
+  version: f7137ae6b19afbfd61a94b746fda3b3fe0491874
   subpackages:
   - proto
 - name: github.com/gorilla/context
@@ -114,16 +116,17 @@ imports:
   version: f4e566c536cf69158e808ec28ef4182a37fdc981
 - name: github.com/Microsoft/go-winio
   version: 24a3e3d3fc7451805e09d11e11e95d9a0a4f205e
+- name: github.com/mozillazg/request
+  version: 052232e32456da4751d789b61e89aba4a07a7e25
 - name: github.com/opencontainers/runc
-  version: 2f7393a47307a16f8cee44a37b262e8b81021e3e
-  repo: https://github.com/docker/runc.git
+  version: b263a43430ac6996a4302b891688544225197294
   subpackages:
   - libcontainer/configs
   - libcontainer/devices
   - libcontainer/system
   - libcontainer/user
 - name: github.com/opencontainers/runtime-spec
-  version: 1c7c27d043c2a5e513a44084d2b10d77d1402b8c
+  version: 794ca7ac88234607f9d2c76da8a6e9bbbade8cb9
   subpackages:
   - specs-go
 - name: github.com/pkg/errors
@@ -135,10 +138,9 @@ imports:
 - name: github.com/robfig/cron
   version: 9585fd555638e77bba25f25db5c44b41f264aeb7
 - name: github.com/Sirupsen/logrus
-  version: d26492970760ca5d33129d2d799e34be5c4782eb
+  version: c078b1e43f58d563c74cebe63c85789e76ddb627
 - name: github.com/spf13/cobra
-  version: a3c09249f1a24a9d951f2738fb9b9256b8b42fa5
-  repo: https://github.com/dnephin/cobra.git
+  version: 35136c09d8da66b901337c6e86fd8e88a1a255bd
 - name: github.com/spf13/pflag
   version: dabebe21bf790f782ea4c7bbd2efc430de182afd
 - name: github.com/stretchr/objx
@@ -157,7 +159,7 @@ imports:
   - tar/asm
   - tar/storage
 - name: golang.org/x/net
-  version: 2beffdc2e92c8a3027590f898fe88f69af48a3f8
+  version: ""
   repo: https://github.com/tonistiigi/net.git
   subpackages:
   - context
@@ -166,6 +168,7 @@ imports:
   - http2/hpack
   - internal/timeseries
   - proxy
+  - publicsuffix
   - trace
 - name: golang.org/x/sys
   version: 8f0908ab3b2457e2e15403d3697c9ef5cb4b57a9

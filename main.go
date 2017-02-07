@@ -23,10 +23,11 @@ const DockerAPIMinVersion string = "1.24"
 var version = "master"
 
 var (
-	client       container.Client
-	scheduleSpec string
-	cleanup      bool
-	noRestart    bool
+	client        container.Client
+	scheduleSpec  string
+	cleanup       bool
+	noRestart     bool
+	slackNotifier *actions.SlackNotifier
 )
 
 func init() {
@@ -82,6 +83,15 @@ func main() {
 			Name:  "debug",
 			Usage: "enable debug mode with verbose logging",
 		},
+		cli.StringFlag{
+			Name:  "slack-hook-url",
+			Usage: "the url for sending slack webhooks to",
+		},
+		cli.StringFlag{
+			Name:  "slack-message-identification",
+			Usage: "specify a string which will be used to identify the messages comming from this watchtower instance. Default if omitted is \"watchtower\"",
+			Value: "watchtower",
+		},
 	}
 
 	if err := app.Run(os.Args); err != nil {
@@ -108,6 +118,9 @@ func before(c *cli.Context) error {
 	cleanup = c.GlobalBool("cleanup")
 	noRestart = c.GlobalBool("no-restart")
 
+	slackURL := c.GlobalString("slack-hook-url")
+	slackPrefix := c.GlobalString("slack-message-identification")
+
 	// configure environment vars for client
 	err := envConfig(c)
 	if err != nil {
@@ -115,6 +128,12 @@ func before(c *cli.Context) error {
 	}
 
 	client = container.NewClient(!c.GlobalBool("no-pull"))
+
+	if len(slackURL) != 0 {
+		slackNotifier = actions.NewSlackNotifier(slackURL, slackPrefix)
+		slackNotifier.NotifyStartup()
+	}
+
 	return nil
 }
 
@@ -135,8 +154,13 @@ func start(c *cli.Context) error {
 			select {
 			case v := <-tryLockSem:
 				defer func() { tryLockSem <- v }()
-				if err := actions.Update(client, names, cleanup, noRestart); err != nil {
+				updatedContainers, errorMessages, err := actions.Update(client, names, cleanup, noRestart)
+				if err != nil {
 					fmt.Println(err)
+				}
+				if slackNotifier != nil && (len(updatedContainers) != 0 || len(errorMessages) != 0) {
+					slackNotifier.NotifyContainerUpdate(updatedContainers, errorMessages)
+
 				}
 			default:
 				log.Debug("Skipped another update already running.")
