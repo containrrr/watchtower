@@ -27,6 +27,7 @@ var (
 	scheduleSpec string
 	cleanup      bool
 	noRestart    bool
+	filters      []string
 )
 
 func init() {
@@ -82,6 +83,10 @@ func main() {
 			Name:  "debug",
 			Usage: "enable debug mode with verbose logging",
 		},
+		cli.StringSliceFlag{
+			Name:  "ps-filter",
+			Usage: "docker ps filters",
+		},
 	}
 
 	if err := app.Run(os.Args); err != nil {
@@ -96,6 +101,7 @@ func before(c *cli.Context) error {
 
 	pollingSet := c.IsSet("interval")
 	cronSet := c.IsSet("schedule")
+	filters = c.GlobalStringSlice("ps-filter")
 
 	if pollingSet && cronSet {
 		log.Fatal("Only schedule or interval can be defined, not both.")
@@ -114,7 +120,7 @@ func before(c *cli.Context) error {
 		return err
 	}
 
-	client = container.NewClient(!c.GlobalBool("no-pull"))
+	client = container.NewClient(!c.GlobalBool("no-pull"), filters)
 	return nil
 }
 
