@@ -43,7 +43,7 @@ archive:
   # By default, `replacements` replace GOOS and GOARCH values with valid outputs
   # of `uname -s` and `uname -m` respectively.
   replacements:
-    arm: arm
+    arm: armhf
     amd64: amd64
     386: 386
     darwin: macOS
