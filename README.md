@@ -13,7 +13,7 @@ With watchtower you can update the running version of your containerized app sim
 
 For example, let's say you were running watchtower along with an instance of *centurylink/wetty-cli* image:
 
-```
+```bash
 $ docker ps
 CONTAINER ID   IMAGE                   STATUS          PORTS                    NAMES
 967848166a45   centurylink/wetty-cli   Up 10 minutes   0.0.0.0:8080->3000/tcp   wetty
@@ -30,7 +30,7 @@ Since the watchtower code needs to interact with the Docker API in order to moni
 
 Run the `watchtower` container with the following command:
 
-```
+```bash
 docker run -d \
   --name watchtower \
   -v /var/run/docker.sock:/var/run/docker.sock \
@@ -40,7 +40,7 @@ docker run -d \
 If pulling images from private Docker registries, supply registry authentication credentials with the environment variables `REPO_USER` and `REPO_PASS`
 or by mounting the host's docker config file into the container (at the root of the container filesystem `/`).
 
-```
+```bash
 docker run -d \
   --name watchtower \
   -v /home/<user>/.docker/config.json:/config.json \
@@ -48,11 +48,29 @@ docker run -d \
   drud/watchtower container_to_watch --debug
 ```
 
+If you mount the config file as described below, be sure to also prepend the url for the registry when starting up your watched image (you can omit the https://). Here is a complete docker-compose.yml file that starts up a docker container from a private repo at dockerhub and monitors it with watchtower. Note the command argument changing the interval to 30s rather than the default 5 minutes.
+
+```json
+version: "3"
+services:
+  cavo:
+    image: index.docker.io/<org>/<image>:<tag>
+    ports:
+      - "443:3443"
+      - "80:3080"
+  watchtower:
+    image: v2tec/watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /root/.docker/config.json:/config.json
+    command: --interval 30
+```
+
 ### Arguments
 
 By default, watchtower will monitor all containers running within the Docker daemon to which it is pointed (in most cases this will be the local Docker daemon, but you can override it with the `--host` option described in the next section). However, you can restrict watchtower to monitoring a subset of the running containers by specifying the container names as arguments when launching watchtower.
 
-```
+```bash
 docker run -d \
   --name watchtower \
   -v /var/run/docker.sock:/var/run/docker.sock \
@@ -67,7 +85,7 @@ When no arguments are specified, watchtower will monitor all running containers.
 
 Any of the options described below can be passed to the watchtower process by setting them after the image name in the `docker run` string:
 
-```
+```bash
 docker run --rm v2tec/watchtower --help
 ```
 
@@ -93,13 +111,13 @@ If your container should be shutdown with a different signal you can communicate
 
 This label can be coded directly into your image by using the `LABEL` instruction in your Dockerfile:
 
-```
+```docker
 LABEL com.centurylinklabs.watchtower.stop-signal="SIGHUP"
 ```
 
 Or, it can be specified as part of the `docker run` command line:
 
-```
+```bash
 docker run -d --label=com.centurylinklabs.watchtower.stop-signal=SIGHUP someimage
 ```
 
@@ -107,7 +125,7 @@ docker run -d --label=com.centurylinklabs.watchtower.stop-signal=SIGHUP someimag
 
 By default, watchtower is set-up to monitor the local Docker daemon (the same daemon running the watchtower container itself). However, it is possible to configure watchtower to monitor a remote Docker endpoint. When starting the watchtower container you can specify a remote Docker endpoint with either the `--host` flag or the `DOCKER_HOST` environment variable:
 
-```
+```bash
 docker run -d \
   --name watchtower \
   v2tec/watchtower --host "tcp://10.0.1.2:2375"
@@ -115,7 +133,7 @@ docker run -d \
 
 or
 
-```
+```bash
 docker run -d \
   --name watchtower \
   -e DOCKER_HOST="tcp://10.0.1.2:2375" \
@@ -132,7 +150,7 @@ The *docker-machine* certificates for a particular host can be located by execut
 
 With the certificates mounted into the watchtower container you need to specify the `--tlsverify` flag to enable verification of the certificate:
 
-```
+```bash
 docker run -d \
   --name watchtower \
   -e DOCKER_HOST=$DOCKER_HOST \
