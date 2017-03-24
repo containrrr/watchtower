@@ -140,18 +140,22 @@ func (client dockerClient) StartContainer(c Container) error {
 		return err
 	}
 
-	for k := range simpleNetworkConfig.EndpointsConfig {
-		err = client.api.NetworkDisconnect(bg, k, creation.ID, true)
-		if err != nil {
-			return err
-		}
-	}
+	if !(hostConfig.NetworkMode.IsHost()) {
 
-	for k, v := range networkConfig.EndpointsConfig {
-		err = client.api.NetworkConnect(bg, k, creation.ID, v)
-		if err != nil {
-			return err
+		for k := range simpleNetworkConfig.EndpointsConfig {
+			err = client.api.NetworkDisconnect(bg, k, creation.ID, true)
+			if err != nil {
+				return err
+			}
 		}
+
+		for k, v := range networkConfig.EndpointsConfig {
+			err = client.api.NetworkConnect(bg, k, creation.ID, v)
+			if err != nil {
+				return err
+			}
+		}
+
 	}
 
 	log.Debugf("Starting container %s (%s)", name, creation.ID)
