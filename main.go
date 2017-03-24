@@ -30,6 +30,7 @@ var (
 	cleanup      bool
 	noRestart    bool
 	notifier     *notifications.Notifier
+	timeout		 time.Duration
 )
 
 func init() {
@@ -80,6 +81,12 @@ func main() {
 			Name:   "tlsverify",
 			Usage:  "use TLS and verify the remote",
 			EnvVar: "DOCKER_TLS_VERIFY",
+		},
+		cli.DurationFlag{
+			Name:	"stop-timeout",
+			Usage:	"timeout before container is forcefully stopped",
+			Value:	time.Second * 10,
+			EnvVar:	"WATCHTOWER_TIMEOUT",
 		},
 		cli.BoolFlag{
 			Name:   "label-enable",
@@ -178,6 +185,10 @@ func before(c *cli.Context) error {
 
 	cleanup = c.GlobalBool("cleanup")
 	noRestart = c.GlobalBool("no-restart")
+	timeout = c.GlobalDuration("stop-timeout")
+	if timeout < 0 {
+		log.Fatal("Please specify a positive value for timeout value.")
+	}
 
 	// configure environment vars for client
 	err := envConfig(c)
@@ -209,7 +220,7 @@ func start(c *cli.Context) error {
 			case v := <-tryLockSem:
 				defer func() { tryLockSem <- v }()
 				notifier.StartNotification()
-				if err := actions.Update(client, names, cleanup, noRestart); err != nil {
+				if err := actions.Update(client, names, cleanup, noRestart, timeout); err != nil {
 					log.Println(err)
 				}
 				notifier.SendNotification()
