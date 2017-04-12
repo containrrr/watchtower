@@ -26,3 +26,5 @@ import:
   - context
 - package: github.com/robfig/cron
   version: 9585fd555638e77bba25f25db5c44b41f264aeb7
+- package: github.com/mozillazg/request
+  version: v0.8.0
