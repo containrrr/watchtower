@@ -35,7 +35,7 @@ func containerFilter(names []string) container.Filter {
 // any of the images, the associated containers are stopped and restarted with
 // the new image.
 func Update(client container.Client, names []string, cleanup bool, noRestart bool) error {
-	log.Info("Checking containers for updated images")
+	log.Debug("Checking containers for updated images")
 
 	containers, err := client.ListContainers(containerFilter(names))
 	if err != nil {
