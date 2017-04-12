@@ -101,10 +101,14 @@ func (client dockerClient) StopContainer(c Container, timeout time.Duration) err
 	// Wait for container to exit, but proceed anyway after the timeout elapses
 	client.waitForStop(c, timeout)
 
-	log.Debugf("Removing container %s", c.ID())
+	if c.containerInfo.HostConfig.AutoRemove {
+		log.Debugf("AutoRemove container %s, skipping ContainerRemove call.", c.ID())
+	} else {
+		log.Debugf("Removing container %s", c.ID())
 
-	if err := client.api.ContainerRemove(bg, c.ID(), types.ContainerRemoveOptions{Force: true, RemoveVolumes: false}); err != nil {
-		return err
+		if err := client.api.ContainerRemove(bg, c.ID(), types.ContainerRemoveOptions{Force: true, RemoveVolumes: false}); err != nil {
+			return err
+		}
 	}
 
 	// Wait for container to be removed. In this case an error is a good thing
