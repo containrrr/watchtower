@@ -45,7 +45,7 @@ docker run -d \
   --name watchtower \
   -v /home/<user>/.docker/config.json:/config.json \
   -v /var/run/docker.sock:/var/run/docker.sock \
-  drud/watchtower container_to_watch --debug
+  v2tec/watchtower container_to_watch --debug
 ```
 
 If you mount the config file as described below, be sure to also prepend the url for the registry when starting up your watched image (you can omit the https://). Here is a complete docker-compose.yml file that starts up a docker container from a private repo at dockerhub and monitors it with watchtower. Note the command argument changing the interval to 30s rather than the default 5 minutes.
