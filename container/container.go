@@ -2,6 +2,7 @@ package container
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/docker/docker/api/types"
@@ -11,6 +12,7 @@ import (
 const (
 	watchtowerLabel = "com.centurylinklabs.watchtower"
 	signalLabel     = "com.centurylinklabs.watchtower.stop-signal"
+	enableLabel     = "com.centurylinklabs.watchtower.enable"
 	zodiacLabel     = "com.centurylinklabs.zodiac.original-image"
 )
 
@@ -62,6 +64,22 @@ func (c Container) ImageName() string {
 	}
 
 	return imageName
+}
+
+// Enabled returns the value of the container enabled label and if the label
+// was set.
+func (c Container) Enabled() (bool, bool) {
+	rawBool, ok := c.containerInfo.Config.Labels[enableLabel]
+	if !ok {
+		return false, false
+	}
+
+	parsedBool, err := strconv.ParseBool(rawBool)
+	if err != nil {
+		return false, false
+	}
+
+	return parsedBool, true
 }
 
 // Links returns a list containing the names of all the containers to which
