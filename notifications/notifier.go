@@ -10,10 +10,12 @@ type typeNotifier interface {
 	SendNotification()
 }
 
+// Notifier can send log output as notification to admins, with optional batching.
 type Notifier struct {
 	types []typeNotifier
 }
 
+// NewNotifier creates and returns a new Notifier, using global configuration.
 func NewNotifier(c *cli.Context) *Notifier {
 	n := &Notifier{}
 
@@ -33,12 +35,14 @@ func NewNotifier(c *cli.Context) *Notifier {
 	return n
 }
 
+// StartNotification starts a log batch. Notifications will be accumulated after this point and only sent when SendNotification() is called.
 func (n *Notifier) StartNotification() {
 	for _, t := range n.types {
 		t.StartNotification()
 	}
 }
 
+// SendNotification sends any notifications accumulated since StartNotification() was called.
 func (n *Notifier) SendNotification() {
 	for _, t := range n.types {
 		t.SendNotification()
