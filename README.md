@@ -98,6 +98,8 @@ docker run --rm v2tec/watchtower --help
 * `--debug` Enable debug mode. When this option is specified you'll see more verbose logging in the watchtower log file.
 * `--help` Show documentation about the supported flags.
 
+See below for options used to configure notifications.
+
 ## Linked Containers
 
 Watchtower will detect if there are links between any of the running containers and ensure that things are stopped/started in a way that won't break any of the links. If an update is detected for one of the dependencies in a group of linked containers, watchtower will stop and start all of the containers in the correct order so that the application comes back up correctly.
@@ -161,3 +163,34 @@ docker run -d \
 ## Updating Watchtower
 
 If watchtower is monitoring the same Docker daemon under which the watchtower container itself is running (i.e. if you volume-mounted */var/run/docker.sock* into the watchtower container) then it has the ability to update itself. If a new version of the *v2tec/watchtower* image is pushed to the Docker Hub, your watchtower will pull down the new image and restart itself automatically.
+
+## Notifications
+
+Watchtower can send notifications when containers are updated. Notifications are sent via hooks in the logging system, [logrus](http://github.com/sirupsen/logrus).
+The types of notifications to send are passed via the comma-separated option `--notifications` (or corresponding environment variable `WATCHTOWER_NOTIFICATIONS`), which has the following valid values:
+
+* `email` to send notifications via e-mail
+
+To receive notifications by email, the following command-line options, or their corresponding environment variables, can be set:
+
+* `--notification-email-from` (env. `WATCHTOWER_NOTIFICATION_EMAIL_FROM`): The e-mail address from which notifications will be sent.
+* `--notification-email-to` (env. `WATCHTOWER_NOTIFICATION_EMAIL_TO`): The e-mail address to which notifications will be sent.
+* `--notification-email-server` (env. `WATCHTOWER_NOTIFICATION_EMAIL_SERVER`): The SMTP server to send e-mails through.
+* `--notification-email-server-user` (env. `WATCHTOWER_NOTIFICATION_EMAIL_SERVER_USER`): The username to authenticate with the SMTP server with.
+* `--notification-email-server-password` (env. `WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PASSWORD`): The password to authenticate with the SMTP server with.
+
+Example:
+
+```bash
+docker run -d \
+  --name watchtower \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -e WATCHTOWER_NOTIFICATIONS=email \
+  -e WATCHTOWER_NOTIFICATION_EMAIL_FROM=fromaddress@gmail.com \
+  -e WATCHTOWER_NOTIFICATION_EMAIL_TO=toaddress@gmail.com \
+  -e WATCHTOWER_NOTIFICATION_EMAIL_SERVER=smtp.gmail.com \
+  -e WATCHTOWER_NOTIFICATION_EMAIL_SERVER_USER=fromaddress@gmail.com \
+  -e WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PASSWORD=app_password \
+  v2tec/watchtower
+```
+
