@@ -1,7 +1,6 @@
 package main // import "github.com/v2tec/watchtower"
 
 import (
-	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -14,6 +13,7 @@ import (
 	"github.com/urfave/cli"
 	"github.com/v2tec/watchtower/actions"
 	"github.com/v2tec/watchtower/container"
+	"github.com/v2tec/watchtower/notifications"
 )
 
 // DockerAPIMinVersion is the version of the docker API, which is minimally required by
@@ -27,6 +27,7 @@ var (
 	scheduleSpec string
 	cleanup      bool
 	noRestart    bool
+	notifier     *notifications.Notifier
 )
 
 func init() {
@@ -82,6 +83,37 @@ func main() {
 			Name:  "debug",
 			Usage: "enable debug mode with verbose logging",
 		},
+		cli.StringSliceFlag{
+			Name: "notifications",
+			Value: &cli.StringSlice{},
+			Usage: "notification types to send (valid: email)",
+			EnvVar: "WATCHTOWER_NOTIFICATIONS",
+		},
+		cli.StringFlag{
+			Name: "notification-email-from",
+			Usage: "Address to send notification e-mails from",
+			EnvVar: "WATCHTOWER_NOTIFICATION_EMAIL_FROM",
+		},
+		cli.StringFlag{
+			Name: "notification-email-to",
+			Usage: "Address to send notification e-mails to",
+			EnvVar: "WATCHTOWER_NOTIFICATION_EMAIL_TO",
+		},
+		cli.StringFlag{
+			Name: "notification-email-server",
+			Usage: "SMTP server to send notification e-mails through",
+			EnvVar: "WATCHTOWER_NOTIFICATION_EMAIL_SERVER",
+		},
+		cli.StringFlag{
+			Name: "notification-email-server-user",
+			Usage: "SMTP server user for sending notifications",
+			EnvVar: "WATCHTOWER_NOTIFICATION_EMAIL_SERVER_USER",
+		},
+		cli.StringFlag{
+			Name: "notification-email-server-password",
+			Usage: "SMTP server password for sending notifications",
+			EnvVar: "WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PASSWORD",
+		},
 	}
 
 	if err := app.Run(os.Args); err != nil {
@@ -115,6 +147,8 @@ func before(c *cli.Context) error {
 	}
 
 	client = container.NewClient(!c.GlobalBool("no-pull"))
+	notifier = notifications.NewNotifier(c)
+
 	return nil
 }
 
@@ -135,9 +169,11 @@ func start(c *cli.Context) error {
 			select {
 			case v := <-tryLockSem:
 				defer func() { tryLockSem <- v }()
+				notifier.StartNotification()
 				if err := actions.Update(client, names, cleanup, noRestart); err != nil {
-					fmt.Println(err)
+					log.Println(err)
 				}
+				notifier.SendNotification()
 			default:
 				log.Debug("Skipped another update already running.")
 			}
