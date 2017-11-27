@@ -189,6 +189,9 @@ Watchtower can send notifications when containers are updated. Notifications are
 The types of notifications to send are passed via the comma-separated option `--notifications` (or corresponding environment variable `WATCHTOWER_NOTIFICATIONS`), which has the following valid values:
 
 * `email` to send notifications via e-mail
+* `slack` to send notifications through a Slack webhook
+
+### Notifications via E-Mail
 
 To receive notifications by email, the following command-line options, or their corresponding environment variables, can be set:
 
@@ -215,3 +218,22 @@ docker run -d \
   v2tec/watchtower
 ```
 
+### Notifications through Slack webhook
+
+To receive notifications in Slack, add `slack` to the `--notifications` option or the `WATCHTOWER_NOTIFICATIONS` environment variable.
+
+Additionally, you should set the Slack webhook url using the `--notification-slack-hook-url` option or the `WATCHTOWER_NOTIFICATION_SLACK_HOOK_URL` environment variable.
+
+By default, watchtower will send messages under the name `watchtower`, you can customize this string through the `--notification-slack-identifier` option or the `WATCHTOWER_NOTIFICATION_SLACK_IDENTIFIER` environment variable.
+
+Example:
+
+```bash
+docker run -d \
+  --name watchtower \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -e WATCHTOWER_NOTIFICATIONS=slack \
+  -e WATCHTOWER_NOTIFICATION_SLACK_HOOK_URL="https://hooks.slack.com/services/xxx/yyyyyyyyyyyyyyy" \
+  -e WATCHTOWER_NOTIFICATION_SLACK_IDENTIFIER=watchtower-server-1 \
+  v2tec/watchtower
+```
