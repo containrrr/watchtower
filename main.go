@@ -8,7 +8,7 @@ import (
 
 	"strconv"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/robfig/cron"
 	"github.com/urfave/cli"
 	"github.com/v2tec/watchtower/actions"

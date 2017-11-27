@@ -1,6 +1,6 @@
 package: github.com/v2tec/watchtower
 import:
-- package: github.com/Sirupsen/logrus
+- package: github.com/sirupsen/logrus
   version: ~0.11.x
 - package: github.com/docker/docker
   version: ~1.13.x
