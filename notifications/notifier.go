@@ -26,6 +26,8 @@ func NewNotifier(c *cli.Context) *Notifier {
 		switch t {
 		case emailType:
 			tn = newEmailNotifier(c)
+		case slackType:
+			tn = newSlackNotifier(c)
 		case discordType:
 			tn = newDiscordNotifier(c)
 		default:
