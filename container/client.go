@@ -37,19 +37,20 @@ type Client interface {
 //  * DOCKER_HOST			the docker-engine host to send api requests to
 //  * DOCKER_TLS_VERIFY		whether to verify tls certificates
 //  * DOCKER_API_VERSION	the minimum docker api version to work with
-func NewClient(pullImages bool) Client {
+func NewClient(pullImages, enableLabel bool) Client {
 	cli, err := dockerclient.NewEnvClient()
 
 	if err != nil {
 		log.Fatalf("Error instantiating Docker client: %s", err)
 	}
 
-	return dockerClient{api: cli, pullImages: pullImages}
+	return dockerClient{api: cli, pullImages: pullImages, enableLabel: enableLabel}
 }
 
 type dockerClient struct {
-	api        *dockerclient.Client
-	pullImages bool
+	api         *dockerclient.Client
+	pullImages  bool
+	enableLabel bool
 }
 
 func (client dockerClient) ListContainers(fn Filter) ([]Container, error) {
@@ -77,6 +78,16 @@ func (client dockerClient) ListContainers(fn Filter) ([]Container, error) {
 		}
 
 		c := Container{containerInfo: &containerInfo, imageInfo: &imageInfo}
+
+		if client.enableLabel {
+			// If label filtering is enabled, containers should only be enabled
+			// if the label is specifically set to true.
+			enabledLabel, ok := c.Enabled()
+			if !ok || !enabledLabel {
+				continue
+			}
+		}
+
 		if fn(c) {
 			cs = append(cs, c)
 		}

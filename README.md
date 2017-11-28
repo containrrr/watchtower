@@ -93,6 +93,7 @@ docker run --rm v2tec/watchtower --help
 * `--interval, -i` Poll interval (in seconds). This value controls how frequently watchtower will poll for new images. Defaults to 300 seconds (5 minutes).
 * `--schedule, -s` [Cron expression](https://godoc.org/github.com/robfig/cron#hdr-CRON_Expression_Format) which defines when and how often to check for new images. Either `--interval` or the schedule expression could be defined, but not both.
 * `--no-pull` Do not pull new images. When this flag is specified, watchtower will not attempt to pull new images from the registry. Instead it will only monitor the local image cache for changes. Use this option if you are building new images directly on the Docker host without pushing them to a registry.
+* `--label-enable` Watch containers where the `com.centurylinklabs.watchtower.enable` label is set to true.
 * `--cleanup` Remove old images after updating. When this flag is specified, watchtower will remove the old image after restarting a container with a new image. Use this option to prevent the accumulation of orphaned images on your system as containers are updated.
 * `--tlsverify` Use TLS when connecting to the Docker socket and verify the server's certificate.
 * `--debug` Enable debug mode. When this option is specified you'll see more verbose logging in the watchtower log file.
@@ -121,6 +122,22 @@ Or, it can be specified as part of the `docker run` command line:
 
 ```bash
 docker run -d --label=com.centurylinklabs.watchtower.stop-signal=SIGHUP someimage
+```
+
+## Selectively Watching Containers
+
+By default, watchtower will watch all containers.
+However, sometimes only some containers should be updated.
+If you need to selectively watch containers, pass the --label-enable flag on startup and set the *com.centurylinklabs.watchtower.enable* label with a value of true for the containers you want to watch.
+
+```docker
+LABEL com.centurylinklabs.watchtower.enable="true"
+```
+
+Or, it can be specified as part of the `docker run` command line:
+
+```bash
+docker run -d --label=com.centurylinklabs.watchtower.enable=true someimage
 ```
 
 ## Remote Hosts
