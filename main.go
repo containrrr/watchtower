@@ -119,6 +119,10 @@ func main() {
 			Usage: "SMTP server password for sending notifications",
 			EnvVar: "WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PASSWORD",
 		},
+                cli.BoolFlag{
+                        Name:  "oneshot",
+                        Usage: "Run once now and exit",
+                },
 	}
 
 	if err := app.Run(os.Args); err != nil {
@@ -159,53 +163,61 @@ func before(c *cli.Context) error {
 
 func start(c *cli.Context) error {
 	names := c.Args()
+        if c.GlobalBool("oneshot") {
+		log.SetLevel(log.DebugLevel)
+		log.Info("OneShot run: " + time.Now().String())
+	        notifier.StartNotification()
+		if err := actions.Update(client, names, cleanup, noRestart); err != nil {
+			log.Println(err)
+		}
+		notifier.SendNotification()
+        } else {
+		if err := actions.CheckPrereqs(client, cleanup); err != nil {
+			log.Fatal(err)
+		}
 
-	if err := actions.CheckPrereqs(client, cleanup); err != nil {
-		log.Fatal(err)
-	}
+		tryLockSem := make(chan bool, 1)
+		tryLockSem <- true
 
-	tryLockSem := make(chan bool, 1)
-	tryLockSem <- true
-
-	cron := cron.New()
-	err := cron.AddFunc(
-		scheduleSpec,
-		func() {
-			select {
-			case v := <-tryLockSem:
-				defer func() { tryLockSem <- v }()
-				notifier.StartNotification()
-				if err := actions.Update(client, names, cleanup, noRestart); err != nil {
-					log.Println(err)
+		cron := cron.New()
+		err := cron.AddFunc(
+			scheduleSpec,
+			func() {
+				select {
+				case v := <-tryLockSem:
+					defer func() { tryLockSem <- v }()
+					notifier.StartNotification()
+					if err := actions.Update(client, names, cleanup, noRestart); err != nil {
+						log.Println(err)
+					}
+					notifier.SendNotification()
+				default:
+					log.Debug("Skipped another update already running.")
 				}
-				notifier.SendNotification()
-			default:
-				log.Debug("Skipped another update already running.")
-			}
 
-			nextRuns := cron.Entries()
-			if len(nextRuns) > 0 {
-				log.Debug("Scheduled next run: " + nextRuns[0].Next.String())
-			}
-		})
+				nextRuns := cron.Entries()
+				if len(nextRuns) > 0 {
+					log.Debug("Scheduled next run: " + nextRuns[0].Next.String())
+				}
+			})
 
-	if err != nil {
-		return err
+		if err != nil {
+			return err
+		}
+
+		log.Info("First run: " + cron.Entries()[0].Schedule.Next(time.Now()).String())
+		cron.Start()
+		// Graceful shut-down on SIGINT/SIGTERM
+		interrupt := make(chan os.Signal, 1)
+		signal.Notify(interrupt, os.Interrupt)
+		signal.Notify(interrupt, syscall.SIGTERM)
+
+		<-interrupt
+		cron.Stop()
+		log.Info("Waiting for running update to be finished...")
+		<-tryLockSem
+		os.Exit(1)
 	}
-
-	log.Info("First run: " + cron.Entries()[0].Schedule.Next(time.Now()).String())
-	cron.Start()
-
-	// Graceful shut-down on SIGINT/SIGTERM
-	interrupt := make(chan os.Signal, 1)
-	signal.Notify(interrupt, os.Interrupt)
-	signal.Notify(interrupt, syscall.SIGTERM)
-
-	<-interrupt
-	cron.Stop()
-	log.Info("Waiting for running update to be finished...")
-	<-tryLockSem
-	os.Exit(1)
 	return nil
 }
 
