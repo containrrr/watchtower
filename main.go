@@ -172,7 +172,7 @@ func start(c *cli.Context) error {
 		scheduleSpec,
 		func() {
 			select {
-			case v := <-tryLockSem:
+			case v := <- tryLockSem:
 				defer func() { tryLockSem <- v }()
 				notifier.StartNotification()
 				if err := actions.Update(client, names, cleanup, noRestart); err != nil {
