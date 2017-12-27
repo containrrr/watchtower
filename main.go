@@ -21,6 +21,8 @@ import (
 const DockerAPIMinVersion string = "1.24"
 
 var version = "master"
+var commit = "unknown"
+var date = "unknown"
 
 var (
 	client       container.Client
@@ -37,7 +39,7 @@ func init() {
 func main() {
 	app := cli.NewApp()
 	app.Name = "watchtower"
-	app.Version = version
+	app.Version = version + " - " + commit + " - " + date
 	app.Usage = "Automatically update running Docker containers"
 	app.Before = before
 	app.Action = start
