@@ -10,6 +10,7 @@ jobs:
           version: 17.03.0-ce
       - run: git fetch --tags
       - run: |
+          docker login -u $DOCKER_USER -p $DOCKER_PASS
           IS_RELEASE=$(if [ "$CIRCLE_TAG" != "" ] ; then echo release; else echo ci; fi;)
           /build.sh $IS_RELEASE
 
