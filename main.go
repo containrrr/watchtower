@@ -111,6 +111,12 @@ func main() {
 			Usage: "SMTP server to send notification e-mails through",
 			EnvVar: "WATCHTOWER_NOTIFICATION_EMAIL_SERVER",
 		},
+		cli.IntFlag{
+			Name: "notification-email-server-port",
+			Usage: "SMTP server port to send notification e-mails through",
+			Value:  25,
+			EnvVar: "WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PORT",
+		},
 		cli.StringFlag{
 			Name: "notification-email-server-user",
 			Usage: "SMTP server user for sending notifications",

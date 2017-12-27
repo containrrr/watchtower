@@ -6,6 +6,8 @@ import (
 	"net/smtp"
 	"os"
 
+	"strconv"
+
 	log "github.com/Sirupsen/logrus"
 	"github.com/urfave/cli"
 )
@@ -22,6 +24,7 @@ const (
 type emailTypeNotifier struct {
 	From, To               string
 	Server, User, Password string
+	Port                   int
 	entries                []*log.Entry
 }
 
@@ -32,6 +35,7 @@ func newEmailNotifier(c *cli.Context) typeNotifier {
 		Server:   c.GlobalString("notification-email-server"),
 		User:     c.GlobalString("notification-email-server-user"),
 		Password: c.GlobalString("notification-email-server-password"),
+		Port:     c.GlobalInt("notification-email-server-port"),
 	}
 
 	log.AddHook(n)
@@ -72,7 +76,7 @@ func (e *emailTypeNotifier) sendEntries(entries []*log.Entry) {
 	msg := e.buildMessage(entries)
 	go func() {
 		auth := smtp.PlainAuth("", e.User, e.Password, e.Server)
-		err := smtp.SendMail(e.Server+":25", auth, e.From, []string{e.To}, msg)
+		err := smtp.SendMail(e.Server+":"+strconv.Itoa(e.Port), auth, e.From, []string{e.To}, msg)
 		if err != nil {
 			// Use fmt so it doesn't trigger another email.
 			fmt.Println("Failed to send notification email: ", err)
