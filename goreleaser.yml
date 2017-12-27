@@ -24,14 +24,8 @@ build:
 # Archive customization
 archive:
   # You can change the name of the archive.
-  # This is parsed with Golang template engine and the following variables
-  # are available:
-  # - BinaryName
-  # - Version
-  # - Os
-  # - Arch
-  # The default is `{{.BinaryName}}_{{.Os}}_{{.Arch}}`
-  name_template: "{{.BinaryName}}_{{.Os}}_{{.Arch}}"
+  # This is parsed with Golang template engine and the following variables.
+  name_template: "{{.ProjectName}}_{{.Os}}_{{.Arch}}"
 
   # Archive format. Valid options are `tar.gz` and `zip`.
   # Default is `zip`
@@ -54,3 +48,21 @@ archive:
   # `README*` and `CHANGELOG*` (case-insensitive)
   files:
     - LICENSE.md
+
+dockers:
+  -
+    goos: linux
+    goarch: amd64
+    goarm: ''
+    binary: watchtower
+    image: v2tec/watchtower
+    dockerfile: dockerfile/amd64/Dockerfile
+    tag_template: "{{ .Version }}"
+  -
+    goos: linux
+    goarch: arm
+    goarm: 6
+    binary: watchtower
+    image: v2tec/watchtower
+    dockerfile: dockerfile/armhf/Dockerfile
+    tag_template: "armhf-{{ .Version }}"

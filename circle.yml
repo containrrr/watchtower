@@ -1,30 +1,25 @@
-machine:
-  services:
-    - docker
-  environment:
-    IS_RELEASE: $(if [ "$CIRCLE_TAG" != "" ] ; then echo release; else echo ci; fi;)
-    BUILD_IMAGE: v2tec/gobuilder:0.1.0_go1.7.4-glide0.12.3-goreleaser0.6.2
+version: 2
+jobs:
+  build:
+    docker:
+      - image: v2tec/gobuilder:0.2.0_go1.7.4-glide0.12.3-goreleaser0.40.3-docker17.03.0
+    working_directory: /src
+    steps:
+      - checkout
+      - setup_remote_docker:
+          version: 17.03.0-ce
+      - run: git fetch --tags
+      - run: |
+          IS_RELEASE=$(if [ "$CIRCLE_TAG" != "" ] ; then echo release; else echo ci; fi;)
+          /build.sh $IS_RELEASE
 
-dependencies:
-  override:
-    - git fetch --tags
-    - docker pull $BUILD_IMAGE
-
-compile:
-  override:
-    - docker run -v "$PWD":/src -e GITHUB_TOKEN=$GITHUB_TOKEN $BUILD_IMAGE $IS_RELEASE $CIRCLE_BRANCH-$CIRCLE_SHA1
-
-test:
-  override:
-    - echo "Tests included in compile step."
-
-deployment:
-  ci:
-    branch: /.*/
-    commands:
-      - cp -r ./dist/* $CIRCLE_ARTIFACTS
-  release:
-    tag: /v[0-9]+(\.[0-9]+)*/
-    owner: v2tec
-    commands:
-      - cp -r ./dist/* $CIRCLE_ARTIFACTS
+      - store_artifacts:
+          path: /src/dist/
+workflows:
+  version: 2
+  build-deploy:
+    jobs:
+      - build:
+          filters:
+            tags:
+              only: /.*/
