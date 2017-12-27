@@ -4,10 +4,6 @@ build:
   # Default is `main.go`
   main: ./main.go
 
-  # Custom ldflags.
-  # Default is `-s -w`
-  ldflags: -s -w
-
   # GOOS list to build in.
   # For more info refer to https://golang.org/doc/install/source#environment
   # Defaults are darwin and linux
