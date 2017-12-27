@@ -13,6 +13,7 @@ build:
   # Defaults are darwin and linux
   goos:
     - linux
+    - windows
 
   # GOARCH to build in.
   # For more info refer to https://golang.org/doc/install/source#environment
@@ -42,6 +43,10 @@ archive:
     386: 386
     darwin: macOS
     linux: linux
+
+  format_overrides:
+    - goos: windows
+      format: zip
 
   # Additional files you want to add to the archive.
   # Defaults are any files matching `LICENCE*`, `LICENSE*`,
