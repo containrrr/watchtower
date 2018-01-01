@@ -1,7 +1,9 @@
 # Watchtower
-[![Circle CI](https://circleci.com/gh/v2tec/watchtower.svg?style=svg)](https://circleci.com/gh/v2tec/watchtower)&nbsp;
-[![GoDoc](https://godoc.org/github.com/v2tec/watchtower?status.svg)](https://godoc.org/github.com/v2tec/watchtower)&nbsp;
+
+[![Circle CI](https://circleci.com/gh/v2tec/watchtower.svg?style=shield)](https://circleci.com/gh/v2tec/watchtower)
+[![GoDoc](https://godoc.org/github.com/v2tec/watchtower?status.svg)](https://godoc.org/github.com/v2tec/watchtower)
 [![](https://images.microbadger.com/badges/image/v2tec/watchtower.svg)](https://microbadger.com/images/v2tec/watchtower "Get your own image badge on microbadger.com")
+[![Go Report Card](https://goreportcard.com/badge/github.com/v2tec/watchtower)](https://goreportcard.com/report/github.com/v2tec/watchtower)
 
 A process for watching your Docker containers and automatically restarting them whenever their base image is refreshed.
 
