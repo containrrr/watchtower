@@ -29,6 +29,7 @@ var (
 	scheduleSpec string
 	cleanup      bool
 	noRestart    bool
+	noUpdate	 bool
 	notifier     *notifications.Notifier
 )
 
@@ -75,6 +76,11 @@ func main() {
 			Name:   "cleanup",
 			Usage:  "remove old images after updating",
 			EnvVar: "WATCHTOWER_CLEANUP",
+		},
+		cli.BoolFlag{
+			Name:   "no-update",
+			Usage:  "do not update container",
+			EnvVar: "WATCHTOWER_NO_UPDATE",
 		},
 		cli.BoolFlag{
 			Name:   "tlsverify",
@@ -146,6 +152,7 @@ func before(c *cli.Context) error {
 
 	cleanup = c.GlobalBool("cleanup")
 	noRestart = c.GlobalBool("no-restart")
+	noUpdate = c.GlobalBool("no-update")
 
 	// configure environment vars for client
 	err := envConfig(c)
@@ -177,7 +184,7 @@ func start(c *cli.Context) error {
 			case v := <- tryLockSem:
 				defer func() { tryLockSem <- v }()
 				notifier.StartNotification()
-				if err := actions.Update(client, names, cleanup, noRestart); err != nil {
+				if err := actions.Update(client, names, cleanup, noRestart, noUpdate); err != nil {
 					log.Println(err)
 				}
 				notifier.SendNotification()

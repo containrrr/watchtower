@@ -34,7 +34,7 @@ func containerFilter(names []string) container.Filter {
 // used to start those containers have been updated. If a change is detected in
 // any of the images, the associated containers are stopped and restarted with
 // the new image.
-func Update(client container.Client, names []string, cleanup bool, noRestart bool) error {
+func Update(client container.Client, names []string, cleanup bool, noRestart bool, noUpdate bool) error {
 	log.Debug("Checking containers for updated images")
 
 	containers, err := client.ListContainers(containerFilter(names))
@@ -59,43 +59,45 @@ func Update(client container.Client, names []string, cleanup bool, noRestart boo
 
 	checkDependencies(containers)
 
-	// Stop stale containers in reverse order
-	for i := len(containers) - 1; i >= 0; i-- {
-		container := containers[i]
+	if !noUpdate {
+		// Stop stale containers in reverse order
+		for i := len(containers) - 1; i >= 0; i-- {
+			container := containers[i]
 
-		if container.IsWatchtower() {
-			continue
-		}
-
-		if container.Stale {
-			if err := client.StopContainer(container, waitTime); err != nil {
-				log.Error(err)
-			}
-		}
-	}
-
-	// Restart stale containers in sorted order
-	for _, container := range containers {
-		if container.Stale {
-			// Since we can't shutdown a watchtower container immediately, we need to
-			// start the new one while the old one is still running. This prevents us
-			// from re-using the same container name so we first rename the current
-			// instance so that the new one can adopt the old name.
 			if container.IsWatchtower() {
-				if err := client.RenameContainer(container, randName()); err != nil {
-					log.Error(err)
-					continue
-				}
+				continue
 			}
 
-			if !noRestart {
-				if err := client.StartContainer(container); err != nil {
+			if container.Stale {
+				if err := client.StopContainer(container, waitTime); err != nil {
 					log.Error(err)
 				}
 			}
+		}
 
-			if cleanup {
-				client.RemoveImage(container)
+		// Restart stale containers in sorted order
+		for _, container := range containers {
+			if container.Stale {
+				// Since we can't shutdown a watchtower container immediately, we need to
+				// start the new one while the old one is still running. This prevents us
+				// from re-using the same container name so we first rename the current
+				// instance so that the new one can adopt the old name.
+				if container.IsWatchtower() {
+					if err := client.RenameContainer(container, randName()); err != nil {
+						log.Error(err)
+						continue
+					}
+				}
+
+				if !noRestart {
+					if err := client.StartContainer(container); err != nil {
+						log.Error(err)
+					}
+				}
+
+				if cleanup {
+					client.RemoveImage(container)
+				}
 			}
 		}
 	}
