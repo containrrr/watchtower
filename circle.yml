@@ -12,7 +12,9 @@ jobs:
       - run: |
           docker login -u $DOCKER_USER -p $DOCKER_PASS
           IS_RELEASE=$(if [ "$CIRCLE_TAG" != "" ] ; then echo release; else echo ci; fi;)
-          /build.sh $IS_RELEASE
+          /build.sh $IS_RELEASE || exit 1
+          chmod 755 /src/dockerfile/push_containers.sh
+          if [ "$CIRCLE_TAG" != "" ] ; then /src/dockerfile/push_containers.sh $CIRCLE_TAG; fi;
 
       - store_artifacts:
           path: /src/dist/
