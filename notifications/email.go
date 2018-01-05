@@ -87,10 +87,10 @@ func (e *emailTypeNotifier) StartNotification() {
 }
 
 func (e *emailTypeNotifier) SendNotification() {
-	if e.entries != nil {
+	if e.entries != nil && len(e.entries) != 0 {
 		e.sendEntries(e.entries)
-		e.entries = nil
 	}
+	e.entries = nil
 }
 
 func (e *emailTypeNotifier) Levels() []log.Level {
