@@ -45,8 +45,7 @@ func Update(client container.Client, names []string, cleanup bool, noRestart boo
 	for i, container := range containers {
 		stale, err := client.IsContainerStale(container)
 		if err != nil {
-			log.Infof("Unable to update container %s. Proceeding to next.", containers[i].Name())
-			log.Debug(err)
+			log.Infof("Unable to update container %s, err='%s'. Proceeding to next.", containers[i].Name(), err)
 			stale = false
 		}
 		containers[i].Stale = stale
