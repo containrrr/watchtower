@@ -67,6 +67,8 @@ func Update(client container.Client, names []string, cleanup bool, noRestart boo
 			continue
 		}
 
+		container.WasRunning = container.IsRunning()
+
 		if container.Stale {
 			if err := client.StopContainer(container, waitTime); err != nil {
 				log.Error(err)

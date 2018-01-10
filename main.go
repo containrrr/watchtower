@@ -62,6 +62,11 @@ func main() {
 			EnvVar: "WATCHTOWER_SCHEDULE",
 		},
 		cli.BoolFlag{
+			Name:   "check-all",
+			Usage:  "check non-running containers",
+			EnvVar: "WATCHTOWER_CHECK_ALL",
+		},
+		cli.BoolFlag{
 			Name:   "no-pull",
 			Usage:  "do not pull new images",
 			EnvVar: "WATCHTOWER_NO_PULL",
@@ -159,7 +164,7 @@ func before(c *cli.Context) error {
 		return err
 	}
 
-	client = container.NewClient(!c.GlobalBool("no-pull"), c.GlobalBool("label-enable"))
+	client = container.NewClient(!c.GlobalBool("no-pull"), c.GlobalBool("label-enable"), c.GlobalBool("check-all"))
 	notifier = notifications.NewNotifier(c)
 
 	return nil

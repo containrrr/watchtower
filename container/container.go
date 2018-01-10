@@ -27,7 +27,8 @@ func NewContainer(containerInfo *types.ContainerJSON, imageInfo *types.ImageInsp
 
 // Container represents a running Docker container.
 type Container struct {
-	Stale bool
+	Stale      bool
+	WasRunning bool
 
 	containerInfo *types.ContainerJSON
 	imageInfo     *types.ImageInspect
@@ -104,6 +105,13 @@ func (c Container) Links() []string {
 func (c Container) IsWatchtower() bool {
 	val, ok := c.containerInfo.Config.Labels[watchtowerLabel]
 	return ok && val == "true"
+}
+
+// IsRunning returns a boolean flag indicating whether or not the current
+// container is running. The status is determined by the value of the
+// container's "State.Running" property.
+func (c Container) IsRunning() bool {
+	return c.containerInfo.State.Running
 }
 
 // StopSignal returns the custom stop signal (if any) that is encoded in the

@@ -37,31 +37,41 @@ type Client interface {
 //  * DOCKER_HOST			the docker-engine host to send api requests to
 //  * DOCKER_TLS_VERIFY		whether to verify tls certificates
 //  * DOCKER_API_VERSION	the minimum docker api version to work with
-func NewClient(pullImages, enableLabel bool) Client {
+func NewClient(pullImages, enableLabel bool, checkAll bool) Client {
 	cli, err := dockerclient.NewEnvClient()
 
 	if err != nil {
 		log.Fatalf("Error instantiating Docker client: %s", err)
 	}
 
-	return dockerClient{api: cli, pullImages: pullImages, enableLabel: enableLabel}
+	return dockerClient{
+		api:         cli,
+		pullImages:  pullImages,
+		enableLabel: enableLabel,
+		checkAll:    checkAll}
 }
 
 type dockerClient struct {
 	api         *dockerclient.Client
 	pullImages  bool
 	enableLabel bool
+	checkAll    bool
 }
 
 func (client dockerClient) ListContainers(fn Filter) ([]Container, error) {
 	cs := []Container{}
 	bg := context.Background()
 
-	log.Debug("Retrieving running containers")
+	if client.checkAll {
+		log.Debug("Retrieving containers")
+	} else {
+		log.Debug("Retrieving running containers")
+	}
 
 	runningContainers, err := client.api.ContainerList(
 		bg,
-		types.ContainerListOptions{})
+		types.ContainerListOptions{
+			All: client.checkAll})
 	if err != nil {
 		return nil, err
 	}
@@ -103,10 +113,12 @@ func (client dockerClient) StopContainer(c Container, timeout time.Duration) err
 		signal = defaultStopSignal
 	}
 
-	log.Infof("Stopping %s (%s) with %s", c.Name(), c.ID(), signal)
+	if c.WasRunning {
+		log.Infof("Stopping %s (%s) with %s", c.Name(), c.ID(), signal)
 
-	if err := client.api.ContainerKill(bg, c.ID(), signal); err != nil {
-		return err
+		if err := client.api.ContainerKill(bg, c.ID(), signal); err != nil {
+			return err
+		}
 	}
 
 	// Wait for container to exit, but proceed anyway after the timeout elapses
@@ -173,11 +185,13 @@ func (client dockerClient) StartContainer(c Container) error {
 
 	}
 
-	log.Debugf("Starting container %s (%s)", name, creation.ID)
+	if c.WasRunning {
+		log.Debugf("Starting container %s (%s)", name, creation.ID)
 
-	err = client.api.ContainerStart(bg, creation.ID, types.ContainerStartOptions{})
-	if err != nil {
-		return err
+		err = client.api.ContainerStart(bg, creation.ID, types.ContainerStartOptions{})
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
