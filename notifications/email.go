@@ -81,7 +81,10 @@ func (e *emailTypeNotifier) sendEntries(entries []*log.Entry) {
 	// Do the sending in a separate goroutine so we don't block the main process.
 	msg := e.buildMessage(entries)
 	go func() {
-		auth := smtp.PlainAuth("", e.User, e.Password, e.Server)
+		var auth smtp.Auth
+		if e.User != "" {
+			auth = smtp.PlainAuth("", e.User, e.Password, e.Server)
+		}
 		err := SendMail(e.Server+":"+strconv.Itoa(e.Port), e.tlsSkipVerify, auth, e.From, []string{e.To}, msg)
 		if err != nil {
 			// Use fmt so it doesn't trigger another email.
