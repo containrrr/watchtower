@@ -93,7 +93,7 @@ func main() {
 		cli.StringSliceFlag{
 			Name:   "notifications",
 			Value:  &cli.StringSlice{},
-			Usage:  "notification types to send (valid: email, discord)",
+			Usage:  "notification types to send (valid: email, slack, discord)",
 			EnvVar: "WATCHTOWER_NOTIFICATIONS",
 		},
 		cli.StringFlag{
@@ -116,6 +116,15 @@ func main() {
 			Usage:  "SMTP server port to send notification e-mails through",
 			Value:  25,
 			EnvVar: "WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PORT",
+		},
+		cli.BoolFlag{
+			Name: "notification-email-server-tls-skip-verify",
+			Usage: "Controls whether watchtower verifies the SMTP server's certificate chain and host name. " +
+				"If set, TLS accepts any certificate " +
+				"presented by the server and any host name in that certificate. " +
+				"In this mode, TLS is susceptible to man-in-the-middle attacks. " +
+				"This should be used only for testing.",
+			EnvVar: "WATCHTOWER_NOTIFICATION_EMAIL_SERVER_TLS_SKIP_VERIFY",
 		},
 		cli.StringFlag{
 			Name:   "notification-email-server-user",

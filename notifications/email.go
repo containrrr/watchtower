@@ -26,17 +26,19 @@ type emailTypeNotifier struct {
 	From, To               string
 	Server, User, Password string
 	Port                   int
+	tlsSkipVerify          bool
 	entries                []*log.Entry
 }
 
 func newEmailNotifier(c *cli.Context) typeNotifier {
 	n := &emailTypeNotifier{
-		From:     c.GlobalString("notification-email-from"),
-		To:       c.GlobalString("notification-email-to"),
-		Server:   c.GlobalString("notification-email-server"),
-		User:     c.GlobalString("notification-email-server-user"),
-		Password: c.GlobalString("notification-email-server-password"),
-		Port:     c.GlobalInt("notification-email-server-port"),
+		From:          c.GlobalString("notification-email-from"),
+		To:            c.GlobalString("notification-email-to"),
+		Server:        c.GlobalString("notification-email-server"),
+		User:          c.GlobalString("notification-email-server-user"),
+		Password:      c.GlobalString("notification-email-server-password"),
+		Port:          c.GlobalInt("notification-email-server-port"),
+		tlsSkipVerify: c.GlobalBool("notification-email-server-tls-skip-verify"),
 	}
 
 	log.AddHook(n)
@@ -80,7 +82,7 @@ func (e *emailTypeNotifier) sendEntries(entries []*log.Entry) {
 	msg := e.buildMessage(entries)
 	go func() {
 		auth := smtp.PlainAuth("", e.User, e.Password, e.Server)
-		err := smtp.SendMail(e.Server+":"+strconv.Itoa(e.Port), auth, e.From, []string{e.To}, msg)
+		err := SendMail(e.Server+":"+strconv.Itoa(e.Port), e.tlsSkipVerify, auth, e.From, []string{e.To}, msg)
 		if err != nil {
 			// Use fmt so it doesn't trigger another email.
 			fmt.Println("Failed to send notification email: ", err)
