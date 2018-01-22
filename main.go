@@ -91,40 +91,49 @@ func main() {
 			Usage: "enable debug mode with verbose logging",
 		},
 		cli.StringSliceFlag{
-			Name: "notifications",
-			Value: &cli.StringSlice{},
-			Usage: "notification types to send (valid: email)",
+			Name:   "notifications",
+			Value:  &cli.StringSlice{},
+			Usage:  "notification types to send (valid: email)",
 			EnvVar: "WATCHTOWER_NOTIFICATIONS",
 		},
 		cli.StringFlag{
-			Name: "notification-email-from",
-			Usage: "Address to send notification e-mails from",
+			Name:   "notification-email-from",
+			Usage:  "Address to send notification e-mails from",
 			EnvVar: "WATCHTOWER_NOTIFICATION_EMAIL_FROM",
 		},
 		cli.StringFlag{
-			Name: "notification-email-to",
-			Usage: "Address to send notification e-mails to",
+			Name:   "notification-email-to",
+			Usage:  "Address to send notification e-mails to",
 			EnvVar: "WATCHTOWER_NOTIFICATION_EMAIL_TO",
 		},
 		cli.StringFlag{
-			Name: "notification-email-server",
-			Usage: "SMTP server to send notification e-mails through",
+			Name:   "notification-email-server",
+			Usage:  "SMTP server to send notification e-mails through",
 			EnvVar: "WATCHTOWER_NOTIFICATION_EMAIL_SERVER",
 		},
 		cli.IntFlag{
-			Name: "notification-email-server-port",
-			Usage: "SMTP server port to send notification e-mails through",
+			Name:   "notification-email-server-port",
+			Usage:  "SMTP server port to send notification e-mails through",
 			Value:  25,
 			EnvVar: "WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PORT",
 		},
+		cli.BoolFlag{
+			Name: "notification-email-server-tls-skip-verify",
+			Usage: "Controls whether watchtower verifies the SMTP server's certificate chain and host name. " +
+				"If set, TLS accepts any certificate " +
+				"presented by the server and any host name in that certificate. " +
+				"In this mode, TLS is susceptible to man-in-the-middle attacks. " +
+				"This should be used only for testing.",
+			EnvVar: "WATCHTOWER_NOTIFICATION_EMAIL_SERVER_TLS_SKIP_VERIFY",
+		},
 		cli.StringFlag{
-			Name: "notification-email-server-user",
-			Usage: "SMTP server user for sending notifications",
+			Name:   "notification-email-server-user",
+			Usage:  "SMTP server user for sending notifications",
 			EnvVar: "WATCHTOWER_NOTIFICATION_EMAIL_SERVER_USER",
 		},
 		cli.StringFlag{
-			Name: "notification-email-server-password",
-			Usage: "SMTP server password for sending notifications",
+			Name:   "notification-email-server-password",
+			Usage:  "SMTP server password for sending notifications",
 			EnvVar: "WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PASSWORD",
 		},
 	}
@@ -180,7 +189,7 @@ func start(c *cli.Context) error {
 		scheduleSpec,
 		func() {
 			select {
-			case v := <- tryLockSem:
+			case v := <-tryLockSem:
 				defer func() { tryLockSem <- v }()
 				notifier.StartNotification()
 				if err := actions.Update(client, names, cleanup, noRestart); err != nil {
