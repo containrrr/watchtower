@@ -72,7 +72,12 @@ func (e *emailTypeNotifier) buildMessage(entries []*log.Entry) []byte {
 	for k, v := range header {
 		message += fmt.Sprintf("%s: %s\r\n", k, v)
 	}
-	message += "\r\n" + base64.StdEncoding.EncodeToString([]byte(body))
+
+	encodedBody := base64.StdEncoding.EncodeToString([]byte(body))
+	//RFC 2045 base64 encoding demands line no longer than 76 characters.
+	for _, line := range SplitSubN(encodedBody, 76) {
+		message += "\r\n" + line
+	}
 
 	return []byte(message)
 }
