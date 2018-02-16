@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/smtp"
 	"os"
+	"time"
 
 	"strconv"
 
@@ -54,10 +55,13 @@ func (e *emailTypeNotifier) buildMessage(entries []*log.Entry) []byte {
 		// We don't use fields in watchtower, so don't bother sending them.
 	}
 
+	t := time.Now()
+	
 	header := make(map[string]string)
 	header["From"] = e.From
 	header["To"] = e.To
 	header["Subject"] = emailSubject
+	header["Date"] = t.Format(time.RFC1123)
 	header["MIME-Version"] = "1.0"
 	header["Content-Type"] = "text/plain; charset=\"utf-8\""
 	header["Content-Transfer-Encoding"] = "base64"
