@@ -61,7 +61,7 @@ func (e *emailTypeNotifier) buildMessage(entries []*log.Entry) []byte {
 	header["From"] = e.From
 	header["To"] = e.To
 	header["Subject"] = emailSubject
-	header["Date"] = t.Format(time.RFC1123)
+	header["Date"] = t.Format(time.RFC1123Z)
 	header["MIME-Version"] = "1.0"
 	header["Content-Type"] = "text/plain; charset=\"utf-8\""
 	header["Content-Transfer-Encoding"] = "base64"
