@@ -91,41 +91,46 @@ func main() {
 			Usage: "enable debug mode with verbose logging",
 		},
 		cli.StringSliceFlag{
-			Name: "notifications",
-			Value: &cli.StringSlice{},
-			Usage: "notification types to send (valid: email)",
+			Name:   "notifications",
+			Value:  &cli.StringSlice{},
+			Usage:  "notification types to send (valid: email, discord)",
 			EnvVar: "WATCHTOWER_NOTIFICATIONS",
 		},
 		cli.StringFlag{
-			Name: "notification-email-from",
-			Usage: "Address to send notification e-mails from",
+			Name:   "notification-email-from",
+			Usage:  "Address to send notification e-mails from",
 			EnvVar: "WATCHTOWER_NOTIFICATION_EMAIL_FROM",
 		},
 		cli.StringFlag{
-			Name: "notification-email-to",
-			Usage: "Address to send notification e-mails to",
+			Name:   "notification-email-to",
+			Usage:  "Address to send notification e-mails to",
 			EnvVar: "WATCHTOWER_NOTIFICATION_EMAIL_TO",
 		},
 		cli.StringFlag{
-			Name: "notification-email-server",
-			Usage: "SMTP server to send notification e-mails through",
+			Name:   "notification-email-server",
+			Usage:  "SMTP server to send notification e-mails through",
 			EnvVar: "WATCHTOWER_NOTIFICATION_EMAIL_SERVER",
 		},
 		cli.IntFlag{
-			Name: "notification-email-server-port",
-			Usage: "SMTP server port to send notification e-mails through",
+			Name:   "notification-email-server-port",
+			Usage:  "SMTP server port to send notification e-mails through",
 			Value:  25,
 			EnvVar: "WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PORT",
 		},
 		cli.StringFlag{
-			Name: "notification-email-server-user",
-			Usage: "SMTP server user for sending notifications",
+			Name:   "notification-email-server-user",
+			Usage:  "SMTP server user for sending notifications",
 			EnvVar: "WATCHTOWER_NOTIFICATION_EMAIL_SERVER_USER",
 		},
 		cli.StringFlag{
-			Name: "notification-email-server-password",
-			Usage: "SMTP server password for sending notifications",
+			Name:   "notification-email-server-password",
+			Usage:  "SMTP server password for sending notifications",
 			EnvVar: "WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PASSWORD",
+		},
+		cli.StringFlag{
+			Name:   "notification-discord-webhook",
+			Usage:  "Discord webhook url for sending notifications",
+			EnvVar: "WATCHTOWER_NOTIFICATION_DISCORD_WEBHOOK",
 		},
 	}
 
@@ -180,7 +185,7 @@ func start(c *cli.Context) error {
 		scheduleSpec,
 		func() {
 			select {
-			case v := <- tryLockSem:
+			case v := <-tryLockSem:
 				defer func() { tryLockSem <- v }()
 				notifier.StartNotification()
 				if err := actions.Update(client, names, cleanup, noRestart); err != nil {

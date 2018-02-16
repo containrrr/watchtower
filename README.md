@@ -189,7 +189,9 @@ Watchtower can send notifications when containers are updated. Notifications are
 The types of notifications to send are passed via the comma-separated option `--notifications` (or corresponding environment variable `WATCHTOWER_NOTIFICATIONS`), which has the following valid values:
 
 * `email` to send notifications via e-mail
+* `discord` to send notifications into Discord channel
 
+### Email
 To receive notifications by email, the following command-line options, or their corresponding environment variables, can be set:
 
 * `--notification-email-from` (env. `WATCHTOWER_NOTIFICATION_EMAIL_FROM`): The e-mail address from which notifications will be sent.
@@ -213,4 +215,12 @@ docker run -d \
   -e WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PASSWORD=app_password \
   v2tec/watchtower
 ```
+
+### Discord
+To send notifications into Discord channel, the following command-line options, or their corresponding environment variables, can be set:
+
+* `--notification-discord-webhook` (env. `WATCHTOWER_NOTIFICATION_DISCORD_WEBHOOK`): Webhook URL configured in Discord.
+
+[Checkout how to add webhook for channel](https://support.discordapp.com/hc/en-us/articles/228383668)
+
 
