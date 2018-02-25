@@ -26,6 +26,8 @@ func NewNotifier(c *cli.Context) *Notifier {
 		switch t {
 		case emailType:
 			tn = newEmailNotifier(c)
+		case discordType:
+			tn = newDiscordNotifier(c)
 		default:
 			log.Fatalf("Unknown notification type %q", t)
 		}
