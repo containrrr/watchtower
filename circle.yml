@@ -2,12 +2,12 @@ version: 2
 jobs:
   build:
     docker:
-      - image: v2tec/gobuilder:0.2.0_go1.7.4-glide0.12.3-goreleaser0.40.3-docker17.03.0
+      - image: v2tec/gobuilder:0.5.0_go1.7.4-glide0.12.3-goreleaser0.59.0-docker17.05.0
     working_directory: /src
     steps:
       - checkout
       - setup_remote_docker:
-          version: 17.03.0-ce
+          version: 17.05.0-ce
       - run: git fetch --tags
       - run: |
           docker login -u $DOCKER_USER -p $DOCKER_PASS
