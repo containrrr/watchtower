@@ -37,10 +37,23 @@ func filterByNames(names []string, baseFilter Filter) Filter {
 // Filters out containers that don't have the 'enableLabel'
 func filterByEnableLabel(baseFilter Filter) Filter {
 	return func(c FilterableContainer) bool {
-		// If label filtering is enabled, containers should only be enabled
-		// if the label is specifically set to true.
+		// If label filtering is enabled, containers should only be considered
+		// if the label is specifically set.
+		_, ok := c.Enabled()
+		if !ok {
+			return false
+		}
+
+		return baseFilter(c)
+	}
+}
+
+// Filters out containers that have a 'enableLabel' and is set to disable.
+func filterByDisabledLabel(baseFilter Filter) Filter {
+	return func(c FilterableContainer) bool {
 		enabledLabel, ok := c.Enabled()
-		if !ok || !enabledLabel {
+		if ok && !enabledLabel {
+			// If the label has been set and it demands a disable
 			return false
 		}
 
@@ -57,5 +70,6 @@ func BuildFilter(names []string, enableLabel bool) Filter {
 		// if the label is specifically set.
 		filter = filterByEnableLabel(filter)
 	}
+	filter = filterByDisabledLabel(filter)
 	return filter
 }
