@@ -58,7 +58,8 @@ dockers:
     binary: watchtower
     image: v2tec/watchtower
     dockerfile: dockerfile/amd64/Dockerfile
-    tag_template: "{{ .Version }}"
+    tag_templates:
+      - '{{ .Version }}'
   -
     goos: linux
     goarch: arm
@@ -66,4 +67,5 @@ dockers:
     binary: watchtower
     image: v2tec/watchtower
     dockerfile: dockerfile/armhf/Dockerfile
-    tag_template: "armhf-{{ .Version }}"
+    tag_templates:
+      - 'armhf-{{ .Version }}'
