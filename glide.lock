@@ -1,5 +1,5 @@
-hash: 9ddd729b207d71ce16ae9a0282ac87a046b9161ac4f15b108e86a03367172516
-updated: 2017-01-24T20:45:43.1914053+01:00
+hash: 23bcd62f9352c61d3aebc85a59f7ebbfaf80bc0201f45037cdea65820673ddeb
+updated: 2018-03-01T13:21:55.8472118+01:00
 imports:
 - name: github.com/Azure/go-ansiterm
   version: 388960b655244e76e24c75f48631564eaefade62
@@ -25,7 +25,7 @@ imports:
   - registry/storage/cache/memory
   - uuid
 - name: github.com/docker/docker
-  version: 49bf474f9ed7ce7143a59d1964ff7b7fd9b52178
+  version: 092cba3727bb9b4a2f0e922cd6c0f93ea270e363
   subpackages:
   - api
   - api/server/httputils
@@ -91,7 +91,7 @@ imports:
   - client
   - credentials
 - name: github.com/docker/go-connections
-  version: 4ccf312bf1d35e5dbda654e57a9be4c3f3cd0366
+  version: ecb4cb2dd420ada7df7f2593d6c25441f65f69f2
   subpackages:
   - nat
   - sockets
@@ -110,12 +110,16 @@ imports:
   version: 0eeaf8392f5b04950925b8a69fe70f110fa7cbfc
 - name: github.com/inconshreveable/mousetrap
   version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
+- name: github.com/johntdyer/slack-go
+  version: 95fac1160b220c5abcf8b0ef88e9c3cb213c09f4
+- name: github.com/johntdyer/slackrus
+  version: 3992f319fd0ac349483279ef74742cd787841cba
 - name: github.com/mattn/go-shellwords
   version: f4e566c536cf69158e808ec28ef4182a37fdc981
 - name: github.com/Microsoft/go-winio
-  version: 24a3e3d3fc7451805e09d11e11e95d9a0a4f205e
+  version: fff283ad5116362ca252298cfc9b95828956d85d
 - name: github.com/opencontainers/runc
-  version: 2f7393a47307a16f8cee44a37b262e8b81021e3e
+  version: 9df8b306d01f59d3a8029be411de015b7304dd8f
   repo: https://github.com/docker/runc.git
   subpackages:
   - libcontainer/configs
@@ -135,7 +139,10 @@ imports:
 - name: github.com/robfig/cron
   version: 9585fd555638e77bba25f25db5c44b41f264aeb7
 - name: github.com/Sirupsen/logrus
-  version: d26492970760ca5d33129d2d799e34be5c4782eb
+  version: ba1b36c82c5e05c4f912a88eab0dcd91a171688f
+  repo: https://github.com/sirupsen/logrus.git
+- name: github.com/sirupsen/logrus
+  version: ba1b36c82c5e05c4f912a88eab0dcd91a171688f
 - name: github.com/spf13/cobra
   version: a3c09249f1a24a9d951f2738fb9b9256b8b42fa5
   repo: https://github.com/dnephin/cobra.git

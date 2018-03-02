@@ -8,8 +8,8 @@ import (
 
 	"strconv"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/robfig/cron"
+	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 	"github.com/v2tec/watchtower/actions"
 	"github.com/v2tec/watchtower/container"
@@ -93,8 +93,14 @@ func main() {
 		cli.StringSliceFlag{
 			Name:   "notifications",
 			Value:  &cli.StringSlice{},
-			Usage:  "notification types to send (valid: email)",
+			Usage:  "notification types to send (valid: email, slack)",
 			EnvVar: "WATCHTOWER_NOTIFICATIONS",
+		},
+		cli.StringFlag{
+			Name:   "notifications-level",
+			Usage:  "The log level used for sending notifications. Possible values: \"panic\", \"fatal\", \"error\", \"warn\", \"info\" or \"debug\"",
+			EnvVar: "WATCHTOWER_NOTIFICATIONS_LEVEL",
+			Value:  "info",
 		},
 		cli.StringFlag{
 			Name:   "notification-email-from",
@@ -135,6 +141,17 @@ func main() {
 			Name:   "notification-email-server-password",
 			Usage:  "SMTP server password for sending notifications",
 			EnvVar: "WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PASSWORD",
+		},
+		cli.StringFlag{
+			Name:   "notification-slack-hook-url",
+			Usage:  "The Slack Hook URL to send notifications to",
+			EnvVar: "WATCHTOWER_NOTIFICATION_SLACK_HOOK_URL",
+		},
+		cli.StringFlag{
+			Name:   "notification-slack-identifier",
+			Usage:  "A string which will be used to identify the messages coming from this watchtower instance. Default if omitted is \"watchtower\"",
+			EnvVar: "WATCHTOWER_NOTIFICATION_SLACK_IDENTIFIER",
+			Value:  "watchtower",
 		},
 	}
 
