@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
 
@@ -15,13 +15,14 @@ const (
 )
 
 type discordTypeNotifier struct {
-	WebhookURL string
-	entries    []*log.Entry
+	webHookURL     string
+	acceptedLevels []log.Level
 }
 
-func newDiscordNotifier(c *cli.Context) typeNotifier {
+func newDiscordNotifier(c *cli.Context, acceptedLogLevels []log.Level) typeNotifier {
 	n := &discordTypeNotifier{
-		WebhookURL: c.GlobalString("notification-discord-webhook"),
+		webHookURL:     c.GlobalString("notification-discord-webhook"),
+		acceptedLevels: acceptedLogLevels,
 	}
 
 	log.AddHook(n)
@@ -29,22 +30,18 @@ func newDiscordNotifier(c *cli.Context) typeNotifier {
 	return n
 }
 
-func (n *discordTypeNotifier) sendEntries(entries []*log.Entry) {
-	// Do the sending in a separate goroutine so we don't block the main process.
-	message := ""
-	for _, entry := range entries {
-		message += entry.Time.Format("2006-01-02 15:04:05") + " (" + entry.Level.String() + "): " + entry.Message + "\r\n"
-	}
+func (n *discordTypeNotifier) sendEntry(entry *log.Entry) {
 
+	message := "(" + entry.Level.String() + "): " + entry.Message
 	go func() {
-		webhookBody := discordWebhookBody{Content: message}
-		jsonBody, err := json.Marshal(webhookBody)
+		webHookBody := discordWebHookBody{Content: message}
+		jsonBody, err := json.Marshal(webHookBody)
 		if err != nil {
 			fmt.Println("Failed to build JSON body for Discord notificattion: ", err)
 			return
 		}
 
-		resp, err := http.Post(n.WebhookURL, "application/json", bytes.NewBuffer([]byte(jsonBody)))
+		resp, err := http.Post(n.webHookURL, "application/json", bytes.NewBuffer([]byte(jsonBody)))
 		if err != nil {
 			fmt.Println("Failed to send Discord notificattion: ", err)
 		}
@@ -57,40 +54,19 @@ func (n *discordTypeNotifier) sendEntries(entries []*log.Entry) {
 	}()
 }
 
-func (n *discordTypeNotifier) StartNotification() {
-	if n.entries == nil {
-		n.entries = make([]*log.Entry, 0, 10)
-	}
-}
+func (n *discordTypeNotifier) StartNotification() {}
 
-func (n *discordTypeNotifier) SendNotification() {
-	if n.entries != nil && len(n.entries) != 0 {
-		n.sendEntries(n.entries)
-	}
-	n.entries = nil
-}
-
-func (n *discordTypeNotifier) Levels() []log.Level {
-	// TODO: Make this configurable.
-	return []log.Level{
-		log.PanicLevel,
-		log.FatalLevel,
-		log.ErrorLevel,
-		log.WarnLevel,
-		log.InfoLevel,
-	}
-}
+func (n *discordTypeNotifier) SendNotification() {}
 
 func (n *discordTypeNotifier) Fire(entry *log.Entry) error {
-	if n.entries != nil {
-		n.entries = append(n.entries, entry)
-	} else {
-		// Log output generated outside a cycle is sent immediately.
-		n.sendEntries([]*log.Entry{entry})
-	}
+	n.sendEntry(entry)
 	return nil
 }
 
-type discordWebhookBody struct {
+func (e *discordTypeNotifier) Levels() []log.Level {
+	return e.acceptedLevels
+}
+
+type discordWebHookBody struct {
 	Content string `json:"content"`
 }
