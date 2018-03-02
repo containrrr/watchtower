@@ -26,10 +26,11 @@ func TestNoFilter(t *testing.T) {
 }
 
 func TestFilterByNames(t *testing.T) {
-	filter := filterByNames(make([]string, 0), nil)
+	var names []string
+
+	filter := filterByNames(names, nil)
 	assert.Nil(t, filter)
 
-	names := make([]string, 0)
 	names = append(names, "test")
 
 	filter = filterByNames(names, noFilter)
@@ -87,7 +88,7 @@ func TestFilterByDisabledLabel(t *testing.T) {
 }
 
 func TestBuildFilter(t *testing.T) {
-	names := make([]string, 0)
+	var names []string
 	names = append(names, "test")
 
 	filter := BuildFilter(names, false)
@@ -123,7 +124,7 @@ func TestBuildFilter(t *testing.T) {
 }
 
 func TestBuildFilterEnableLabel(t *testing.T) {
-	names := make([]string, 0)
+	var names []string
 	names = append(names, "test")
 
 	filter := BuildFilter(names, true)
