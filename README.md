@@ -191,6 +191,10 @@ The types of notifications to send are passed via the comma-separated option `--
 * `email` to send notifications via e-mail
 * `slack` to send notifications through a Slack webhook
 
+### Settings
+
+* `--notifications-level` (env. `WATCHTOWER_NOTIFICATIONS_LEVEL`): Controls the log level which is used for the notifications. If omitted, the default log level is `info`. Possible values are: `panic`, `fatal`, `error`, `warn`, `info` or `debug`.
+
 ### Notifications via E-Mail
 
 To receive notifications by email, the following command-line options, or their corresponding environment variables, can be set:

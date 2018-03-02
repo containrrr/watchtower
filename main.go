@@ -97,6 +97,12 @@ func main() {
 			EnvVar: "WATCHTOWER_NOTIFICATIONS",
 		},
 		cli.StringFlag{
+			Name:   "notifications-level",
+			Usage:  "The log level used for sending notifications. Possible values: \"panic\", \"fatal\", \"error\", \"warn\", \"info\" or \"debug\"",
+			EnvVar: "WATCHTOWER_NOTIFICATIONS_LEVEL",
+			Value:  "info",
+		},
+		cli.StringFlag{
 			Name:   "notification-email-from",
 			Usage:  "Address to send notification e-mails from",
 			EnvVar: "WATCHTOWER_NOTIFICATION_EMAIL_FROM",
@@ -146,12 +152,6 @@ func main() {
 			Usage:  "A string which will be used to identify the messages coming from this watchtower instance. Default if omitted is \"watchtower\"",
 			EnvVar: "WATCHTOWER_NOTIFICATION_SLACK_IDENTIFIER",
 			Value:  "watchtower",
-		},
-		cli.StringFlag{
-			Name:   "notification-slack-level",
-			Usage:  "The log level used for sending notifications through Slack. Default if omitted is \"info\". Possible values: \"panic\",\"fatal\",\"error\",\"warn\",\"info\" or \"debug\"",
-			EnvVar: "WATCHTOWER_NOTIFICATION_SLACK_LEVEL",
-			Value:  "info",
 		},
 	}
 

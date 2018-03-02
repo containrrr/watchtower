@@ -28,9 +28,10 @@ type emailTypeNotifier struct {
 	Port                   int
 	tlsSkipVerify          bool
 	entries                []*log.Entry
+	logLevels              []log.Level
 }
 
-func newEmailNotifier(c *cli.Context) typeNotifier {
+func newEmailNotifier(c *cli.Context, acceptedLogLevels []log.Level) typeNotifier {
 	n := &emailTypeNotifier{
 		From:          c.GlobalString("notification-email-from"),
 		To:            c.GlobalString("notification-email-to"),
@@ -39,6 +40,7 @@ func newEmailNotifier(c *cli.Context) typeNotifier {
 		Password:      c.GlobalString("notification-email-server-password"),
 		Port:          c.GlobalInt("notification-email-server-port"),
 		tlsSkipVerify: c.GlobalBool("notification-email-server-tls-skip-verify"),
+		logLevels:     acceptedLogLevels,
 	}
 
 	log.AddHook(n)
@@ -112,14 +114,7 @@ func (e *emailTypeNotifier) SendNotification() {
 }
 
 func (e *emailTypeNotifier) Levels() []log.Level {
-	// TODO: Make this configurable.
-	return []log.Level{
-		log.PanicLevel,
-		log.FatalLevel,
-		log.ErrorLevel,
-		log.WarnLevel,
-		log.InfoLevel,
-	}
+	return e.logLevels
 }
 
 func (e *emailTypeNotifier) Fire(entry *log.Entry) error {
