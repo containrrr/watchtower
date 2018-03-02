@@ -1,6 +1,7 @@
 package notifications
 
 import (
+	"github.com/johntdyer/slackrus"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
@@ -19,17 +20,24 @@ type Notifier struct {
 func NewNotifier(c *cli.Context) *Notifier {
 	n := &Notifier{}
 
+	logLevel, err := log.ParseLevel(c.GlobalString("notifications-level"))
+	if err != nil {
+		log.Fatalf("Notifications invalid log level: %s", err.Error())
+	}
+
+	acceptedLogLevels := slackrus.LevelThreshold(logLevel)
+
 	// Parse types and create notifiers.
 	types := c.GlobalStringSlice("notifications")
 	for _, t := range types {
 		var tn typeNotifier
 		switch t {
 		case emailType:
-			tn = newEmailNotifier(c)
+			tn = newEmailNotifier(c, acceptedLogLevels)
 		case slackType:
-			tn = newSlackNotifier(c)
+			tn = newSlackNotifier(c, acceptedLogLevels)
 		case discordType:
-			tn = newDiscordNotifier(c)
+			tn = newDiscordNotifier(c, acceptedLogLevels)
 		default:
 			log.Fatalf("Unknown notification type %q", t)
 		}

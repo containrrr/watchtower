@@ -14,17 +14,12 @@ type slackTypeNotifier struct {
 	slackrus.SlackrusHook
 }
 
-func newSlackNotifier(c *cli.Context) typeNotifier {
-	logLevel, err := log.ParseLevel(c.GlobalString("notification-slack-level"))
-	if err != nil {
-		log.Fatalf("Slack notifications: %s", err.Error())
-	}
-
+func newSlackNotifier(c *cli.Context, acceptedLogLevels []log.Level) typeNotifier {
 	n := &slackTypeNotifier{
 		SlackrusHook: slackrus.SlackrusHook{
 			HookURL:        c.GlobalString("notification-slack-hook-url"),
 			Username:       c.GlobalString("notification-slack-identifier"),
-			AcceptedLevels: slackrus.LevelThreshold(logLevel),
+			AcceptedLevels: acceptedLogLevels,
 		},
 	}
 
