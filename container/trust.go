@@ -5,20 +5,18 @@ import (
 	"os"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/reference"
 	"github.com/docker/docker/cli/command"
 	"github.com/docker/docker/cliconfig"
 	"github.com/docker/docker/cliconfig/configfile"
 	"github.com/docker/docker/cliconfig/credentials"
+	log "github.com/sirupsen/logrus"
 )
 
-/**
- * Return an encoded auth config for the given registry
- * loaded from environment variables or docker config
- * as available in that order
- */
+// EncodedAuth returns an encoded auth config for the given registry
+// loaded from environment variables or docker config
+// as available in that order
 func EncodedAuth(ref string) (string, error) {
 	auth, err := EncodedEnvAuth(ref)
 	if err != nil {
@@ -27,11 +25,9 @@ func EncodedAuth(ref string) (string, error) {
 	return auth, err
 }
 
-/*
- * Return an encoded auth config for the given registry
- * loaded from environment variables
- * Returns an error if authentication environment variables have not been set
- */
+// EncodedEnvAuth returns an encoded auth config for the given registry
+// loaded from environment variables
+// Returns an error if authentication environment variables have not been set
 func EncodedEnvAuth(ref string) (string, error) {
 	username := os.Getenv("REPO_USER")
 	password := os.Getenv("REPO_PASS")
@@ -42,17 +38,14 @@ func EncodedEnvAuth(ref string) (string, error) {
 		}
 		log.Debugf("Loaded auth credentials %s for %s", auth, ref)
 		return EncodeAuth(auth)
-	} else {
-		return "", errors.New("Registry auth environment variables (REPO_USER, REPO_PASS) not set")
 	}
+	return "", errors.New("Registry auth environment variables (REPO_USER, REPO_PASS) not set")
 }
 
-/*
- * Return an encoded auth config for the given registry
- * loaded from the docker config
- * Returns an empty string if credentials cannot be found for the referenced server
- * The docker config must be mounted on the container
- */
+// EncodedConfigAuth returns an encoded auth config for the given registry
+// loaded from the docker config
+// Returns an empty string if credentials cannot be found for the referenced server
+// The docker config must be mounted on the container
 func EncodedConfigAuth(ref string) (string, error) {
 	server, err := ParseServerAddress(ref)
 	configDir := os.Getenv("DOCKER_CONFIG")
@@ -92,18 +85,14 @@ func CredentialsStore(configFile configfile.ConfigFile) credentials.Store {
 	return credentials.NewFileStore(&configFile)
 }
 
-/*
- * Base64 encode an AuthConfig struct for transmission over HTTP
- */
+// EncodeAuth Base64 encode an AuthConfig struct for transmission over HTTP
 func EncodeAuth(auth types.AuthConfig) (string, error) {
 	return command.EncodeAuthToBase64(auth)
 }
 
-/**
- * This function will be invoked if an AuthConfig is rejected
- * It could be used to return a new value for the "X-Registry-Auth" authentication header,
- * but there's no point trying again with the same value as used in AuthConfig
- */
+// DefaultAuthHandler will be invoked if an AuthConfig is rejected
+// It could be used to return a new value for the "X-Registry-Auth" authentication header,
+// but there's no point trying again with the same value as used in AuthConfig
 func DefaultAuthHandler() (string, error) {
 	log.Debug("Authentication request was rejected. Trying again without authentication")
 	return "", nil

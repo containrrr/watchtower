@@ -6,14 +6,12 @@ import (
 	"github.com/v2tec/watchtower/container"
 )
 
-func watchtowerContainersFilter(c container.Container) bool { return c.IsWatchtower() }
-
 // CheckPrereqs will ensure that there are not multiple instances of the
 // watchtower running simultaneously. If multiple watchtower containers are
 // detected, this function will stop and remove all but the most recently
 // started container.
 func CheckPrereqs(client container.Client, cleanup bool) error {
-	containers, err := client.ListContainers(watchtowerContainersFilter)
+	containers, err := client.ListContainers(container.WatchtowerContainersFilter)
 	if err != nil {
 		return err
 	}

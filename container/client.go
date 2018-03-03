@@ -5,20 +5,16 @@ import (
 	"io/ioutil"
 	"time"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/network"
 	dockerclient "github.com/docker/docker/client"
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 )
 
 const (
 	defaultStopSignal = "SIGTERM"
 )
-
-// A Filter is a prototype for a function that can be used to filter the
-// results from a call to the ListContainers() method on the Client.
-type Filter func(Container) bool
 
 // A Client is the interface through which watchtower interacts with the
 // Docker API.
@@ -37,20 +33,19 @@ type Client interface {
 //  * DOCKER_HOST			the docker-engine host to send api requests to
 //  * DOCKER_TLS_VERIFY		whether to verify tls certificates
 //  * DOCKER_API_VERSION	the minimum docker api version to work with
-func NewClient(pullImages, enableLabel bool) Client {
+func NewClient(pullImages bool) Client {
 	cli, err := dockerclient.NewEnvClient()
 
 	if err != nil {
 		log.Fatalf("Error instantiating Docker client: %s", err)
 	}
 
-	return dockerClient{api: cli, pullImages: pullImages, enableLabel: enableLabel}
+	return dockerClient{api: cli, pullImages: pullImages}
 }
 
 type dockerClient struct {
-	api         *dockerclient.Client
-	pullImages  bool
-	enableLabel bool
+	api        *dockerclient.Client
+	pullImages bool
 }
 
 func (client dockerClient) ListContainers(fn Filter) ([]Container, error) {
@@ -62,6 +57,7 @@ func (client dockerClient) ListContainers(fn Filter) ([]Container, error) {
 	runningContainers, err := client.api.ContainerList(
 		bg,
 		types.ContainerListOptions{})
+
 	if err != nil {
 		return nil, err
 	}
@@ -78,15 +74,6 @@ func (client dockerClient) ListContainers(fn Filter) ([]Container, error) {
 		}
 
 		c := Container{containerInfo: &containerInfo, imageInfo: &imageInfo}
-
-		if client.enableLabel {
-			// If label filtering is enabled, containers should only be enabled
-			// if the label is specifically set to true.
-			enabledLabel, ok := c.Enabled()
-			if !ok || !enabledLabel {
-				continue
-			}
-		}
 
 		if fn(c) {
 			cs = append(cs, c)
@@ -229,10 +216,9 @@ func (client dockerClient) IsContainerStale(c Container) (bool, error) {
 	if newImageInfo.ID != oldImageInfo.ID {
 		log.Infof("Found new %s image (%s)", imageName, newImageInfo.ID)
 		return true, nil
-	} else {
-		log.Debugf("No new images found for %s", c.Name())
 	}
 
+	log.Debugf("No new images found for %s", c.Name())
 	return false, nil
 }
 

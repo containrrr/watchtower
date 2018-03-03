@@ -29,6 +29,7 @@ var (
 	scheduleSpec string
 	cleanup      bool
 	noRestart    bool
+	enableLabel  bool
 	notifier     *notifications.Notifier
 	timeout		 time.Duration
 )
@@ -189,6 +190,7 @@ func before(c *cli.Context) error {
 	if timeout < 0 {
 		log.Fatal("Please specify a positive value for timeout value.")
 	}
+	enableLabel = c.GlobalBool("label-enable")
 
 	// configure environment vars for client
 	err := envConfig(c)
@@ -196,7 +198,7 @@ func before(c *cli.Context) error {
 		return err
 	}
 
-	client = container.NewClient(!c.GlobalBool("no-pull"), c.GlobalBool("label-enable"))
+	client = container.NewClient(!c.GlobalBool("no-pull"))
 	notifier = notifications.NewNotifier(c)
 
 	return nil
@@ -209,6 +211,8 @@ func start(c *cli.Context) error {
 		log.Fatal(err)
 	}
 
+	filter := container.BuildFilter(names, enableLabel)
+
 	tryLockSem := make(chan bool, 1)
 	tryLockSem <- true
 
@@ -220,7 +224,7 @@ func start(c *cli.Context) error {
 			case v := <-tryLockSem:
 				defer func() { tryLockSem <- v }()
 				notifier.StartNotification()
-				if err := actions.Update(client, names, cleanup, noRestart, timeout); err != nil {
+				if err := actions.Update(client, filter, cleanup, noRestart, timeout); err != nil {
 					log.Println(err)
 				}
 				notifier.SendNotification()

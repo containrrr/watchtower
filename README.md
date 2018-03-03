@@ -129,9 +129,21 @@ docker run -d --label=com.centurylinklabs.watchtower.stop-signal=SIGHUP someimag
 
 ## Selectively Watching Containers
 
-By default, watchtower will watch all containers.
-However, sometimes only some containers should be updated.
-If you need to selectively watch containers, pass the --label-enable flag on startup and set the *com.centurylinklabs.watchtower.enable* label with a value of true for the containers you want to watch.
+By default, watchtower will watch all containers. However, sometimes only some containers should be updated.
+
+If you need to exclude some containers, set the *com.centurylinklabs.watchtower.enable* label to `false`.
+
+```docker
+LABEL com.centurylinklabs.watchtower.enable="false"
+```
+
+Or, it can be specified as part of the `docker run` command line:
+
+```bash
+docker run -d --label=com.centurylinklabs.watchtower.enable=false someimage
+```
+
+If you need to only include only some containers, pass the --label-enable flag on startup and set the *com.centurylinklabs.watchtower.enable* label with a value of true for the containers you want to watch.
 
 ```docker
 LABEL com.centurylinklabs.watchtower.enable="true"
