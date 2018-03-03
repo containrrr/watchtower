@@ -10,7 +10,6 @@ import (
 
 var (
 	letters  = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-	waitTime = 10 * time.Second
 )
 
 func allContainersFilter(container.Container) bool { return true }
@@ -34,7 +33,7 @@ func containerFilter(names []string) container.Filter {
 // used to start those containers have been updated. If a change is detected in
 // any of the images, the associated containers are stopped and restarted with
 // the new image.
-func Update(client container.Client, names []string, cleanup bool, noRestart bool) error {
+func Update(client container.Client, names []string, cleanup bool, noRestart bool, timeout time.Duration) error {
 	log.Debug("Checking containers for updated images")
 
 	containers, err := client.ListContainers(containerFilter(names))
@@ -67,7 +66,7 @@ func Update(client container.Client, names []string, cleanup bool, noRestart boo
 		}
 
 		if container.Stale {
-			if err := client.StopContainer(container, waitTime); err != nil {
+			if err := client.StopContainer(container, timeout); err != nil {
 				log.Error(err)
 			}
 		}
