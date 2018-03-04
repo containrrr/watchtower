@@ -23,14 +23,14 @@ type msTeamsTypeNotifier struct {
 
 func newMsTeamsNotifier(c *cli.Context, acceptedLogLevels []log.Level) typeNotifier {
 
-	webHookUrl := c.GlobalString("notification-msteams-hook")
-	if len(webHookUrl) <= 0 {
+	webHookURL := c.GlobalString("notification-msteams-hook")
+	if len(webHookURL) <= 0 {
 		log.Fatal("Required argument --notification-msteams-hook(cli) or WATCHTOWER_NOTIFICATION_MSTEAMS_HOOK_URL(env) is empty.")
 	}
 
 	n := &msTeamsTypeNotifier{
 		levels:     acceptedLogLevels,
-		webHookURL: webHookUrl,
+		webHookURL: webHookURL,
 		data:       c.GlobalBool("notification-msteams-data"),
 	}
 
@@ -71,7 +71,7 @@ func (n *msTeamsTypeNotifier) Fire(entry *log.Entry) error {
 					Name:  k,
 					Value: fmt.Sprint(v),
 				}
-				index += 1
+				index++
 			}
 
 			webHookBody.Sections = []messageCardSection{section}
@@ -108,7 +108,7 @@ func (n *msTeamsTypeNotifier) Fire(entry *log.Entry) error {
 type messageCard struct {
 	CardType      string               `json:"@type"`
 	Context       string               `json:"@context"`
-	CorrelationId string               `json:"correlationId,omitempty"`
+	CorrelationID string               `json:"correlationId,omitempty"`
 	ThemeColor    string               `json:"themeColor,omitempty"`
 	Summary       string               `json:"summary,omitempty"`
 	Title         string               `json:"title,omitempty"`
