@@ -36,6 +36,8 @@ func NewNotifier(c *cli.Context) *Notifier {
 			tn = newEmailNotifier(c, acceptedLogLevels)
 		case slackType:
 			tn = newSlackNotifier(c, acceptedLogLevels)
+		case msTeamsType:
+			tn = newMsTeamsNotifier(c, acceptedLogLevels)
 		default:
 			log.Fatalf("Unknown notification type %q", t)
 		}

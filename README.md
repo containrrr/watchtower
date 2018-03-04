@@ -254,3 +254,23 @@ docker run -d \
   -e WATCHTOWER_NOTIFICATION_SLACK_IDENTIFIER=watchtower-server-1 \
   v2tec/watchtower
 ```
+
+### Notifications via MSTeams incoming webhook
+
+To receive notifications in MSTeams channel, add `msteams` to the `--notifications` option or the `WATCHTOWER_NOTIFICATIONS` environment variable.
+
+Additionally, you should set the MSTeams webhook url using the `--notification-msteams-hook` option or the `WATCHTOWER_NOTIFICATION_MSTEAMS_HOOK_URL` environment variable.
+
+MSTeams notifier could send keys/values filled by ```log.WithField``` or ```log.WithFields``` as MSTeams message facts. To enable this feature add `--notification-msteams-data` flag or set `WATCHTOWER_NOTIFICATION_MSTEAMS_USE_LOG_DATA=true` environment variable.
+
+Example:
+
+```bash
+docker run -d \
+  --name watchtower \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -e WATCHTOWER_NOTIFICATIONS=msteams \
+  -e WATCHTOWER_NOTIFICATION_MSTEAMS_HOOK_URL="https://outlook.office.com/webhook/xxxxxxxx@xxxxxxx/IncomingWebhook/yyyyyyyy/zzzzzzzzzz" \
+  -e WATCHTOWER_NOTIFICATION_MSTEAMS_USE_LOG_DATA=true \
+  v2tec/watchtower
+```
