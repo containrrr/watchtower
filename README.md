@@ -203,6 +203,7 @@ The types of notifications to send are passed via the comma-separated option `--
 
 * `email` to send notifications via e-mail
 * `slack` to send notifications through a Slack webhook
+* `msteams` to send notifications via MSTeams webhook
 
 ### Settings
 
