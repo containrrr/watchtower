@@ -101,7 +101,7 @@ func main() {
 		cli.StringSliceFlag{
 			Name:   "notifications",
 			Value:  &cli.StringSlice{},
-			Usage:  "notification types to send (valid: email, slack)",
+			Usage:  "notification types to send (valid: email, slack, msteams)",
 			EnvVar: "WATCHTOWER_NOTIFICATIONS",
 		},
 		cli.StringFlag{
@@ -160,6 +160,16 @@ func main() {
 			Usage:  "A string which will be used to identify the messages coming from this watchtower instance. Default if omitted is \"watchtower\"",
 			EnvVar: "WATCHTOWER_NOTIFICATION_SLACK_IDENTIFIER",
 			Value:  "watchtower",
+		},
+		cli.StringFlag{
+			Name:   "notification-msteams-hook",
+			Usage:  "The MSTeams WebHook URL to send notifications to",
+			EnvVar: "WATCHTOWER_NOTIFICATION_MSTEAMS_HOOK_URL",
+		},
+		cli.BoolFlag{
+			Name:   "notification-msteams-data",
+			Usage:  "The MSTeams notifier will try to extract log entry fields as MSTeams message facts",
+			EnvVar: "WATCHTOWER_NOTIFICATION_MSTEAMS_USE_LOG_DATA",
 		},
 	}
 
