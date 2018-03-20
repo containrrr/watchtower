@@ -17,6 +17,7 @@ build:
   goarch:
     - amd64
     - arm
+    - arm64
 
 # Archive customization
 archive:
@@ -35,6 +36,7 @@ archive:
   # of `uname -s` and `uname -m` respectively.
   replacements:
     arm: armhf
+    arm64: arm64v8
     amd64: amd64
     386: 386
     darwin: macOS
@@ -69,3 +71,12 @@ dockers:
     dockerfile: dockerfile/armhf/Dockerfile
     tag_templates:
       - 'armhf-{{ .Version }}'
+  -
+    goos: linux
+    goarch: arm64
+    goarm: ''
+    binary: watchtower
+    image: v2tec/watchtower
+    dockerfile: dockerfile/arm64v8/Dockerfile
+    tag_templates:
+      - 'arm64v8-{{ .Version }}'

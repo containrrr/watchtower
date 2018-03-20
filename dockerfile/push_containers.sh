@@ -50,3 +50,4 @@ push_all() {
 IMAGE_NAME=v2tec/watchtower
 push_all ${IMAGE_NAME}:
 push_all ${IMAGE_NAME}:armhf-
+push_all ${IMAGE_NAME}:arm64v8-
