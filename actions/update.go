@@ -49,6 +49,19 @@ func Update(client container.Client, filter container.Filter, cleanup bool, noRe
 		}
 
 		if container.Stale {
+
+                        // Execute the pre-update command if it is defined.
+                        preUpdateCommandInfo, err := container.PreUpdateCommandInfo()
+                        if err != nil {
+                                log.Error("Error while reading pre-update command info.")
+                                log.Error(err)
+                        } else if preUpdateCommandInfo.IsDefined() {
+                                log.Info("Executing pre-update command.")
+		                if err := client.ExecuteCommand(container, preUpdateCommandInfo); err != nil {
+				        log.Error(err)
+			        }
+                        }
+
 			if err := client.StopContainer(container, timeout); err != nil {
 				log.Error(err)
 			}
@@ -72,6 +85,18 @@ func Update(client container.Client, filter container.Filter, cleanup bool, noRe
 			if !noRestart {
 				if err := client.StartContainer(container); err != nil {
 					log.Error(err)
+				} else {
+				        // Execute the post-update command if it is defined.
+                                        postUpdateCommandInfo, err := container.PostUpdateCommandInfo()
+                                        if err != nil {
+                                                 log.Error("Error while reading post-update command info.")
+                                                 log.Error(err)
+                                        } else if postUpdateCommandInfo.IsDefined() {
+                                                log.Info("Executing post-update command.")
+		                                if err := client.ExecuteCommand(container, postUpdateCommandInfo); err != nil {
+			                                log.Error(err)
+			                        }
+                                        }
 				}
 			}
 

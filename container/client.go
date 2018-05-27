@@ -25,6 +25,7 @@ type Client interface {
 	RenameContainer(Container, string) error
 	IsContainerStale(Container) (bool, error)
 	RemoveImage(Container) error
+	ExecuteCommand(Container, CommandInfo) error
 }
 
 // NewClient returns a new Client instance which can be used to interact with
@@ -220,6 +221,52 @@ func (client dockerClient) IsContainerStale(c Container) (bool, error) {
 
 	log.Debugf("No new images found for %s", c.Name())
 	return false, nil
+}
+
+func (client dockerClient) ExecuteCommand(c Container, commandInfo CommandInfo) error {
+	bg := context.Background()
+
+        // Get the id of the actual container
+        containerJSON, err := client.api.ContainerInspect(bg, c.Name())
+        if err != nil {
+		return err
+	}
+	containerID := containerJSON.ID
+
+	// Create the exec
+	execConfig := types.ExecConfig{
+	        User: commandInfo.User,
+                Privileged: commandInfo.Privileged,
+                Tty: true,
+                AttachStderr: true,
+                AttachStdout: true,
+                Detach: false,
+                Env: commandInfo.Env,
+                Cmd: commandInfo.Cmd,
+	}
+	exec, err := client.api.ContainerExecCreate(bg, containerID, execConfig)
+	if err != nil {
+		return err
+	}
+
+	// Run the exec
+	execStartCheck := types.ExecStartCheck{Detach: false, Tty: true}
+	err = client.api.ContainerExecStart(bg, exec.ID, execStartCheck)
+	if err != nil {
+		return err
+	}
+
+        // Inspect the exec to get the exit code and print a message if the
+        // exit code is not success
+	execInspect, err := client.api.ContainerExecInspect(bg, exec.ID)
+        if err != nil {
+		return err
+	}
+        if execInspect.ExitCode > 0 {
+	        log.Error("Failed to execute command.")
+        }
+
+	return nil
 }
 
 func (client dockerClient) RemoveImage(c Container) error {

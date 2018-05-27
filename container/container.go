@@ -10,10 +10,12 @@ import (
 )
 
 const (
-	watchtowerLabel = "com.centurylinklabs.watchtower"
-	signalLabel     = "com.centurylinklabs.watchtower.stop-signal"
-	enableLabel     = "com.centurylinklabs.watchtower.enable"
-	zodiacLabel     = "com.centurylinklabs.zodiac.original-image"
+	watchtowerLabel        = "com.centurylinklabs.watchtower"
+	signalLabel            = "com.centurylinklabs.watchtower.stop-signal"
+	enableLabel            = "com.centurylinklabs.watchtower.enable"
+	zodiacLabel            = "com.centurylinklabs.zodiac.original-image"
+	preUpdateCommandLabel  = "com.centurylinklabs.watchtower.pre-update-command"
+	postUpdateCommandLabel = "com.centurylinklabs.watchtower.post-update-command"
 )
 
 // NewContainer returns a new Container instance instantiated with the
@@ -115,6 +117,36 @@ func (c Container) StopSignal() string {
 	}
 
 	return ""
+}
+
+// PreUpdateCommand returns the pre-update command set in the container's
+// metadata or an empty string if the user did not set it.
+func (c Container) PreUpdateCommandInfo() (CommandInfo, error) {
+	if val, ok := c.containerInfo.Config.Labels[preUpdateCommandLabel]; ok {
+
+		commandInfo, err := ReadCommandInfoFromJSON(val)
+                if err != nil {
+		        return CommandInfo{}, err
+	        }
+		return commandInfo, nil
+	}
+
+	return CommandInfo{}, nil
+}
+
+// PostUpdateCommand returns the post-update command set in the container's
+// metadata or an empty string if the user did not set it.
+func (c Container) PostUpdateCommandInfo() (CommandInfo, error) {
+	if val, ok := c.containerInfo.Config.Labels[postUpdateCommandLabel]; ok {
+
+		commandInfo, err := ReadCommandInfoFromJSON(val)
+                if err != nil {
+		        return CommandInfo{}, err
+	        }
+		return commandInfo, nil
+	}
+
+	return CommandInfo{}, nil
 }
 
 // Ideally, we'd just be able to take the ContainerConfig from the old container
