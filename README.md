@@ -275,3 +275,40 @@ docker run -d \
   -e WATCHTOWER_NOTIFICATION_MSTEAMS_USE_LOG_DATA=true \
   v2tec/watchtower
 ```
+## Executing commands before and after updating
+
+For every container that could be updated by watchtower, it is possible to 
+specify a command that will be executed before stopping the container (a 
+`pre-update` command), and a command that will be executed after restarting the
+container (a `post-update` command).
+
+These commands are specified using the *com.centurylinklabs.watchtower.pre-update-command*
+and the *com.centurylinklabs.watchtower.post-update-command* labels. The values
+of these labels are JSON formatted strings that describes the commands.
+
+These labels can be declared as instructions in a Dockerfile:
+
+```docker
+LABEL com.centurylinklabs.watchtower.pre-update-command='{"Cmd": ["sh", "-c", "/dump-data.sh"]}'
+LABEL com.centurylinklabs.watchtower.post-update-command='{"Cmd": ["sh", "-c", "/restore-data.sh"]}'
+```
+
+Or be specified as part of the `docker run` command line:
+
+```bash
+docker run -d \
+  --label=com.centurylinklabs.watchtower.pre-update-command='{"Cmd": ["sh", "-c", "/dump-data.sh"]}' \
+  --label=com.centurylinklabs.watchtower.post-update-command='{"Cmd": ["sh", "-c", "/restore-data.sh"]}' \
+  someimage
+```
+
+The JSON object is made of the following fields:
+
+* `Cmd`: the command to execute, as an array of strings (required)
+* `User`: a string representing a username or a UID. It is of the form `user`,
+  `user:group`, `uid`, or `uid:gid` (optional)
+* `Privileged`: `true` if the command should be given extended privileges, 
+  `false` otherwise (optional, default to `false`)
+* `Env`: a list of instructions to set enviroment variables, for example 
+  `["FOO=bar", BAZ=quux]` (optional)
+
