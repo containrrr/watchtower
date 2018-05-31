@@ -119,7 +119,7 @@ func (c Container) StopSignal() string {
 	return ""
 }
 
-// PreUpdateCommand returns the pre-update command set in the container's
+// PreUpdateCommandInfo returns the pre-update command set in the container's
 // metadata or an empty string if the user did not set it.
 func (c Container) PreUpdateCommandInfo() (CommandInfo, error) {
 	if val, ok := c.containerInfo.Config.Labels[preUpdateCommandLabel]; ok {
@@ -134,7 +134,7 @@ func (c Container) PreUpdateCommandInfo() (CommandInfo, error) {
 	return CommandInfo{}, nil
 }
 
-// PostUpdateCommand returns the post-update command set in the container's
+// PostUpdateCommandInfo returns the post-update command set in the container's
 // metadata or an empty string if the user did not set it.
 func (c Container) PostUpdateCommandInfo() (CommandInfo, error) {
 	if val, ok := c.containerInfo.Config.Labels[postUpdateCommandLabel]; ok {
