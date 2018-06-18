@@ -119,34 +119,26 @@ func (c Container) StopSignal() string {
 	return ""
 }
 
-// PreUpdateCommandInfo returns the pre-update command set in the container's
+// PreUpdateCommand returns the pre-update command set in the container's
 // metadata or an empty string if the user did not set it.
-func (c Container) PreUpdateCommandInfo() (CommandInfo, error) {
+func (c Container) PreUpdateCommand() string {
 	if val, ok := c.containerInfo.Config.Labels[preUpdateCommandLabel]; ok {
 
-		commandInfo, err := ReadCommandInfoFromJSON(val)
-                if err != nil {
-		        return CommandInfo{}, err
-	        }
-		return commandInfo, nil
+		return val
 	}
 
-	return CommandInfo{}, nil
+	return ""
 }
 
-// PostUpdateCommandInfo returns the post-update command set in the container's
+// PostUpdateCommand returns the post-update command set in the container's
 // metadata or an empty string if the user did not set it.
-func (c Container) PostUpdateCommandInfo() (CommandInfo, error) {
+func (c Container) PostUpdateCommand() string {
 	if val, ok := c.containerInfo.Config.Labels[postUpdateCommandLabel]; ok {
 
-		commandInfo, err := ReadCommandInfoFromJSON(val)
-                if err != nil {
-		        return CommandInfo{}, err
-	        }
-		return commandInfo, nil
+		return val
 	}
 
-	return CommandInfo{}, nil
+	return ""
 }
 
 // Ideally, we'd just be able to take the ContainerConfig from the old container

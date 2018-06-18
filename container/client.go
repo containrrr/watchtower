@@ -25,7 +25,7 @@ type Client interface {
 	RenameContainer(Container, string) error
 	IsContainerStale(Container) (bool, error)
 	RemoveImage(Container) error
-	ExecuteCommand(Container, CommandInfo) error
+	ExecuteCommand(Container, string) error
 }
 
 // NewClient returns a new Client instance which can be used to interact with
@@ -223,7 +223,7 @@ func (client dockerClient) IsContainerStale(c Container) (bool, error) {
 	return false, nil
 }
 
-func (client dockerClient) ExecuteCommand(c Container, commandInfo CommandInfo) error {
+func (client dockerClient) ExecuteCommand(c Container, command string) error {
 	bg := context.Background()
 
         // Get the id of the actual container
@@ -235,14 +235,11 @@ func (client dockerClient) ExecuteCommand(c Container, commandInfo CommandInfo) 
 
 	// Create the exec
 	execConfig := types.ExecConfig{
-	        User: commandInfo.User,
-                Privileged: commandInfo.Privileged,
                 Tty: true,
                 AttachStderr: true,
                 AttachStdout: true,
                 Detach: false,
-                Env: commandInfo.Env,
-                Cmd: commandInfo.Cmd,
+                Cmd: []string{"sh", "-c", command},
 	}
 	exec, err := client.api.ContainerExecCreate(bg, containerID, execConfig)
 	if err != nil {
@@ -257,13 +254,13 @@ func (client dockerClient) ExecuteCommand(c Container, commandInfo CommandInfo) 
 	}
 
         // Inspect the exec to get the exit code and print a message if the
-        // exit code is not success
+        // exit code is not success.
 	execInspect, err := client.api.ContainerExecInspect(bg, exec.ID)
         if err != nil {
 		return err
 	}
         if execInspect.ExitCode > 0 {
-	        log.Error("Failed to execute command.")
+	        log.Errorf("Command exited with code %v.", execInspect.ExitCode)
         }
 
 	return nil
