@@ -42,6 +42,18 @@ docker run -d \
 If pulling images from private Docker registries, supply registry authentication credentials with the environment variables `REPO_USER` and `REPO_PASS`
 or by mounting the host's docker config file into the container (at the root of the container filesystem `/`).
 
+Passing environment variables:
+```bash
+docker run -d \
+  --name watchtower \
+  -e REPO_USER=username \
+  -e REPO_PASS=password \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  v2tec/watchtower container_to_watch --debug
+```
+Also check out [this Stack Overflow answer](https://stackoverflow.com/a/30494145/7872793) for more options on how to pass environment variables.
+
+Mounting the host's docker config file:
 ```bash
 docker run -d \
   --name watchtower \
