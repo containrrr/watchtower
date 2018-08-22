@@ -16,6 +16,7 @@ build:
   # Defaults are 386 and amd64
   goarch:
     - amd64
+    - 386
     - arm
     - arm64
 
@@ -62,6 +63,15 @@ dockers:
     dockerfile: dockerfile/amd64/Dockerfile
     tag_templates:
       - '{{ .Version }}'
+  -
+    goos: linux
+    goarch: 386
+    goarm: ''
+    binary: watchtower
+    image: v2tec/watchtower
+    dockerfile: dockerfile/386/Dockerfile
+    tag_templates:
+      - '386-{{ .Version }}'
   -
     goos: linux
     goarch: arm
