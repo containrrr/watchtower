@@ -80,11 +80,18 @@ func Update(client container.Client, filter container.Filter, cleanup bool, noRe
 			}
 
 			if !noRestart {
+
+			        // We need to get the command before starting
+			        // the container, because `client.StartContainer`
+			        // has some side effects that erase the labels
+			        // from the container if they are defined in the
+			        // the image.
+                                postUpdateCommand := container.PostUpdateCommand()
+
 				if err := client.StartContainer(container); err != nil {
 					log.Error(err)
 				} else {
 				        // Execute the post-update command if it is defined.
-                                        postUpdateCommand := container.PostUpdateCommand()
                                         if len(postUpdateCommand) > 0 {
                                                 log.Info("Executing post-update command.")
 		                                if err := client.ExecuteCommand(container, postUpdateCommand); err != nil {
