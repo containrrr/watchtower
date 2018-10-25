@@ -16,7 +16,7 @@ var (
 // used to start those containers have been updated. If a change is detected in
 // any of the images, the associated containers are stopped and restarted with
 // the new image.
-func Update(client container.Client, filter container.Filter, cleanup bool, noRestart bool, timeout time.Duration) error {
+func Update(client container.Client, filter container.Filter, cleanup bool, noRestart bool, timeout time.Duration, enableUpdateCmd bool) error {
 	log.Debug("Checking containers for updated images")
 
 	containers, err := client.ListContainers(filter)
@@ -52,7 +52,7 @@ func Update(client container.Client, filter container.Filter, cleanup bool, noRe
 
                         // Execute the pre-update command if it is defined.
                         preUpdateCommand := container.PreUpdateCommand()
-                        if len(preUpdateCommand) > 0 {
+                        if enableUpdateCmd && len(preUpdateCommand) > 0 {
                                 log.Info("Executing pre-update command.")
 		                if err := client.ExecuteCommand(container, preUpdateCommand); err != nil {
 				        log.Error(err)
@@ -92,7 +92,7 @@ func Update(client container.Client, filter container.Filter, cleanup bool, noRe
 					log.Error(err)
 				} else {
 				        // Execute the post-update command if it is defined.
-                                        if len(postUpdateCommand) > 0 {
+                                        if enableUpdateCmd && len(postUpdateCommand) > 0 {
                                                 log.Info("Executing post-update command.")
 		                                if err := client.ExecuteCommand(container, postUpdateCommand); err != nil {
 			                                log.Error(err)

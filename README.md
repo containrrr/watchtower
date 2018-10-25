@@ -99,6 +99,7 @@ docker run --rm v2tec/watchtower --help
 * `--label-enable` Watch containers where the `com.centurylinklabs.watchtower.enable` label is set to true.
 * `--cleanup` Remove old images after updating. When this flag is specified, watchtower will remove the old image after restarting a container with a new image. Use this option to prevent the accumulation of orphaned images on your system as containers are updated.
 * `--tlsverify` Use TLS when connecting to the Docker socket and verify the server's certificate.
+* `--enable-update-commands` Enable the execution of *pre-update* and *post-update* commands on containers updated by watchtower.
 * `--debug` Enable debug mode. When this option is specified you'll see more verbose logging in the watchtower log file.
 * `--help` Show documentation about the supported flags.
 
@@ -275,15 +276,22 @@ docker run -d \
   -e WATCHTOWER_NOTIFICATION_MSTEAMS_USE_LOG_DATA=true \
   v2tec/watchtower
 ```
+
 ## Executing commands before and after updating
 
 It is possible to execute a *pre-update* command and a *post-update* command 
 inside every container updated by watchtower. The *pre-update* command is 
 executed before stopping the container, and the *post-update* command is 
-executed after restarting the container. 
+executed after restarting the container.
+
+This feature is disabled by default. To enable it, you need to set the option
+`--enable-update-commands` on the command line, or set the environment variable
+`WATCHTOWER_ENABLE_UPDATE_COMMANDS` to true.
 
 Both commands are shell commands executed with `sh`, and therefore require the 
 container to provide the `sh` executable. 
+
+### Specifying update commands
 
 The commands are specified using docker container labels, with 
 *com.centurylinklabs.watchtower.pre-update-command* for the *pre-update* 
@@ -305,6 +313,8 @@ docker run -d \
   --label=com.centurylinklabs.watchtower.post-update-command="/restore-data.sh" \
   someimage
 ```
+
+### Execution failure
 
 The failure of a command to execute, identified by an exit code different than 
 0, should not prevent watchtower from updating the container. Only an error

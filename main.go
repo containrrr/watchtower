@@ -25,13 +25,14 @@ var commit = "unknown"
 var date = "unknown"
 
 var (
-	client       container.Client
-	scheduleSpec string
-	cleanup      bool
-	noRestart    bool
-	enableLabel  bool
-	notifier     *notifications.Notifier
-	timeout		 time.Duration
+	client          container.Client
+	scheduleSpec    string
+	cleanup         bool
+	noRestart       bool
+	enableLabel     bool
+	notifier        *notifications.Notifier
+	timeout         time.Duration
+	enableUpdateCmd bool
 )
 
 func init() {
@@ -84,10 +85,10 @@ func main() {
 			EnvVar: "DOCKER_TLS_VERIFY",
 		},
 		cli.DurationFlag{
-			Name:	"stop-timeout",
-			Usage:	"timeout before container is forcefully stopped",
-			Value:	time.Second * 10,
-			EnvVar:	"WATCHTOWER_TIMEOUT",
+			Name:   "stop-timeout",
+			Usage:  "timeout before container is forcefully stopped",
+			Value:  time.Second * 10,
+			EnvVar: "WATCHTOWER_TIMEOUT",
 		},
 		cli.BoolFlag{
 			Name:   "label-enable",
@@ -171,6 +172,11 @@ func main() {
 			Usage:  "The MSTeams notifier will try to extract log entry fields as MSTeams message facts",
 			EnvVar: "WATCHTOWER_NOTIFICATION_MSTEAMS_USE_LOG_DATA",
 		},
+		cli.BoolFlag{
+			Name:   "enable-update-commands",
+			Usage:  "Enable the execution of pre-update and post-update commands",
+			EnvVar: "WATCHTOWER_ENABLE_UPDATE_COMMANDS",
+		},
 	}
 
 	if err := app.Run(os.Args); err != nil {
@@ -201,6 +207,7 @@ func before(c *cli.Context) error {
 		log.Fatal("Please specify a positive value for timeout value.")
 	}
 	enableLabel = c.GlobalBool("label-enable")
+	enableUpdateCmd = c.GlobalBool("enable-update-commands")
 
 	// configure environment vars for client
 	err := envConfig(c)
@@ -234,7 +241,7 @@ func start(c *cli.Context) error {
 			case v := <-tryLockSem:
 				defer func() { tryLockSem <- v }()
 				notifier.StartNotification()
-				if err := actions.Update(client, filter, cleanup, noRestart, timeout); err != nil {
+				if err := actions.Update(client, filter, cleanup, noRestart, timeout, enableUpdateCmd); err != nil {
 					log.Println(err)
 				}
 				notifier.SendNotification()
