@@ -277,12 +277,18 @@ docker run -d \
 ```
 ## Executing commands before and after updating
 
-For every container that could be updated by watchtower, it is possible to 
-specify a command that will be executed before stopping the container (a 
-`pre-update` command), and a command that will be executed after restarting the
-container (a `post-update` command). These commands are specified using the 
-*com.centurylinklabs.watchtower.pre-update-command* and the 
-*com.centurylinklabs.watchtower.post-update-command* labels.
+It is possible to execute a *pre-update* command and a *post-update* command 
+inside every container updated by watchtower. The *pre-update* command is 
+executed before stopping the container, and the *post-update* command is 
+executed after restarting the container. 
+
+Both commands are shell commands executed with `sh`, and therefore require the 
+container to provide the `sh` executable. 
+
+The commands are specified using docker container labels, with 
+*com.centurylinklabs.watchtower.pre-update-command* for the *pre-update* 
+command and *com.centurylinklabs.watchtower.post-update-command* for the
+*post-update* command.
 
 These labels can be declared as instructions in a Dockerfile:
 
@@ -300,3 +306,6 @@ docker run -d \
   someimage
 ```
 
+The failure of a command to execute, identified by an exit code different than 
+0, should not prevent watchtower from updating the container. Only an error
+log statement containing the exit code will be reported.
