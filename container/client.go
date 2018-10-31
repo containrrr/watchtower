@@ -1,8 +1,10 @@
 package container
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
+	"strings"
 	"time"
 
 	"github.com/docker/docker/api/types"
@@ -20,12 +22,13 @@ const (
 // Docker API.
 type Client interface {
 	ListContainers(Filter) ([]Container, error)
+	GetContainer(containerID string) (Container, error)
 	StopContainer(Container, time.Duration) error
-	StartContainer(Container) error
+	StartContainer(Container) (string, error)
 	RenameContainer(Container, string) error
 	IsContainerStale(Container) (bool, error)
 	RemoveImage(Container) error
-	ExecuteCommand(Container, string) error
+	ExecuteCommand(containerID string, command string) error
 }
 
 // NewClient returns a new Client instance which can be used to interact with
@@ -64,24 +67,34 @@ func (client dockerClient) ListContainers(fn Filter) ([]Container, error) {
 	}
 
 	for _, runningContainer := range runningContainers {
-		containerInfo, err := client.api.ContainerInspect(bg, runningContainer.ID)
+		container, err := client.GetContainer(runningContainer.ID)
 		if err != nil {
 			return nil, err
 		}
 
-		imageInfo, _, err := client.api.ImageInspectWithRaw(bg, containerInfo.Image)
-		if err != nil {
-			return nil, err
-		}
-
-		c := Container{containerInfo: &containerInfo, imageInfo: &imageInfo}
-
-		if fn(c) {
-			cs = append(cs, c)
+		if fn(container) {
+			cs = append(cs, container)
 		}
 	}
 
 	return cs, nil
+}
+
+func (client dockerClient) GetContainer(containerID string) (Container, error) {
+	bg := context.Background()
+
+	containerInfo, err := client.api.ContainerInspect(bg, containerID)
+	if err != nil {
+		return Container{}, err
+	}
+
+	imageInfo, _, err := client.api.ImageInspectWithRaw(bg, containerInfo.Image)
+	if err != nil {
+		return Container{}, err
+	}
+
+	container := Container{containerInfo: &containerInfo, imageInfo: &imageInfo}
+	return container, nil
 }
 
 func (client dockerClient) StopContainer(c Container, timeout time.Duration) error {
@@ -118,7 +131,7 @@ func (client dockerClient) StopContainer(c Container, timeout time.Duration) err
 	return nil
 }
 
-func (client dockerClient) StartContainer(c Container) error {
+func (client dockerClient) StartContainer(c Container) (string, error) {
 	bg := context.Background()
 	config := c.runtimeConfig()
 	hostConfig := c.hostConfig()
@@ -140,7 +153,7 @@ func (client dockerClient) StartContainer(c Container) error {
 	log.Infof("Creating %s", name)
 	creation, err := client.api.ContainerCreate(bg, config, hostConfig, simpleNetworkConfig, name)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	if !(hostConfig.NetworkMode.IsHost()) {
@@ -148,14 +161,14 @@ func (client dockerClient) StartContainer(c Container) error {
 		for k := range simpleNetworkConfig.EndpointsConfig {
 			err = client.api.NetworkDisconnect(bg, k, creation.ID, true)
 			if err != nil {
-				return err
+				return "", err
 			}
 		}
 
 		for k, v := range networkConfig.EndpointsConfig {
 			err = client.api.NetworkConnect(bg, k, creation.ID, v)
 			if err != nil {
-				return err
+				return "", err
 			}
 		}
 
@@ -165,10 +178,10 @@ func (client dockerClient) StartContainer(c Container) error {
 
 	err = client.api.ContainerStart(bg, creation.ID, types.ContainerStartOptions{})
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	return nil
+	return creation.ID, nil
 
 }
 
@@ -223,27 +236,31 @@ func (client dockerClient) IsContainerStale(c Container) (bool, error) {
 	return false, nil
 }
 
-func (client dockerClient) ExecuteCommand(c Container, command string) error {
+func (client dockerClient) ExecuteCommand(containerID string, command string) error {
 	bg := context.Background()
-
-        // Get the id of the actual container
-        containerJSON, err := client.api.ContainerInspect(bg, c.Name())
-        if err != nil {
-		return err
-	}
-	containerID := containerJSON.ID
 
 	// Create the exec
 	execConfig := types.ExecConfig{
-                Tty: true,
-                AttachStderr: true,
-                AttachStdout: true,
-                Detach: false,
-                Cmd: []string{"sh", "-c", command},
+		Tty:          true,
+		AttachStderr: true,
+		AttachStdout: true,
+		Detach:       false,
+		Cmd:          []string{"sh", "-c", command},
 	}
+
 	exec, err := client.api.ContainerExecCreate(bg, containerID, execConfig)
 	if err != nil {
 		return err
+	}
+
+	response, attachErr := client.api.ContainerExecAttach(bg, exec.ID, types.ExecConfig{
+		Tty:          true,
+		AttachStderr: true,
+		AttachStdout: true,
+		Detach:       false,
+	})
+	if attachErr != nil {
+		log.Errorf("Failed to extract command exec logs: %v", attachErr)
 	}
 
 	// Run the exec
@@ -253,15 +270,33 @@ func (client dockerClient) ExecuteCommand(c Container, command string) error {
 		return err
 	}
 
-        // Inspect the exec to get the exit code and print a message if the
-        // exit code is not success.
+	var execOutput string
+	if attachErr == nil {
+		defer response.Close()
+		var writer bytes.Buffer
+		written, err := writer.ReadFrom(response.Reader)
+		if err != nil {
+			log.Error(err)
+		} else if written > 0 {
+			execOutput = strings.TrimSpace(writer.String())
+		}
+	}
+
+	// Inspect the exec to get the exit code and print a message if the
+	// exit code is not success.
 	execInspect, err := client.api.ContainerExecInspect(bg, exec.ID)
-        if err != nil {
+	if err != nil {
 		return err
 	}
-        if execInspect.ExitCode > 0 {
-	        log.Errorf("Command exited with code %v.", execInspect.ExitCode)
-        }
+
+	if execInspect.ExitCode > 0 {
+		log.Errorf("Command exited with code %v.", execInspect.ExitCode)
+		log.Error(execOutput)
+	} else {
+		if len(execOutput) > 0 {
+			log.Infof("Command output:\n%v", execOutput)
+		}
+	}
 
 	return nil
 }

@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	letters  = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+	letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 )
 
 // Update looks at the running Docker containers to see if any of the images
@@ -50,14 +50,7 @@ func Update(client container.Client, filter container.Filter, cleanup bool, noRe
 
 		if container.Stale {
 
-                        // Execute the pre-update command if it is defined.
-                        preUpdateCommand := container.PreUpdateCommand()
-                        if enableUpdateCmd && len(preUpdateCommand) > 0 {
-                                log.Info("Executing pre-update command.")
-		                if err := client.ExecuteCommand(container, preUpdateCommand); err != nil {
-				        log.Error(err)
-			        }
-                        }
+			executePreUpdateCommand(enableUpdateCmd, client, container)
 
 			if err := client.StopContainer(container, timeout); err != nil {
 				log.Error(err)
@@ -81,23 +74,11 @@ func Update(client container.Client, filter container.Filter, cleanup bool, noRe
 
 			if !noRestart {
 
-			        // We need to get the command before starting
-			        // the container, because `client.StartContainer`
-			        // has some side effects that erase the labels
-			        // from the container if they are defined in the
-			        // the image.
-                                postUpdateCommand := container.PostUpdateCommand()
-
-				if err := client.StartContainer(container); err != nil {
+				newContainerID, err := client.StartContainer(container)
+				if err != nil {
 					log.Error(err)
 				} else {
-				        // Execute the post-update command if it is defined.
-                                        if enableUpdateCmd && len(postUpdateCommand) > 0 {
-                                                log.Info("Executing post-update command.")
-		                                if err := client.ExecuteCommand(container, postUpdateCommand); err != nil {
-			                                log.Error(err)
-			                        }
-                                        }
+					executePostUpdateCommand(enableUpdateCmd, client, newContainerID)
 				}
 			}
 
@@ -108,6 +89,40 @@ func Update(client container.Client, filter container.Filter, cleanup bool, noRe
 	}
 
 	return nil
+}
+
+func executePreUpdateCommand(enabled bool, client container.Client, container container.Container) {
+	if !enabled {
+		return
+	}
+
+	command := container.PreUpdateCommand()
+	if len(command) > 0 {
+		log.Info("Executing pre-update command.")
+		if err := client.ExecuteCommand(container.ID(), command); err != nil {
+			log.Error(err)
+		}
+	}
+}
+
+func executePostUpdateCommand(enabled bool, client container.Client, newContainerID string) {
+	if !enabled {
+		return
+	}
+
+	newContainer, err := client.GetContainer(newContainerID)
+	if err != nil {
+		log.Error(err)
+		return
+	}
+
+	command := newContainer.PostUpdateCommand()
+	if len(command) > 0 {
+		log.Info("Executing post-update command.")
+		if err := client.ExecuteCommand(newContainerID, command); err != nil {
+			log.Error(err)
+		}
+	}
 }
 
 func checkDependencies(containers []container.Container) {
