@@ -244,6 +244,11 @@ Additionally, you should set the Slack webhook url using the `--notification-sla
 
 By default, watchtower will send messages under the name `watchtower`, you can customize this string through the `--notification-slack-identifier` option or the `WATCHTOWER_NOTIFICATION_SLACK_IDENTIFIER` environment variable.
 
+Other, optional, variables include:
+- `--notification-slack-channel` (env. `WATCHTOWER_NOTIFICATION_SLACK_CHANNEL`): A string which overrides the webhook's default channel. Example: #my-custom-channel.
+- `--notification-slack-icon-emoji` (env. `WATCHTOWER_NOTIFICATION_SLACK_ICON_EMOJI`): An [emoji code](https://www.webpagefx.com/tools/emoji-cheat-sheet/) string to use in place of the default icon.
+- `--notification-slack-icon-url` (env. `WATCHTOWER_NOTIFICATION_SLACK_ICON_URL`): An icon image URL string to use in place of the default icon.
+
 Example:
 
 ```bash
@@ -253,6 +258,9 @@ docker run -d \
   -e WATCHTOWER_NOTIFICATIONS=slack \
   -e WATCHTOWER_NOTIFICATION_SLACK_HOOK_URL="https://hooks.slack.com/services/xxx/yyyyyyyyyyyyyyy" \
   -e WATCHTOWER_NOTIFICATION_SLACK_IDENTIFIER=watchtower-server-1 \
+  -e WATCHTOWER_NOTIFICATION_SLACK_CHANNEL=#my-custom-channel \
+  -e WATCHTOWER_NOTIFICATION_SLACK_ICON_EMOJI=:whale: \
+  -e WATCHTOWER_NOTIFICATION_SLACK_ICON_URL=<icon url> \
   v2tec/watchtower
 ```
 

@@ -19,6 +19,9 @@ func newSlackNotifier(c *cli.Context, acceptedLogLevels []log.Level) typeNotifie
 		SlackrusHook: slackrus.SlackrusHook{
 			HookURL:        c.GlobalString("notification-slack-hook-url"),
 			Username:       c.GlobalString("notification-slack-identifier"),
+			Channel:        c.GlobalString("notification-slack-channel"),
+			IconEmoji:      c.GlobalString("notification-slack-icon-emoji"),
+			IconURL:        c.GlobalString("notification-slack-icon-url"),
 			AcceptedLevels: acceptedLogLevels,
 		},
 	}

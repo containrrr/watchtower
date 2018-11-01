@@ -162,6 +162,21 @@ func main() {
 			Value:  "watchtower",
 		},
 		cli.StringFlag{
+			Name:   "notification-slack-channel",
+			Usage:  "A string which overrides the webhook's default channel. Example: #my-custom-channel",
+			EnvVar: "WATCHTOWER_NOTIFICATION_SLACK_CHANNEL",
+		},
+		cli.StringFlag{
+			Name:   "notification-slack-icon-emoji",
+			Usage:  "An emoji code string to use in place of the default icon",
+			EnvVar: "WATCHTOWER_NOTIFICATION_SLACK_ICON_EMOJI",
+		},
+		cli.StringFlag{
+			Name:   "notification-slack-icon-url",
+			Usage:  "An icon image URL string to use in place of the default icon",
+			EnvVar: "WATCHTOWER_NOTIFICATION_SLACK_ICON_URL",
+		},
+		cli.StringFlag{
 			Name:   "notification-msteams-hook",
 			Usage:  "The MSTeams WebHook URL to send notifications to",
 			EnvVar: "WATCHTOWER_NOTIFICATION_MSTEAMS_HOOK_URL",
