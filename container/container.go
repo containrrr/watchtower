@@ -29,6 +29,7 @@ func NewContainer(containerInfo *types.ContainerJSON, imageInfo *types.ImageInsp
 
 // Container represents a running Docker container.
 type Container struct {
+        Linked bool
 	Stale bool
 
 	containerInfo *types.ContainerJSON
@@ -139,6 +140,12 @@ func (c Container) PostUpdateCommand() string {
 	}
 
 	return ""
+}
+
+// ToRestart return whether the container should be restarted, either because
+// is stale or linked to another stale container.
+func (c Container) ToRestart() bool {
+        return c.Stale || c.Linked
 }
 
 // Ideally, we'd just be able to take the ContainerConfig from the old container

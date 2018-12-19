@@ -48,9 +48,11 @@ func Update(client container.Client, filter container.Filter, cleanup bool, noRe
 			continue
 		}
 
-		if container.Stale {
+		if container.ToRestart() {
 
-			executePreUpdateCommand(enableUpdateCmd, client, container)
+                        if container.Stale {
+			        executePreUpdateCommand(enableUpdateCmd, client, container)
+                        }
 
 			if err := client.StopContainer(container, timeout); err != nil {
 				log.Error(err)
@@ -60,7 +62,7 @@ func Update(client container.Client, filter container.Filter, cleanup bool, noRe
 
 	// Restart stale containers in sorted order
 	for _, container := range containers {
-		if container.Stale {
+		if container.ToRestart() {
 			// Since we can't shutdown a watchtower container immediately, we need to
 			// start the new one while the old one is still running. This prevents us
 			// from re-using the same container name so we first rename the current
@@ -77,7 +79,7 @@ func Update(client container.Client, filter container.Filter, cleanup bool, noRe
 				newContainerID, err := client.StartContainer(container)
 				if err != nil {
 					log.Error(err)
-				} else {
+				} else if container.Stale {
 					executePostUpdateCommand(enableUpdateCmd, client, newContainerID)
 				}
 			}
@@ -128,15 +130,15 @@ func executePostUpdateCommand(enabled bool, client container.Client, newContaine
 func checkDependencies(containers []container.Container) {
 
 	for i, parent := range containers {
-		if parent.Stale {
+		if parent.ToRestart() {
 			continue
 		}
 
 	LinkLoop:
 		for _, linkName := range parent.Links() {
 			for _, child := range containers {
-				if child.Name() == linkName && child.Stale {
-					containers[i].Stale = true
+				if child.Name() == linkName && child.ToRestart() {
+					containers[i].Linked = true
 					break LinkLoop
 				}
 			}
