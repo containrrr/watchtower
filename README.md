@@ -1,9 +1,8 @@
-# Watchtower
+# Attention
 
-[![Circle CI](https://circleci.com/gh/kopfkrieg/watchtower.svg?style=shield)](https://circleci.com/gh/kopfkrieg/watchtower)
-[![GoDoc](https://godoc.org/github.com/kopfkrieg/watchtower?status.svg)](https://godoc.org/github.com/kopfkrieg/watchtower)
-[![](https://images.microbadger.com/badges/image/kopfkrieg/watchtower.svg)](https://microbadger.com/images/kopfkrieg/watchtower "Get your own image badge on microbadger.com")
-[![Go Report Card](https://goreportcard.com/badge/github.com/kopfkrieg/watchtower)](https://goreportcard.com/report/github.com/kopfkrieg/watchtower)
+This is a fork of the popluar (but unfortunately unmaintained) project [v2tec/watchtower](https://github.com/v2tec/watchtower). This fork also includes a few of the unmerged pull requests.
+
+# Watchtower
 
 A process for watching your Docker containers and automatically restarting them whenever their base image is refreshed.
 
