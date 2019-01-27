@@ -58,7 +58,7 @@ dockers:
     goarch: amd64
     goarm: ''
     binary: watchtower
-    image: v2tec/watchtower
+    image: kopfkrieg/watchtower
     dockerfile: dockerfile/amd64/Dockerfile
     tag_templates:
       - '{{ .Version }}'
@@ -67,7 +67,7 @@ dockers:
     goarch: arm
     goarm: 6
     binary: watchtower
-    image: v2tec/watchtower
+    image: kopfkrieg/watchtower
     dockerfile: dockerfile/armhf/Dockerfile
     tag_templates:
       - 'armhf-{{ .Version }}'
@@ -76,7 +76,7 @@ dockers:
     goarch: arm64
     goarm: ''
     binary: watchtower
-    image: v2tec/watchtower
+    image: kopfkrieg/watchtower
     dockerfile: dockerfile/arm64v8/Dockerfile
     tag_templates:
       - 'arm64v8-{{ .Version }}'

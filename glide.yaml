@@ -1,4 +1,4 @@
-package: github.com/v2tec/watchtower
+package: github.com/kopfkrieg/watchtower
 import:
 - package: github.com/sirupsen/logrus
   version: ~0.11.x
