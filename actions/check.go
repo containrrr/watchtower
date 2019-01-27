@@ -3,7 +3,7 @@ package actions
 import (
 	"sort"
 
-	"github.com/v2tec/watchtower/container"
+	"github.com/kopfkrieg/watchtower/container"
 )
 
 // CheckPrereqs will ensure that there are not multiple instances of the

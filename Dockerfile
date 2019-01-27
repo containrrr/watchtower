@@ -26,7 +26,7 @@ RUN apk add --no-cache openssh-client git curl
 
 RUN curl https://glide.sh/get | sh
 
-WORKDIR /go/src/github.com/v2tec/watchtower
+WORKDIR /go/src/github.com/kopfkrieg/watchtower
 COPY . .
 
 # RUN set -x && \
@@ -45,5 +45,5 @@ RUN apk add --no-cache \
     ca-certificates \
     tzdata
 
-COPY --from=build-env /go/src/github.com/v2tec/watchtower/watchtower /
+COPY --from=build-env /go/src/github.com/kopfkrieg/watchtower/watchtower /
 ENTRYPOINT ["/watchtower"]
