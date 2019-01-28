@@ -60,7 +60,7 @@ func (e *emailTypeNotifier) buildMessage(entries []*log.Entry) []byte {
 	}
 
 	t := time.Now()
-	
+
 	header := make(map[string]string)
 	header["From"] = e.From
 	header["To"] = e.To

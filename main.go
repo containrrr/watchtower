@@ -8,12 +8,12 @@ import (
 
 	"strconv"
 
-	"github.com/robfig/cron"
-	log "github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
 	"github.com/kopfkrieg/watchtower/actions"
 	"github.com/kopfkrieg/watchtower/container"
 	"github.com/kopfkrieg/watchtower/notifications"
+	"github.com/robfig/cron"
+	log "github.com/sirupsen/logrus"
+	"github.com/urfave/cli"
 )
 
 // DockerAPIMinVersion is the version of the docker API, which is minimally required by
@@ -31,7 +31,7 @@ var (
 	noRestart    bool
 	enableLabel  bool
 	notifier     *notifications.Notifier
-	timeout		 time.Duration
+	timeout      time.Duration
 )
 
 func init() {
@@ -84,10 +84,10 @@ func main() {
 			EnvVar: "DOCKER_TLS_VERIFY",
 		},
 		cli.DurationFlag{
-			Name:	"stop-timeout",
-			Usage:	"timeout before container is forcefully stopped",
-			Value:	time.Second * 10,
-			EnvVar:	"WATCHTOWER_TIMEOUT",
+			Name:   "stop-timeout",
+			Usage:  "timeout before container is forcefully stopped",
+			Value:  time.Second * 10,
+			EnvVar: "WATCHTOWER_TIMEOUT",
 		},
 		cli.BoolFlag{
 			Name:   "label-enable",

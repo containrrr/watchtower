@@ -3,8 +3,8 @@ package container
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/kopfkrieg/watchtower/container/mocks"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestWatchtowerContainersFilter(t *testing.T) {
