@@ -252,9 +252,6 @@ docker run -d \
   -e WATCHTOWER_NOTIFICATIONS=slack \
   -e WATCHTOWER_NOTIFICATION_SLACK_HOOK_URL="https://hooks.slack.com/services/xxx/yyyyyyyyyyyyyyy" \
   -e WATCHTOWER_NOTIFICATION_SLACK_IDENTIFIER=watchtower-server-1 \
-  -e WATCHTOWER_NOTIFICATION_SLACK_CHANNEL=#my-custom-channel \
-  -e WATCHTOWER_NOTIFICATION_SLACK_ICON_EMOJI=:whale: \
-  -e WATCHTOWER_NOTIFICATION_SLACK_ICON_URL=<icon url> \
   kopfkrieg/watchtower
 ```
 
