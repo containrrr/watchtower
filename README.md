@@ -1,3 +1,7 @@
+## Please Note:
+
+This project is no longer under active development. Features documented below may not work as described or at all. Consider using an actively maintained alternative.
+
 # Watchtower
 
 [![Circle CI](https://circleci.com/gh/v2tec/watchtower.svg?style=shield)](https://circleci.com/gh/v2tec/watchtower)
