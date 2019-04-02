@@ -27,7 +27,7 @@ Every few minutes watchtower will pull the latest *centurylink/wetty-cli* image 
 
 ## Usage
 
-Watchtower is itself packaged as a Docker container so installation is as simple as pulling the `v2tec/watchtower` image.
+Watchtower is itself packaged as a Docker container so installation is as simple as pulling the `v2tec/watchtower` image. If you are using ARM based architecture, pull the appropriate `v2tec/watchtower:armhf-<tag>` image from the [v2tec Docker Hub](https://hub.docker.com/r/v2tec/watchtower/tags/). 
 
 Since the watchtower code needs to interact with the Docker API in order to monitor the running containers, you need to mount */var/run/docker.sock* into the container with the -v flag when you run it.
 
@@ -43,6 +43,18 @@ docker run -d \
 If pulling images from private Docker registries, supply registry authentication credentials with the environment variables `REPO_USER` and `REPO_PASS`
 or by mounting the host's docker config file into the container (at the root of the container filesystem `/`).
 
+Passing environment variables:
+```bash
+docker run -d \
+  --name watchtower \
+  -e REPO_USER=username \
+  -e REPO_PASS=password \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  v2tec/watchtower container_to_watch --debug
+```
+Also check out [this Stack Overflow answer](https://stackoverflow.com/a/30494145/7872793) for more options on how to pass environment variables.
+
+Mounting the host's docker config file:
 ```bash
 docker run -d \
   --name watchtower \
@@ -51,7 +63,7 @@ docker run -d \
   v2tec/watchtower container_to_watch --debug
 ```
 
-If you mount the config file as described below, be sure to also prepend the url for the registry when starting up your watched image (you can omit the https://). Here is a complete docker-compose.yml file that starts up a docker container from a private repo at dockerhub and monitors it with watchtower. Note the command argument changing the interval to 30s rather than the default 5 minutes.
+If you mount the config file as described above, be sure to also prepend the url for the registry when starting up your watched image (you can omit the https://). Here is a complete docker-compose.yml file that starts up a docker container from a private repo at dockerhub and monitors it with watchtower. Note the command argument changing the interval to 30s rather than the default 5 minutes.
 
 ```json
 version: "3"
@@ -94,7 +106,7 @@ docker run --rm v2tec/watchtower --help
 
 * `--host, -h` Docker daemon socket to connect to. Defaults to "unix:///var/run/docker.sock" but can be pointed at a remote Docker host by specifying a TCP endpoint as "tcp://hostname:port". The host value can also be provided by setting the `DOCKER_HOST` environment variable.
 * `--interval, -i` Poll interval (in seconds). This value controls how frequently watchtower will poll for new images. Defaults to 300 seconds (5 minutes).
-* `--schedule, -s` [Cron expression](https://godoc.org/github.com/robfig/cron#hdr-CRON_Expression_Format) in 6 fields (rather than the traditional 5) which defines when and how often to check for new images. Either `--interval` or the schedule expression could be defined, but not both. An example: `--schedule "0 0 4 * * *" ` 
+* `--schedule, -s` [Cron expression](https://godoc.org/github.com/robfig/cron#hdr-CRON_Expression_Format) in 6 fields (rather than the traditional 5) which defines when and how often to check for new images. Either `--interval` or the schedule expression could be defined, but not both. An example: `--schedule "0 0 4 * * *" `
 * `--no-pull` Do not pull new images. When this flag is specified, watchtower will not attempt to pull new images from the registry. Instead it will only monitor the local image cache for changes. Use this option if you are building new images directly on the Docker host without pushing them to a registry.
 * `--stop-timeout` Timeout before the container is forcefully stopped. When set, this option will change the default (`10s`) wait time to the given value. An example: `--stop-timeout 30s` will set the timeout to 30 seconds.
 * `--label-enable` Watch containers where the `com.centurylinklabs.watchtower.enable` label is set to true.
