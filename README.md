@@ -1,9 +1,9 @@
 # Watchtower
 
-[![Circle CI](https://circleci.com/gh/v2tec/watchtower.svg?style=shield)](https://circleci.com/gh/v2tec/watchtower)
-[![GoDoc](https://godoc.org/github.com/v2tec/watchtower?status.svg)](https://godoc.org/github.com/v2tec/watchtower)
-[![](https://images.microbadger.com/badges/image/v2tec/watchtower.svg)](https://microbadger.com/images/v2tec/watchtower "Get your own image badge on microbadger.com")
-[![Go Report Card](https://goreportcard.com/badge/github.com/v2tec/watchtower)](https://goreportcard.com/report/github.com/v2tec/watchtower)
+[![Circle CI](https://circleci.com/gh/containrrr/watchtower.svg?style=shield)](https://circleci.com/gh/containrrr/watchtower)
+[![GoDoc](https://godoc.org/github.com/containrrr/watchtower?status.svg)](https://godoc.org/github.com/containrrr/watchtower)
+[![](https://images.microbadger.com/badges/image/containrrr/watchtower.svg)](https://microbadger.com/images/containrrr/watchtower "Get your own image badge on microbadger.com")
+[![Go Report Card](https://goreportcard.com/badge/github.com/containrrr/watchtower)](https://goreportcard.com/report/github.com/containrrr/watchtower)
 [![Reviewed by Hound](https://img.shields.io/badge/Reviewed_by-Hound-8E64B0.svg)](https://houndci.com)
 
 A process for watching your Docker containers and automatically restarting them whenever their base image is refreshed.
