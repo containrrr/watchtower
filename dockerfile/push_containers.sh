@@ -47,7 +47,7 @@ push_all() {
     push_docker ${IMAGE_NAME_VERSION} ${1}latest
 }
 
-IMAGE_NAME=v2tec/watchtower
+IMAGE_NAME=containrrr/watchtower
 push_all ${IMAGE_NAME}:
 push_all ${IMAGE_NAME}:armhf-
 push_all ${IMAGE_NAME}:arm64v8-
