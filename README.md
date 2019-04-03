@@ -20,14 +20,14 @@ For example, let's say you were running watchtower along with an instance of *ce
 $ docker ps
 CONTAINER ID   IMAGE                   STATUS          PORTS                    NAMES
 967848166a45   centurylink/wetty-cli   Up 10 minutes   0.0.0.0:8080->3000/tcp   wetty
-6cc4d2a9d1a5   v2tec/watchtower        Up 15 minutes                            watchtower
+6cc4d2a9d1a5   containrrr/watchtower        Up 15 minutes                            watchtower
 ```
 
 Every few minutes watchtower will pull the latest *centurylink/wetty-cli* image and compare it to the one that was used to run the "wetty" container. If it sees that the image has changed it will stop/remove the "wetty" container and then restart it using the new image and the same `docker run` options that were used to start the container initially (in this case, that would include the `-p 8080:3000` port mapping).
 
 ## Usage
 
-Watchtower is itself packaged as a Docker container so installation is as simple as pulling the `v2tec/watchtower` image. If you are using ARM based architecture, pull the appropriate `v2tec/watchtower:armhf-<tag>` image from the [v2tec Docker Hub](https://hub.docker.com/r/v2tec/watchtower/tags/). 
+Watchtower is itself packaged as a Docker container so installation is as simple as pulling the `containrrr/watchtower` image. If you are using ARM based architecture, pull the appropriate `containrrr/watchtower:armhf-<tag>` image from the [v2tec Docker Hub](https://hub.docker.com/r/containrrr/watchtower/tags/).
 
 Since the watchtower code needs to interact with the Docker API in order to monitor the running containers, you need to mount */var/run/docker.sock* into the container with the -v flag when you run it.
 
@@ -37,7 +37,7 @@ Run the `watchtower` container with the following command:
 docker run -d \
   --name watchtower \
   -v /var/run/docker.sock:/var/run/docker.sock \
-  v2tec/watchtower
+  containrrr/watchtower
 ```
 
 If pulling images from private Docker registries, supply registry authentication credentials with the environment variables `REPO_USER` and `REPO_PASS`
@@ -50,7 +50,7 @@ docker run -d \
   -e REPO_USER=username \
   -e REPO_PASS=password \
   -v /var/run/docker.sock:/var/run/docker.sock \
-  v2tec/watchtower container_to_watch --debug
+  containrrr/watchtower container_to_watch --debug
 ```
 Also check out [this Stack Overflow answer](https://stackoverflow.com/a/30494145/7872793) for more options on how to pass environment variables.
 
@@ -60,7 +60,7 @@ docker run -d \
   --name watchtower \
   -v /home/<user>/.docker/config.json:/config.json \
   -v /var/run/docker.sock:/var/run/docker.sock \
-  v2tec/watchtower container_to_watch --debug
+  containrrr/watchtower container_to_watch --debug
 ```
 
 If you mount the config file as described above, be sure to also prepend the url for the registry when starting up your watched image (you can omit the https://). Here is a complete docker-compose.yml file that starts up a docker container from a private repo at dockerhub and monitors it with watchtower. Note the command argument changing the interval to 30s rather than the default 5 minutes.
@@ -74,7 +74,7 @@ services:
       - "443:3443"
       - "80:3080"
   watchtower:
-    image: v2tec/watchtower
+    image: containrrr/watchtower
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - /root/.docker/config.json:/config.json
@@ -89,7 +89,7 @@ By default, watchtower will monitor all containers running within the Docker dae
 docker run -d \
   --name watchtower \
   -v /var/run/docker.sock:/var/run/docker.sock \
-  v2tec/watchtower nginx redis
+  containrrr/watchtower nginx redis
 ```
 
 In the example above, watchtower will only monitor the containers named "nginx" and "redis" for updates -- all of the other running containers will be ignored.
@@ -101,7 +101,7 @@ When no arguments are specified, watchtower will monitor all running containers.
 Any of the options described below can be passed to the watchtower process by setting them after the image name in the `docker run` string:
 
 ```bash
-docker run --rm v2tec/watchtower --help
+docker run --rm containrrr/watchtower --help
 ```
 
 * `--host, -h` Docker daemon socket to connect to. Defaults to "unix:///var/run/docker.sock" but can be pointed at a remote Docker host by specifying a TCP endpoint as "tcp://hostname:port". The host value can also be provided by setting the `DOCKER_HOST` environment variable.
@@ -175,7 +175,7 @@ By default, watchtower is set-up to monitor the local Docker daemon (the same da
 ```bash
 docker run -d \
   --name watchtower \
-  v2tec/watchtower --host "tcp://10.0.1.2:2375"
+  containrrr/watchtower --host "tcp://10.0.1.2:2375"
 ```
 
 or
@@ -184,7 +184,7 @@ or
 docker run -d \
   --name watchtower \
   -e DOCKER_HOST="tcp://10.0.1.2:2375" \
-  v2tec/watchtower
+  containrrr/watchtower
 ```
 
 Note in both of the examples above that it is unnecessary to mount the */var/run/docker.sock* into the watchtower container.
@@ -202,12 +202,12 @@ docker run -d \
   --name watchtower \
   -e DOCKER_HOST=$DOCKER_HOST \
   -v $DOCKER_CERT_PATH:/etc/ssl/docker \
-  v2tec/watchtower --tlsverify
+  containrrr/watchtower --tlsverify
 ```
 
 ## Updating Watchtower
 
-If watchtower is monitoring the same Docker daemon under which the watchtower container itself is running (i.e. if you volume-mounted */var/run/docker.sock* into the watchtower container) then it has the ability to update itself. If a new version of the *v2tec/watchtower* image is pushed to the Docker Hub, your watchtower will pull down the new image and restart itself automatically.
+If watchtower is monitoring the same Docker daemon under which the watchtower container itself is running (i.e. if you volume-mounted */var/run/docker.sock* into the watchtower container) then it has the ability to update itself. If a new version of the *containrrr/watchtower* image is pushed to the Docker Hub, your watchtower will pull down the new image and restart itself automatically.
 
 ## Notifications
 
@@ -246,7 +246,7 @@ docker run -d \
   -e WATCHTOWER_NOTIFICATION_EMAIL_SERVER=smtp.gmail.com \
   -e WATCHTOWER_NOTIFICATION_EMAIL_SERVER_USER=fromaddress@gmail.com \
   -e WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PASSWORD=app_password \
-  v2tec/watchtower
+  containrrr/watchtower
 ```
 
 ### Notifications through Slack webhook
@@ -266,7 +266,7 @@ docker run -d \
   -e WATCHTOWER_NOTIFICATIONS=slack \
   -e WATCHTOWER_NOTIFICATION_SLACK_HOOK_URL="https://hooks.slack.com/services/xxx/yyyyyyyyyyyyyyy" \
   -e WATCHTOWER_NOTIFICATION_SLACK_IDENTIFIER=watchtower-server-1 \
-  v2tec/watchtower
+  containrrr/watchtower
 ```
 
 ### Notifications via MSTeams incoming webhook
@@ -286,5 +286,5 @@ docker run -d \
   -e WATCHTOWER_NOTIFICATIONS=msteams \
   -e WATCHTOWER_NOTIFICATION_MSTEAMS_HOOK_URL="https://outlook.office.com/webhook/xxxxxxxx@xxxxxxx/IncomingWebhook/yyyyyyyy/zzzzzzzzzz" \
   -e WATCHTOWER_NOTIFICATION_MSTEAMS_USE_LOG_DATA=true \
-  v2tec/watchtower
+  containrrr/watchtower
 ```

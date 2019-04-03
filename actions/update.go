@@ -5,7 +5,7 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/v2tec/watchtower/container"
+	"github.com/containrrr/watchtower/container"
 )
 
 var (
