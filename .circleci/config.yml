@@ -19,8 +19,9 @@ workflows:
             - checkout
       - publishing:
           requires:
-            - testing
-            - linting
+            - checkout
+            # - testing
+            # - linting
           # filters:
           #   branches:
           #     ignore: /.*/
