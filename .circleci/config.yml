@@ -11,22 +11,22 @@ workflows:
   ci:
     jobs:
       - checkout
-      - linting
+      - linting:
           requires:
             - checkout
-      - testing
+      - testing:
           requires:
             - checkout
-      - building
-          requires:
-            - testing
-            - linting
-      - building
-          requires:
-            - publishing
-      - publishing
-          requires:
-            - building
+      # - building:
+      #     requires:
+      #       - testing
+      #       - linting
+      # - building:
+      #     requires:
+      #       - publishing
+      # - publishing:
+      #     requires:
+      #       - building
 jobs:
   checkout:
     executor: go
