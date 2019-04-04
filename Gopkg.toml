@@ -1,0 +1,16 @@
+# Refer to https://golang.github.io/dep/docs/Gopkg.toml.html
+
+ignored = ["github.com/Sirupsen/logrus"]
+
+[[override]]
+  name = "github.com/Sirupsen/logrus"
+  source = "github.com/sirupsen/logrus"
+[[override]]
+  name = "github.com/docker/docker"
+  branch = "master"
+
+[prune]
+  go-tests = true
+[[prune.project]]
+  name = "github.com/docker/docker"
+  non-go = false
