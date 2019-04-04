@@ -54,19 +54,19 @@ jobs:
     executor: go
     steps:
       - run:
-        name: Install Goreleaser
-        command: |
-          curl \
-            --silent \
-            --show-error \
-            --fail \
-            --location \
-            --header "Accept: application/tar+gzip, application/x-gzip, application/octet-stream" \
-            -o - \
-            "https://github.com/goreleaser/goreleaser/releases/download/v${goreleaser}/goreleaser_Linux_x86_64.tar.gz" \
-          | tar --no-same-owner -C /usr/bin/ -xz goreleaser \
-            && chmod 0755 /usr/bin/goreleaser \
-            && /usr/bin/goreleaser -v
+          name: Install Goreleaser
+          command: |
+            curl \
+              --silent \
+              --show-error \
+              --fail \
+              --location \
+              --header "Accept: application/tar+gzip, application/x-gzip, application/octet-stream" \
+              -o - \
+              "https://github.com/goreleaser/goreleaser/releases/download/v${goreleaser}/goreleaser_Linux_x86_64.tar.gz" \
+            | tar --no-same-owner -C /usr/bin/ -xz goreleaser \
+              && chmod 0755 /usr/bin/goreleaser \
+              && /usr/bin/goreleaser -v
       - run: echo Done
 
 # version: 2
