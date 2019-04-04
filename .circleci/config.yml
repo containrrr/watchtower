@@ -45,6 +45,10 @@ jobs:
           at: .
       - run: go build ./...
       - run: go test  ./...
+  publishing:
+    executor: go
+    steps:
+      - run: echo Done
 
 # version: 2
 # jobs:
