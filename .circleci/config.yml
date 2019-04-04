@@ -17,16 +17,10 @@ workflows:
       - testing:
           requires:
             - checkout
-      # - building:
-      #     requires:
-      #       - testing
-      #       - linting
-      # - building:
-      #     requires:
-      #       - publishing
-      # - publishing:
-      #     requires:
-      #       - building
+      - publishing:
+           requires:
+             - testing
+             - linting
 jobs:
   checkout:
     executor: go
