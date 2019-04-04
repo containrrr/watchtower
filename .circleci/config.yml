@@ -17,16 +17,22 @@ workflows:
       # - testing:
       #     requires:
       #       - checkout
+      - build:
+          requires:
+            - testing
+            - linting
+          filters:
+            tags:
+              ignore: /^v[0-9]+(\.[0-9]+)*$/
       - publishing:
           requires:
-            - checkout
-            # - testing
-            # - linting
-          # filters:
-          #   branches:
-          #     ignore: /.*/
-          #   tags:
-          #     only: /^v[0-9]+(\.[0-9]+)*$/
+            - testing
+            - linting
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v[0-9]+(\.[0-9]+)*$/
 jobs:
   checkout:
     executor: go
@@ -51,13 +57,12 @@ jobs:
           at: .
       - run: go build ./...
       - run: go test  ./...
-  publishing:
+  build:
     executor: go
     steps:
       - attach_workspace:
           at: .
-      - setup_remote_docker:
-          docker_layer_caching: true
+      - setup_remote_docker
       - run:
           name: Install Goreleaser
           command: |
@@ -68,8 +73,27 @@ jobs:
       - run: 
           name: Execute goreleaser
           command: ../goreleaser --snapshot --skip-publish
-          
-
+  publishing:
+    executor: go
+    steps:
+      - attach_workspace:
+          at: .
+      - setup_remote_docker
+      - run:
+          name: Install Goreleaser
+          command: |
+            cd .. && \
+            wget https://github.com/goreleaser/goreleaser/releases/download/v0.59.0/goreleaser_Linux_x86_64.tar.gz && \
+            tar -xvf goreleaser_Linux_x86_64.tar.gz && \
+            ./goreleaser -v
+      - run:
+          name: Login to docker hub
+          command: |
+            echo "$DOCKER_PASS" | docker login -u $DOCKER_USER --password-stdin 
+      - run: 
+          name: Execute goreleaser
+          command: ../goreleaser
+      
 # version: 2
 # jobs:
 #   build:

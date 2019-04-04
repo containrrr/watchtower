@@ -31,6 +31,7 @@ dockers:
     image: containrrr/watchtower
     dockerfile: dockerfile/amd64/Dockerfile
     tag_templates:
+      - 'latest'
       - '{{ .Version }}'
   -
     goos: linux
@@ -40,6 +41,7 @@ dockers:
     image: containrrr/watchtower
     dockerfile: dockerfile/armhf/Dockerfile
     tag_templates:
+      - 'armhf-latest'
       - 'armhf-{{ .Version }}'
   -
     goos: linux
@@ -49,4 +51,5 @@ dockers:
     image: containrrr/watchtower
     dockerfile: dockerfile/arm64v8/Dockerfile
     tag_templates:
+      - 'arm64v8-latest'
       - 'arm64v8-{{ .Version }}'
