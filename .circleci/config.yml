@@ -56,13 +56,19 @@ jobs:
     steps:
       - attach_workspace:
           at: .
+      - setup_remote_docker:
+          docker_layer_caching: true
       - run:
           name: Install Goreleaser
           command: |
+            cd .. && \
             wget https://github.com/goreleaser/goreleaser/releases/download/v0.59.0/goreleaser_Linux_x86_64.tar.gz && \
             tar -xvf goreleaser_Linux_x86_64.tar.gz && \
             ./goreleaser -v
-      - run: echo Done
+      - run: 
+          name: Execute goreleaser
+          command: ../goreleaser --snapshot --skip-publish
+          
 
 # version: 2
 # jobs:
