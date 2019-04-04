@@ -7,10 +7,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_ShouldWork(t *testing.T) {
-	assert.True(t, true)
-}
-
 func TestEncodedEnvAuth_ShouldReturnAnErrorIfRepoEnvsAreUnset(t *testing.T) {
 	os.Unsetenv("REPO_USER")
 	os.Unsetenv("REPO_PASS")
@@ -33,9 +29,24 @@ func TestEncodedConfigAuth_ShouldReturnAnErrorIfFileIsNotPresent(t *testing.T) {
 	assert.Error(t, err)
 }
 
+/*
+ * TODO:
+ * This part only confirms that it still works in the same way as it did
+ * with the old version of the docker api client sdk. I'd say that
+ * ParseServerAddress likely needs to be elaborated a bit to default to
+ * dockerhub in case no server address was provided.
+ *
+ * ++ @simskij, 2019-04-04
+ */
+
 func TestParseServerAddress_ShouldReturnErrorIfPassedEmptyString(t *testing.T) {
 	_, err := ParseServerAddress("")
 	assert.Error(t, err)
+}
+
+func TestParseServerAddress_ShouldReturnTheRepoNameIfPassedAFullyQualifiedImageName(t *testing.T) {
+	val, _ := ParseServerAddress("github.com/containrrrr/config")
+	assert.Equal(t, val, "github.com")
 }
 
 func TestParseServerAddress_ShouldReturnTheOrganizationPartIfPassedAnImageNameMissingServerName(t *testing.T) {
@@ -43,7 +54,7 @@ func TestParseServerAddress_ShouldReturnTheOrganizationPartIfPassedAnImageNameMi
 	assert.Equal(t, val, "containrrr")
 }
 
-func TestParseServerAddress_ShouldReturnTheRepoNameIfPassedAnImageNameWithoutServerName(t *testing.T) {
+func TestParseServerAddress_ShouldReturnTheServerNameIfPassedAFullyQualifiedImageName(t *testing.T) {
 	val, _ := ParseServerAddress("github.com/containrrrr/config")
 	assert.Equal(t, val, "github.com")
 }
