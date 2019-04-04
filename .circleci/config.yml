@@ -54,6 +54,8 @@ jobs:
   publishing:
     executor: go
     steps:
+      - attach_workspace:
+          at: .
       - run:
           name: Install Goreleaser
           command: |
