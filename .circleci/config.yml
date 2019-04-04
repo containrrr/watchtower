@@ -1,0 +1,82 @@
+version: 2.1
+
+executors:
+  go:
+    docker:
+      - image: circleci/golang:latest
+    working_directory: ~/repo
+
+workflows:
+  version: 2
+  ci:
+    jobs:
+      - checkout
+      - linting
+          requires:
+            - checkout
+      - testing
+          requires:
+            - checkout
+      - building
+          requires:
+            - testing
+            - linting
+      - building
+          requires:
+            - publishing
+      - publishing
+          requires:
+            - building
+jobs:
+  checkout:
+    executor: go
+    steps:
+      - checkout
+      - persist_to_workspace:
+          paths:
+            - .
+          root: ~/repo
+  linting:
+    executor: go
+    steps:
+      - attach_workspace:
+          at: .
+      - run: go build .
+      - run: go get -u golang.org/x/lint/golint
+      - run: golint ./...
+  testing:
+    executor: go
+    steps:
+      - attach_workspace:
+          at: .
+      - run: go build ./...
+      - run: go test  ./...
+
+# version: 2
+# jobs:
+#   build:
+#     docker:
+#       - image: v2tec/gobuilder:0.5.0_go1.7.4-glide0.12.3-goreleaser0.59.0-docker17.05.0
+#     working_directory: /src
+#     steps:
+#       - checkout
+#       - setup_remote_docker:
+#           version: 17.05.0-ce
+#       - run: git fetch --tags
+#       - run: |
+#           docker login -u $DOCKER_USER -p $DOCKER_PASS
+#           IS_RELEASE=$(if [ "$CIRCLE_TAG" != "" ] ; then echo release; else echo ci; fi;)
+#           /build.sh $IS_RELEASE || exit 1
+#           chmod 755 /src/dockerfile/push_containers.sh
+#           if [ "$CIRCLE_TAG" != "" ] ; then /src/dockerfile/push_containers.sh $CIRCLE_TAG; fi;
+
+#       - store_artifacts:
+#           path: /src/dist/
+# workflows:
+#   version: 2
+#   build-deploy:
+#     jobs:
+#       - build:
+#           filters:
+#             tags:
+#               only: /.*/
