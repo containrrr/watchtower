@@ -187,6 +187,8 @@ func (client dockerClient) IsContainerStale(c Container) (bool, error) {
 
 		var opts types.ImagePullOptions // ImagePullOptions can take a RegistryAuth arg to authenticate against a private registry
 		auth, err := EncodedAuth(imageName)
+		log.Infof("Got auth value: %s", auth)
+		log.Infof("Got image name: %s", imageName)
 		if err != nil {
 			log.Debugf("Error loading authentication credentials %s", err)
 			return false, err

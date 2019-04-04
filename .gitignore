@@ -2,3 +2,4 @@ watchtower
 vendor
 .glide
 dist
+.idea

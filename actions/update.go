@@ -4,12 +4,12 @@ import (
 	"math/rand"
 	"time"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/containrrr/watchtower/container"
+	log "github.com/sirupsen/logrus"
 )
 
 var (
-	letters  = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+	letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 )
 
 // Update looks at the running Docker containers to see if any of the images
@@ -45,6 +45,7 @@ func Update(client container.Client, filter container.Filter, cleanup bool, noRe
 		container := containers[i]
 
 		if container.IsWatchtower() {
+			log.Debugf("This is the watchtower container %s", containers[i].Name())
 			continue
 		}
 
