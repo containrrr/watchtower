@@ -18,9 +18,14 @@ workflows:
           requires:
             - checkout
       - publishing:
-           requires:
-             - testing
-             - linting
+          requires:
+            - testing
+            - linting
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v[0-9]+(\.[0-9]+)*$/
 jobs:
   checkout:
     executor: go
