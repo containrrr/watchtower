@@ -1,8 +1,10 @@
-# Note
-
-This is a fork of the popular (but unfortunately unmaintained) project [v2tec/watchtower](https://github.com/v2tec/watchtower). This fork also includes a few of the unmerged pull requests. The goal is to revive the development of the project and make sure - in the long run - that it's maintained well through multiple maintainers.
-
 # Watchtower
+
+[![Circle CI](https://circleci.com/gh/containrrr/watchtower.svg?style=shield)](https://circleci.com/gh/containrrr/watchtower)
+[![GoDoc](https://godoc.org/github.com/containrrr/watchtower?status.svg)](https://godoc.org/github.com/containrrr/watchtower)
+[![](https://images.microbadger.com/badges/image/containrrr/watchtower.svg)](https://microbadger.com/images/containrrr/watchtower "Get your own image badge on microbadger.com")
+[![Go Report Card](https://goreportcard.com/badge/github.com/containrrr/watchtower)](https://goreportcard.com/report/github.com/containrrr/watchtower)
+[![Reviewed by Hound](https://img.shields.io/badge/Reviewed_by-Hound-8E64B0.svg)](https://houndci.com)
 
 A process for watching your Docker containers and automatically restarting them whenever their base image is refreshed.
 
@@ -18,14 +20,14 @@ For example, let's say you were running watchtower along with an instance of *ce
 $ docker ps
 CONTAINER ID   IMAGE                   STATUS          PORTS                    NAMES
 967848166a45   centurylink/wetty-cli   Up 10 minutes   0.0.0.0:8080->3000/tcp   wetty
-6cc4d2a9d1a5   kopfkrieg/watchtower    Up 15 minutes                            watchtower
+6cc4d2a9d1a5   containrrr/watchtower        Up 15 minutes                            watchtower
 ```
 
 Every few minutes watchtower will pull the latest *centurylink/wetty-cli* image and compare it to the one that was used to run the "wetty" container. If it sees that the image has changed it will stop/remove the "wetty" container and then restart it using the new image and the same `docker run` options that were used to start the container initially (in this case, that would include the `-p 8080:3000` port mapping).
 
 ## Usage
 
-Watchtower is itself packaged as a Docker container so installation is as simple as pulling the `kopfkrieg/watchtower` image.
+Watchtower is itself packaged as a Docker container so installation is as simple as pulling the `containrrr/watchtower` image. If you are using ARM based architecture, pull the appropriate `containrrr/watchtower:armhf-<tag>` image from the [v2tec Docker Hub](https://hub.docker.com/r/containrrr/watchtower/tags/).
 
 Since the watchtower code needs to interact with the Docker API in order to monitor the running containers, you need to mount */var/run/docker.sock* into the container with the -v flag when you run it.
 
@@ -35,21 +37,33 @@ Run the `watchtower` container with the following command:
 docker run -d \
   --name watchtower \
   -v /var/run/docker.sock:/var/run/docker.sock \
-  kopfkrieg/watchtower
+  containrrr/watchtower
 ```
 
 If pulling images from private Docker registries, supply registry authentication credentials with the environment variables `REPO_USER` and `REPO_PASS`
 or by mounting the host's docker config file into the container (at the root of the container filesystem `/`).
 
+Passing environment variables:
+```bash
+docker run -d \
+  --name watchtower \
+  -e REPO_USER=username \
+  -e REPO_PASS=password \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  containrrr/watchtower container_to_watch --debug
+```
+Also check out [this Stack Overflow answer](https://stackoverflow.com/a/30494145/7872793) for more options on how to pass environment variables.
+
+Mounting the host's docker config file:
 ```bash
 docker run -d \
   --name watchtower \
   -v /home/<user>/.docker/config.json:/config.json \
   -v /var/run/docker.sock:/var/run/docker.sock \
-  kopfkrieg/watchtower container_to_watch --debug
+  containrrr/watchtower container_to_watch --debug
 ```
 
-If you mount the config file as described below, be sure to also prepend the url for the registry when starting up your watched image (you can omit the https://). Here is a complete docker-compose.yml file that starts up a docker container from a private repo at dockerhub and monitors it with watchtower. Note the command argument changing the interval to 30s rather than the default 5 minutes.
+If you mount the config file as described above, be sure to also prepend the url for the registry when starting up your watched image (you can omit the https://). Here is a complete docker-compose.yml file that starts up a docker container from a private repo at dockerhub and monitors it with watchtower. Note the command argument changing the interval to 30s rather than the default 5 minutes.
 
 ```json
 version: "3"
@@ -60,7 +74,7 @@ services:
       - "443:3443"
       - "80:3080"
   watchtower:
-    image: kopfkrieg/watchtower
+    image: containrrr/watchtower
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - /root/.docker/config.json:/config.json
@@ -75,7 +89,7 @@ By default, watchtower will monitor all containers running within the Docker dae
 docker run -d \
   --name watchtower \
   -v /var/run/docker.sock:/var/run/docker.sock \
-  kopfkrieg/watchtower nginx redis
+  containrrr/watchtower nginx redis
 ```
 
 In the example above, watchtower will only monitor the containers named "nginx" and "redis" for updates -- all of the other running containers will be ignored.
@@ -87,12 +101,12 @@ When no arguments are specified, watchtower will monitor all running containers.
 Any of the options described below can be passed to the watchtower process by setting them after the image name in the `docker run` string:
 
 ```bash
-docker run --rm kopfkrieg/watchtower --help
+docker run --rm containrrr/watchtower --help
 ```
 
 * `--host, -h` Docker daemon socket to connect to. Defaults to "unix:///var/run/docker.sock" but can be pointed at a remote Docker host by specifying a TCP endpoint as "tcp://hostname:port". The host value can also be provided by setting the `DOCKER_HOST` environment variable.
 * `--interval, -i` Poll interval (in seconds). This value controls how frequently watchtower will poll for new images. Defaults to 300 seconds (5 minutes).
-* `--schedule, -s` [Cron expression](https://godoc.org/github.com/robfig/cron#hdr-CRON_Expression_Format) in 6 fields (rather than the traditional 5) which defines when and how often to check for new images. Either `--interval` or the schedule expression could be defined, but not both. An example: `--schedule "0 0 4 * * *" ` 
+* `--schedule, -s` [Cron expression](https://godoc.org/github.com/robfig/cron#hdr-CRON_Expression_Format) in 6 fields (rather than the traditional 5) which defines when and how often to check for new images. Either `--interval` or the schedule expression could be defined, but not both. An example: `--schedule "0 0 4 * * *" `
 * `--no-pull` Do not pull new images. When this flag is specified, watchtower will not attempt to pull new images from the registry. Instead it will only monitor the local image cache for changes. Use this option if you are building new images directly on the Docker host without pushing them to a registry.
 * `--stop-timeout` Timeout before the container is forcefully stopped. When set, this option will change the default (`10s`) wait time to the given value. An example: `--stop-timeout 30s` will set the timeout to 30 seconds.
 * `--label-enable` Watch containers where the `com.centurylinklabs.watchtower.enable` label is set to true.
@@ -161,7 +175,7 @@ By default, watchtower is set-up to monitor the local Docker daemon (the same da
 ```bash
 docker run -d \
   --name watchtower \
-  kopfkrieg/watchtower --host "tcp://10.0.1.2:2375"
+  containrrr/watchtower --host "tcp://10.0.1.2:2375"
 ```
 
 or
@@ -170,7 +184,7 @@ or
 docker run -d \
   --name watchtower \
   -e DOCKER_HOST="tcp://10.0.1.2:2375" \
-  kopfkrieg/watchtower
+  containrrr/watchtower
 ```
 
 Note in both of the examples above that it is unnecessary to mount the */var/run/docker.sock* into the watchtower container.
@@ -188,12 +202,12 @@ docker run -d \
   --name watchtower \
   -e DOCKER_HOST=$DOCKER_HOST \
   -v $DOCKER_CERT_PATH:/etc/ssl/docker \
-  kopfkrieg/watchtower --tlsverify
+  containrrr/watchtower --tlsverify
 ```
 
 ## Updating Watchtower
 
-If watchtower is monitoring the same Docker daemon under which the watchtower container itself is running (i.e. if you volume-mounted */var/run/docker.sock* into the watchtower container) then it has the ability to update itself. If a new version of the *kopfkrieg/watchtower* image is pushed to the Docker Hub, your watchtower will pull down the new image and restart itself automatically.
+If watchtower is monitoring the same Docker daemon under which the watchtower container itself is running (i.e. if you volume-mounted */var/run/docker.sock* into the watchtower container) then it has the ability to update itself. If a new version of the *containrrr/watchtower* image is pushed to the Docker Hub, your watchtower will pull down the new image and restart itself automatically.
 
 ## Notifications
 
@@ -232,7 +246,7 @@ docker run -d \
   -e WATCHTOWER_NOTIFICATION_EMAIL_SERVER=smtp.gmail.com \
   -e WATCHTOWER_NOTIFICATION_EMAIL_SERVER_USER=fromaddress@gmail.com \
   -e WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PASSWORD=app_password \
-  kopfkrieg/watchtower
+  containrrr/watchtower
 ```
 
 ### Notifications through Slack webhook
@@ -252,7 +266,7 @@ docker run -d \
   -e WATCHTOWER_NOTIFICATIONS=slack \
   -e WATCHTOWER_NOTIFICATION_SLACK_HOOK_URL="https://hooks.slack.com/services/xxx/yyyyyyyyyyyyyyy" \
   -e WATCHTOWER_NOTIFICATION_SLACK_IDENTIFIER=watchtower-server-1 \
-  kopfkrieg/watchtower
+  containrrr/watchtower
 ```
 
 ### Notifications via MSTeams incoming webhook
@@ -272,5 +286,5 @@ docker run -d \
   -e WATCHTOWER_NOTIFICATIONS=msteams \
   -e WATCHTOWER_NOTIFICATION_MSTEAMS_HOOK_URL="https://outlook.office.com/webhook/xxxxxxxx@xxxxxxx/IncomingWebhook/yyyyyyyy/zzzzzzzzzz" \
   -e WATCHTOWER_NOTIFICATION_MSTEAMS_USE_LOG_DATA=true \
-  kopfkrieg/watchtower
+  containrrr/watchtower
 ```

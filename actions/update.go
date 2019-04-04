@@ -4,12 +4,12 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/kopfkrieg/watchtower/container"
 	log "github.com/sirupsen/logrus"
+	"github.com/containrrr/watchtower/container"
 )
 
 var (
-	letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+	letters  = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 )
 
 // Update looks at the running Docker containers to see if any of the images
