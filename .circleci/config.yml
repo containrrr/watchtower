@@ -37,7 +37,7 @@ jobs:
           at: .
       - run: go build .
       - run: go get -u golang.org/x/lint/golint
-      - run: golint ./...
+      - run: golint -set_exit_status ./... 
   testing:
     executor: go
     steps:
