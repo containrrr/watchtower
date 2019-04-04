@@ -11,12 +11,12 @@ workflows:
   ci:
     jobs:
       - checkout
-      # - linting:
-      #     requires:
-      #       - checkout
-      # - testing:
-      #     requires:
-      #       - checkout
+      - linting:
+          requires:
+            - checkout
+      - testing:
+          requires:
+            - checkout
       - build:
           requires:
             - testing
