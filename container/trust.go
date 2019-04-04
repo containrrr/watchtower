@@ -67,6 +67,7 @@ func EncodedConfigAuth(ref string) (string, error) {
 	return EncodeAuth(auth)
 }
 
+// ParseServerAddress extracts the server part from a container image ref
 func ParseServerAddress(ref string) (string, error) {
 
 	parsedRef, err := reference.Parse(ref)
