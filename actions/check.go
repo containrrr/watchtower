@@ -3,6 +3,8 @@ package actions
 import (
 	"sort"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/containrrr/watchtower/container"
 )
 
@@ -17,6 +19,7 @@ func CheckPrereqs(client container.Client, cleanup bool) error {
 	}
 
 	if len(containers) > 1 {
+		log.Info("Found multiple running watchtower instances. Cleaning up")
 		sort.Sort(container.ByCreated(containers))
 
 		// Iterate over all containers execept the last one
