@@ -93,7 +93,7 @@ jobs:
             ./goreleaser -v
       - run: 
           name: Execute goreleaser
-          command: ../goreleaser --snapshot --skip-publish --debug
+          command: CGO_ENABLED=${CGO_ENABLED:-0} ../goreleaser --snapshot --skip-publish --debug
   publishing:
     executor: go
     steps:
