@@ -12,6 +12,7 @@ var (
 	letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 )
 
+// UpdateParams contains all different options available to alter the behavior of the Update func
 type UpdateParams struct {
 	Filter container.Filter
 	Cleanup bool
