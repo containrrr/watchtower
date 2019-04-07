@@ -29,6 +29,7 @@ var (
 	scheduleSpec string
 	cleanup      bool
 	noRestart    bool
+	monitorOnly  bool
 	enableLabel  bool
 	notifier     *notifications.Notifier
 	timeout		 time.Duration
@@ -171,6 +172,11 @@ func main() {
 			Usage:  "The MSTeams notifier will try to extract log entry fields as MSTeams message facts",
 			EnvVar: "WATCHTOWER_NOTIFICATION_MSTEAMS_USE_LOG_DATA",
 		},
+		cli.BoolFlag{
+			Name:   "monitor-only",
+			Usage:  "Will only monitor for new images, not update the containers",
+			EnvVar: "WATCHTOWER_MONITOR_ONLY",
+		},
 	}
 
 	if err := app.Run(os.Args); err != nil {
@@ -196,6 +202,7 @@ func before(c *cli.Context) error {
 
 	cleanup = c.GlobalBool("cleanup")
 	noRestart = c.GlobalBool("no-restart")
+	monitorOnly = c.GlobalBool("monitor-only")
 	timeout = c.GlobalDuration("stop-timeout")
 	if timeout < 0 {
 		log.Fatal("Please specify a positive value for timeout value.")
@@ -234,7 +241,14 @@ func start(c *cli.Context) error {
 			case v := <-tryLockSem:
 				defer func() { tryLockSem <- v }()
 				notifier.StartNotification()
-				if err := actions.Update(client, filter, cleanup, noRestart, timeout); err != nil {
+				updateParams := actions.UpdateParams{
+					Filter: filter,
+					Cleanup: cleanup,
+					NoRestart: noRestart,
+					Timeout: timeout,
+					MonitorOnly: monitorOnly,
+				}
+				if err := actions.Update(client, updateParams); err != nil {
 					log.Println(err)
 				}
 				notifier.SendNotification()

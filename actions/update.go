@@ -12,14 +12,22 @@ var (
 	letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 )
 
+type UpdateParams struct {
+	Filter container.Filter
+	Cleanup bool
+	NoRestart bool
+	Timeout time.Duration
+	MonitorOnly bool
+}
+
 // Update looks at the running Docker containers to see if any of the images
 // used to start those containers have been updated. If a change is detected in
 // any of the images, the associated containers are stopped and restarted with
 // the new image.
-func Update(client container.Client, filter container.Filter, cleanup bool, noRestart bool, timeout time.Duration) error {
+func Update(client container.Client, params UpdateParams) error {
 	log.Debug("Checking containers for updated images")
 
-	containers, err := client.ListContainers(filter)
+	containers, err := client.ListContainers(params.Filter)
 	if err != nil {
 		return err
 	}
@@ -27,7 +35,8 @@ func Update(client container.Client, filter container.Filter, cleanup bool, noRe
 	for i, container := range containers {
 		stale, err := client.IsContainerStale(container)
 		if err != nil {
-			log.Infof("Unable to update container %s, err='%s'. Proceeding to next.", containers[i].Name(), err)
+			log.Infof("Unable to update container %s. Proceeding to next.", containers[i].Name())
+			log.Debug(err)
 			stale = false
 		}
 		containers[i].Stale = stale
@@ -40,6 +49,10 @@ func Update(client container.Client, filter container.Filter, cleanup bool, noRe
 
 	checkDependencies(containers)
 
+	if params.MonitorOnly {
+		return nil
+	}
+
 	// Stop stale containers in reverse order
 	for i := len(containers) - 1; i >= 0; i-- {
 		container := containers[i]
@@ -50,7 +63,7 @@ func Update(client container.Client, filter container.Filter, cleanup bool, noRe
 		}
 
 		if container.Stale {
-			if err := client.StopContainer(container, timeout); err != nil {
+			if err := client.StopContainer(container, params.Timeout); err != nil {
 				log.Error(err)
 			}
 		}
@@ -70,13 +83,13 @@ func Update(client container.Client, filter container.Filter, cleanup bool, noRe
 				}
 			}
 
-			if !noRestart {
+			if !params.NoRestart {
 				if err := client.StartContainer(container); err != nil {
 					log.Error(err)
 				}
 			}
 
-			if cleanup {
+			if params.Cleanup {
 				client.RemoveImage(container)
 			}
 		}
