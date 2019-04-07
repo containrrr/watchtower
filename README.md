@@ -130,6 +130,7 @@ docker run --rm containrrr/watchtower --help
 * `--cleanup` Remove old images after updating. When this flag is specified, watchtower will remove the old image after restarting a container with a new image. Use this option to prevent the accumulation of orphaned images on your system as containers are updated.
 * `--tlsverify` Use TLS when connecting to the Docker socket and verify the server's certificate.
 * `--debug` Enable debug mode. When this option is specified you'll see more verbose logging in the watchtower log file.
+* `--monitor-only` Will only monitor for new images, not update the containers.
 * `--help` Show documentation about the supported flags.
 
 See below for options used to configure notifications.
