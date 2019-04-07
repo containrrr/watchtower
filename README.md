@@ -20,6 +20,12 @@
   <a href="https://goreportcard.com/report/github.com/containrrr/watchtower">
     <img alt="Go Report Card" src="https://goreportcard.com/badge/github.com/containrrr/watchtower" />
   </a>
+  <a href="https://github.com/containrrr/watchtower/releases">
+    <img alt="latest version" src="https://img.shields.io/github/tag/containrrr/watchtower.svg" />
+  </a>
+  <a href="https://www.apache.org/licenses/LICENSE-2.0">
+    <img alt="Apache-2.0 License" src="https://img.shields.io/github/license/containrrr/watchtower.svg" />
+  </a>
   <a href="https://houndci.com">
     <img alt="Hound CI" src="https://img.shields.io/badge/Reviewed_by-Hound-8E64B0.svg" />
   </a>
