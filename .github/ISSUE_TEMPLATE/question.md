@@ -1,6 +1,6 @@
 ---
 name: Question
-about: Describe this issue template's purpose here.
+about: Questions regarding usage or specific use cases. 
 title: ''
 labels: question
 assignees: ''
