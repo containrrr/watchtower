@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://0x12b.com/watchtower-logo.png" width="450" height="450"/>
+  <img src="https://0x12b.com/watchtower-logo.png" width="450" />
 </p>
 <h1 align="center">
   Watchtower
