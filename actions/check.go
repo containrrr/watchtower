@@ -3,7 +3,9 @@ package actions
 import (
 	"sort"
 
-	"github.com/v2tec/watchtower/container"
+	log "github.com/sirupsen/logrus"
+
+	"github.com/containrrr/watchtower/container"
 )
 
 // CheckPrereqs will ensure that there are not multiple instances of the
@@ -17,6 +19,7 @@ func CheckPrereqs(client container.Client, cleanup bool) error {
 	}
 
 	if len(containers) > 1 {
+		log.Info("Found multiple running watchtower instances. Cleaning up")
 		sort.Sort(container.ByCreated(containers))
 
 		// Iterate over all containers execept the last one

@@ -5,12 +5,12 @@ import (
 	"os"
 	"strings"
 
+	"github.com/docker/cli/cli/command"
+	cliconfig "github.com/docker/cli/cli/config"
+	"github.com/docker/cli/cli/config/configfile"
+	"github.com/docker/cli/cli/config/credentials"
+	"github.com/docker/distribution/reference"
 	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/reference"
-	"github.com/docker/docker/cli/command"
-	"github.com/docker/docker/cliconfig"
-	"github.com/docker/docker/cliconfig/configfile"
-	"github.com/docker/docker/cliconfig/credentials"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -67,12 +67,15 @@ func EncodedConfigAuth(ref string) (string, error) {
 	return EncodeAuth(auth)
 }
 
+// ParseServerAddress extracts the server part from a container image ref
 func ParseServerAddress(ref string) (string, error) {
-	repository, _, err := reference.Parse(ref)
+
+	parsedRef, err := reference.Parse(ref)
 	if err != nil {
 		return ref, err
 	}
-	parts := strings.Split(repository, "/")
+
+	parts := strings.Split(parsedRef.String(), "/")
 	return parts[0], nil
 }
 

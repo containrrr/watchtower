@@ -1,0 +1,116 @@
+version: 2.1
+
+executors:
+  go:
+    docker:
+      - image: circleci/golang:latest
+    working_directory: ~/repo
+
+workflows:
+  version: 2
+  ci:
+    jobs:
+      - checkout:
+          filters:
+            branches:
+              only: /.*/
+            tags:
+              only: /.*/
+      - linting:
+          requires:
+            - checkout
+          filters:
+            branches:
+              only: /.*/
+            tags:
+              only: /.*/
+      - testing:
+          requires:
+            - checkout
+          filters:
+            branches:
+              only: /.*/
+            tags:
+              only: /.*/
+      - build:
+          requires:
+            - testing
+            - linting
+          filters:
+            tags:
+              ignore: /^v[0-9]+(\.[0-9]+)*$/
+            branches:
+              only: /.*/
+      - publishing:
+          requires:
+            - testing
+            - linting
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v[0-9]+(\.[0-9]+)*$/
+jobs:
+  checkout:
+    executor: go
+    steps:
+      - checkout
+      - persist_to_workspace:
+          paths:
+            - .
+          root: ~/repo
+  linting:
+    executor: go
+    steps:
+      - attach_workspace:
+          at: .
+      - run: go build .
+      - run: go get -u golang.org/x/lint/golint
+      - run: golint -set_exit_status ./... 
+  testing:
+    executor: go
+    steps:
+      - attach_workspace:
+          at: .
+      - run: mkdir -p /tmp/test-results
+      - run: go build ./...
+      - run: go get gotest.tools/gotestsum
+      - run: gotestsum --junitfile /tmp/test-results/unit-tests.xml
+      - store_test_results:
+          path: /tmp/test-results
+  build:
+    executor: go
+    steps:
+      - attach_workspace:
+          at: .
+      - setup_remote_docker
+      - run:
+          name: Install Goreleaser
+          command: |
+            cd .. && \
+            wget https://github.com/goreleaser/goreleaser/releases/download/v0.104.1/goreleaser_Linux_x86_64.tar.gz && \
+            tar -xvf goreleaser_Linux_x86_64.tar.gz && \
+            ./goreleaser -v
+      - run: 
+          name: Execute goreleaser
+          command: CGO_ENABLED=${CGO_ENABLED:-0} ../goreleaser --snapshot --skip-publish --debug
+  publishing:
+    executor: go
+    steps:
+      - attach_workspace:
+          at: .
+      - setup_remote_docker
+      - run:
+          name: Install Goreleaser
+          command: |
+            cd .. && \
+            wget https://github.com/goreleaser/goreleaser/releases/download/v0.104.1/goreleaser_Linux_x86_64.tar.gz && \
+            tar -xvf goreleaser_Linux_x86_64.tar.gz && \
+            ./goreleaser -v
+      - run:
+          name: Login to docker hub
+          command: |
+            echo "$DOCKER_PASS" | docker login -u $DOCKER_USER --password-stdin 
+      - run: 
+          name: Execute goreleaser
+          command: CGO_ENABLED=${CGO_ENABLED:-0} ../goreleaser --debug
