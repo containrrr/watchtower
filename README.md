@@ -1,12 +1,29 @@
-# Watchtower
+<p align="center">
+  <img src="https://0x12b.com/watchtower-logo.png" width="450" height="450"/>
+</p>
+<h1 align="center">
+  Watchtower
+</h1>
 
-[![Circle CI](https://circleci.com/gh/containrrr/watchtower.svg?style=shield)](https://circleci.com/gh/containrrr/watchtower)
-[![GoDoc](https://godoc.org/github.com/containrrr/watchtower?status.svg)](https://godoc.org/github.com/containrrr/watchtower)
-[![](https://images.microbadger.com/badges/image/containrrr/watchtower.svg)](https://microbadger.com/images/containrrr/watchtower "Get your own image badge on microbadger.com")
-[![Go Report Card](https://goreportcard.com/badge/github.com/containrrr/watchtower)](https://goreportcard.com/report/github.com/containrrr/watchtower)
-[![Reviewed by Hound](https://img.shields.io/badge/Reviewed_by-Hound-8E64B0.svg)](https://houndci.com)
-
-A process for watching your Docker containers and automatically restarting them whenever their base image is refreshed.
+<p align="center">
+  A process for automating Docker container base image updates.
+  <br/><br/>
+  <a href="https://circleci.com/gh/containrrr/watchtower">
+    <img alt="Circle CI" src="https://circleci.com/gh/containrrr/watchtower.svg?style=shield" />
+  </a>
+  <a href="https://godoc.org/github.com/containrrr/watchtower">
+    <img alt="GoDoc" src="https://godoc.org/github.com/containrrr/watchtower?status.svg" />
+  </a>
+  <a href="https://microbadger.com/images/containrrr/watchtower">
+    <img alt="Microbadger" src="https://images.microbadger.com/badges/image/containrrr/watchtower.svg" />
+  </a>
+  <a href="https://goreportcard.com/report/github.com/containrrr/watchtower">
+    <img alt="Go Report Card" src="https://goreportcard.com/badge/github.com/containrrr/watchtower" />
+  </a>
+  <a href="https://houndci.com">
+    <img alt="Hound CI" src="https://img.shields.io/badge/Reviewed_by-Hound-8E64B0.svg" />
+  </a>
+</p>
 
 ## Overview
 
