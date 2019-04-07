@@ -6,7 +6,7 @@ build:
     - windows
   goarch:
     - amd64
-    - i386
+    - 386
     - arm
     - arm64
 archive:
@@ -16,7 +16,7 @@ archive:
     arm: armhf
     arm64: arm64v8
     amd64: amd64
-    386: i386
+    386: 386
     darwin: macOS
     linux: linux
   format_overrides:
