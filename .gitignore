@@ -3,3 +3,4 @@ vendor
 .glide
 dist
 .idea
+.DS_Store
