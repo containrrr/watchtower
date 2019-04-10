@@ -29,9 +29,7 @@ dockers:
     goos: linux
     goarch: amd64
     goarm: ''
-    dockerfile: dockerfile/amd64/Dockerfile
-    build_flag_templates:
-      - "--label=com.centurylinklabs.watchtower=true"
+    dockerfile: Dockerfile
     image_templates:
       - containrrr/watchtower:{{ .Version }}
     binaries:
@@ -40,9 +38,7 @@ dockers:
     goos: linux
     goarch: 386
     goarm: ''
-    dockerfile: dockerfile/i386/Dockerfile
-    build_flag_templates:
-      - "--label=com.centurylinklabs.watchtower=true"
+    dockerfile: Dockerfile
     image_templates:
       - containrrr/watchtower:i386-{{ .Version }}
     binaries:
@@ -51,9 +47,7 @@ dockers:
     goos: linux
     goarch: arm
     goarm: 6
-    dockerfile: dockerfile/armhf/Dockerfile
-    build_flag_templates:
-      - "--label=com.centurylinklabs.watchtower=true"
+    dockerfile: Dockerfile
     image_templates:
       - containrrr/watchtower:armhf-{{ .Version }}
     binaries:
@@ -62,9 +56,7 @@ dockers:
     goos: linux
     goarch: arm64
     goarm: ''
-    dockerfile: dockerfile/arm64v8/Dockerfile
-    build_flag_templates:
-      - "--label=com.centurylinklabs.watchtower=true"
+    dockerfile: Dockerfile
     image_templates:
       - containrrr/watchtower:arm64v8-{{ .Version }}
     binaries:
