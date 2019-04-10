@@ -125,7 +125,7 @@ If you do not want watchtower to run as a daemon you can pass a run-once flag an
 ```bash
 docker run --rm \
 -v /var/run/docker.sock:/var/run/docker.sock \
-v2tec/watchtower --run-once nginx redis
+containrrr/watchtower --run-once nginx redis
 ```
 
 In the example above, watchtower will execute an upgrade attempt on the containers named "nginx" and "redis". Using this mode will enable debugging output showing all actions performed as usage is intended for interactive users. Once the attempt is completed, the container will exit and remove itself due to the "--rm" flag.
