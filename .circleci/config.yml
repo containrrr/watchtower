@@ -37,10 +37,10 @@ workflows:
             - testing
             - linting
           filters:
-            tags:
-              ignore: /^v[0-9]+(\.[0-9]+)*$/
             branches:
               only: /.*/
+            tags:
+              ignore: /^v[0-9]+(\.[0-9]+)*$/
       - publishing:
           requires:
             - testing
@@ -115,26 +115,81 @@ jobs:
           name: Execute goreleaser
           command: CGO_ENABLED=${CGO_ENABLED:-0} ../goreleaser --debug
       - run:
-          name: Docker Manifest
+          name: Enable experimental docker features
           command: |
             mkdir -p ~/.docker/ && \
-            echo '{"experimental": "enabled"}' > ~/.docker/config.json && \
-            docker manifest create containrrr/watchtower:${CIRCLE_TAG} containrrr/watchtower:amd64-${CIRCLE_TAG} containrrr/watchtower:i386-${CIRCLE_TAG} containrrr/watchtower:armhf-${CIRCLE_TAG} containrrr/watchtower:arm64v8-${CIRCLE_TAG} && \
-            docker manifest annotate containrrr/watchtower:${CIRCLE_TAG} containrrr/watchtower:i386-${CIRCLE_TAG} --os linux --arch 386 && \
-            docker manifest annotate containrrr/watchtower:${CIRCLE_TAG} containrrr/watchtower:armhf-${CIRCLE_TAG} --os linux --arch arm && \
-            docker manifest annotate containrrr/watchtower:${CIRCLE_TAG} containrrr/watchtower:arm64v8-${CIRCLE_TAG} --os linux --arch arm64 --variant v8 && \
-            docker tag containrrr/watchtower:amd64-${CIRCLE_TAG} containrrr/watchtower:amd64-latest && \
-            docker tag containrrr/watchtower:i386-${CIRCLE_TAG} containrrr/watchtower:i386-latest && \
-            docker tag containrrr/watchtower:armhf-${CIRCLE_TAG} containrrr/watchtower:armhf-latest && \
-            docker tag containrrr/watchtower:arm64v8-${CIRCLE_TAG} containrrr/watchtower:arm64v8-latest && \
-            docker push containrrr/watchtower:amd64-latest && \
-            docker push containrrr/watchtower:i386-latest && \
-            docker push containrrr/watchtower:armhf-latest && \
-            docker push containrrr/watchtower:arm64v8-latest && \
-            docker manifest create containrrr/watchtower:latest containrrr/watchtower:amd64-latest containrrr/watchtower:i386-latest containrrr/watchtower:armhf-latest containrrr/watchtower:arm64v8-latest && \
-            docker manifest annotate containrrr/watchtower:latest containrrr/watchtower:i386-latest --os linux --arch 386 && \
-            docker manifest annotate containrrr/watchtower:latest containrrr/watchtower:armhf-latest --os linux --arch arm && \
-            docker manifest annotate containrrr/watchtower:latest containrrr/watchtower:arm64v8-latest --os linux --arch arm64 --variant v8 && \
+            echo '{"experimental": "enabled"}' > ~/.docker/config.json
+      - run:
+          name: Create manifest for version
+          command: |
+            docker manifest create \
+              containrrr/watchtower:${CIRCLE_TAG} \
+              containrrr/watchtower:amd64-${CIRCLE_TAG} \
+              containrrr/watchtower:i386-${CIRCLE_TAG} \
+              containrrr/watchtower:armhf-${CIRCLE_TAG} \
+              containrrr/watchtower:arm64v8-${CIRCLE_TAG}
+      - run:
+          name: Annotate i386 version
+          command: |
+            docker manifest annotate \
+              containrrr/watchtower:${CIRCLE_TAG} \
+              containrrr/watchtower:i386-${CIRCLE_TAG} \
+              --os linux \
+              --arch 386
+      - run:
+          name: Annotate ARM version
+          command: |
+            docker manifest annotate \
+              containrrr/watchtower:${CIRCLE_TAG} \
+              containrrr/watchtower:armhf-${CIRCLE_TAG} \
+              --os linux \
+              --arch arm
+      - run:
+          name: Annotate ARM64 version
+          command: |
+            docker manifest annotate \
+              containrrr/watchtower:${CIRCLE_TAG} \
+              containrrr/watchtower:arm64v8-${CIRCLE_TAG} \
+              --os linux \
+              --arch arm64 \
+              --variant v8
+      - run:
+          name: Create manifest for latest
+          command: |
+            docker manifest create \
+              containrrr/watchtower:latest \
+              containrrr/watchtower:amd64-latest \
+              containrrr/watchtower:i386-latest \
+              containrrr/watchtower:armhf-latest \
+              containrrr/watchtower:arm64v8-latest
+      - run:
+          name: Annotate i386 latest
+          command: |
+            docker manifest annotate \
+              containrrr/watchtower:latest \
+              containrrr/watchtower:i386-latest \
+              --os linux \
+              --arch 386
+      - run:
+          name: Annotate ARM latest
+          command: |
+            docker manifest annotate \
+              containrrr/watchtower:latest \
+              containrrr/watchtower:armhf-latest \
+              --os linux \
+              --arch arm
+      - run:
+          name: Annotate ARM64 latest
+          command: |
+            docker manifest annotate \
+              containrrr/watchtower:latest \
+              containrrr/watchtower:arm64v8-latest \
+              --os linux \
+              --arch arm64 \
+              --variant v8
+      - run:
+          name: Push manifests to Dockerhub
+          command: |
             docker manifest push containrrr/watchtower:${CIRCLE_TAG} && \
             docker manifest push containrrr/watchtower:latest
       - run:
