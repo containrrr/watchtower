@@ -26,8 +26,8 @@
   <a href="https://www.apache.org/licenses/LICENSE-2.0">
     <img alt="Apache-2.0 License" src="https://img.shields.io/github/license/containrrr/watchtower.svg" />
   </a>
-  <a href="https://houndci.com">
-    <img alt="Hound CI" src="https://img.shields.io/badge/Reviewed_by-Hound-8E64B0.svg" />
+  <a href="https://www.codacy.com/app/simskij/watchtower">
+    <img src="https://api.codacy.com/project/badge/Grade/3a4d0fcfd26d45b09b1d7ea3c8c13744"/>
   </a>
 </p>
 
