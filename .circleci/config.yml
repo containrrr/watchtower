@@ -120,36 +120,40 @@ jobs:
             mkdir -p ~/.docker/ && \
             echo '{"experimental": "enabled"}' > ~/.docker/config.json
       - run:
+          name: Strip letters from tag
+          command: |
+            export NUM_TAG=$(echo $CIRCLE_TAG | sed 's/^v*//')
+      - run:
           name: Create manifest for version
           command: |
             docker manifest create \
-              containrrr/watchtower:${CIRCLE_TAG} \
-              containrrr/watchtower:amd64-${CIRCLE_TAG} \
-              containrrr/watchtower:i386-${CIRCLE_TAG} \
-              containrrr/watchtower:armhf-${CIRCLE_TAG} \
-              containrrr/watchtower:arm64v8-${CIRCLE_TAG}
+              containrrr/watchtower:${NUM_TAG} \
+              containrrr/watchtower:amd64-${NUM_TAG} \
+              containrrr/watchtower:i386-${NUM_TAG} \
+              containrrr/watchtower:armhf-${NUM_TAG} \
+              containrrr/watchtower:arm64v8-${NUM_TAG}
       - run:
           name: Annotate i386 version
           command: |
             docker manifest annotate \
-              containrrr/watchtower:${CIRCLE_TAG} \
-              containrrr/watchtower:i386-${CIRCLE_TAG} \
+              containrrr/watchtower:${NUM_TAG} \
+              containrrr/watchtower:i386-${NUM_TAG} \
               --os linux \
               --arch 386
       - run:
           name: Annotate ARM version
           command: |
             docker manifest annotate \
-              containrrr/watchtower:${CIRCLE_TAG} \
-              containrrr/watchtower:armhf-${CIRCLE_TAG} \
+              containrrr/watchtower:${NUM_TAG} \
+              containrrr/watchtower:armhf-${NUM_TAG} \
               --os linux \
               --arch arm
       - run:
           name: Annotate ARM64 version
           command: |
             docker manifest annotate \
-              containrrr/watchtower:${CIRCLE_TAG} \
-              containrrr/watchtower:arm64v8-${CIRCLE_TAG} \
+              containrrr/watchtower:${NUM_TAG} \
+              containrrr/watchtower:arm64v8-${NUM_TAG} \
               --os linux \
               --arch arm64 \
               --variant v8
@@ -190,7 +194,7 @@ jobs:
       - run:
           name: Push manifests to Dockerhub
           command: |
-            docker manifest push containrrr/watchtower:${CIRCLE_TAG} && \
+            docker manifest push containrrr/watchtower:${NUM_TAG} && \
             docker manifest push containrrr/watchtower:latest
       - run:
           name: Sync Readme to Dockerhub
