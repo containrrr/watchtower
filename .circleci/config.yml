@@ -190,6 +190,7 @@ jobs:
       - run:
           name: Push manifests to Dockerhub
           command: |
+            echo "$DOCKER_PASS" | docker login -u $DOCKER_USER --password-stdin &&
             docker manifest push containrrr/watchtower:$(echo $CIRCLE_TAG | sed 's/^v*//') && \
             docker manifest push containrrr/watchtower:latest
       - run:
