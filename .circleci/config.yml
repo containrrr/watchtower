@@ -114,3 +114,37 @@ jobs:
       - run: 
           name: Execute goreleaser
           command: CGO_ENABLED=${CGO_ENABLED:-0} ../goreleaser --debug
+      - run:
+          name: Docker Manifest
+          command: |
+            mkdir -p ~/.docker/ && \
+            echo '{"experimental": "enabled"}' > ~/.docker/config.json && \
+            docker manifest create containrrr/watchtower:${CIRCLE_TAG} containrrr/watchtower:amd64-${CIRCLE_TAG} containrrr/watchtower:i386-${CIRCLE_TAG} containrrr/watchtower:armhf-${CIRCLE_TAG} containrrr/watchtower:arm64v8-${CIRCLE_TAG} && \
+            docker manifest annotate containrrr/watchtower:${CIRCLE_TAG} containrrr/watchtower:i386-${CIRCLE_TAG} --os linux --arch 386 && \
+            docker manifest annotate containrrr/watchtower:${CIRCLE_TAG} containrrr/watchtower:armhf-${CIRCLE_TAG} --os linux --arch arm && \
+            docker manifest annotate containrrr/watchtower:${CIRCLE_TAG} containrrr/watchtower:arm64v8-${CIRCLE_TAG} --os linux --arch arm64 --variant v8 && \
+            docker tag containrrr/watchtower:amd64-${CIRCLE_TAG} containrrr/watchtower:amd64-latest && \
+            docker tag containrrr/watchtower:i386-${CIRCLE_TAG} containrrr/watchtower:i386-latest && \
+            docker tag containrrr/watchtower:armhf-${CIRCLE_TAG} containrrr/watchtower:armhf-latest && \
+            docker tag containrrr/watchtower:arm64v8-${CIRCLE_TAG} containrrr/watchtower:arm64v8-latest && \
+            docker push containrrr/watchtower:amd64-latest && \
+            docker push containrrr/watchtower:i386-latest && \
+            docker push containrrr/watchtower:armhf-latest && \
+            docker push containrrr/watchtower:arm64v8-latest && \
+            docker manifest create containrrr/watchtower:latest containrrr/watchtower:amd64-latest containrrr/watchtower:i386-latest containrrr/watchtower:armhf-latest containrrr/watchtower:arm64v8-latest && \
+            docker manifest annotate containrrr/watchtower:latest containrrr/watchtower:i386-latest --os linux --arch 386 && \
+            docker manifest annotate containrrr/watchtower:latest containrrr/watchtower:armhf-latest --os linux --arch arm && \
+            docker manifest annotate containrrr/watchtower:latest containrrr/watchtower:arm64v8-latest --os linux --arch arm64 --variant v8 && \
+            docker manifest push containrrr/watchtower:${CIRCLE_TAG} && \
+            docker manifest push containrrr/watchtower:latest
+      - run:
+          name: Sync Readme to Dockerhub
+          command: |
+            docker pull lsiodev/readme-sync && \
+            docker run --rm=true \
+              -e DOCKERHUB_USERNAME=$DOCKER_USER \
+              -e DOCKERHUB_PASSWORD="$DOCKER_PASS" \
+              -e GIT_REPOSITORY=containrrr/watchtower \
+              -e DOCKER_REPOSITORY=containrrr/watchtower \
+              -e GIT_BRANCH=master \
+              lsiodev/readme-sync bash -c 'node sync'
