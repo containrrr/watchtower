@@ -66,10 +66,11 @@ func before(c *cli.Context) error {
 
 	pollingSet := c.IsSet("interval")
 	cronSet := c.IsSet("schedule")
+	cronLen := len(c.String("schedule"))
 
-	if pollingSet && cronSet {
+	if pollingSet && cronSet && cronLen > 0 {
 		log.Fatal("Only schedule or interval can be defined, not both.")
-	} else if cronSet {
+	} else if cronSet && cronLen > 0 {
 		scheduleSpec = c.String("schedule")
 	} else {
 		scheduleSpec = "@every " + strconv.Itoa(c.Int("interval")) + "s"
