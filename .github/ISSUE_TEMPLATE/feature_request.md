@@ -2,7 +2,7 @@
 name: Feature request
 about: Suggest an idea for this project
 title: ''
-labels: enhancement
+labels: 'Priority: Low, Status: Available, Type: Enhancement'
 assignees: ''
 
 ---

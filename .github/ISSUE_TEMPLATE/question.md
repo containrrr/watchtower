@@ -1,8 +1,8 @@
 ---
 name: Question
-about: Questions regarding usage or specific use cases. 
+about: Questions regarding usage or specific use cases.
 title: ''
-labels: question
+labels: 'Priority: Medium, Status: Available, Type: Question'
 assignees: ''
 
 ---
