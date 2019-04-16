@@ -72,12 +72,11 @@ jobs:
     steps:
       - attach_workspace:
           at: .
-      - run: mkdir -p /tmp/test-results
       - run: go build ./...
-      - run: go get gotest.tools/gotestsum
-      - run: gotestsum --junitfile /tmp/test-results/unit-tests.xml
-      - store_test_results:
-          path: /tmp/test-results
+      - run: go get github.com/schrej/godacov
+      - run: go get -u github.com/haya14busa/goverage
+      - run: goverage -v -coverprofile=coverage.out ./...
+      - run: godacov -t $CODACY_TOKEN -r ./coverage.out -c $CIRCLE_SHA1
   build:
     executor: go
     steps:
