@@ -169,6 +169,7 @@ func runUpdatesWithNotifications(filter container.Filter) {
 	if err != nil {
 		log.Println(err)
 	}
+	notifier.SendNotification()
 }
 
 func setEnvOptStr(env string, opt string) error {
