@@ -34,7 +34,7 @@ type Client interface {
 //  * DOCKER_TLS_VERIFY		whether to verify tls certificates
 //  * DOCKER_API_VERSION	the minimum docker api version to work with
 func NewClient(pullImages bool) Client {
-	cli, err := dockerclient.NewEnvClient()
+	cli, err := dockerclient.NewClientWithOpts(dockerclient.FromEnv)
 
 	if err != nil {
 		log.Fatalf("Error instantiating Docker client: %s", err)

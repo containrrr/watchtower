@@ -3,9 +3,12 @@ package container
 import (
 	"os"
 	"testing"
-
 	"github.com/stretchr/testify/assert"
 )
+
+
+
+
 
 func TestEncodedEnvAuth_ShouldReturnAnErrorIfRepoEnvsAreUnset(t *testing.T) {
 	os.Unsetenv("REPO_USER")

@@ -2,9 +2,10 @@ package container
 
 import (
 	"testing"
-
 	"github.com/stretchr/testify/assert"
 )
+
+
 
 func TestSliceEqual_True(t *testing.T) {
 	s1 := []string{"a", "b", "c"}
