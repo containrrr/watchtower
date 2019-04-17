@@ -1,4 +1,4 @@
-FROM alpine:latest as alpine
+FROM alpine:3.9 as alpine
 
 RUN apk add --no-cache \
     ca-certificates \
