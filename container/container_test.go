@@ -1,11 +1,13 @@
 package container
 
 import (
+	"github.com/containrrr/watchtower/container/mocks"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
-	"testing"
+	cli "github.com/docker/docker/client"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"testing"
 )
 
 func TestContainer(t *testing.T) {
@@ -14,7 +16,46 @@ func TestContainer(t *testing.T) {
 }
 
 var _ = Describe("the container", func() {
-
+	Describe("the client", func() {
+		var client Client
+		BeforeSuite(func() {
+			server := mocks.NewMockApiServer()
+			c, _ := cli.NewClientWithOpts(
+				cli.WithHost(server.URL),
+				cli.WithHTTPClient(server.Client(),
+				))
+			client = dockerClient{
+				api: c,
+				pullImages: false,
+			}
+		})
+		It("should return a client for the api", func() {
+			Expect(client).NotTo(BeNil())
+		})
+		When("listing containers without any filter", func() {
+			It("should return all available containers", func() {
+				containers, err := client.ListContainers(noFilter)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(len(containers) == 2).To(BeTrue())
+			})
+		})
+		When("listing containers with a filter matching nothing", func() {
+			It("should return an empty array", func() {
+				filter := filterByNames([]string { "lollercoaster"}, noFilter)
+				containers, err := client.ListContainers(filter)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(len(containers) == 0).To(BeTrue())
+			})
+		})
+		When("listing containers with a watchtower filter", func() {
+			It("should return only the watchtower container", func() {
+				containers, err := client.ListContainers(WatchtowerContainersFilter)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(len(containers) == 1).To(BeTrue())
+				Expect(containers[0].ImageName()).To(Equal("containrrr/watchtower:latest"))
+			})
+		})
+	})
 	When("asked for metadata", func() {
 		var c *Container
 		BeforeEach(func() {

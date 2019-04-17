@@ -44,7 +44,7 @@ func NewClient(pullImages bool) Client {
 }
 
 type dockerClient struct {
-	api        *dockerclient.Client
+	api        dockerclient.CommonAPIClient
 	pullImages bool
 }
 

@@ -1,0 +1,205 @@
+{
+  "Id": "ae8964ba86c7cd7522cf84e09781343d88e0e3543281c747d88b27e246578b65",
+  "Created": "2019-04-10T19:51:22.245041005Z",
+  "Path": "/watchtower",
+  "Args": [],
+  "State": {
+    "Status": "exited",
+    "Running": false,
+    "Paused": false,
+    "Restarting": false,
+    "OOMKilled": false,
+    "Dead": false,
+    "Pid": 0,
+    "ExitCode": 1,
+    "Error": "",
+    "StartedAt": "2019-04-10T19:51:22.918972606Z",
+    "FinishedAt": "2019-04-10T19:52:14.265091583Z"
+  },
+  "Image": "sha256:4dbc5f9c07028a985e14d1393e849ea07f68804c4293050d5a641b138db72daa",
+  "ResolvConfPath": "/var/lib/docker/containers/ae8964ba86c7cd7522cf84e09781343d88e0e3543281c747d88b27e246578b65/resolv.conf",
+  "HostnamePath": "/var/lib/docker/containers/ae8964ba86c7cd7522cf84e09781343d88e0e3543281c747d88b27e246578b65/hostname",
+  "HostsPath": "/var/lib/docker/containers/ae8964ba86c7cd7522cf84e09781343d88e0e3543281c747d88b27e246578b65/hosts",
+  "LogPath": "/var/lib/docker/containers/ae8964ba86c7cd7522cf84e09781343d88e0e3543281c747d88b27e246578b65/ae8964ba86c7cd7522cf84e09781343d88e0e3543281c747d88b27e246578b65-json.log",
+  "Name": "/watchtower-test",
+  "RestartCount": 0,
+  "Driver": "overlay2",
+  "Platform": "linux",
+  "MountLabel": "",
+  "ProcessLabel": "",
+  "AppArmorProfile": "",
+  "ExecIDs": null,
+  "HostConfig": {
+    "Binds": [
+      "/var/run/docker.sock:/var/run/docker.sock"
+    ],
+    "ContainerIDFile": "",
+    "LogConfig": {
+      "Type": "json-file",
+      "Config": {}
+    },
+    "NetworkMode": "default",
+    "PortBindings": {},
+    "RestartPolicy": {
+      "Name": "no",
+      "MaximumRetryCount": 0
+    },
+    "AutoRemove": false,
+    "VolumeDriver": "",
+    "VolumesFrom": null,
+    "CapAdd": null,
+    "CapDrop": null,
+    "Dns": [],
+    "DnsOptions": [],
+    "DnsSearch": [],
+    "ExtraHosts": null,
+    "GroupAdd": null,
+    "IpcMode": "shareable",
+    "Cgroup": "",
+    "Links": null,
+    "OomScoreAdj": 0,
+    "PidMode": "",
+    "Privileged": false,
+    "PublishAllPorts": false,
+    "ReadonlyRootfs": false,
+    "SecurityOpt": null,
+    "UTSMode": "",
+    "UsernsMode": "",
+    "ShmSize": 67108864,
+    "Runtime": "runc",
+    "ConsoleSize": [
+      0,
+      0
+    ],
+    "Isolation": "",
+    "CpuShares": 0,
+    "Memory": 0,
+    "NanoCpus": 0,
+    "CgroupParent": "",
+    "BlkioWeight": 0,
+    "BlkioWeightDevice": [],
+    "BlkioDeviceReadBps": null,
+    "BlkioDeviceWriteBps": null,
+    "BlkioDeviceReadIOps": null,
+    "BlkioDeviceWriteIOps": null,
+    "CpuPeriod": 0,
+    "CpuQuota": 0,
+    "CpuRealtimePeriod": 0,
+    "CpuRealtimeRuntime": 0,
+    "CpusetCpus": "",
+    "CpusetMems": "",
+    "Devices": [],
+    "DeviceCgroupRules": null,
+    "DiskQuota": 0,
+    "KernelMemory": 0,
+    "MemoryReservation": 0,
+    "MemorySwap": 0,
+    "MemorySwappiness": null,
+    "OomKillDisable": false,
+    "PidsLimit": 0,
+    "Ulimits": null,
+    "CpuCount": 0,
+    "CpuPercent": 0,
+    "IOMaximumIOps": 0,
+    "IOMaximumBandwidth": 0,
+    "MaskedPaths": [
+      "/proc/asound",
+      "/proc/acpi",
+      "/proc/kcore",
+      "/proc/keys",
+      "/proc/latency_stats",
+      "/proc/timer_list",
+      "/proc/timer_stats",
+      "/proc/sched_debug",
+      "/proc/scsi",
+      "/sys/firmware"
+    ],
+    "ReadonlyPaths": [
+      "/proc/bus",
+      "/proc/fs",
+      "/proc/irq",
+      "/proc/sys",
+      "/proc/sysrq-trigger"
+    ]
+  },
+  "GraphDriver": {
+    "Data": {
+      "LowerDir": "/var/lib/docker/overlay2/9f6b91ea6e142835035d91123bbc7a05224dfa2abd4d020eac42f2ab420ccddc-init/diff:/var/lib/docker/overlay2/cdf82f50bc49177d0c17c24f3eaa29eba607b70cc6a081f77781b21c59a13eb8/diff:/var/lib/docker/overlay2/8108325ee844603c9b08d2772cf6e65dccf31dd5171f265078e5ed79a0ba3c0f/diff:/var/lib/docker/overlay2/e5e0cce6bf91b829a308424d99d7e56a33be3a11414ff5cdc48e762a1342b20f/diff",
+      "MergedDir": "/var/lib/docker/overlay2/9f6b91ea6e142835035d91123bbc7a05224dfa2abd4d020eac42f2ab420ccddc/merged",
+      "UpperDir": "/var/lib/docker/overlay2/9f6b91ea6e142835035d91123bbc7a05224dfa2abd4d020eac42f2ab420ccddc/diff",
+      "WorkDir": "/var/lib/docker/overlay2/9f6b91ea6e142835035d91123bbc7a05224dfa2abd4d020eac42f2ab420ccddc/work"
+    },
+    "Name": "overlay2"
+  },
+  "Mounts": [
+    {
+      "Type": "bind",
+      "Source": "/var/run/docker.sock",
+      "Destination": "/var/run/docker.sock",
+      "Mode": "",
+      "RW": true,
+      "Propagation": "rprivate"
+    }
+  ],
+  "Config": {
+    "Hostname": "ae8964ba86c7",
+    "Domainname": "",
+    "User": "",
+    "AttachStdin": false,
+    "AttachStdout": true,
+    "AttachStderr": true,
+    "Tty": false,
+    "OpenStdin": false,
+    "StdinOnce": false,
+    "Env": [
+      "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+    ],
+    "Cmd": null,
+    "Image": "containrrr/watchtower:latest",
+    "Volumes": null,
+    "WorkingDir": "",
+    "Entrypoint": [
+      "/watchtower"
+    ],
+    "OnBuild": null,
+    "Labels": {
+      "com.centurylinklabs.watchtower": "true"
+    }
+  },
+  "NetworkSettings": {
+    "Bridge": "",
+    "SandboxID": "05627d36c08ed994eebc44a2a8c9365a511756b55c500fb03fd5a14477cd4bf3",
+    "HairpinMode": false,
+    "LinkLocalIPv6Address": "",
+    "LinkLocalIPv6PrefixLen": 0,
+    "Ports": {},
+    "SandboxKey": "/var/run/docker/netns/05627d36c08e",
+    "SecondaryIPAddresses": null,
+    "SecondaryIPv6Addresses": null,
+    "EndpointID": "",
+    "Gateway": "",
+    "GlobalIPv6Address": "",
+    "GlobalIPv6PrefixLen": 0,
+    "IPAddress": "",
+    "IPPrefixLen": 0,
+    "IPv6Gateway": "",
+    "MacAddress": "",
+    "Networks": {
+      "bridge": {
+        "IPAMConfig": null,
+        "Links": null,
+        "Aliases": null,
+        "NetworkID": "8fcfd56fa9203bafa98510abb08bff66ad05bef5b6e97d158cbae3397e1e065e",
+        "EndpointID": "",
+        "Gateway": "",
+        "IPAddress": "",
+        "IPPrefixLen": 0,
+        "IPv6Gateway": "",
+        "GlobalIPv6Address": "",
+        "GlobalIPv6PrefixLen": 0,
+        "MacAddress": "",
+        "DriverOpts": null
+      }
+    }
+  }
+}
