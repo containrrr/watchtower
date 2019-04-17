@@ -19,7 +19,7 @@ var _ = Describe("the container", func() {
 	Describe("the client", func() {
 		var client Client
 		BeforeSuite(func() {
-			server := mocks.NewMockApiServer()
+			server := mocks.NewMockAPIServer()
 			c, _ := cli.NewClientWithOpts(
 				cli.WithHost(server.URL),
 				cli.WithHTTPClient(server.Client(),
