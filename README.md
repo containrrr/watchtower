@@ -242,6 +242,7 @@ With the certificates mounted into the watchtower container you need to specify 
 docker run -d \
   --name watchtower \
   -e DOCKER_HOST=$DOCKER_HOST \
+  -e DOCKER_CERT_PATH=/etc/ssl/docker \
   -v $DOCKER_CERT_PATH:/etc/ssl/docker \
   containrrr/watchtower --tlsverify
 ```
