@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	log "github.com/sirupsen/logrus"
+
 	"github.com/docker/docker/api/types"
 	dockercontainer "github.com/docker/docker/api/types/container"
 )
@@ -102,9 +102,7 @@ func (c Container) Links() []string {
 // identified by the presence of the "com.centurylinklabs.watchtower" label in
 // the container metadata.
 func (c Container) IsWatchtower() bool {
-	log.Debugf("Checking if %s is a watchtower instance.", c.Name())
-	wasWatchtower := ContainsWatchtowerLabel(c.containerInfo.Config.Labels)
-	return wasWatchtower
+	return ContainsWatchtowerLabel(c.containerInfo.Config.Labels)
 }
 
 // StopSignal returns the custom stop signal (if any) that is encoded in the
