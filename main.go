@@ -106,7 +106,7 @@ func start(c *cli.Context) error {
 		return nil
 	}
 
-	if err := actions.CheckPrereqs(client, cleanup); err != nil {
+	if err := actions.CheckForMultipleWatchtowerInstances(client, cleanup); err != nil {
 		log.Fatal(err)
 	}
 
