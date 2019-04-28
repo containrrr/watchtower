@@ -189,11 +189,11 @@ func (client dockerClient) StartContainer(c Container) error {
 
 	}
 
-	return client.startContainerIfPreviouslyRunning(c, creation, bg)
+	return client.startContainerIfPreviouslyRunning(bg, c, creation)
 
 }
 
-func (client dockerClient) startContainerIfPreviouslyRunning(c Container, creation container.ContainerCreateCreatedBody, bg context.Context) error {
+func (client dockerClient) startContainerIfPreviouslyRunning(bg context.Context, c Container, creation container.ContainerCreateCreatedBody) error {
 	name := c.Name()
 
 	if !c.IsRunning() {
