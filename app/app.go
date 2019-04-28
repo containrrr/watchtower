@@ -155,8 +155,14 @@ func SetupCliFlags(app *cli.App) {
 			EnvVar: "WATCHTOWER_MONITOR_ONLY",
 		},
 		cli.BoolFlag{
-			Name:  "run-once",
-			Usage: "Run once now and exit",
+			Name:   "run-once",
+			Usage:  "Run once now and exit",
+			EnvVar: "WATCHTOWER_RUN_ONCE",
+		},
+		cli.BoolFlag{
+			Name:   "include-stopped",
+			Usage:  "Will also include stopped or exited containers",
+			EnvVar: "WATCHTOWER_INCLUDE_STOPPED",
 		},
 	}
 }

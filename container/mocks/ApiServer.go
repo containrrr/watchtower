@@ -18,7 +18,11 @@ func NewMockAPIServer() *httptest.Server {
 			logrus.Debug("Mock server has received a HTTP call on ", r.URL)
 			var response = ""
 
-			if  isRequestFor("containers/json?limit=0", r) {
+			if isRequestFor("filters=%7B%22status%22%3A%7B%22running%22%3Atrue%7D%7D&limit=0", r) {
+				response = getMockJSONFromDisk("./mocks/data/containers.json")
+			} else if isRequestFor("filters=%7B%22status%22%3A%7B%22created%22%3Atrue%2C%22exited%22%3Atrue%2C%22running%22%3Atrue%7D%7D&limit=0", r) {
+				response = getMockJSONFromDisk("./mocks/data/containers.json")
+			} else if isRequestFor("containers/json?limit=0", r) {
 				response = getMockJSONFromDisk("./mocks/data/containers.json")
 			} else if isRequestFor("ae8964ba86c7cd7522cf84e09781343d88e0e3543281c747d88b27e246578b65", r) {
 				response = getMockJSONFromDisk("./mocks/data/container_stopped.json")
@@ -48,4 +52,3 @@ func getMockJSONFromDisk(relPath string) string {
 	}
 	return string(buf)
 }
-

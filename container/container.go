@@ -38,6 +38,13 @@ func (c Container) ID() string {
 	return c.containerInfo.ID
 }
 
+// IsRunning returns a boolean flag indicating whether or not the current
+// container is running. The status is determined by the value of the
+// container's "State.Running" property.
+func (c Container) IsRunning() bool {
+	return c.containerInfo.State.Running
+}
+
 // Name returns the Docker container name.
 func (c Container) Name() string {
 	return c.containerInfo.Name

@@ -2,6 +2,8 @@ package container
 
 import (
 	"fmt"
+	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/filters"
 	"io/ioutil"
 	"time"
 
@@ -33,36 +35,50 @@ type Client interface {
 //  * DOCKER_HOST			the docker-engine host to send api requests to
 //  * DOCKER_TLS_VERIFY		whether to verify tls certificates
 //  * DOCKER_API_VERSION	the minimum docker api version to work with
-func NewClient(pullImages bool) Client {
+func NewClient(pullImages bool, includeStopped bool) Client {
 	cli, err := dockerclient.NewClientWithOpts(dockerclient.FromEnv)
 
 	if err != nil {
 		log.Fatalf("Error instantiating Docker client: %s", err)
 	}
 
-	return dockerClient{api: cli, pullImages: pullImages}
+	return dockerClient{
+		api:            cli,
+		pullImages:     pullImages,
+		includeStopped: includeStopped,
+	}
 }
 
 type dockerClient struct {
-	api        dockerclient.CommonAPIClient
-	pullImages bool
+	api            dockerclient.CommonAPIClient
+	pullImages     bool
+	includeStopped bool
 }
 
 func (client dockerClient) ListContainers(fn Filter) ([]Container, error) {
 	cs := []Container{}
 	bg := context.Background()
 
-	log.Debug("Retrieving running containers")
+	log.Info("include stopped: ", client.includeStopped)
 
-	runningContainers, err := client.api.ContainerList(
+	if client.includeStopped {
+		log.Debug("Retrieving containers including stopped and exited")
+	} else {
+		log.Debug("Retrieving running containers")
+	}
+
+	filter := client.createListFilter()
+	containers, err := client.api.ContainerList(
 		bg,
-		types.ContainerListOptions{})
-
+		types.ContainerListOptions{
+			Filters: filter,
+		})
+	log.Info(containers)
 	if err != nil {
 		return nil, err
 	}
 
-	for _, runningContainer := range runningContainers {
+	for _, runningContainer := range containers {
 		containerInfo, err := client.api.ContainerInspect(bg, runningContainer.ID)
 		if err != nil {
 			return nil, err
@@ -83,6 +99,18 @@ func (client dockerClient) ListContainers(fn Filter) ([]Container, error) {
 	return cs, nil
 }
 
+func (client dockerClient) createListFilter() filters.Args {
+	filterArgs := filters.NewArgs()
+	filterArgs.Add("status", "running")
+
+	if client.includeStopped {
+		filterArgs.Add("status", "created")
+		filterArgs.Add("status", "exited")
+	}
+
+	return filterArgs
+}
+
 func (client dockerClient) StopContainer(c Container, timeout time.Duration) error {
 	bg := context.Background()
 	signal := c.StopSignal()
@@ -90,10 +118,11 @@ func (client dockerClient) StopContainer(c Container, timeout time.Duration) err
 		signal = defaultStopSignal
 	}
 
-	log.Infof("Stopping %s (%s) with %s", c.Name(), c.ID(), signal)
-
-	if err := client.api.ContainerKill(bg, c.ID(), signal); err != nil {
-		return err
+	if c.IsRunning() {
+		log.Infof("Stopping %s (%s) with %s", c.Name(), c.ID(), signal)
+		if err := client.api.ContainerKill(bg, c.ID(), signal); err != nil {
+			return err
+		}
 	}
 
 	// Wait for container to exit, but proceed anyway after the timeout elapses
@@ -160,15 +189,23 @@ func (client dockerClient) StartContainer(c Container) error {
 
 	}
 
-	log.Debugf("Starting container %s (%s)", name, creation.ID)
+	return client.startContainerIfPreviouslyRunning(c, creation, bg)
 
-	err = client.api.ContainerStart(bg, creation.ID, types.ContainerStartOptions{})
+}
+
+func (client dockerClient) startContainerIfPreviouslyRunning(c Container, creation container.ContainerCreateCreatedBody, bg context.Context) error {
+	name := c.Name()
+
+	if !c.IsRunning() {
+		return nil
+	}
+
+	log.Debugf("Starting container %s (%s)", name, creation.ID)
+	err := client.api.ContainerStart(bg, creation.ID, types.ContainerStartOptions{})
 	if err != nil {
 		return err
 	}
-
 	return nil
-
 }
 
 func (client dockerClient) RenameContainer(c Container, newName string) error {

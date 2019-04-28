@@ -89,7 +89,10 @@ func before(c *cli.Context) error {
 		return err
 	}
 
-	client = container.NewClient(!c.GlobalBool("no-pull"))
+	client = container.NewClient(
+		!c.GlobalBool("no-pull"),
+		c.GlobalBool("include-stopped"),
+	)
 	notifier = notifications.NewNotifier(c)
 
 	return nil
