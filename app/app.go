@@ -161,7 +161,7 @@ func SetupCliFlags(app *cli.App) {
 		},
 		cli.BoolFlag{
 			Name:   "include-stopped",
-			Usage:  "Will also include stopped or exited containers",
+			Usage:  "Will also include created and exited containers",
 			EnvVar: "WATCHTOWER_INCLUDE_STOPPED",
 		},
 	}
