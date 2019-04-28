@@ -17,15 +17,16 @@ func TestContainer(t *testing.T) {
 
 var _ = Describe("the container", func() {
 	Describe("the client", func() {
+		var docker *cli.Client
 		var client Client
 		BeforeSuite(func() {
 			server := mocks.NewMockAPIServer()
-			c, _ := cli.NewClientWithOpts(
+			docker, _ = cli.NewClientWithOpts(
 				cli.WithHost(server.URL),
 				cli.WithHTTPClient(server.Client(),
 				))
 			client = dockerClient{
-				api: c,
+				api:        docker,
 				pullImages: false,
 			}
 		})
@@ -41,7 +42,7 @@ var _ = Describe("the container", func() {
 		})
 		When("listing containers with a filter matching nothing", func() {
 			It("should return an empty array", func() {
-				filter := filterByNames([]string { "lollercoaster"}, noFilter)
+				filter := filterByNames([]string{"lollercoaster"}, noFilter)
 				containers, err := client.ListContainers(filter)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(len(containers) == 0).To(BeTrue())
@@ -55,13 +56,25 @@ var _ = Describe("the container", func() {
 				Expect(containers[0].ImageName()).To(Equal("containrrr/watchtower:latest"))
 			})
 		})
+		When(`listing containers with the "include stopped" option`, func() {
+			It("should return both stopped and running containers", func() {
+				client = dockerClient{
+					api:            docker,
+					pullImages:     false,
+					includeStopped: true,
+				}
+				containers, err := client.ListContainers(noFilter)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(len(containers) > 0).To(BeTrue())
+			})
+		})
 	})
 	When("asked for metadata", func() {
 		var c *Container
 		BeforeEach(func() {
-			c = mockContainerWithLabels(map[string]string {
+			c = mockContainerWithLabels(map[string]string{
 				"com.centurylinklabs.watchtower.enable": "true",
-				"com.centurylinklabs.watchtower": "true",
+				"com.centurylinklabs.watchtower":        "true",
 			})
 		})
 		It("should return its name on calls to .Name()", func() {
@@ -84,7 +97,7 @@ var _ = Describe("the container", func() {
 			Expect(exists).NotTo(BeFalse())
 		})
 		It("should return false, true if present but not true on calls to .Enabled()", func() {
-			c = mockContainerWithLabels(map[string]string{ "com.centurylinklabs.watchtower.enable": "false" })
+			c = mockContainerWithLabels(map[string]string{"com.centurylinklabs.watchtower.enable": "false"})
 			enabled, exists := c.Enabled()
 
 			Expect(enabled).To(BeFalse())
@@ -93,7 +106,7 @@ var _ = Describe("the container", func() {
 			Expect(exists).NotTo(BeFalse())
 		})
 		It("should return false, false if not present on calls to .Enabled()", func() {
-			c = mockContainerWithLabels(map[string]string{ "lol": "false" })
+			c = mockContainerWithLabels(map[string]string{"lol": "false"})
 			enabled, exists := c.Enabled()
 
 			Expect(enabled).To(BeFalse())
@@ -102,7 +115,7 @@ var _ = Describe("the container", func() {
 			Expect(exists).NotTo(BeTrue())
 		})
 		It("should return false, false if present but not parsable .Enabled()", func() {
-			c = mockContainerWithLabels(map[string]string{ "com.centurylinklabs.watchtower.enable": "falsy" })
+			c = mockContainerWithLabels(map[string]string{"com.centurylinklabs.watchtower.enable": "falsy"})
 			enabled, exists := c.Enabled()
 
 			Expect(enabled).To(BeFalse())
@@ -116,12 +129,12 @@ var _ = Describe("the container", func() {
 				Expect(isWatchtower).To(BeTrue())
 			})
 			It("should return false if the label is present but set to false", func() {
-				c = mockContainerWithLabels(map[string]string{ "com.centurylinklabs.watchtower": "false" })
+				c = mockContainerWithLabels(map[string]string{"com.centurylinklabs.watchtower": "false"})
 				isWatchtower := c.IsWatchtower()
 				Expect(isWatchtower).To(BeFalse())
 			})
 			It("should return false if the label is not present", func() {
-				c = mockContainerWithLabels(map[string]string{ "funny.label": "false" })
+				c = mockContainerWithLabels(map[string]string{"funny.label": "false"})
 				isWatchtower := c.IsWatchtower()
 				Expect(isWatchtower).To(BeFalse())
 			})
