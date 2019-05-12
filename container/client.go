@@ -59,8 +59,6 @@ func (client dockerClient) ListContainers(fn Filter) ([]Container, error) {
 	cs := []Container{}
 	bg := context.Background()
 
-	log.Info("include stopped: ", client.includeStopped)
-
 	if client.includeStopped {
 		log.Debug("Retrieving containers including stopped and exited")
 	} else {
@@ -73,7 +71,7 @@ func (client dockerClient) ListContainers(fn Filter) ([]Container, error) {
 		types.ContainerListOptions{
 			Filters: filter,
 		})
-	log.Info(containers)
+	
 	if err != nil {
 		return nil, err
 	}
