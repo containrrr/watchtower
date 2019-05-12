@@ -12,7 +12,7 @@
     "Labels": {
       "com.centurylinklabs.watchtower": "true"
     },
-    "State": "exited",
+    "State": "running",
     "Status": "Exited (1) 6 days ago",
     "HostConfig": {
       "NetworkMode": "default"
