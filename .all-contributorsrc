@@ -24,6 +24,15 @@
         "review",
         "doc"
       ]
+    },
+    {
+      "login": "ATCUSA",
+      "name": "Austin",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/3581228?v=4",
+      "profile": "https://github.com/ATCUSA",
+      "contributions": [
+        "content"
+      ]
     }
   ],
   "contributorsPerLine": 7,
