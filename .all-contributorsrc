@@ -24,6 +24,15 @@
         "review",
         "doc"
       ]
+    },
+    {
+      "login": "Robotex",
+      "name": "Robotex",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/74515?v=4",
+      "profile": "http://projectsperanza.com",
+      "contributions": [
+        "doc"
+      ]
     }
   ],
   "contributorsPerLine": 7,
