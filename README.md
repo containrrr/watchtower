@@ -36,7 +36,7 @@
     <img alt="Join the chat at https://gitter.im/containrrr/watchtower" src="https://badges.gitter.im/containrrr/watchtower.svg" />
   </a>
   <a href="#contributors">
-    <img alt="All Contributors" href="https://img.shields.io/badge/all_contributors-30-orange.svg?style=flat-square" />
+    <img alt="All Contributors" src="https://img.shields.io/badge/all_contributors-30-orange.svg?style=flat-square" />
   </a>
 </p>
 
