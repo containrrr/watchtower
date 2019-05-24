@@ -24,6 +24,15 @@
         "review",
         "doc"
       ]
+    },
+    {
+      "login": "huddlesj",
+      "name": "Jason Huddleston",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/11966535?v=4",
+      "profile": "https://github.com/huddlesj",
+      "contributions": [
+        "doc"
+      ]
     }
   ],
   "contributorsPerLine": 7,
