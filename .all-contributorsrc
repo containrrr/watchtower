@@ -1,0 +1,24 @@
+{
+  "files": [
+    "README.md"
+  ],
+  "imageSize": 100,
+  "commit": false,
+  "contributors": [
+    {
+      "login": "kopfkrieg",
+      "name": "Florian",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/5047813?v=4",
+      "profile": "https://kopfkrieg.org",
+      "contributions": [
+        "review",
+        "doc"
+      ]
+    }
+  ],
+  "contributorsPerLine": 7,
+  "projectName": "watchtower",
+  "projectOwner": "containrrr",
+  "repoType": "github",
+  "repoHost": "https://github.com"
+}
