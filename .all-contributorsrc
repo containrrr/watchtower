@@ -24,6 +24,15 @@
         "review",
         "doc"
       ]
+    },
+    {
+      "login": "techknowlogick",
+      "name": "techknowlogick",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/164197?v=4",
+      "profile": "https://liberapay.com/techknowlogick/",
+      "contributions": [
+        "bug"
+      ]
     }
   ],
   "contributorsPerLine": 7,
