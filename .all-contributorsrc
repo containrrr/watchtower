@@ -24,6 +24,16 @@
         "review",
         "doc"
       ]
+    },
+    {
+      "login": "davidgardner11",
+      "name": "David Gardner",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/6181487?v=4",
+      "profile": "https://labs.ctl.io",
+      "contributions": [
+        "review",
+        "doc"
+      ]
     }
   ],
   "contributorsPerLine": 7,
