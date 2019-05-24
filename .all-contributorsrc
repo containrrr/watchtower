@@ -14,6 +14,16 @@
         "test",
         "ideas"
       ]
+    },
+    {
+      "login": "kopfkrieg",
+      "name": "Florian",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/5047813?v=4",
+      "profile": "https://kopfkrieg.org",
+      "contributions": [
+        "review",
+        "doc"
+      ]
     }
   ],
   "contributorsPerLine": 7,
