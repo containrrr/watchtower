@@ -24,6 +24,15 @@
         "review",
         "doc"
       ]
+    },
+    {
+      "login": "haswalt",
+      "name": "Harry Walter",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/338588?v=4",
+      "profile": "http://harrywalter.co.uk",
+      "contributions": [
+        "bug"
+      ]
     }
   ],
   "contributorsPerLine": 7,
