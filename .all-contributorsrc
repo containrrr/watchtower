@@ -24,6 +24,15 @@
         "review",
         "doc"
       ]
+    },
+    {
+      "login": "napstr",
+      "name": "Napster",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/6048348?v=4",
+      "profile": "https://npstr.space/",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
