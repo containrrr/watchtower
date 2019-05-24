@@ -24,6 +24,15 @@
         "review",
         "doc"
       ]
+    },
+    {
+      "login": "ubergesundheit",
+      "name": "Gerald Pape",
+      "avatar_url": "https://avatars0.githubusercontent.com/u/1494211?v=4",
+      "profile": "http://geraldpape.io",
+      "contributions": [
+        "doc"
+      ]
     }
   ],
   "contributorsPerLine": 7,
