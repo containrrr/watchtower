@@ -24,6 +24,15 @@
         "review",
         "doc"
       ]
+    },
+    {
+      "login": "wmbutler",
+      "name": "Bill Butler",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/1254810?v=4",
+      "profile": "https://github.com/wmbutler",
+      "contributions": [
+        "doc"
+      ]
     }
   ],
   "contributorsPerLine": 7,
