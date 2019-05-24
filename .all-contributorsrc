@@ -24,6 +24,15 @@
         "review",
         "doc"
       ]
+    },
+    {
+      "login": "cron410",
+      "name": "cron410",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/3082899?v=4",
+      "profile": "https://github.com/cron410",
+      "contributions": [
+        "doc"
+      ]
     }
   ],
   "contributorsPerLine": 7,
