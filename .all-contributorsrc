@@ -24,6 +24,15 @@
         "review",
         "doc"
       ]
+    },
+    {
+      "login": "svengo",
+      "name": "Sven Gottwald",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/2502366?v=4",
+      "profile": "https://github.com/svengo",
+      "contributions": [
+        "infra"
+      ]
     }
   ],
   "contributorsPerLine": 7,
