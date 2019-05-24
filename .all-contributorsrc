@@ -24,6 +24,15 @@
         "review",
         "doc"
       ]
+    },
+    {
+      "login": "salbertson",
+      "name": "Scott Albertson",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/154463?v=4",
+      "profile": "http://scottalbertson.com",
+      "contributions": [
+        "doc"
+      ]
     }
   ],
   "contributorsPerLine": 7,
