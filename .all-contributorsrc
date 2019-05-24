@@ -24,6 +24,15 @@
         "review",
         "doc"
       ]
+    },
+    {
+      "login": "fomk",
+      "name": "fomk",
+      "avatar_url": "https://avatars0.githubusercontent.com/u/17636183?v=4",
+      "profile": "https://github.com/fomk",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
