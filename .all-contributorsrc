@@ -6,6 +6,16 @@
   "commit": false,
   "contributors": [
     {
+      "login": "Codelica",
+      "name": "James",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/386101?v=4",
+      "profile": "http://codelica.com",
+      "contributions": [
+        "test",
+        "ideas"
+      ]
+    },
+    {
       "login": "kopfkrieg",
       "name": "Florian",
       "avatar_url": "https://avatars2.githubusercontent.com/u/5047813?v=4",
