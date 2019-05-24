@@ -24,6 +24,15 @@
         "review",
         "doc"
       ]
+    },
+    {
+      "login": "waja",
+      "name": "waja",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/1449568?v=4",
+      "profile": "http://log.c5t.org/about/",
+      "contributions": [
+        "doc"
+      ]
     }
   ],
   "contributorsPerLine": 7,
