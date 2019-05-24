@@ -1,0 +1,24 @@
+{
+  "files": [
+    "README.md"
+  ],
+  "imageSize": 100,
+  "commit": false,
+  "contributors": [
+    {
+      "login": "Codelica",
+      "name": "James",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/386101?v=4",
+      "profile": "http://codelica.com",
+      "contributions": [
+        "test",
+        "ideas"
+      ]
+    }
+  ],
+  "contributorsPerLine": 7,
+  "projectName": "watchtower",
+  "projectOwner": "containrrr",
+  "repoType": "github",
+  "repoHost": "https://github.com"
+}
