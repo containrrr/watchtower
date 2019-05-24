@@ -24,6 +24,15 @@
         "review",
         "doc"
       ]
+    },
+    {
+      "login": "thelamer",
+      "name": "Ryan Kuba",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/1852688?v=4",
+      "profile": "https://www.taisun.io/",
+      "contributions": [
+        "infra"
+      ]
     }
   ],
   "contributorsPerLine": 7,
