@@ -24,6 +24,15 @@
         "review",
         "doc"
       ]
+    },
+    {
+      "login": "cnrmck",
+      "name": "cnrmck",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/22061955?v=4",
+      "profile": "https://github.com/cnrmck",
+      "contributions": [
+        "doc"
+      ]
     }
   ],
   "contributorsPerLine": 7,
