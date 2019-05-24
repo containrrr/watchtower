@@ -24,6 +24,16 @@
         "review",
         "doc"
       ]
+    },
+    {
+      "login": "rdamazio",
+      "name": "Rodrigo Damazio Bovendorp",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/997641?v=4",
+      "profile": "https://github.com/rdamazio",
+      "contributions": [
+        "code",
+        "doc"
+      ]
     }
   ],
   "contributorsPerLine": 7,
