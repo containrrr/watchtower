@@ -33,6 +33,34 @@
       "contributions": [
         "doc"
       ]
+    },
+    {
+      "login": "bdehamer",
+      "name": "Brian DeHamer",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/398027?v=4",
+      "profile": "https://github.com/bdehamer",
+      "contributions": [
+        "code",
+        "maintenance"
+      ],
+    },
+    {
+      "login": "rosscado",
+      "name": "Ross Cadogan",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/16578183?v=4",
+      "profile": "https://github.com/rosscado",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "stffabi",
+      "name": "stffabi",
+      "avatar_url": "https://avatars0.githubusercontent.com/u/9464631?v=4",
+      "profile": "https://github.com/stffabi",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
