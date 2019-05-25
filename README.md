@@ -40,6 +40,38 @@
   </a>
 </p>
 
+## Table of Contents
+
+- [Overview](#overview)
+- [Usage](#usage)
+- [Arguments](#arguments)
+- [Available Options](#available-options)
+  * [Help](#help)
+  * [Cleanup](#cleanup)
+  * [Debug](#debug)
+  * [Docker host](#docker-host)
+  * [Include stopped](#include-stopped)
+  * [Poll Interval](#poll-interval)
+  * [Filter by enable label](#filter-by-enable-label)
+  * [Without updating containers](#without-updating-containers)
+  * [Without pulling new images](#without-pulling-new-images)
+  * [Run once](#run-once)
+  * [Scheduling](#scheduling)
+  * [Wait until timeout](#wait-until-timeout)
+  * [TLS Verification](#tls-verification)
+- [Linked Containers](#linked-containers)
+- [Stopping Containers](#stopping-containers)
+- [Selectively Watching Containers](#selectively-watching-containers)
+- [Remote Hosts](#remote-hosts)
+  * [Secure Connections](#secure-connections)
+- [Updating Watchtower](#updating-watchtower)
+- [Notifications](#notifications)
+  * [Settings](#settings)
+  * [Notifications via E-Mail](#notifications-via-e-mail)
+  * [Notifications through Slack webhook](#notifications-through-slack-webhook)
+  * [Notifications via MSTeams incoming webhook](#notifications-via-msteams-incoming-webhook)
+- [Contributors](#contributors)
+
 ## Overview
 
 Watchtower is an application that will monitor your running Docker containers and watch for changes to the images that those containers were originally started from. If watchtower detects that an image has changed, it will automatically restart the container using the new image.
@@ -116,7 +148,7 @@ services:
     command: --interval 30
 ```
 
-### Arguments
+## Arguments
 
 By default, watchtower will monitor all containers running within the Docker daemon to which it is pointed (in most cases this will be the local Docker daemon, but you can override it with the `--host` option described in the next section). However, you can restrict watchtower to monitoring a subset of the running containers by specifying the container names as arguments when launching watchtower.
 
@@ -141,7 +173,7 @@ In the example above, watchtower will execute an upgrade attempt on the containe
 
 When no arguments are specified, watchtower will monitor all running containers.
 
-### Options
+## Available options
 
 Any of the options described below can be passed to the watchtower process by setting them after the image name in the `docker run` string, for example:
 
@@ -149,143 +181,138 @@ Any of the options described below can be passed to the watchtower process by se
 docker run --rm containrrr/watchtower --help
 ```
 
+### Help
+Shows documentation about the supported flags.
 
-#### Help
+```
+            Argument: --help
+Environment Variable: N/A
+                Type: N/A
+             Default: N/A
+```
 
-<table width="100%">
-  <thead>
-    <tr>
-      <th>Argument</th>
-      <th>Environment Variable</th>
-      <th>Type</th>
-      <th>Default</th>
-      <th>Description</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>--help</td>
-      <td>-</td>
-      <td>-</td>
-      <td>-</td>
-      <td>Shows documentation about the supported flags</td>
-    </tr>
-    <tr>
-      <td>--cleanup</td>
-      <td>WATCHTOWER_CLEANUP</td>
-      <td>Boolean</td>
-      <td>false</td>
-      <td>
-        Removes old images after updating. When this flag is specified, watchtower will remove the old image after
-        restarting a container with a new image. Use this option to prevent the accumulation of orphaned images on 
-        your system as containers are updated.
-      </td>
-    </tr>
-    <tr>
-      <td>--debug</td>
-      <td>-</td>
-      <td>Boolean</td>
-      <td>false</td>
-      <td>
-        Enable debug mode with verbose logging.
-      </td>
-    </tr>
-    <tr>
-      <td>--host, -h</td>
-      <td>DOCKER_HOST</td>
-      <td>String</td>
-      <td>"unix:///var/run/docker.sock"</td>
-      <td>
-        Docker daemon socket to connect to. Can be pointed at a remote Docker host by specifying a TCP endpoint
-        as "tcp://hostname:port".
-      </td>
-    </tr>
-    <tr>
-      <td>--include-stopped</td>
-      <td>WATCHTOWER_INCLUDE_STOPPED</td>
-      <td>Boolean</td>
-      <td>false</td>
-      <td>
-        Will also include created and exited containers.
-      </td>
-    </tr>
-    <tr>
-      <td>---interval, -i</td>
-      <td>WATCHTOWER_POLL_INTERVAL</td>
-      <td>Integer</td>
-      <td>300</td>
-      <td>
-        Poll interval (in seconds). This value controls how frequently watchtower will poll for new images.
-      </td>
-    </tr>
-    <tr>
-      <td>--label-enable</td>
-      <td>WATCHTOWER_LABEL_ENABLE</td>
-      <td>Boolean</td>
-      <td>False</td>
-      <td>
-        Watch containers where the `com.centurylinklabs.watchtower.enable` label is set to true.
-      </td>
-    </tr>
-    <tr>
-      <td>--monitor-only</td>
-      <td>WATCHTOWER_MONITOR_ONLY</td>
-      <td>Boolean</td>
-      <td>False</td>
-      <td>
-        Will only monitor for new images, not update the containers.
-      </td>
-    </tr>
-    <tr>
-      <td>--no-pull</td>
-      <td>WATCHTOWER_NO_PULL</td>
-      <td>Boolean</td>
-      <td>False</td>
-      <td>
-        Do not pull new images. When this flag is specified, watchtower will not attempt to pull
-        new images from the registry. Instead it will only monitor the local image cache for changes.
-        Use this option if you are building new images directly on the Docker host without pushing
-        them to a registry.
-      </td>
-    </tr>
-    <tr>
-      <td>--run-once</td>
-      <td>WATCHTOWER_RUN_ONCE</td>
-      <td>Boolean</td>
-      <td>False</td>
-      <td>
-        Run an update attempt against a container name list one time immediately and exit.
-      </td>
-    </tr>
-    <tr>
-      <td>--schedule, -s</td>
-      <td>WATCHTOWER_SCHEDULE</td>
-      <td>String</td>
-      <td>-</td>
-      <td>
-        [Cron expression](https://godoc.org/github.com/robfig/cron#hdr-CRON_Expression_Format) in 6 fields (rather than the traditional 5) which defines when and how often to check for new images. Either `--interval` or the schedule expression could be defined, but not both. An example: `--schedule "0 0 4 * * *"`
-      </td>
-    </tr>
-    <tr>
-      <td>--stop-timeout</td>
-      <td>WATCHTOWER_TIMEOUT</td>
-      <td>Duration</td>
-      <td>10s</td>
-      <td>
-        Timeout before the container is forcefully stopped. When set, this option will change the default (`10s`) wait time to the given value. An example: `--stop-timeout 30s` will set the timeout to 30 seconds.
-      </td>
-    </tr>
-    <tr>
-      <td>--tlsverify</td>
-      <td>DOCKER_TLS_VERIFY</td>
-      <td>Boolean</td>
-      <td>false</td>
-      <td>
-        Use TLS when connecting to the Docker socket and verify the server's certificate. See below for options used to configure notifications.
-      </td>
-    </tr>
-  </tbody>
-</table>
+### Cleanup
+Removes old images after updating. When this flag is specified, watchtower will remove the old image after restarting a container with a new image. Use this option to prevent the accumulation of orphaned images on your system as containers are updated.
+
+```
+            Argument: --cleanup
+Environment Variable: WATCHTOWER_CLEANUP
+                Type: Boolean
+             Default: false
+```
+
+### Debug
+Enable debug mode with verbose logging.
+
+```
+            Argument: --debug
+Environment Variable: N/A
+                Type: Boolean
+             Default: false
+```
+
+### Docker host
+Docker daemon socket to connect to. Can be pointed at a remote Docker host by specifying a TCP endpoint as "tcp://hostname:port".
+
+```
+            Argument: --host, -h
+Environment Variable: DOCKER_HOST
+                Type: String
+             Default: "unix:///var/run/docker.sock"
+```      
+
+### Include stopped
+Will also include created and exited containers.
+
+```
+            Argument: --include-stopped
+Environment Variable: WATCHTOWER_INCLUDE_STOPPED
+                Type: Boolean
+             Default: false
+```   
+
+### Poll Interval
+Poll interval (in seconds). This value controls how frequently watchtower will poll for new images.
+
+```
+            Argument: ---interval, -i
+Environment Variable: WATCHTOWER_POLL_INTERVAL
+                Type: Integer
+             Default: 300
+```   
+
+### Filter by enable label
+Watch containers where the `com.centurylinklabs.watchtower.enable` label is set to true.
+
+```
+            Argument: --label-enable
+Environment Variable: WATCHTOWER_LABEL_ENABLE
+                Type: Boolean
+             Default: false
+```   
+
+### Without updating containers
+Will only monitor for new images, not update the containers.
+
+```
+            Argument: --monitor-only
+Environment Variable: WATCHTOWER_MONITOR_ONLY
+                Type: Boolean
+             Default: false
+``` 
+
+### Without pulling new images
+Do not pull new images. When this flag is specified, watchtower will not attempt to pull
+new images from the registry. Instead it will only monitor the local image cache for changes.
+Use this option if you are building new images directly on the Docker host without pushing
+them to a registry.
+
+```
+            Argument: --no-pull
+Environment Variable: WATCHTOWER_NO_PULL
+                Type: Boolean
+             Default: false
+``` 
+
+### Run once
+Run an update attempt against a container name list one time immediately and exit.
+
+```
+            Argument: --run-once
+Environment Variable: WATCHTOWER_RUN_ONCE
+                Type: Boolean
+             Default: false
+``` 
+
+### Scheduling
+[Cron expression](https://godoc.org/github.com/robfig/cron#hdr-CRON_Expression_Format) in 6 fields (rather than the traditional 5) which defines when and how often to check for new images. Either `--interval` or the schedule expression could be defined, but not both. An example: `--schedule "0 0 4 * * *"`
+
+```
+            Argument: --schedule, -s
+Environment Variable: WATCHTOWER_SCHEDULE
+                Type: String
+             Default: -
+``` 
+
+### Wait until timeout
+Timeout before the container is forcefully stopped. When set, this option will change the default (`10s`) wait time to the given value. An example: `--stop-timeout 30s` will set the timeout to 30 seconds.
+
+```
+            Argument: --stop-timeout
+Environment Variable: WATCHTOWER_TIMEOUT
+                Type: Duration
+             Default: 10s
+``` 
+
+### TLS Verification
+Use TLS when connecting to the Docker socket and verify the server's certificate. See below for options used to configure notifications.
+
+```
+            Argument: --tlsverify
+Environment Variable: DOCKER_TLS_VERIFY
+                Type: Boolean
+             Default: false
+```
 
 ## Linked Containers
 
