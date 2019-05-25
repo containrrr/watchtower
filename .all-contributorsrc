@@ -283,6 +283,15 @@
         "maintenance",
         "review"
       ]
+    },
+    {
+      "login": "Ansem93",
+      "name": "Ansem93",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/6626218?v=4",
+      "profile": "https://github.com/Ansem93",
+      "contributions": [
+        "doc"
+      ]
     }
   ],
   "contributorsPerLine": 7,
