@@ -143,27 +143,149 @@ When no arguments are specified, watchtower will monitor all running containers.
 
 ### Options
 
-Any of the options described below can be passed to the watchtower process by setting them after the image name in the `docker run` string:
+Any of the options described below can be passed to the watchtower process by setting them after the image name in the `docker run` string, for example:
 
 ```bash
 docker run --rm containrrr/watchtower --help
 ```
 
-- `--host, -h` Docker daemon socket to connect to. Defaults to "unix:///var/run/docker.sock" but can be pointed at a remote Docker host by specifying a TCP endpoint as "tcp://hostname:port". The host value can also be provided by setting the `DOCKER_HOST` environment variable.
-- `--run-once` Run an update attempt against a container name list one time immediately and exit.
-- `--interval, -i` Poll interval (in seconds). This value controls how frequently watchtower will poll for new images. Defaults to 300 seconds (5 minutes).
-- `--schedule, -s` [Cron expression](https://godoc.org/github.com/robfig/cron#hdr-CRON_Expression_Format) in 6 fields (rather than the traditional 5) which defines when and how often to check for new images. Either `--interval` or the schedule expression could be defined, but not both. An example: `--schedule "0 0 4 * * *"`
-- `--no-pull` Do not pull new images. When this flag is specified, watchtower will not attempt to pull new images from the registry. Instead it will only monitor the local image cache for changes. Use this option if you are building new images directly on the Docker host without pushing them to a registry.
-- `--stop-timeout` Timeout before the container is forcefully stopped. When set, this option will change the default (`10s`) wait time to the given value. An example: `--stop-timeout 30s` will set the timeout to 30 seconds.
-- `--label-enable` Watch containers where the `com.centurylinklabs.watchtower.enable` label is set to true.
-- `--cleanup` Remove old images after updating. When this flag is specified, watchtower will remove the old image after restarting a container with a new image. Use this option to prevent the accumulation of orphaned images on your system as containers are updated.
-- `--tlsverify` Use TLS when connecting to the Docker socket and verify the server's certificate.
-- `--debug` Enable debug mode. When this option is specified you'll see more verbose logging in the watchtower log file.
-- `--monitor-only` Will only monitor for new images, not update the containers.
-- `--include-stopped` Will also include created and exited containers.
-- `--help` Show documentation about the supported flags.
 
-See below for options used to configure notifications.
+#### Help
+
+<table width="100%">
+  <thead>
+    <tr>
+      <th>Argument</th>
+      <th>Environment Variable</th>
+      <th>Type</th>
+      <th>Default</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>--help</td>
+      <td>-</td>
+      <td>-</td>
+      <td>-</td>
+      <td>Shows documentation about the supported flags</td>
+    </tr>
+    <tr>
+      <td>--cleanup</td>
+      <td>WATCHTOWER_CLEANUP</td>
+      <td>Boolean</td>
+      <td>false</td>
+      <td>
+        Removes old images after updating. When this flag is specified, watchtower will remove the old image after
+        restarting a container with a new image. Use this option to prevent the accumulation of orphaned images on 
+        your system as containers are updated.
+      </td>
+    </tr>
+    <tr>
+      <td>--debug</td>
+      <td>-</td>
+      <td>Boolean</td>
+      <td>false</td>
+      <td>
+        Enable debug mode with verbose logging.
+      </td>
+    </tr>
+    <tr>
+      <td>--host, -h</td>
+      <td>DOCKER_HOST</td>
+      <td>String</td>
+      <td>"unix:///var/run/docker.sock"</td>
+      <td>
+        Docker daemon socket to connect to. Can be pointed at a remote Docker host by specifying a TCP endpoint
+        as "tcp://hostname:port".
+      </td>
+    </tr>
+    <tr>
+      <td>--include-stopped</td>
+      <td>WATCHTOWER_INCLUDE_STOPPED</td>
+      <td>Boolean</td>
+      <td>false</td>
+      <td>
+        Will also include created and exited containers.
+      </td>
+    </tr>
+    <tr>
+      <td>---interval, -i</td>
+      <td>WATCHTOWER_POLL_INTERVAL</td>
+      <td>Integer</td>
+      <td>300</td>
+      <td>
+        Poll interval (in seconds). This value controls how frequently watchtower will poll for new images.
+      </td>
+    </tr>
+    <tr>
+      <td>--label-enable</td>
+      <td>WATCHTOWER_LABEL_ENABLE</td>
+      <td>Boolean</td>
+      <td>False</td>
+      <td>
+        Watch containers where the `com.centurylinklabs.watchtower.enable` label is set to true.
+      </td>
+    </tr>
+    <tr>
+      <td>--monitor-only</td>
+      <td>WATCHTOWER_MONITOR_ONLY</td>
+      <td>Boolean</td>
+      <td>False</td>
+      <td>
+        Will only monitor for new images, not update the containers.
+      </td>
+    </tr>
+    <tr>
+      <td>--no-pull</td>
+      <td>WATCHTOWER_NO_PULL</td>
+      <td>Boolean</td>
+      <td>False</td>
+      <td>
+        Do not pull new images. When this flag is specified, watchtower will not attempt to pull
+        new images from the registry. Instead it will only monitor the local image cache for changes.
+        Use this option if you are building new images directly on the Docker host without pushing
+        them to a registry.
+      </td>
+    </tr>
+    <tr>
+      <td>--run-once</td>
+      <td>WATCHTOWER_RUN_ONCE</td>
+      <td>Boolean</td>
+      <td>False</td>
+      <td>
+        Run an update attempt against a container name list one time immediately and exit.
+      </td>
+    </tr>
+    <tr>
+      <td>--schedule, -s</td>
+      <td>WATCHTOWER_SCHEDULE</td>
+      <td>String</td>
+      <td>-</td>
+      <td>
+        [Cron expression](https://godoc.org/github.com/robfig/cron#hdr-CRON_Expression_Format) in 6 fields (rather than the traditional 5) which defines when and how often to check for new images. Either `--interval` or the schedule expression could be defined, but not both. An example: `--schedule "0 0 4 * * *"`
+      </td>
+    </tr>
+    <tr>
+      <td>--stop-timeout</td>
+      <td>WATCHTOWER_TIMEOUT</td>
+      <td>Duration</td>
+      <td>10s</td>
+      <td>
+        Timeout before the container is forcefully stopped. When set, this option will change the default (`10s`) wait time to the given value. An example: `--stop-timeout 30s` will set the timeout to 30 seconds.
+      </td>
+    </tr>
+    <tr>
+      <td>--tlsverify</td>
+      <td>DOCKER_TLS_VERIFY</td>
+      <td>Boolean</td>
+      <td>false</td>
+      <td>
+        Use TLS when connecting to the Docker socket and verify the server's certificate. See below for options used to configure notifications.
+      </td>
+    </tr>
+  </tbody>
+</table>
 
 ## Linked Containers
 
