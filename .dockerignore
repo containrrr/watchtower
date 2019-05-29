@@ -1,0 +1,10 @@
+Dockerfile
+.dockerignore
+.git
+.gitignore
+watchtower
+vendor
+.glide
+dist
+.idea
+.DS_Store
