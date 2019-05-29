@@ -10,5 +10,11 @@ notifications:
   # Don't email the results of the test runs.
   email: false
 
+before_script:
+- go get -u golang.org/x/lint/golint
+
 script:
+- go build
 - go test -v -race ./...
+- golint -set_exit_status ./...
+- docker build .
