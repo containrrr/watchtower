@@ -1,0 +1,14 @@
+language: go
+
+env:
+- GO111MODULE=on
+
+go:
+- 1.12.x
+
+notifications:
+  # Don't email the results of the test runs.
+  email: false
+
+script:
+- go test -v -race ./...
