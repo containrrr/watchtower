@@ -164,5 +164,10 @@ func SetupCliFlags(app *cli.App) {
 			Usage:  "Will also include created and exited containers",
 			EnvVar: "WATCHTOWER_INCLUDE_STOPPED",
 		},
+		cli.BoolFlag{
+			Name:   "url-callback",
+			Usage:  "URL to callback for out of band updating",
+			EnvVar: "WATCHTOWER_URL_CALLBACK",
+		},
 	}
 }
