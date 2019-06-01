@@ -1,6 +1,6 @@
 version: 2.1
 jobs:
-  noop:
+  build:
     docker:
       - image: alpine
     steps:
