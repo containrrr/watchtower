@@ -1,5 +1,7 @@
 version: 2.1
 jobs:
   noop:
+    docker:
+      - image: alpine
     steps:
       - run: echo skipping for gh pages
