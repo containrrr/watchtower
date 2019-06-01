@@ -1,52 +1,52 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
-     <loc>http://localhost:8000/</loc>
+     <loc>http://containrrr.github.io/watchtower/</loc>
      <lastmod>2019-06-01</lastmod>
      <changefreq>daily</changefreq>
     </url>
     <url>
-     <loc>http://localhost:8000/introduction/</loc>
+     <loc>http://containrrr.github.io/watchtower/introduction/</loc>
      <lastmod>2019-06-01</lastmod>
      <changefreq>daily</changefreq>
     </url>
     <url>
-     <loc>http://localhost:8000/usage-overview/</loc>
+     <loc>http://containrrr.github.io/watchtower/usage-overview/</loc>
      <lastmod>2019-06-01</lastmod>
      <changefreq>daily</changefreq>
     </url>
     <url>
-     <loc>http://localhost:8000/arguments/</loc>
+     <loc>http://containrrr.github.io/watchtower/arguments/</loc>
      <lastmod>2019-06-01</lastmod>
      <changefreq>daily</changefreq>
     </url>
     <url>
-     <loc>http://localhost:8000/notifications/</loc>
+     <loc>http://containrrr.github.io/watchtower/notifications/</loc>
      <lastmod>2019-06-01</lastmod>
      <changefreq>daily</changefreq>
     </url>
     <url>
-     <loc>http://localhost:8000/container-selection/</loc>
+     <loc>http://containrrr.github.io/watchtower/container-selection/</loc>
      <lastmod>2019-06-01</lastmod>
      <changefreq>daily</changefreq>
     </url>
     <url>
-     <loc>http://localhost:8000/linked-containers/</loc>
+     <loc>http://containrrr.github.io/watchtower/linked-containers/</loc>
      <lastmod>2019-06-01</lastmod>
      <changefreq>daily</changefreq>
     </url>
     <url>
-     <loc>http://localhost:8000/remote-hosts/</loc>
+     <loc>http://containrrr.github.io/watchtower/remote-hosts/</loc>
      <lastmod>2019-06-01</lastmod>
      <changefreq>daily</changefreq>
     </url>
     <url>
-     <loc>http://localhost:8000/secure-connections/</loc>
+     <loc>http://containrrr.github.io/watchtower/secure-connections/</loc>
      <lastmod>2019-06-01</lastmod>
      <changefreq>daily</changefreq>
     </url>
     <url>
-     <loc>http://localhost:8000/stop-signals/</loc>
+     <loc>http://containrrr.github.io/watchtower/stop-signals/</loc>
      <lastmod>2019-06-01</lastmod>
      <changefreq>daily</changefreq>
     </url>
