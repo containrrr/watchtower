@@ -1,6 +1,10 @@
 version: 2.1
 
 executors:
+  py:
+    docker:
+      - image: circleci/python:latest
+    working_directory: ~/repo
   go:
     docker:
       - image: circleci/golang:latest
@@ -42,6 +46,15 @@ workflows:
             tags:
               ignore: /^v[0-9]+(\.[0-9]+)*$/
       - publishing:
+          requires:
+            - testing
+            - linting
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v[0-9]+(\.[0-9]+)*$/
+      - publish-docs:
           requires:
             - testing
             - linting
@@ -203,3 +216,18 @@ jobs:
               -e DOCKER_REPOSITORY=containrrr/watchtower \
               -e GIT_BRANCH=master \
               lsiodev/readme-sync bash -c 'node sync'
+  publish-docs:
+    executor: py
+    steps:
+      - attach_workspace:
+          at: .
+      - run:
+          name: Install prerequisites
+          command: |
+            pip install \
+              mkdocs \
+              mkdocs-material \
+              md-toc
+      - run:
+          name: Generate and publish
+          command: mkdocs gh-deploy

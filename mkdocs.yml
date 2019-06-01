@@ -1,0 +1,22 @@
+site_name: Watchtower
+site_url: http://containrrr.github.io/watchtower/
+repo_url: https://github.com/containrrr/watchtower/
+theme:
+  name: 'material'
+markdown_extensions:
+    - toc:
+        permalink: True
+        separator: "_"
+nav:
+   - 'Home': 'index.md'
+   - 'Introduction': 'introduction.md'
+   - 'Usage overview': 'usage-overview.md'
+   - 'Arguments': 'arguments.md'
+   - 'Notifications': 'notifications.md'
+   - 'Container selection': 'container-selection.md'
+   - 'Linked containers': 'linked-containers.md'
+   - 'Remote hosts': 'remote-hosts.md'
+   - 'Secure connections': 'secure-connections.md'
+   - 'Stop signals': 'stop-signals.md'
+plugins:
+    - search
