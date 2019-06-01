@@ -1,0 +1,5 @@
+version: 2.1
+jobs:
+  noop:
+    steps:
+      - run: echo skipping for gh pages
