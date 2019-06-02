@@ -1,5 +1,6 @@
-daysUntilStale: 21
-daysUntilClose: 14
+daysUntilStale: 60
+daysUntilClose: 7
+exemptMilestones: true
 exemptLabels:
   - pinned
   - security
