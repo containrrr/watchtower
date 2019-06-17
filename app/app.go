@@ -169,5 +169,10 @@ func SetupCliFlags(app *cli.App) {
 			Usage:  "URL to callback for out of band updating",
 			EnvVar: "WATCHTOWER_URL_CALLBACK",
 		},
+		cli.BoolFlag{
+			Name:   "json-extra-url-callback",
+			Usage:  "JSON file to be sent as extra data when using URL callback",
+			EnvVar: "WATCHTOWER_JSON_EXTRA_URL_CALLBACK",
+		},
 	}
 }
