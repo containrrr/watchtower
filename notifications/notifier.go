@@ -3,7 +3,7 @@ package notifications
 import (
 	"github.com/johntdyer/slackrus"
 	log "github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
+	"github.com/spf13/cobra"
 )
 
 type typeNotifier interface {
@@ -17,10 +17,13 @@ type Notifier struct {
 }
 
 // NewNotifier creates and returns a new Notifier, using global configuration.
-func NewNotifier(c *cli.Context) *Notifier {
+func NewNotifier(c *cobra.Command) *Notifier {
 	n := &Notifier{}
 
-	logLevel, err := log.ParseLevel(c.GlobalString("notifications-level"))
+	f := c.PersistentFlags()
+
+	level, _ := f.GetString("notifications-level")
+	logLevel, err := log.ParseLevel(level)
 	if err != nil {
 		log.Fatalf("Notifications invalid log level: %s", err.Error())
 	}
@@ -28,7 +31,8 @@ func NewNotifier(c *cli.Context) *Notifier {
 	acceptedLogLevels := slackrus.LevelThreshold(logLevel)
 
 	// Parse types and create notifiers.
-	types := c.GlobalStringSlice("notifications")
+	types, _ := f.GetStringSlice("notifications")
+
 	for _, t := range types {
 		var tn typeNotifier
 		switch t {

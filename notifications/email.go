@@ -3,6 +3,7 @@ package notifications
 import (
 	"encoding/base64"
 	"fmt"
+	"github.com/spf13/cobra"
 	"net/smtp"
 	"os"
 	"time"
@@ -10,7 +11,6 @@ import (
 	"strconv"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
 )
 
 const (
@@ -31,15 +31,25 @@ type emailTypeNotifier struct {
 	logLevels              []log.Level
 }
 
-func newEmailNotifier(c *cli.Context, acceptedLogLevels []log.Level) typeNotifier {
+func newEmailNotifier(c *cobra.Command, acceptedLogLevels []log.Level) typeNotifier {
+	flags := c.PersistentFlags()
+
+	from, _ := flags.GetString("notification-email-from")
+	to, _  := flags.GetString("notification-email-to")
+	server, _  := flags.GetString("notification-email-server")
+	user, _ := flags.GetString("notification-email-server-user")
+	password, _ := flags.GetString("notification-email-server-password")
+	port, _ := flags.GetInt("notification-email-server-port")
+	tlsSkipVerify, _ := flags.GetBool("notification-email-server-tls-skip-verify")
+
 	n := &emailTypeNotifier{
-		From:          c.GlobalString("notification-email-from"),
-		To:            c.GlobalString("notification-email-to"),
-		Server:        c.GlobalString("notification-email-server"),
-		User:          c.GlobalString("notification-email-server-user"),
-		Password:      c.GlobalString("notification-email-server-password"),
-		Port:          c.GlobalInt("notification-email-server-port"),
-		tlsSkipVerify: c.GlobalBool("notification-email-server-tls-skip-verify"),
+		From:          from,
+		To:            to,
+		Server:        server,
+		User:          user,
+		Password:      password,
+		Port:          port,
+		tlsSkipVerify: tlsSkipVerify,
 		logLevels:     acceptedLogLevels,
 	}
 
