@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"github.com/containrrr/watchtower/actions"
 	"github.com/containrrr/watchtower/container"
 	"github.com/containrrr/watchtower/internal/flags"
@@ -17,6 +16,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// DockerAPIMinVersion is the minimum version of the docker api required to
+// use watchtower
 const DockerAPIMinVersion string = "1.24"
 
 var (
@@ -48,13 +49,14 @@ func init() {
 	flags.RegisterNotificationFlags(rootCmd)
 }
 
+// Execute the root func and exit in case of errors
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		log.Fatal(err)
 	}
 }
 
+// PreRun is a lifecycle hook that runs before the command is executed.
 func PreRun(cmd *cobra.Command, args []string) {
 	f := cmd.PersistentFlags()
 
@@ -99,6 +101,7 @@ func PreRun(cmd *cobra.Command, args []string) {
 	notifier = notifications.NewNotifier(cmd)
 }
 
+// Run is the main execution flow of the command
 func Run(c *cobra.Command, names []string) {
 	filter := container.BuildFilter(names, enableLabel)
 	runOnce, _ := c.PersistentFlags().GetBool("run-once")

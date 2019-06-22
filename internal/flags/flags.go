@@ -8,12 +8,14 @@ import (
 	"time"
 )
 
+// RegisterDockerFlags that are used directly by the docker api client
 func RegisterDockerFlags(rootCmd *cobra.Command) {
 	flags := rootCmd.PersistentFlags()
 	flags.StringP("host", "H", viper.GetString("DOCKER_HOST"), "daemon socket to connect to")
 	flags.BoolP("tlsverify", "v", viper.GetBool("DOCKER_TLS_VERIFY"), "use TLS and verify the remote")
 }
 
+// RegisterSystemFlags that are used by watchtower to modify the program flow
 func RegisterSystemFlags(rootCmd *cobra.Command) {
 	flags := rootCmd.PersistentFlags()
 	flags.IntP(
@@ -82,6 +84,7 @@ func RegisterSystemFlags(rootCmd *cobra.Command) {
 		"Will also include created and exited containers")
 }
 
+// RegisterNotificationFlags that are used by watchtower to send notifications
 func RegisterNotificationFlags(rootCmd *cobra.Command) {
 	flags := rootCmd.PersistentFlags()
 
@@ -185,6 +188,7 @@ Should only be used for testing.
 		"The MSTeams notifier will try to extract log entry fields as MSTeams message facts")
 }
 
+// SetDefaults provides default values for environment variables
 func SetDefaults() {
 	viper.AutomaticEnv()
 	viper.SetDefault("DOCKER_HOST", "unix:///var/run/docker.sock")
@@ -196,7 +200,7 @@ func SetDefaults() {
 	viper.SetDefault("WATCHTOWER_NOTIFICATION_SLACK_IDENTIFIER", "watchtower")
 }
 
-// envConfig translates the command-line options into environment variables
+// EnvConfig translates the command-line options into environment variables
 // that will initialize the api client
 func EnvConfig(cmd *cobra.Command, dockerAPIMinVersion string) error {
 	var err error
@@ -223,6 +227,7 @@ func EnvConfig(cmd *cobra.Command, dockerAPIMinVersion string) error {
 	return nil
 }
 
+// ReadFlags reads common flags used in the main program flow of watchtower
 func ReadFlags(cmd *cobra.Command) (bool, bool, bool, time.Duration) {
 	flags := cmd.PersistentFlags()
 
