@@ -118,10 +118,10 @@ func RegisterNotificationFlags(rootCmd *cobra.Command) {
 		viper.GetString("WATCHTOWER_NOTIFICATION_EMAIL_SERVER"),
 		"SMTP server to send notification emails through")
 
-	flags.StringP(
+	flags.IntP(
 		"notification-email-server-port",
 		"",
-		viper.GetString("WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PORT"),
+		viper.GetInt("WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PORT"),
 		"SMTP server port to send notification emails through")
 
 	flags.BoolP(
