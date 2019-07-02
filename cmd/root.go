@@ -65,13 +65,12 @@ func PreRun(cmd *cobra.Command, args []string) {
 	}
 
 	pollingSet := f.Changed("interval")
-	cronSet := f.Changed("schedule")
 	schedule, _ := f.GetString("schedule")
 	cronLen := len(schedule)
 
-	if pollingSet && cronSet && cronLen > 0 {
+	if pollingSet && cronLen > 0 {
 		log.Fatal("Only schedule or interval can be defined, not both.")
-	} else if cronSet && cronLen > 0 {
+	} else if cronLen > 0 {
 		scheduleSpec, _ = f.GetString("schedule")
 	} else {
 		interval, _ := f.GetInt("interval")
