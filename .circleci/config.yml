@@ -60,7 +60,8 @@ workflows:
             - linting
           filters:
             branches:
-              ignore: /.*/
+              only: /master/
+              # ignore: /.*/
             tags:
               only: /^v[0-9]+(\.[0-9]+)*$/
 jobs:
@@ -228,8 +229,12 @@ jobs:
               mkdocs \
               mkdocs-material \
               md-toc
+      - add_ssh_keys:
+          fingerprints:
+            - "89:6c:8d:6a:c2:7d:68:d6:4e:e3:4d:ca:00:f2:c2:59"
       - run:
           name: Generate and publish
           command: |
+            mkdir ~/.ssh && touch ~/.ssh/known_hosts;
             ssh-keyscan -H github.com >> ~/.ssh/known_hosts && \
               mkdocs gh-deploy
