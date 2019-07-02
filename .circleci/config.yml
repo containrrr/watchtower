@@ -230,4 +230,6 @@ jobs:
               md-toc
       - run:
           name: Generate and publish
-          command: mkdocs gh-deploy
+          command: |
+            ssh-keyscan -H github.com >> ~/.ssh/known_hosts && \
+              mkdocs gh-deploy
