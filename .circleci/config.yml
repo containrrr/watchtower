@@ -1,7 +1,0 @@
-version: 2.1
-jobs:
-  build:
-    docker:
-      - image: alpine
-    steps:
-      - run: echo skipping for gh pages
