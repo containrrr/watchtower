@@ -231,7 +231,7 @@ jobs:
               md-toc
       - add_ssh_keys:
           fingerprints:
-            - "89:6c:8d:6a:c2:7d:68:d6:4e:e3:4d:ca:00:f2:c2:59"
+            - "91:75:47:15:b2:8e:85:e5:67:0e:63:7f:22:d2:b4:6e"
       - run:
           name: Generate and publish
           command: |
