@@ -60,8 +60,7 @@ workflows:
             - linting
           filters:
             branches:
-              only: /master/
-              # ignore: /.*/
+              ignore: /.*/
             tags:
               only: /^v[0-9]+(\.[0-9]+)*$/
 jobs:
