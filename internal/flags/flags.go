@@ -98,7 +98,7 @@ func RegisterNotificationFlags(rootCmd *cobra.Command) {
 		"notifications",
 		"n",
 		viper.GetStringSlice("WATCHTOWER_NOTIFICATIONS"),
-		" notification types to send (valid: email, slack, msteams")
+		" notification types to send (valid: email, slack, msteams, gotify)")
 
 	flags.StringP(
 		"notifications-level",
@@ -192,6 +192,17 @@ Should only be used for testing.
 		"",
 		viper.GetBool("WATCHTOWER_NOTIFICATION_MSTEAMS_USE_LOG_DATA"),
 		"The MSTeams notifier will try to extract log entry fields as MSTeams message facts")
+
+	flags.StringP(
+		"notification-gotify-url",
+		"",
+		viper.GetString("WATCHTOWER_NOTIFICATION_GOTIFY_URL"),
+		"The Gotify URL to send notifications to")
+	flags.StringP(
+		"notification-gotify-token",
+		"",
+		viper.GetString("WATCHTOWER_NOTIFICATION_GOTIFY_TOKEN"),
+		"The Gotify Application required to query the Gotify API")
 }
 
 // SetDefaults provides default values for environment variables
