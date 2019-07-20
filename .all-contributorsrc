@@ -292,6 +292,16 @@
       "contributions": [
         "doc"
       ]
+    },
+    {
+      "login": "lukapeschke",
+      "name": "Luka Peschke",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/17085536?v=4",
+      "profile": "https://github.com/lukapeschke",
+      "contributions": [
+        "code",
+        "doc"
+      ]
     }
   ],
   "contributorsPerLine": 7,
