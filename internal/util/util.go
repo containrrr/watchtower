@@ -1,6 +1,6 @@
-package container
+package util
 
-func sliceEqual(s1, s2 []string) bool {
+func SliceEqual(s1, s2 []string) bool {
 	if len(s1) != len(s2) {
 		return false
 	}
@@ -14,7 +14,7 @@ func sliceEqual(s1, s2 []string) bool {
 	return true
 }
 
-func sliceSubtract(a1, a2 []string) []string {
+func SliceSubtract(a1, a2 []string) []string {
 	a := []string{}
 
 	for _, e1 := range a1 {
@@ -35,7 +35,7 @@ func sliceSubtract(a1, a2 []string) []string {
 	return a
 }
 
-func stringMapSubtract(m1, m2 map[string]string) map[string]string {
+func StringMapSubtract(m1, m2 map[string]string) map[string]string {
 	m := map[string]string{}
 
 	for k1, v1 := range m1 {
@@ -51,7 +51,7 @@ func stringMapSubtract(m1, m2 map[string]string) map[string]string {
 	return m
 }
 
-func structMapSubtract(m1, m2 map[string]struct{}) map[string]struct{} {
+func StructMapSubtract(m1, m2 map[string]struct{}) map[string]struct{} {
 	m := map[string]struct{}{}
 
 	for k1, v1 := range m1 {

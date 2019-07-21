@@ -5,10 +5,10 @@ import (
 	"io/ioutil"
 	"time"
 
+	t "github.com/containrrr/watchtower/pkg/types"
+	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
-
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/network"
 	dockerclient "github.com/docker/docker/client"
 	log "github.com/sirupsen/logrus"
@@ -22,7 +22,7 @@ const (
 // A Client is the interface through which watchtower interacts with the
 // Docker API.
 type Client interface {
-	ListContainers(Filter) ([]Container, error)
+	ListContainers(t.Filter) ([]Container, error)
 	StopContainer(Container, time.Duration) error
 	StartContainer(Container) error
 	RenameContainer(Container, string) error
@@ -58,7 +58,7 @@ type dockerClient struct {
 	includeStopped bool
 }
 
-func (client dockerClient) ListContainers(fn Filter) ([]Container, error) {
+func (client dockerClient) ListContainers(fn t.Filter) ([]Container, error) {
 	cs := []Container{}
 	bg := context.Background()
 

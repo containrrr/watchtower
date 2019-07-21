@@ -4,6 +4,7 @@ import (
 	"github.com/johntdyer/slackrus"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	t "github.com/containrrr/watchtower/pkg/types"
 )
 
 const (
@@ -14,7 +15,7 @@ type slackTypeNotifier struct {
 	slackrus.SlackrusHook
 }
 
-func newSlackNotifier(c *cobra.Command, acceptedLogLevels []log.Level) typeNotifier {
+func newSlackNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.Notifier {
 	flags := c.PersistentFlags()
 
 	hookURL,  _ := flags.GetString("notification-slack-hook-url")

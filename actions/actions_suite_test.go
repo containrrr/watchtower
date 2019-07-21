@@ -10,6 +10,7 @@ import (
 	"github.com/containrrr/watchtower/container/mocks"
 	"github.com/docker/docker/api/types"
 
+	t "github.com/containrrr/watchtower/pkg/types"
 	cli "github.com/docker/docker/client"
 
 	. "github.com/onsi/ginkgo"
@@ -149,7 +150,7 @@ type TestData struct {
 	Containers            []container.Container
 }
 
-func (client mockClient) ListContainers(f container.Filter) ([]container.Container, error) {
+func (client mockClient) ListContainers(f t.Filter) ([]container.Container, error) {
 	return client.TestData.Containers, nil
 }
 

@@ -11,6 +11,7 @@ import (
 	"github.com/containrrr/watchtower/container"
 	"github.com/containrrr/watchtower/internal/flags"
 	"github.com/containrrr/watchtower/notifications"
+	t "github.com/containrrr/watchtower/pkg/types"
 	"github.com/robfig/cron"
 	log "github.com/sirupsen/logrus"
 
@@ -123,7 +124,7 @@ func Run(c *cobra.Command, names []string) {
 	os.Exit(1)
 }
 
-func runUpgradesOnSchedule(filter container.Filter) error {
+func runUpgradesOnSchedule(filter t.Filter) error {
 	tryLockSem := make(chan bool, 1)
 	tryLockSem <- true
 
@@ -164,7 +165,7 @@ func runUpgradesOnSchedule(filter container.Filter) error {
 	return nil
 }
 
-func runUpdatesWithNotifications(filter container.Filter) {
+func runUpdatesWithNotifications(filter t.Filter) {
 	notifier.StartNotification()
 	updateParams := actions.UpdateParams{
 		Filter:      filter,

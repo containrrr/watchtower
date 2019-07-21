@@ -1,19 +1,17 @@
 package notifications
 
 import (
+	ty "github.com/containrrr/watchtower/pkg/types"
 	"github.com/johntdyer/slackrus"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
-type typeNotifier interface {
-	StartNotification()
-	SendNotification()
-}
+
 
 // Notifier can send log output as notification to admins, with optional batching.
 type Notifier struct {
-	types []typeNotifier
+	types []ty.Notifier
 }
 
 // NewNotifier creates and returns a new Notifier, using global configuration.
@@ -34,7 +32,7 @@ func NewNotifier(c *cobra.Command) *Notifier {
 	types, _ := f.GetStringSlice("notifications")
 
 	for _, t := range types {
-		var tn typeNotifier
+		var tn ty.Notifier
 		switch t {
 		case emailType:
 			tn = newEmailNotifier(c, acceptedLogLevels)

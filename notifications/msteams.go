@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 	"net/http"
 
+	t "github.com/containrrr/watchtower/pkg/types"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 )
@@ -21,7 +22,7 @@ type msTeamsTypeNotifier struct {
 	data       bool
 }
 
-func newMsTeamsNotifier(cmd *cobra.Command, acceptedLogLevels []log.Level) typeNotifier {
+func newMsTeamsNotifier(cmd *cobra.Command, acceptedLogLevels []log.Level) t.Notifier {
 
 	flags := cmd.PersistentFlags()
 
