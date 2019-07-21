@@ -2,10 +2,11 @@ package container
 
 import (
 	"fmt"
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/filters"
 	"io/ioutil"
 	"time"
+
+	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/filters"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/network"
@@ -35,7 +36,7 @@ type Client interface {
 //  * DOCKER_HOST			the docker-engine host to send api requests to
 //  * DOCKER_TLS_VERIFY		whether to verify tls certificates
 //  * DOCKER_API_VERSION	the minimum docker api version to work with
-func NewClient(pullImages bool, includeStopped bool) Client {
+func NewClient(pullImages bool, includeStopped bool, removeVolumes bool) Client {
 	cli, err := dockerclient.NewClientWithOpts(dockerclient.FromEnv)
 
 	if err != nil {
@@ -45,6 +46,7 @@ func NewClient(pullImages bool, includeStopped bool) Client {
 	return dockerClient{
 		api:            cli,
 		pullImages:     pullImages,
+		removeVolumes:  removeVolumes,
 		includeStopped: includeStopped,
 	}
 }
@@ -52,6 +54,7 @@ func NewClient(pullImages bool, includeStopped bool) Client {
 type dockerClient struct {
 	api            dockerclient.CommonAPIClient
 	pullImages     bool
+	removeVolumes  bool
 	includeStopped bool
 }
 
@@ -71,7 +74,7 @@ func (client dockerClient) ListContainers(fn Filter) ([]Container, error) {
 		types.ContainerListOptions{
 			Filters: filter,
 		})
-	
+
 	if err != nil {
 		return nil, err
 	}
@@ -131,7 +134,7 @@ func (client dockerClient) StopContainer(c Container, timeout time.Duration) err
 	} else {
 		log.Debugf("Removing container %s", c.ID())
 
-		if err := client.api.ContainerRemove(bg, c.ID(), types.ContainerRemoveOptions{Force: true, RemoveVolumes: false}); err != nil {
+		if err := client.api.ContainerRemove(bg, c.ID(), types.ContainerRemoveOptions{Force: true, RemoveVolumes: client.removeVolumes}); err != nil {
 			return err
 		}
 	}
