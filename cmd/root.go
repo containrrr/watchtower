@@ -7,10 +7,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containrrr/watchtower/actions"
-	"github.com/containrrr/watchtower/pkg/container"
 	"github.com/containrrr/watchtower/internal/flags"
 	"github.com/containrrr/watchtower/notifications"
+	"github.com/containrrr/watchtower/pkg/actions"
+	"github.com/containrrr/watchtower/pkg/container"
 	t "github.com/containrrr/watchtower/pkg/types"
 	"github.com/robfig/cron"
 	log "github.com/sirupsen/logrus"
