@@ -3,7 +3,7 @@ package notifications
 import (
 	"github.com/johntdyer/slackrus"
 	log "github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
+	"github.com/spf13/cobra"
 )
 
 const (
@@ -14,20 +14,27 @@ type slackTypeNotifier struct {
 	slackrus.SlackrusHook
 }
 
-func newSlackNotifier(c *cli.Context, acceptedLogLevels []log.Level) typeNotifier {
+func newSlackNotifier(c *cobra.Command, acceptedLogLevels []log.Level) typeNotifier {
+	flags := c.PersistentFlags()
+
+	hookURL,  _ := flags.GetString("notification-slack-hook-url")
+	userName, _ := flags.GetString("notification-slack-identifier")
+	channel,  _ := flags.GetString("notification-slack-channel")
+	emoji,    _ := flags.GetString("notification-slack-icon-emoji")
+	iconURL,  _ := flags.GetString("notification-slack-icon-url")
+
 	n := &slackTypeNotifier{
 		SlackrusHook: slackrus.SlackrusHook{
-			HookURL:        c.GlobalString("notification-slack-hook-url"),
-			Username:       c.GlobalString("notification-slack-identifier"),
-			Channel:        c.GlobalString("notification-slack-channel"),
-			IconEmoji:      c.GlobalString("notification-slack-icon-emoji"),
-			IconURL:        c.GlobalString("notification-slack-icon-url"),
+			HookURL:        hookURL,
+			Username:       userName,
+			Channel:        channel,
+			IconEmoji:      emoji,
+			IconURL:        iconURL,
 			AcceptedLevels: acceptedLogLevels,
 		},
 	}
 
 	log.AddHook(n)
-
 	return n
 }
 
