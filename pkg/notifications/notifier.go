@@ -7,8 +7,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-
-
 // Notifier can send log output as notification to admins, with optional batching.
 type Notifier struct {
 	types []ty.Notifier

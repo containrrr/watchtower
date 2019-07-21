@@ -8,9 +8,9 @@ import (
 	"os"
 	"time"
 
-	"strconv"
 	t "github.com/containrrr/watchtower/pkg/types"
 	log "github.com/sirupsen/logrus"
+	"strconv"
 )
 
 const (
@@ -35,8 +35,8 @@ func newEmailNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.Notifie
 	flags := c.PersistentFlags()
 
 	from, _ := flags.GetString("notification-email-from")
-	to, _  := flags.GetString("notification-email-to")
-	server, _  := flags.GetString("notification-email-server")
+	to, _ := flags.GetString("notification-email-to")
+	server, _ := flags.GetString("notification-email-server")
 	user, _ := flags.GetString("notification-email-server-user")
 	password, _ := flags.GetString("notification-email-server-password")
 	port, _ := flags.GetInt("notification-email-server-port")
@@ -70,7 +70,7 @@ func (e *emailTypeNotifier) buildMessage(entries []*log.Entry) []byte {
 	}
 
 	t := time.Now()
-	
+
 	header := make(map[string]string)
 	header["From"] = e.From
 	header["To"] = e.To

@@ -5,8 +5,6 @@ import (
 	"testing"
 )
 
-
-
 func TestSliceEqual_True(t *testing.T) {
 	s1 := []string{"a", "b", "c"}
 	s2 := []string{"a", "b", "c"}
