@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/containrrr/watchtower/actions"
-	"github.com/containrrr/watchtower/container"
-	"github.com/containrrr/watchtower/container/mocks"
+	"github.com/containrrr/watchtower/pkg/container"
+	"github.com/containrrr/watchtower/pkg/container/mocks"
 	"github.com/docker/docker/api/types"
 
 	t "github.com/containrrr/watchtower/pkg/types"

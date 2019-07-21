@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/containrrr/watchtower/actions"
-	"github.com/containrrr/watchtower/container"
+	"github.com/containrrr/watchtower/pkg/container"
 	"github.com/containrrr/watchtower/internal/flags"
 	"github.com/containrrr/watchtower/notifications"
 	t "github.com/containrrr/watchtower/pkg/types"

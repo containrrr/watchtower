@@ -4,7 +4,7 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/containrrr/watchtower/container"
+	"github.com/containrrr/watchtower/pkg/container"
 	t "github.com/containrrr/watchtower/pkg/types"
 	log "github.com/sirupsen/logrus"
 )

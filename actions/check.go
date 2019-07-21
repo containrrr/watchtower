@@ -11,7 +11,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/containrrr/watchtower/container"
+	"github.com/containrrr/watchtower/pkg/container"
 )
 
 // CheckForMultipleWatchtowerInstances will ensure that there are not multiple instances of the

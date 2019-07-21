@@ -1,7 +1,7 @@
 package container
 
 import (
-	"github.com/containrrr/watchtower/container/mocks"
+	"github.com/containrrr/watchtower/pkg/container/mocks"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	cli "github.com/docker/docker/client"
