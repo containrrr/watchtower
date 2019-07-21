@@ -1,17 +1,18 @@
 package cmd
 
 import (
+	"os"
+	"os/signal"
+	"strconv"
+	"syscall"
+	"time"
+
 	"github.com/containrrr/watchtower/actions"
 	"github.com/containrrr/watchtower/container"
 	"github.com/containrrr/watchtower/internal/flags"
 	"github.com/containrrr/watchtower/notifications"
 	"github.com/robfig/cron"
 	log "github.com/sirupsen/logrus"
-	"os"
-	"os/signal"
-	"strconv"
-	"syscall"
-	"time"
 
 	"github.com/spf13/cobra"
 )
@@ -32,9 +33,9 @@ var (
 )
 
 var rootCmd = &cobra.Command{
-	Use:    "watchtower",
-	Short:  "Automatically updates running Docker containers",
-	Long:   `
+	Use:   "watchtower",
+	Short: "Automatically updates running Docker containers",
+	Long: `
 Watchtower automatically updates running Docker containers whenever a new image is released.
 More information available at https://github.com/containrrr/watchtower/.
 `,
@@ -92,9 +93,11 @@ func PreRun(cmd *cobra.Command, args []string) {
 
 	noPull, _ := f.GetBool("no-pull")
 	includeStopped, _ := f.GetBool("include-stopped")
+	removeVolumes, _ := f.GetBool("remove-volumes")
 	client = container.NewClient(
 		!noPull,
 		includeStopped,
+		removeVolumes,
 	)
 
 	notifier = notifications.NewNotifier(cmd)
@@ -176,5 +179,3 @@ func runUpdatesWithNotifications(filter container.Filter) {
 	}
 	notifier.SendNotification()
 }
-
-
