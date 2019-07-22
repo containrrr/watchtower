@@ -62,7 +62,7 @@ func Execute() {
 func PreRun(cmd *cobra.Command, args []string) {
 	f := cmd.PersistentFlags()
 
-	if enabled, _ := f.GetBool("debug"); enabled == true {
+	if enabled, _ := f.GetBool("debug"); enabled {
 		log.SetLevel(log.DebugLevel)
 	}
 
@@ -120,7 +120,10 @@ func Run(c *cobra.Command, names []string) {
 		log.Fatal(err)
 	}
 
-	runUpgradesOnSchedule(filter)
+	if err := runUpgradesOnSchedule(filter); err != nil {
+		log.Error(err)
+	}
+
 	os.Exit(1)
 }
 

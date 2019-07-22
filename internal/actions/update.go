@@ -95,7 +95,9 @@ func restartStaleContainer(container container.Container, client container.Clien
 	}
 
 	if params.Cleanup {
-		client.RemoveImage(container)
+		if err := client.RemoveImage(container); err != nil {
+			log.Error(err)
+		}
 	}
 }
 

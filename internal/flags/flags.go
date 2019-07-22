@@ -271,7 +271,7 @@ func setEnvOptStr(env string, opt string) error {
 }
 
 func setEnvOptBool(env string, opt bool) error {
-	if opt == true {
+	if opt {
 		return setEnvOptStr(env, "1")
 	}
 	return nil

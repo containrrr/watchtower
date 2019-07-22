@@ -126,8 +126,8 @@ func (client dockerClient) StopContainer(c Container, timeout time.Duration) err
 		}
 	}
 
-	// Wait for container to exit, but proceed anyway after the timeout elapses
-	client.waitForStop(c, timeout)
+	// TODO: This should probably be checked.
+	_ = client.waitForStopOrTimeout(c, timeout)
 
 	if c.containerInfo.HostConfig.AutoRemove {
 		log.Debugf("AutoRemove container %s, skipping ContainerRemove call.", c.ID())
@@ -140,7 +140,7 @@ func (client dockerClient) StopContainer(c Container, timeout time.Duration) err
 	}
 
 	// Wait for container to be removed. In this case an error is a good thing
-	if err := client.waitForStop(c, timeout); err == nil {
+	if err := client.waitForStopOrTimeout(c, timeout); err == nil {
 		return fmt.Errorf("Container %s (%s) could not be removed", c.Name(), c.ID())
 	}
 
@@ -245,7 +245,9 @@ func (client dockerClient) IsContainerStale(c Container) (bool, error) {
 		defer response.Close()
 
 		// the pull request will be aborted prematurely unless the response is read
-		_, err = ioutil.ReadAll(response)
+		if _, err = ioutil.ReadAll(response); err != nil {
+			log.Error(err)
+		}	
 	}
 
 	newImageInfo, _, err := client.api.ImageInspectWithRaw(bg, imageName)
@@ -269,7 +271,7 @@ func (client dockerClient) RemoveImage(c Container) error {
 	return err
 }
 
-func (client dockerClient) waitForStop(c Container, waitTime time.Duration) error {
+func (client dockerClient) waitForStopOrTimeout(c Container, waitTime time.Duration) error {
 	bg := context.Background()
 	timeout := time.After(waitTime)
 
