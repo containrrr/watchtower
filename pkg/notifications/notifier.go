@@ -38,6 +38,8 @@ func NewNotifier(c *cobra.Command) *Notifier {
 			tn = newSlackNotifier(c, acceptedLogLevels)
 		case msTeamsType:
 			tn = newMsTeamsNotifier(c, acceptedLogLevels)
+		case gotifyType:
+			tn = newGotifyNotifier(c, acceptedLogLevels)
 		default:
 			log.Fatalf("Unknown notification type %q", t)
 		}

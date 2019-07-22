@@ -1,4 +1,4 @@
- 
+
 # Notifications
 
 Watchtower can send notifications when containers are updated. Notifications are sent via hooks in the logging system, [logrus](http://github.com/sirupsen/logrus).
@@ -7,6 +7,7 @@ The types of notifications to send are passed via the comma-separated option `--
 - `email` to send notifications via e-mail
 - `slack` to send notifications through a Slack webhook
 - `msteams` to send notifications via MSTeams webhook
+- `gotify` to send notifications via Gotify
 
 ## Settings
 
@@ -88,5 +89,20 @@ docker run -d \
   -e WATCHTOWER_NOTIFICATIONS=msteams \
   -e WATCHTOWER_NOTIFICATION_MSTEAMS_HOOK_URL="https://outlook.office.com/webhook/xxxxxxxx@xxxxxxx/IncomingWebhook/yyyyyyyy/zzzzzzzzzz" \
   -e WATCHTOWER_NOTIFICATION_MSTEAMS_USE_LOG_DATA=true \
+  containrrr/watchtower
+```
+
+### Gotify
+
+To push a notification to your Gotify instance, register a Gotify app and specify the Gotify URL and app token:
+
+
+```bash
+docker run -d \
+  --name watchtower \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -e WATCHTOWER_NOTIFICATIONS=gotify \
+  -e WATCHTOWER_NOTIFICATION_GOTIFY_URL="https://my.gotify.tld/" \
+  -e WATCHTOWER_NOTIFICATION_GOTIFY_TOKEN="SuperSecretToken" \
   containrrr/watchtower
 ```
