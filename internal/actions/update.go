@@ -1,26 +1,10 @@
 package actions
 
 import (
-	"math/rand"
-	"time"
-
+	"github.com/containrrr/watchtower/internal/util"
 	"github.com/containrrr/watchtower/pkg/container"
-	t "github.com/containrrr/watchtower/pkg/types"
 	log "github.com/sirupsen/logrus"
 )
-
-var (
-	letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-)
-
-// UpdateParams contains all different options available to alter the behavior of the Update func
-type UpdateParams struct {
-	Filter      t.Filter
-	Cleanup     bool
-	NoRestart   bool
-	Timeout     time.Duration
-	MonitorOnly bool
-}
 
 // Update looks at the running Docker containers to see if any of the images
 // used to start those containers have been updated. If a change is detected in
@@ -55,49 +39,64 @@ func Update(client container.Client, params UpdateParams) error {
 		return nil
 	}
 
-	// Stop stale containers in reverse order
-	for i := len(containers) - 1; i >= 0; i-- {
-		container := containers[i]
-
-		if container.IsWatchtower() {
-			log.Debugf("This is the watchtower container %s", containers[i].Name())
-			continue
-		}
-
-		if container.Stale {
-			if err := client.StopContainer(container, params.Timeout); err != nil {
-				log.Error(err)
-			}
-		}
-	}
-
-	// Restart stale containers in sorted order
-	for _, container := range containers {
-		if container.Stale {
-			// Since we can't shutdown a watchtower container immediately, we need to
-			// start the new one while the old one is still running. This prevents us
-			// from re-using the same container name so we first rename the current
-			// instance so that the new one can adopt the old name.
-			if container.IsWatchtower() {
-				if err := client.RenameContainer(container, randName()); err != nil {
-					log.Error(err)
-					continue
-				}
-			}
-
-			if !params.NoRestart {
-				if err := client.StartContainer(container); err != nil {
-					log.Error(err)
-				}
-			}
-
-			if params.Cleanup {
-				client.RemoveImage(container)
-			}
-		}
-	}
+	stopContainersInReversedOrder(containers, client, params)
+	restartContainersInSortedOrder(containers, client, params)
 
 	return nil
+}
+
+func stopContainersInReversedOrder(containers []container.Container, client container.Client, params UpdateParams) {
+	for i := len(containers) - 1; i >= 0; i-- {
+		stopStaleContainer(containers[i], client, params)
+	}
+}
+
+func stopStaleContainer(container container.Container, client container.Client, params UpdateParams) {
+	if container.IsWatchtower() {
+		log.Debugf("This is the watchtower container %s", container.Name())
+		return
+	}
+
+	if !container.Stale {
+		return
+	}
+
+	err := client.StopContainer(container, params.Timeout)
+	if err != nil {
+		log.Error(err)
+	}
+}
+
+func restartContainersInSortedOrder(containers []container.Container, client container.Client, params UpdateParams) {
+	for _, container := range containers {
+		if !container.Stale {
+			continue
+		}
+		restartStaleContainer(container, client, params)
+	}
+}
+
+func restartStaleContainer(container container.Container, client container.Client, params UpdateParams) {
+	// Since we can't shutdown a watchtower container immediately, we need to
+	// start the new one while the old one is still running. This prevents us
+	// from re-using the same container name so we first rename the current
+	// instance so that the new one can adopt the old name.
+	if container.IsWatchtower() {
+		if err := client.RenameContainer(container, util.RandName()); err != nil {
+			log.Error(err)
+			return
+		}
+	}
+
+	if !params.NoRestart {
+		if err := client.StartContainer(container); err != nil {
+			log.Error(err)
+		}
+	}
+
+	if params.Cleanup {
+		client.RemoveImage(container)
+	}
 }
 
 func checkDependencies(containers []container.Container) {
@@ -117,14 +116,4 @@ func checkDependencies(containers []container.Container) {
 			}
 		}
 	}
-}
-
-// Generates a random, 32-character, Docker-compatible container name.
-func randName() string {
-	b := make([]rune, 32)
-	for i := range b {
-		b[i] = letters[rand.Intn(len(letters))]
-	}
-
-	return string(b)
 }
