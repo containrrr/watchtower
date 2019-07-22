@@ -2,12 +2,13 @@ package container
 
 import (
 	"fmt"
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/filters"
 	"io/ioutil"
 	"time"
 
+	t "github.com/containrrr/watchtower/pkg/types"
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/network"
 	dockerclient "github.com/docker/docker/client"
 	log "github.com/sirupsen/logrus"
@@ -21,7 +22,7 @@ const (
 // A Client is the interface through which watchtower interacts with the
 // Docker API.
 type Client interface {
-	ListContainers(Filter) ([]Container, error)
+	ListContainers(t.Filter) ([]Container, error)
 	StopContainer(Container, time.Duration) error
 	StartContainer(Container) error
 	RenameContainer(Container, string) error
@@ -35,7 +36,7 @@ type Client interface {
 //  * DOCKER_HOST			the docker-engine host to send api requests to
 //  * DOCKER_TLS_VERIFY		whether to verify tls certificates
 //  * DOCKER_API_VERSION	the minimum docker api version to work with
-func NewClient(pullImages bool, includeStopped bool) Client {
+func NewClient(pullImages bool, includeStopped bool, removeVolumes bool) Client {
 	cli, err := dockerclient.NewClientWithOpts(dockerclient.FromEnv)
 
 	if err != nil {
@@ -45,6 +46,7 @@ func NewClient(pullImages bool, includeStopped bool) Client {
 	return dockerClient{
 		api:            cli,
 		pullImages:     pullImages,
+		removeVolumes:  removeVolumes,
 		includeStopped: includeStopped,
 	}
 }
@@ -52,10 +54,11 @@ func NewClient(pullImages bool, includeStopped bool) Client {
 type dockerClient struct {
 	api            dockerclient.CommonAPIClient
 	pullImages     bool
+	removeVolumes  bool
 	includeStopped bool
 }
 
-func (client dockerClient) ListContainers(fn Filter) ([]Container, error) {
+func (client dockerClient) ListContainers(fn t.Filter) ([]Container, error) {
 	cs := []Container{}
 	bg := context.Background()
 
@@ -71,7 +74,7 @@ func (client dockerClient) ListContainers(fn Filter) ([]Container, error) {
 		types.ContainerListOptions{
 			Filters: filter,
 		})
-	
+
 	if err != nil {
 		return nil, err
 	}
@@ -123,21 +126,21 @@ func (client dockerClient) StopContainer(c Container, timeout time.Duration) err
 		}
 	}
 
-	// Wait for container to exit, but proceed anyway after the timeout elapses
-	client.waitForStop(c, timeout)
+	// TODO: This should probably be checked.
+	_ = client.waitForStopOrTimeout(c, timeout)
 
 	if c.containerInfo.HostConfig.AutoRemove {
 		log.Debugf("AutoRemove container %s, skipping ContainerRemove call.", c.ID())
 	} else {
 		log.Debugf("Removing container %s", c.ID())
 
-		if err := client.api.ContainerRemove(bg, c.ID(), types.ContainerRemoveOptions{Force: true, RemoveVolumes: false}); err != nil {
+		if err := client.api.ContainerRemove(bg, c.ID(), types.ContainerRemoveOptions{Force: true, RemoveVolumes: client.removeVolumes}); err != nil {
 			return err
 		}
 	}
 
 	// Wait for container to be removed. In this case an error is a good thing
-	if err := client.waitForStop(c, timeout); err == nil {
+	if err := client.waitForStopOrTimeout(c, timeout); err == nil {
 		return fmt.Errorf("Container %s (%s) could not be removed", c.Name(), c.ID())
 	}
 
@@ -242,7 +245,9 @@ func (client dockerClient) IsContainerStale(c Container) (bool, error) {
 		defer response.Close()
 
 		// the pull request will be aborted prematurely unless the response is read
-		_, err = ioutil.ReadAll(response)
+		if _, err = ioutil.ReadAll(response); err != nil {
+			log.Error(err)
+		}	
 	}
 
 	newImageInfo, _, err := client.api.ImageInspectWithRaw(bg, imageName)
@@ -266,7 +271,7 @@ func (client dockerClient) RemoveImage(c Container) error {
 	return err
 }
 
-func (client dockerClient) waitForStop(c Container, waitTime time.Duration) error {
+func (client dockerClient) waitForStopOrTimeout(c Container, waitTime time.Duration) error {
 	bg := context.Background()
 	timeout := time.After(waitTime)
 

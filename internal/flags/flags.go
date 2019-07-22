@@ -1,11 +1,12 @@
 package flags
 
 import (
+	"os"
+	"time"
+
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"os"
-	"time"
 )
 
 // RegisterDockerFlags that are used directly by the docker api client
@@ -53,6 +54,12 @@ func RegisterSystemFlags(rootCmd *cobra.Command) {
 		"remove previously used images after updating")
 
 	flags.BoolP(
+		"remove-volumes",
+		"",
+		viper.GetBool("WATCHTOWER_REMOVE_VOLUMES"),
+		"remove attached volumes before updating")
+
+	flags.BoolP(
 		"label-enable",
 		"e",
 		viper.GetBool("WATCHTOWER_LABEL_ENABLE"),
@@ -63,7 +70,6 @@ func RegisterSystemFlags(rootCmd *cobra.Command) {
 		"d",
 		viper.GetBool("WATCHTOWER_DEBUG"),
 		"enable debug mode with verbose logging")
-
 
 	flags.BoolP(
 		"monitor-only",
@@ -253,7 +259,6 @@ func ReadFlags(cmd *cobra.Command) (bool, bool, bool, time.Duration) {
 	return cleanup, noRestart, monitorOnly, timeout
 }
 
-
 func setEnvOptStr(env string, opt string) error {
 	if opt == "" || opt == os.Getenv(env) {
 		return nil
@@ -266,9 +271,8 @@ func setEnvOptStr(env string, opt string) error {
 }
 
 func setEnvOptBool(env string, opt bool) error {
-	if opt == true {
+	if opt {
 		return setEnvOptStr(env, "1")
 	}
 	return nil
 }
-

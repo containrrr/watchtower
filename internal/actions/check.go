@@ -11,7 +11,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/containrrr/watchtower/container"
+	"github.com/containrrr/watchtower/pkg/container"
 )
 
 // CheckForMultipleWatchtowerInstances will ensure that there are not multiple instances of the
@@ -50,7 +50,7 @@ func cleanupExcessWatchtowers(containers []container.Container, client container
 			continue
 		}
 
-		if cleanup == true {
+		if cleanup {
 			if err := client.RemoveImage(c); err != nil {
 				// logging the original here as we're just returning a count
 				logrus.Error(err)

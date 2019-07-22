@@ -8,16 +8,16 @@ import (
 	"os"
 	"time"
 
-	"strconv"
-
+	t "github.com/containrrr/watchtower/pkg/types"
 	log "github.com/sirupsen/logrus"
+	"strconv"
 )
 
 const (
 	emailType = "email"
 )
 
-// Implements typeNotifier, logrus.Hook
+// Implements Notifier, logrus.Hook
 // The default logrus email integration would have several issues:
 // - It would send one email per log output
 // - It would only send errors
@@ -31,12 +31,12 @@ type emailTypeNotifier struct {
 	logLevels              []log.Level
 }
 
-func newEmailNotifier(c *cobra.Command, acceptedLogLevels []log.Level) typeNotifier {
+func newEmailNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.Notifier {
 	flags := c.PersistentFlags()
 
 	from, _ := flags.GetString("notification-email-from")
-	to, _  := flags.GetString("notification-email-to")
-	server, _  := flags.GetString("notification-email-server")
+	to, _ := flags.GetString("notification-email-to")
+	server, _ := flags.GetString("notification-email-server")
 	user, _ := flags.GetString("notification-email-server-user")
 	password, _ := flags.GetString("notification-email-server-password")
 	port, _ := flags.GetInt("notification-email-server-port")
@@ -70,7 +70,7 @@ func (e *emailTypeNotifier) buildMessage(entries []*log.Entry) []byte {
 	}
 
 	t := time.Now()
-	
+
 	header := make(map[string]string)
 	header["From"] = e.From
 	header["To"] = e.To

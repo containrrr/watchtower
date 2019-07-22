@@ -1,17 +1,19 @@
 package cmd
 
 import (
-	"github.com/containrrr/watchtower/actions"
-	"github.com/containrrr/watchtower/container"
-	"github.com/containrrr/watchtower/internal/flags"
-	"github.com/containrrr/watchtower/notifications"
-	"github.com/robfig/cron"
-	log "github.com/sirupsen/logrus"
 	"os"
 	"os/signal"
 	"strconv"
 	"syscall"
 	"time"
+
+	"github.com/containrrr/watchtower/internal/actions"
+	"github.com/containrrr/watchtower/internal/flags"
+	"github.com/containrrr/watchtower/pkg/container"
+	"github.com/containrrr/watchtower/pkg/notifications"
+	t "github.com/containrrr/watchtower/pkg/types"
+	"github.com/robfig/cron"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/spf13/cobra"
 )
@@ -32,9 +34,9 @@ var (
 )
 
 var rootCmd = &cobra.Command{
-	Use:    "watchtower",
-	Short:  "Automatically updates running Docker containers",
-	Long:   `
+	Use:   "watchtower",
+	Short: "Automatically updates running Docker containers",
+	Long: `
 Watchtower automatically updates running Docker containers whenever a new image is released.
 More information available at https://github.com/containrrr/watchtower/.
 `,
@@ -60,7 +62,7 @@ func Execute() {
 func PreRun(cmd *cobra.Command, args []string) {
 	f := cmd.PersistentFlags()
 
-	if enabled, _ := f.GetBool("debug"); enabled == true {
+	if enabled, _ := f.GetBool("debug"); enabled {
 		log.SetLevel(log.DebugLevel)
 	}
 
@@ -92,9 +94,11 @@ func PreRun(cmd *cobra.Command, args []string) {
 
 	noPull, _ := f.GetBool("no-pull")
 	includeStopped, _ := f.GetBool("include-stopped")
+	removeVolumes, _ := f.GetBool("remove-volumes")
 	client = container.NewClient(
 		!noPull,
 		includeStopped,
+		removeVolumes,
 	)
 
 	notifier = notifications.NewNotifier(cmd)
@@ -116,11 +120,14 @@ func Run(c *cobra.Command, names []string) {
 		log.Fatal(err)
 	}
 
-	runUpgradesOnSchedule(filter)
+	if err := runUpgradesOnSchedule(filter); err != nil {
+		log.Error(err)
+	}
+
 	os.Exit(1)
 }
 
-func runUpgradesOnSchedule(filter container.Filter) error {
+func runUpgradesOnSchedule(filter t.Filter) error {
 	tryLockSem := make(chan bool, 1)
 	tryLockSem <- true
 
@@ -161,7 +168,7 @@ func runUpgradesOnSchedule(filter container.Filter) error {
 	return nil
 }
 
-func runUpdatesWithNotifications(filter container.Filter) {
+func runUpdatesWithNotifications(filter t.Filter) {
 	notifier.StartNotification()
 	updateParams := actions.UpdateParams{
 		Filter:      filter,
@@ -176,5 +183,3 @@ func runUpdatesWithNotifications(filter container.Filter) {
 	}
 	notifier.SendNotification()
 }
-
-

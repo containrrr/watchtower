@@ -2,6 +2,7 @@ package container
 
 import (
 	"fmt"
+	"github.com/containrrr/watchtower/internal/util"
 	"strconv"
 	"strings"
 
@@ -146,19 +147,19 @@ func (c Container) runtimeConfig() *dockercontainer.Config {
 		config.User = ""
 	}
 
-	if sliceEqual(config.Cmd, imageConfig.Cmd) {
+	if util.SliceEqual(config.Cmd, imageConfig.Cmd) {
 		config.Cmd = nil
 	}
 
-	if sliceEqual(config.Entrypoint, imageConfig.Entrypoint) {
+	if util.SliceEqual(config.Entrypoint, imageConfig.Entrypoint) {
 		config.Entrypoint = nil
 	}
 
-	config.Env = sliceSubtract(config.Env, imageConfig.Env)
+	config.Env = util.SliceSubtract(config.Env, imageConfig.Env)
 
-	config.Labels = stringMapSubtract(config.Labels, imageConfig.Labels)
+	config.Labels = util.StringMapSubtract(config.Labels, imageConfig.Labels)
 
-	config.Volumes = structMapSubtract(config.Volumes, imageConfig.Volumes)
+	config.Volumes = util.StructMapSubtract(config.Volumes, imageConfig.Volumes)
 
 	// subtract ports exposed in image from container
 	for k := range config.ExposedPorts {
