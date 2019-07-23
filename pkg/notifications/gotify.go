@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 
+	t "github.com/containrrr/watchtower/pkg/types"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -21,7 +22,7 @@ type gotifyTypeNotifier struct {
 	logLevels      []log.Level
 }
 
-func newGotifyNotifier(c *cobra.Command, acceptedLogLevels []log.Level) typeNotifier {
+func newGotifyNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.Notifier {
 	flags := c.PersistentFlags()
 
 	gotifyURL, _ := flags.GetString("notification-gotify-url")

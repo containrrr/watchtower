@@ -247,7 +247,7 @@ func (client dockerClient) IsContainerStale(c Container) (bool, error) {
 		// the pull request will be aborted prematurely unless the response is read
 		if _, err = ioutil.ReadAll(response); err != nil {
 			log.Error(err)
-		}	
+		}
 	}
 
 	newImageInfo, _, err := client.api.ImageInspectWithRaw(bg, imageName)
