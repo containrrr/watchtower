@@ -61,8 +61,9 @@ func stopStaleContainer(container container.Container, client container.Client, 
 		return
 	}
 
-	err := client.StopContainer(container, params.Timeout)
-	if err != nil {
+	executePreUpdateCommand(client, container)
+
+	if err := client.StopContainer(container, params.Timeout); err != nil {
 		log.Error(err)
 	}
 }
@@ -89,8 +90,10 @@ func restartStaleContainer(container container.Container, client container.Clien
 	}
 
 	if !params.NoRestart {
-		if err := client.StartContainer(container); err != nil {
+		if newContainerID, err := client.StartContainer(container); err != nil {
 			log.Error(err)
+		} else if container.Stale && params.LifecycleHooks {
+			executePostUpdateCommand(client, newContainerID)
 		}
 	}
 
@@ -104,18 +107,49 @@ func restartStaleContainer(container container.Container, client container.Clien
 func checkDependencies(containers []container.Container) {
 
 	for i, parent := range containers {
-		if parent.Stale {
+		if parent.ToRestart() {
 			continue
 		}
 
 	LinkLoop:
 		for _, linkName := range parent.Links() {
 			for _, child := range containers {
-				if child.Name() == linkName && child.Stale {
-					containers[i].Stale = true
+				if child.Name() == linkName && child.ToRestart() {
+					containers[i].Linked = true
 					break LinkLoop
 				}
 			}
 		}
+	}
+}
+
+func executePreUpdateCommand(client container.Client, container container.Container) {
+
+	command := container.GetLifecyclePreUpdateCommand()
+	if len(command) == 0 {
+		log.Debug("No pre-update command supplied. Skipping")
+	}
+
+	log.Info("Executing pre-update command.")
+	if err := client.ExecuteCommand(container.ID(), command); err != nil {
+		log.Error(err)
+	}
+}
+
+func executePostUpdateCommand(client container.Client, newContainerID string) {
+	newContainer, err := client.GetContainer(newContainerID)
+	if err != nil {
+		log.Error(err)
+		return
+	}
+
+	command := newContainer.GetLifecyclePostUpdateCommand()
+	if len(command) == 0 {
+		log.Debug("No post-update command supplied. Skipping")
+	}
+
+	log.Info("Executing post-update command.")
+	if err := client.ExecuteCommand(newContainerID, command); err != nil {
+		log.Error(err)
 	}
 }

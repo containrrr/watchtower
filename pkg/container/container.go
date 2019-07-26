@@ -10,13 +10,6 @@ import (
 	dockercontainer "github.com/docker/docker/api/types/container"
 )
 
-const (
-	watchtowerLabel = "com.centurylinklabs.watchtower"
-	signalLabel     = "com.centurylinklabs.watchtower.stop-signal"
-	enableLabel     = "com.centurylinklabs.watchtower.enable"
-	zodiacLabel     = "com.centurylinklabs.zodiac.original-image"
-)
-
 // NewContainer returns a new Container instance instantiated with the
 // specified ContainerInfo and ImageInfo structs.
 func NewContainer(containerInfo *types.ContainerJSON, imageInfo *types.ImageInspect) *Container {
@@ -28,7 +21,8 @@ func NewContainer(containerInfo *types.ContainerJSON, imageInfo *types.ImageInsp
 
 // Container represents a running Docker container.
 type Container struct {
-	Stale bool
+	Linked bool
+	Stale  bool
 
 	containerInfo *types.ContainerJSON
 	imageInfo     *types.ImageInspect
@@ -62,7 +56,7 @@ func (c Container) ImageID() string {
 // "latest" tag is assumed.
 func (c Container) ImageName() string {
 	// Compatibility w/ Zodiac deployments
-	imageName, ok := c.containerInfo.Config.Labels[zodiacLabel]
+	imageName, ok := c.getLabelValue(zodiacLabel)
 	if !ok {
 		imageName = c.containerInfo.Config.Image
 	}
@@ -77,7 +71,7 @@ func (c Container) ImageName() string {
 // Enabled returns the value of the container enabled label and if the label
 // was set.
 func (c Container) Enabled() (bool, bool) {
-	rawBool, ok := c.containerInfo.Config.Labels[enableLabel]
+	rawBool, ok := c.getLabelValue(enableLabel)
 	if !ok {
 		return false, false
 	}
@@ -105,6 +99,12 @@ func (c Container) Links() []string {
 	return links
 }
 
+// ToRestart return whether the container should be restarted, either because
+// is stale or linked to another stale container.
+func (c Container) ToRestart() bool {
+	return c.Stale || c.Linked
+}
+
 // IsWatchtower returns a boolean flag indicating whether or not the current
 // container is the watchtower container itself. The watchtower container is
 // identified by the presence of the "com.centurylinklabs.watchtower" label in
@@ -117,11 +117,7 @@ func (c Container) IsWatchtower() bool {
 // container's metadata. If the container has not specified a custom stop
 // signal, the empty string "" is returned.
 func (c Container) StopSignal() string {
-	if val, ok := c.containerInfo.Config.Labels[signalLabel]; ok {
-		return val
-	}
-
-	return ""
+	return c.getLabelValueOrEmpty(signalLabel)
 }
 
 // Ideally, we'd just be able to take the ContainerConfig from the old container
@@ -188,11 +184,4 @@ func (c Container) hostConfig() *dockercontainer.HostConfig {
 	}
 
 	return hostConfig
-}
-
-// ContainsWatchtowerLabel takes a map of labels and values and tells
-// the consumer whether it contains a valid watchtower instance label
-func ContainsWatchtowerLabel(labels map[string]string) bool {
-	val, ok := labels[watchtowerLabel]
-	return ok && val == "true"
 }
