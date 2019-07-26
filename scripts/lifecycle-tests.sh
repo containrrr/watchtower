@@ -22,7 +22,7 @@ function cleanup {
 }
 trap cleanup EXIT
 
-DEFAULT_WATCHTOWER="${GOPATH}/src/github.com/containrrr/watchtower/watchtower"
+DEFAULT_WATCHTOWER="$(dirname "${BASH_SOURCE[0]}")/../watchtower"
 WATCHTOWER=$1
 WATCHTOWER=${WATCHTOWER:-$DEFAULT_WATCHTOWER}
 echo "watchtower path is $WATCHTOWER"

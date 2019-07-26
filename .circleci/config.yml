@@ -90,6 +90,7 @@ jobs:
       - run: go get -u github.com/haya14busa/goverage
       - run: goverage -v -coverprofile=coverage.out ./...
       - run: godacov -t $CODACY_TOKEN -r ./coverage.out -c $CIRCLE_SHA1
+      - run: ./scripts/lifecycle-tests.sh
   build:
     executor: go
     steps:
