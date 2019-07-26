@@ -23,14 +23,15 @@ import (
 const DockerAPIMinVersion string = "1.24"
 
 var (
-	client       container.Client
-	scheduleSpec string
-	cleanup      bool
-	noRestart    bool
-	monitorOnly  bool
-	enableLabel  bool
-	notifier     *notifications.Notifier
-	timeout      time.Duration
+	client         container.Client
+	scheduleSpec   string
+	cleanup        bool
+	noRestart      bool
+	monitorOnly    bool
+	enableLabel    bool
+	notifier       *notifications.Notifier
+	timeout        time.Duration
+	lifecycleHooks bool
 )
 
 var rootCmd = &cobra.Command{
@@ -84,7 +85,9 @@ func PreRun(cmd *cobra.Command, args []string) {
 	if timeout < 0 {
 		log.Fatal("Please specify a positive value for timeout value.")
 	}
+
 	enableLabel, _ = f.GetBool("label-enable")
+	lifecycleHooks, _ = f.GetBool("enable-lifecycle-hooks")
 
 	// configure environment vars for client
 	err := flags.EnvConfig(cmd, DockerAPIMinVersion)
@@ -95,6 +98,7 @@ func PreRun(cmd *cobra.Command, args []string) {
 	noPull, _ := f.GetBool("no-pull")
 	includeStopped, _ := f.GetBool("include-stopped")
 	removeVolumes, _ := f.GetBool("remove-volumes")
+
 	client = container.NewClient(
 		!noPull,
 		includeStopped,
@@ -171,11 +175,12 @@ func runUpgradesOnSchedule(filter t.Filter) error {
 func runUpdatesWithNotifications(filter t.Filter) {
 	notifier.StartNotification()
 	updateParams := actions.UpdateParams{
-		Filter:      filter,
-		Cleanup:     cleanup,
-		NoRestart:   noRestart,
-		Timeout:     timeout,
-		MonitorOnly: monitorOnly,
+		Filter:         filter,
+		Cleanup:        cleanup,
+		NoRestart:      noRestart,
+		Timeout:        timeout,
+		MonitorOnly:    monitorOnly,
+		LifecycleHooks: lifecycleHooks,
 	}
 	err := actions.Update(client, updateParams)
 	if err != nil {

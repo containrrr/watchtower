@@ -160,7 +160,7 @@ func (client mockClient) StopContainer(c container.Container, d time.Duration) e
 	}
 	return nil
 }
-func (client mockClient) StartContainer(c container.Container) error {
+func (client mockClient) StartContainer(c container.Container) (string, error) {
 	panic("Not implemented")
 }
 
@@ -170,6 +170,14 @@ func (client mockClient) RenameContainer(c container.Container, s string) error 
 
 func (client mockClient) RemoveImage(c container.Container) error {
 	client.TestData.TriedToRemoveImage = true
+	return nil
+}
+
+func (client mockClient) GetContainer(containerID string) (container.Container, error) {
+	return container.Container{}, nil
+}
+
+func (client mockClient) ExecuteCommand(containerID string, command string) error {
 	return nil
 }
 

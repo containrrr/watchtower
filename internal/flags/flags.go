@@ -88,6 +88,12 @@ func RegisterSystemFlags(rootCmd *cobra.Command) {
 		"S",
 		viper.GetBool("WATCHTOWER_INCLUDE_STOPPED"),
 		"Will also include created and exited containers")
+
+	flags.BoolP(
+		"enable-lifecycle-hooks",
+		"",
+		viper.GetBool("WATCHTOWER_LIFECYCLE_HOOKS"),
+		"Enable the execution of commands triggered by pre- and post-update lifecycle hooks")
 }
 
 // RegisterNotificationFlags that are used by watchtower to send notifications
