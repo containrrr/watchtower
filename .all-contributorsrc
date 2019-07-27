@@ -311,6 +311,15 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "alexandremenif",
+      "name": "Alexandre Menif",
+      "avatar_url": "https://avatars0.githubusercontent.com/u/16152103?v=4",
+      "profile": "https://alexandre.menif.name",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
