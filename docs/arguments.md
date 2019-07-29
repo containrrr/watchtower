@@ -91,7 +91,7 @@ Environment Variable: WATCHTOWER_INCLUDE_STOPPED
 Poll interval (in seconds). This value controls how frequently watchtower will poll for new images.
 
 ```
-            Argument: ---interval, -i
+            Argument: --interval, -i
 Environment Variable: WATCHTOWER_POLL_INTERVAL
                 Type: Integer
              Default: 300
