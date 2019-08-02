@@ -38,6 +38,9 @@
   <a href="#contributors">
     <img alt="All Contributors" src="https://img.shields.io/badge/all_contributors-30-orange.svg?style=flat-square" />
   </a>
+  <a href="https://hub.docker.com/r/containrrr/watchtower">
+    <img alt="Pulls from DockerHub" src="https://img.shields.io/docker/pulls/containrrr/watchtower.svg?style=flat-square" />
+  </a>
 </p>
 
 ## Quick Start
