@@ -11,14 +11,14 @@ executed after restarting the container.
 
 This feature is disabled by default. To enable it, you need to set the option
 `--enable-lifecycle-hooks` on the command line, or set the environment variable
-`WATCHTOWER_LIFECYCLE_HOOKS` to true.
+`WATCHTOWER_LIFECYCLE_HOOKS` to `true`.
 
  
 
 ### Specifying update commands
 
 The commands are specified using docker container labels, with 
-`com.centurylinklabs.watchtower.pre-update-command` for the *pre-update* 
+`com.centurylinklabs.watchtower.lifecycle.pre-update-command` for the *pre-update* 
 command and `com.centurylinklabs.watchtower.lifecycle.post-update` for the
 *post-update* command.
 
