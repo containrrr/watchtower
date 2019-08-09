@@ -329,6 +329,15 @@
       "contributions": [
         "doc"
       ]
+    },
+    {
+      "login": "noplanman",
+      "name": "Armando Lüscher",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/9423417?v=4",
+      "profile": "https://noplanman.ch",
+      "contributions": [
+        "doc"
+      ]
     }
   ],
   "contributorsPerLine": 7,
