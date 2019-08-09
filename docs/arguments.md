@@ -12,8 +12,8 @@ $ docker run -d \
 ```
 
 In the example above, watchtower will only monitor the containers named "nginx" and "redis" for updates -- all of the other
-running containers will be ignored. If you do not want watchtower to run as a daemon you can pass a run-once flag and remove
-the watchtower container after it's execution.
+running containers will be ignored. If you do not want watchtower to run as a daemon you can pass the `--run-once` flag and remove
+the watchtower container after its execution.
 
 ```bash
 $ docker run --rm \
@@ -23,7 +23,7 @@ $ docker run --rm \
     nginx redis
 ```
 
-In the example above, watchtower will execute an upgrade attempt on the containers named "nginx" and "redis". Using this mode will enable debugging output showing all actions performed as usage is intended for interactive users. Once the attempt is completed, the container will exit and remove itself due to the "--rm" flag.
+In the example above, watchtower will execute an upgrade attempt on the containers named "nginx" and "redis". Using this mode will enable debugging output showing all actions performed, as usage is intended for interactive users. Once the attempt is completed, the container will exit and remove itself due to the `--rm` flag.
 
 When no arguments are specified, watchtower will monitor all running containers.
 
@@ -48,7 +48,7 @@ Environment Variable: WATCHTOWER_CLEANUP
 ```
 
 ## Remove attached volumes
-Removes attached volumes after updating. When this flag is specified, watchtower will remove all attached volumes from the container before restarting container with a new image. Use this option to force new volumes to be populated as containers are updated.
+Removes attached volumes after updating. When this flag is specified, watchtower will remove all attached volumes from the container before restarting with a new image. Use this option to force new volumes to be populated as containers are updated.
 
 ```
             Argument: --remove-volumes
@@ -87,7 +87,7 @@ Environment Variable: WATCHTOWER_INCLUDE_STOPPED
              Default: false
 ```   
 
-## Poll Interval
+## Poll interval
 Poll interval (in seconds). This value controls how frequently watchtower will poll for new images.
 
 ```
