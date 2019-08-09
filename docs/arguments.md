@@ -98,7 +98,7 @@ Environment Variable: WATCHTOWER_POLL_INTERVAL
 ```   
 
 ## Filter by enable label
-Watch containers where the `com.centurylinklabs.watchtower.enable` label is set to true.
+Update containers that have a `com.centurylinklabs.watchtower.enable` label set to true.
 
 ```
             Argument: --label-enable
