@@ -338,6 +338,15 @@
       "contributions": [
         "doc"
       ]
+    },
+    {
+      "login": "rjbudke",
+      "name": "Ryan Budke",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/273485?v=4",
+      "profile": "https://github.com/rjbudke",
+      "contributions": [
+        "doc"
+      ]
     }
   ],
   "contributorsPerLine": 7,
