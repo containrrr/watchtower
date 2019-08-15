@@ -79,6 +79,6 @@ func createErrorIfAnyHaveOccurred(c int, i int) error {
 }
 
 func awaitDockerClient() {
-	log.Debug("Sleeping for a seconds to ensure the docker api client has been properly initialized.")
+	log.Debug("Sleeping for a second to ensure the docker api client has been properly initialized.")
 	time.Sleep(1 * time.Second)
 }
