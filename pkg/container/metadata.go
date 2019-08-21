@@ -5,9 +5,21 @@ const (
 	signalLabel     = "com.centurylinklabs.watchtower.stop-signal"
 	enableLabel     = "com.centurylinklabs.watchtower.enable"
 	zodiacLabel     = "com.centurylinklabs.zodiac.original-image"
+	preCheckLabel   = "com.centurylinklabs.watchtower.lifecycle.pre-check"
+	postCheckLabel  = "com.centurylinklabs.watchtower.lifecycle.post-check"
 	preUpdateLabel  = "com.centurylinklabs.watchtower.lifecycle.pre-update"
 	postUpdateLabel = "com.centurylinklabs.watchtower.lifecycle.post-update"
 )
+
+// GetLifecyclePreCheckCommand returns the pre-check command set in the container metadata or an empty string
+func (c Container) GetLifecyclePreCheckCommand() string {
+	return c.getLabelValueOrEmpty(preCheckLabel)
+}
+
+// GetLifecyclePostCheckCommand returns the post-check command set in the container metadata or an empty string
+func (c Container) GetLifecyclePostCheckCommand() string {
+	return c.getLabelValueOrEmpty(postCheckLabel)
+}
 
 // GetLifecyclePreUpdateCommand returns the pre-update command set in the container metadata or an empty string
 func (c Container) GetLifecyclePreUpdateCommand() string {

@@ -13,6 +13,8 @@ import (
 func Update(client container.Client, params UpdateParams) error {
 	log.Debug("Checking containers for updated images")
 
+	executePreCheck(client, params)
+
 	containers, err := client.ListContainers(params.Filter)
 	if err != nil {
 		return err
@@ -36,12 +38,14 @@ func Update(client container.Client, params UpdateParams) error {
 	checkDependencies(containers)
 
 	if params.MonitorOnly {
+		executePostCheck(client, params)
 		return nil
 	}
 
 	stopContainersInReversedOrder(containers, client, params)
 	restartContainersInSortedOrder(containers, client, params)
 
+	executePostCheck(client, params)
 	return nil
 }
 
@@ -123,11 +127,58 @@ func checkDependencies(containers []container.Container) {
 	}
 }
 
+func executePreCheck(client container.Client, params UpdateParams) {
+	containers, err := client.ListContainers(params.Filter)
+	if err != nil {
+		return
+	}
+	for _, container := range containers {
+		executePreCheckCommand(client, container)
+	}
+}
+
+func executePostCheck(client container.Client, params UpdateParams) {
+	containers, err := client.ListContainers(params.Filter)
+	if err != nil {
+		return
+	}
+	for _, container := range containers {
+		executePostCheckCommand(client, container)
+	}
+}
+
+func executePreCheckCommand(client container.Client, container container.Container) {
+	command := container.GetLifecyclePreCheckCommand()
+	if len(command) == 0 {
+		log.Debug("No pre-check command supplied. Skipping")
+		return
+	}
+
+	log.Info("Executing pre-check command.")
+	if err := client.ExecuteCommand(container.ID(), command); err != nil {
+		log.Error(err)
+	}
+}
+
+func executePostCheckCommand(client container.Client, container container.Container) {
+	command := container.GetLifecyclePostCheckCommand()
+	if len(command) == 0 {
+		log.Debug("No post-check command supplied. Skipping")
+		return
+	}
+
+	log.Info("Executing post-check command.")
+	if err := client.ExecuteCommand(container.ID(), command); err != nil {
+		log.Error(err)
+	}
+}
+
 func executePreUpdateCommand(client container.Client, container container.Container) {
 
 	command := container.GetLifecyclePreUpdateCommand()
 	if len(command) == 0 {
 		log.Debug("No pre-update command supplied. Skipping")
+		return
 	}
 
 	log.Info("Executing pre-update command.")
@@ -146,6 +197,7 @@ func executePostUpdateCommand(client container.Client, newContainerID string) {
 	command := newContainer.GetLifecyclePostUpdateCommand()
 	if len(command) == 0 {
 		log.Debug("No post-update command supplied. Skipping")
+		return
 	}
 
 	log.Info("Executing post-update command.")
