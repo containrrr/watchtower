@@ -112,6 +112,7 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
   <tr>
     <td align="center"><a href="https://noplanman.ch"><img src="https://avatars3.githubusercontent.com/u/9423417?v=4" width="100px;" alt="Armando Lüscher"/><br /><sub><b>Armando Lüscher</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=noplanman" title="Documentation">📖</a></td>
     <td align="center"><a href="https://github.com/rjbudke"><img src="https://avatars2.githubusercontent.com/u/273485?v=4" width="100px;" alt="Ryan Budke"/><br /><sub><b>Ryan Budke</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=rjbudke" title="Documentation">📖</a></td>
+    <td align="center"><a href="http://kaloyan.raev.name"><img src="https://avatars2.githubusercontent.com/u/468091?v=4" width="100px;" alt="Kaloyan Raev"/><br /><sub><b>Kaloyan Raev</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=kaloyan-raev" title="Code">💻</a> <a href="https://github.com/containrrr/watchtower/commits?author=kaloyan-raev" title="Tests">⚠️</a></td>
   </tr>
 </table>
 
