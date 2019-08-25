@@ -75,7 +75,17 @@ Docker daemon socket to connect to. Can be pointed at a remote Docker host by sp
 Environment Variable: DOCKER_HOST
                 Type: String
              Default: "unix:///var/run/docker.sock"
-```      
+```
+
+## Docker API version
+The API version to use by the Docker client for connecting to the Docker daemon. The minimum supported version is 1.24.
+
+```
+            Argument: --api-version, -a
+Environment Variable: DOCKER_API_VERSION
+                Type: String
+             Default: "1.24"
+```
 
 ## Include stopped
 Will also include created and exited containers.

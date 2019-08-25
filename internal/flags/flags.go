@@ -9,11 +9,16 @@ import (
 	"github.com/spf13/viper"
 )
 
+// DockerAPIMinVersion is the minimum version of the docker api required to
+// use watchtower
+const DockerAPIMinVersion string = "1.24"
+
 // RegisterDockerFlags that are used directly by the docker api client
 func RegisterDockerFlags(rootCmd *cobra.Command) {
 	flags := rootCmd.PersistentFlags()
 	flags.StringP("host", "H", viper.GetString("DOCKER_HOST"), "daemon socket to connect to")
 	flags.BoolP("tlsverify", "v", viper.GetBool("DOCKER_TLS_VERIFY"), "use TLS and verify the remote")
+	flags.StringP("api-version", "a", viper.GetString("DOCKER_API_VERSION"), "api version to use by docker client")
 }
 
 // RegisterSystemFlags that are used by watchtower to modify the program flow
@@ -215,6 +220,7 @@ Should only be used for testing.
 func SetDefaults() {
 	viper.AutomaticEnv()
 	viper.SetDefault("DOCKER_HOST", "unix:///var/run/docker.sock")
+	viper.SetDefault("DOCKER_API_VERSION", DockerAPIMinVersion)
 	viper.SetDefault("WATCHTOWER_POLL_INTERVAL", 300)
 	viper.SetDefault("WATCHTOWER_TIMEOUT", time.Second*10)
 	viper.SetDefault("WATCHTOWER_NOTIFICATIONS", []string{})
@@ -225,10 +231,11 @@ func SetDefaults() {
 
 // EnvConfig translates the command-line options into environment variables
 // that will initialize the api client
-func EnvConfig(cmd *cobra.Command, dockerAPIMinVersion string) error {
+func EnvConfig(cmd *cobra.Command) error {
 	var err error
 	var host string
 	var tls bool
+	var version string
 
 	flags := cmd.PersistentFlags()
 
@@ -238,13 +245,16 @@ func EnvConfig(cmd *cobra.Command, dockerAPIMinVersion string) error {
 	if tls, err = flags.GetBool("tlsverify"); err != nil {
 		return err
 	}
+	if version, err = flags.GetString("api-version"); err != nil {
+		return err
+	}
 	if err = setEnvOptStr("DOCKER_HOST", host); err != nil {
 		return err
 	}
 	if err = setEnvOptBool("DOCKER_TLS_VERIFY", tls); err != nil {
 		return err
 	}
-	if err = setEnvOptStr("DOCKER_API_VERSION", dockerAPIMinVersion); err != nil {
+	if err = setEnvOptStr("DOCKER_API_VERSION", version); err != nil {
 		return err
 	}
 	return nil
