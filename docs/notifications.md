@@ -26,6 +26,7 @@ To receive notifications by email, the following command-line options, or their 
 - `--notification-email-server-port` (env. `WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PORT`): The port used to connect to the SMTP server to send e-mails through. Defaults to `25`.
 - `--notification-email-server-user` (env. `WATCHTOWER_NOTIFICATION_EMAIL_SERVER_USER`): The username to authenticate with the SMTP server with.
 - `--notification-email-server-password` (env. `WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PASSWORD`): The password to authenticate with the SMTP server with.
+- `--notification-email-delay` (env. `WATCHTOWER_NOTIFICATION_EMAIL_DELAY`): Delay before sending notifications expressed in seconds.
 
 Example:
 
@@ -39,6 +40,7 @@ docker run -d \
   -e WATCHTOWER_NOTIFICATION_EMAIL_SERVER=smtp.gmail.com \
   -e WATCHTOWER_NOTIFICATION_EMAIL_SERVER_USER=fromaddress@gmail.com \
   -e WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PASSWORD=app_password \
+  -e WATCHTOWER_NOTIFICATION_EMAIL_DELAY=2 \
   containrrr/watchtower
 ```
 

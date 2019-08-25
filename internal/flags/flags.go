@@ -128,6 +128,12 @@ func RegisterNotificationFlags(rootCmd *cobra.Command) {
 		"",
 		viper.GetString("WATCHTOWER_NOTIFICATION_EMAIL_TO"),
 		"Address to send notification emails to")
+	
+	flags.IntP(
+		"notification-email-delay",
+		"",
+		viper.GetInt("WATCHTOWER_NOTIFICATION_EMAIL_DELAY"),
+		"Delay before sending notifications, expressed in seconds")
 
 	flags.StringP(
 		"notification-email-server",

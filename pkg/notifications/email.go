@@ -29,6 +29,7 @@ type emailTypeNotifier struct {
 	tlsSkipVerify          bool
 	entries                []*log.Entry
 	logLevels              []log.Level
+	delay                  time.Duration
 }
 
 func newEmailNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.Notifier {
@@ -41,6 +42,7 @@ func newEmailNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.Notifie
 	password, _ := flags.GetString("notification-email-server-password")
 	port, _ := flags.GetInt("notification-email-server-port")
 	tlsSkipVerify, _ := flags.GetBool("notification-email-server-tls-skip-verify")
+	delay, _ := flags.GetInt("notification-email-delay")
 
 	n := &emailTypeNotifier{
 		From:          from,
@@ -51,6 +53,7 @@ func newEmailNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.Notifie
 		Port:          port,
 		tlsSkipVerify: tlsSkipVerify,
 		logLevels:     acceptedLogLevels,
+		delay:         time.Duration(delay) * time.Second,
 	}
 
 	log.AddHook(n)
@@ -117,9 +120,15 @@ func (e *emailTypeNotifier) StartNotification() {
 }
 
 func (e *emailTypeNotifier) SendNotification() {
-	if e.entries != nil && len(e.entries) != 0 {
-		e.sendEntries(e.entries)
+	if e.entries == nil || len(e.entries) <= 0 {
+		return
 	}
+
+	if e.delay > 0 {
+		time.Sleep(e.delay)
+	}
+
+	e.sendEntries(e.entries)	
 	e.entries = nil
 }
 
