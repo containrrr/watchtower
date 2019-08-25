@@ -357,6 +357,15 @@
         "code",
         "test"
       ]
+    },
+    {
+      "login": "sixth",
+      "name": "sixth",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/11591445?v=4",
+      "profile": "https://github.com/sixth",
+      "contributions": [
+        "doc"
+      ]
     }
   ],
   "contributorsPerLine": 7,
