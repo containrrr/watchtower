@@ -112,7 +112,7 @@ func Run(c *cobra.Command, names []string) {
 	if runOnce {
 		log.Info("Running a one time update.")
 		runUpdatesWithNotifications(filter)
-		os.Exit(1)
+		os.Exit(0)
 		return
 	}
 
