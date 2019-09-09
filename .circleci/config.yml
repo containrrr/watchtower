@@ -1,6 +1,10 @@
 version: 2.1
 
 executors:
+  py:
+    docker:
+      - image: circleci/python:latest
+    working_directory: ~/repo
   go:
     docker:
       - image: circleci/golang:latest
@@ -32,9 +36,18 @@ workflows:
               only: /.*/
             tags:
               only: /.*/
+    #  - integration_testing:
+    #      requires:
+    #        - checkout
+    #      filters:
+    #        branches:
+    #          only: /.*/
+    #        tags:
+    #          only: /.*/
       - build:
           requires:
             - testing
+    #        - integration_testing
             - linting
           filters:
             branches:
@@ -42,6 +55,15 @@ workflows:
             tags:
               ignore: /^v[0-9]+(\.[0-9]+)*$/
       - publishing:
+          requires:
+            - testing
+            - linting
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v[0-9]+(\.[0-9]+)*$/
+      - publish-docs:
           requires:
             - testing
             - linting
@@ -77,6 +99,14 @@ jobs:
       - run: go get -u github.com/haya14busa/goverage
       - run: goverage -v -coverprofile=coverage.out ./...
       - run: godacov -t $CODACY_TOKEN -r ./coverage.out -c $CIRCLE_SHA1
+  #integration_testing:
+  #  executor: go
+  #  steps:
+  #    - attach_workspace:
+  #        at: .
+  #    - run: go build .
+  #    - setup_remote_docker
+  #    - run: ./scripts/lifecycle-tests.sh
   build:
     executor: go
     steps:
@@ -203,3 +233,24 @@ jobs:
               -e DOCKER_REPOSITORY=containrrr/watchtower \
               -e GIT_BRANCH=master \
               lsiodev/readme-sync bash -c 'node sync'
+  publish-docs:
+    executor: py
+    steps:
+      - attach_workspace:
+          at: .
+      - run:
+          name: Install prerequisites
+          command: |
+            sudo pip install \
+              mkdocs \
+              mkdocs-material \
+              md-toc
+      - add_ssh_keys:
+          fingerprints:
+            - "91:75:47:15:b2:8e:85:e5:67:0e:63:7f:22:d2:b4:6e"
+      - run:
+          name: Generate and publish
+          command: |
+            mkdir ~/.ssh && touch ~/.ssh/known_hosts;
+            ssh-keyscan -H github.com >> ~/.ssh/known_hosts && \
+              mkdocs gh-deploy

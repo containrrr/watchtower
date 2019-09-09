@@ -6,7 +6,7 @@ require (
 	github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78
 	github.com/Microsoft/go-winio v0.4.12
 	github.com/agl/ed25519 v0.0.0-20170116200512-5312a6153412
-	github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973
+	github.com/beorn7/perks v1.0.0
 	github.com/brysgo/gomock_ginkgo v0.0.0-20180512161304-be2c1b0e4111
 	github.com/containerd/containerd v1.2.6 // indirect
 	github.com/containerd/continuity v0.0.0-20181203112020-004b46473808
@@ -23,7 +23,6 @@ require (
 	github.com/gogo/protobuf v1.2.1
 	github.com/golang/mock v1.1.1
 	github.com/golang/protobuf v1.3.1
-	github.com/google/go-cmp v0.2.0 // indirect
 	github.com/gorilla/mux v1.7.0
 	github.com/hashicorp/go-memdb v1.0.0 // indirect
 	github.com/hashicorp/go-version v1.1.0
@@ -44,24 +43,24 @@ require (
 	github.com/opencontainers/selinux v1.2.1 // indirect
 	github.com/pkg/errors v0.8.1
 	github.com/pmezard/go-difflib v1.0.0
-	github.com/prometheus/client_golang v0.9.2
+	github.com/prometheus/client_golang v0.9.3
 	github.com/prometheus/client_model v0.0.0-20190129233127-fd36f4220a90
-	github.com/prometheus/common v0.2.0
-	github.com/prometheus/procfs v0.0.0-20190403104016-ea9eea638872
+	github.com/prometheus/common v0.4.0
+	github.com/prometheus/procfs v0.0.0-20190507164030-5867b95ac084
 	github.com/robfig/cron v0.0.0-20180505203441-b41be1df6967
 	github.com/sirupsen/logrus v1.4.1
 	github.com/spf13/cobra v0.0.3
 	github.com/spf13/pflag v1.0.3
+	github.com/spf13/viper v1.4.0
 	github.com/stretchr/objx v0.1.1
 	github.com/stretchr/testify v1.3.0
 	github.com/theupdateframework/notary v0.6.1
-	github.com/urfave/cli v1.20.0
 	github.com/vbatts/tar-split v0.11.1 // indirect
 	golang.org/x/crypto v0.0.0-20190403202508-8e1b8d32e692
-	golang.org/x/net v0.0.0-20190403144856-b630fd6fe46b
+	golang.org/x/net v0.0.0-20190522155817-f3200d17e092
 	golang.org/x/sys v0.0.0-20190403152447-81d4e9dc473e
-	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4 // indirect
+	google.golang.org/appengine v1.4.0 // indirect
 	google.golang.org/genproto v0.0.0-20190401181712-f467c93bbac2
-	google.golang.org/grpc v1.19.1
+	google.golang.org/grpc v1.21.0
 	gotest.tools v2.2.0+incompatible // indirect
 )

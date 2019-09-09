@@ -4,3 +4,4 @@ vendor
 dist
 .idea
 .DS_Store
+/site

@@ -1,0 +1,113 @@
+[
+  {
+    "Id": "ae8964ba86c7cd7522cf84e09781343d88e0e3543281c747d88b27e246578b65",
+    "Names": [
+      "/watchtower-test"
+    ],
+    "Image": "containrrr/watchtower:latest",
+    "ImageID": "sha256:4dbc5f9c07028a985e14d1393e849ea07f68804c4293050d5a641b138db72daa",
+    "Command": "/watchtower",
+    "Created": 1554925882,
+    "Ports": [],
+    "Labels": {
+      "com.centurylinklabs.watchtower": "true"
+    },
+    "State": "running",
+    "Status": "Exited (1) 6 days ago",
+    "HostConfig": {
+      "NetworkMode": "default"
+    },
+    "NetworkSettings": {
+      "Networks": {
+        "bridge": {
+          "IPAMConfig": null,
+          "Links": null,
+          "Aliases": null,
+          "NetworkID": "8fcfd56fa9203bafa98510abb08bff66ad05bef5b6e97d158cbae3397e1e065e",
+          "EndpointID": "",
+          "Gateway": "",
+          "IPAddress": "",
+          "IPPrefixLen": 0,
+          "IPv6Gateway": "",
+          "GlobalIPv6Address": "",
+          "GlobalIPv6PrefixLen": 0,
+          "MacAddress": "",
+          "DriverOpts": null
+        }
+      }
+    },
+    "Mounts": [
+      {
+        "Type": "bind",
+        "Source": "/var/run/docker.sock",
+        "Destination": "/var/run/docker.sock",
+        "Mode": "",
+        "RW": true,
+        "Propagation": "rprivate"
+      }
+    ]
+  },
+  {
+    "Id": "b978af0b858aa8855cce46b628817d4ed58e58f2c4f66c9b9c5449134ed4c008",
+    "Names": [
+      "/portainer"
+    ],
+    "Image": "portainer/portainer:latest",
+    "ImageID": "sha256:19d07168491a3f9e2798a9bed96544e34d57ddc4757a4ac5bb199dea896c87fd",
+    "Command": "/portainer",
+    "Created": 1554409712,
+    "Ports": [
+      {
+        "IP": "0.0.0.0",
+        "PrivatePort": 9000,
+        "PublicPort": 9000,
+        "Type": "tcp"
+      }
+    ],
+    "Labels": {},
+    "State": "running",
+    "Status": "Up 3 days",
+    "HostConfig": {
+      "NetworkMode": "default"
+    },
+    "NetworkSettings": {
+      "Networks": {
+        "bridge": {
+          "IPAMConfig": null,
+          "Links": null,
+          "Aliases": null,
+          "NetworkID": "9352796e0330dcf31ce3d44fae4b719304b8b3fd97b02ade3aefb8737251682b",
+          "EndpointID": "a8bcd737f27edb4d2955f7bce0c777bb2990b792a6b335b0727387624abe0702",
+          "Gateway": "172.17.0.1",
+          "IPAddress": "172.17.0.2",
+          "IPPrefixLen": 16,
+          "IPv6Gateway": "",
+          "GlobalIPv6Address": "",
+          "GlobalIPv6PrefixLen": 0,
+          "MacAddress": "02:42:ac:11:00:02",
+          "DriverOpts": null
+        }
+      }
+    },
+    "Mounts": [
+      {
+        "Type": "volume",
+        "Name": "portainer_data",
+        "Source": "/var/lib/docker/volumes/portainer_data/_data",
+        "Destination": "/data",
+        "Driver": "local",
+        "Mode": "z",
+        "RW": true,
+        "Propagation": ""
+      },
+      {
+        "Type": "bind",
+        "Source": "/var/run/docker.sock",
+        "Destination": "/var/run/docker.sock",
+        "Mode": "",
+        "RW": true,
+        "Propagation": "rprivate"
+      }
+    ]
+  }
+]
