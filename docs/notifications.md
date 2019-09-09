@@ -8,6 +8,7 @@ The types of notifications to send are passed via the comma-separated option `--
 - `slack` to send notifications through a Slack webhook
 - `msteams` to send notifications via MSTeams webhook
 - `gotify` to send notifications via Gotify
+- `hangouts` to send notifications via Hangouts Chat webhook
 
 ## Settings
 
@@ -106,5 +107,18 @@ docker run -d \
   -e WATCHTOWER_NOTIFICATIONS=gotify \
   -e WATCHTOWER_NOTIFICATION_GOTIFY_URL="https://my.gotify.tld/" \
   -e WATCHTOWER_NOTIFICATION_GOTIFY_TOKEN="SuperSecretToken" \
+  containrrr/watchtower
+```
+
+### Hangouts Chat
+
+To push a notification to a Hangouts Chat channel, create a new [channel webhoook](https://developers.google.com/hangouts/chat/how-tos/webhooks) and set the webhook URL:
+
+```bash
+docker run -d \
+  --name watchtower \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -e WATCHTOWER_NOTIFICATIONS=hangouts \
+  -e WATCHTOWER_NOTIFICATION_HANGOUTS_CHAT_WEBHOOK_URL="https://chat.googleapis.com/v1/spaces/XXXXXXX/messages?key=YYYYYYYYY&token=ZZZZZZZZZZ" \
   containrrr/watchtower
 ```

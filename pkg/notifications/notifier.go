@@ -40,6 +40,8 @@ func NewNotifier(c *cobra.Command) *Notifier {
 			tn = newMsTeamsNotifier(c, acceptedLogLevels)
 		case gotifyType:
 			tn = newGotifyNotifier(c, acceptedLogLevels)
+		case hangoutsType:
+			tn = newHangoutsNotifier(c, acceptedLogLevels)
 		default:
 			log.Fatalf("Unknown notification type %q", t)
 		}
