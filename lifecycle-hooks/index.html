@@ -410,35 +410,66 @@
                 
                 <h2 id="executing_commands_before_and_after_updating">Executing commands before and after updating<a class="headerlink" href="#executing_commands_before_and_after_updating" title="Permanent link">&para;</a></h2>
 <blockquote>
-<p><strong>DO NOTE</strong>: Both commands are shell commands executed with <code>sh</code>, and therefore require the 
+<p><strong>DO NOTE</strong>: These are shell commands executed with <code>sh</code>, and therefore require the
 container to provide the <code>sh</code> executable.</p>
 </blockquote>
-<p>It is possible to execute a <em>pre-update</em> command and a <em>post-update</em> command 
-<strong>inside</strong> every container updated by watchtower. The <em>pre-update</em> command is 
-executed before stopping the container, and the <em>post-update</em> command is 
-executed after restarting the container.</p>
+<p>It is possible to execute <em>pre/post-check</em> and <em>pre/post-update</em> commands
+<strong>inside</strong> every container updated by watchtower.</p>
+<ul>
+<li>The <em>pre-check</em> command is executed for each container prior to every update cycle.</li>
+<li>The <em>pre-update</em> command is executed before stopping the container when an update is about to start.</li>
+<li>The <em>post-update</em> command is executed after restarting the updated container</li>
+<li>The <em>post-check</em> command is executed for each container post every update cycle.</li>
+</ul>
 <p>This feature is disabled by default. To enable it, you need to set the option
 <code>--enable-lifecycle-hooks</code> on the command line, or set the environment variable
 <code>WATCHTOWER_LIFECYCLE_HOOKS</code> to <code>true</code>.</p>
 <h3 id="specifying_update_commands">Specifying update commands<a class="headerlink" href="#specifying_update_commands" title="Permanent link">&para;</a></h3>
-<p>The commands are specified using docker container labels, with 
-<code>com.centurylinklabs.watchtower.lifecycle.pre-update-command</code> for the <em>pre-update</em> 
-command and <code>com.centurylinklabs.watchtower.lifecycle.post-update</code> for the
-<em>post-update</em> command.</p>
-<p>These labels can be declared as instructions in a Dockerfile:</p>
-<pre><code class="docker">LABEL com.centurylinklabs.watchtower.lifecycle.pre-update=&quot;/dump-data.sh&quot;
+<p>The commands are specified using docker container labels, the following are currently available:</p>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Docker Container Label</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pre Check</td>
+<td><code>com.centurylinklabs.watchtower.lifecycle.pre-check</code></td>
+</tr>
+<tr>
+<td>Pre Update</td>
+<td><code>com.centurylinklabs.watchtower.lifecycle.pre-update</code></td>
+</tr>
+<tr>
+<td>Post Update</td>
+<td><code>com.centurylinklabs.watchtower.lifecycle.post-update</code></td>
+</tr>
+<tr>
+<td>Post Check</td>
+<td><code>com.centurylinklabs.watchtower.lifecycle.post-check</code></td>
+</tr>
+</tbody>
+</table>
+<p>These labels can be declared as instructions in a Dockerfile (with some example .sh files):</p>
+<pre><code class="docker">LABEL com.centurylinklabs.watchtower.lifecycle.pre-check=&quot;/sync.sh&quot;
+LABEL com.centurylinklabs.watchtower.lifecycle.pre-update=&quot;/dump-data.sh&quot;
 LABEL com.centurylinklabs.watchtower.lifecycle.post-update=&quot;/restore-data.sh&quot;
+LABEL com.centurylinklabs.watchtower.lifecycle.post-check=&quot;/send-heartbeat.sh&quot;
 </code></pre>
 
 <p>Or be specified as part of the <code>docker run</code> command line:</p>
 <pre><code class="bash">docker run -d \
+  --label=com.centurylinklabs.watchtower.lifecycle.pre-check=&quot;/sync.sh&quot; \
   --label=com.centurylinklabs.watchtower.lifecycle.pre-update=&quot;/dump-data.sh&quot; \
   --label=com.centurylinklabs.watchtower.lifecycle.post-update=&quot;/restore-data.sh&quot; \
   someimage
+  --label=com.centurylinklabs.watchtower.lifecycle.post-check=&quot;/send-heartbeat.sh&quot; \
 </code></pre>
 
 <h3 id="execution_failure">Execution failure<a class="headerlink" href="#execution_failure" title="Permanent link">&para;</a></h3>
-<p>The failure of a command to execute, identified by an exit code different than 
+<p>The failure of a command to execute, identified by an exit code different than
 0, will not prevent watchtower from updating the container. Only an error
 log statement containing the exit code will be reported.</p>
                 
