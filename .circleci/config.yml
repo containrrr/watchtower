@@ -36,18 +36,9 @@ workflows:
               only: /.*/
             tags:
               only: /.*/
-    #  - integration_testing:
-    #      requires:
-    #        - checkout
-    #      filters:
-    #        branches:
-    #          only: /.*/
-    #        tags:
-    #          only: /.*/
       - build:
           requires:
             - testing
-    #        - integration_testing
             - linting
           filters:
             branches:
@@ -96,17 +87,8 @@ jobs:
           at: .
       - run: go build ./...
       - run: go get github.com/schrej/godacov
-      - run: go get -u github.com/haya14busa/goverage
-      - run: goverage -v -coverprofile=coverage.out ./...
+      - run: go test ./... -coverprofile coverage.out
       - run: godacov -t $CODACY_TOKEN -r ./coverage.out -c $CIRCLE_SHA1
-  #integration_testing:
-  #  executor: go
-  #  steps:
-  #    - attach_workspace:
-  #        at: .
-  #    - run: go build .
-  #    - setup_remote_docker
-  #    - run: ./scripts/lifecycle-tests.sh
   build:
     executor: go
     steps:
