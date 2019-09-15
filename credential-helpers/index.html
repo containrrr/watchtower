@@ -11,7 +11,7 @@
       <meta http-equiv="x-ua-compatible" content="ie=edge">
       
       
-        <link rel="canonical" href="http://containrrr.github.io/watchtower/stop-signals/">
+        <link rel="canonical" href="http://containrrr.github.io/watchtower/credential-helpers/">
       
       
       
@@ -38,7 +38,7 @@
     
     
       
-        <title>Stop signals - Watchtower</title>
+        <title>Credential helpers - Watchtower</title>
       
     
     
@@ -79,6 +79,10 @@
     <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
     <label class="md-overlay" data-md-component="overlay" for="__drawer"></label>
     
+      <a href="#example" tabindex="1" class="md-skip">
+        Skip to content
+      </a>
+    
     
       <header class="md-header" data-md-component="header">
   <nav class="md-header-nav md-grid">
@@ -101,7 +105,7 @@
             </span>
             <span class="md-header-nav__topic">
               
-                Stop signals
+                Credential helpers
               
             </span>
           
@@ -282,11 +286,45 @@
       
       
 
+  
 
-  <li class="md-nav__item">
-    <a href="../credential-helpers/" title="Credential helpers" class="md-nav__link">
+
+  <li class="md-nav__item md-nav__item--active">
+    
+    <input class="md-toggle md-nav__toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+    
+    
+      <label class="md-nav__link md-nav__link--active" for="__toc">
+        Credential helpers
+      </label>
+    
+    <a href="./" title="Credential helpers" class="md-nav__link md-nav__link--active">
       Credential helpers
     </a>
+    
+      
+<nav class="md-nav md-nav--secondary">
+  
+  
+  
+    <label class="md-nav__title" for="__toc">Table of contents</label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#example" class="md-nav__link">
+    Example
+  </a>
+  
+</li>
+      
+      
+      
+      
+      
+    </ul>
+  
+</nav>
+    
   </li>
 
     
@@ -330,18 +368,11 @@
       
       
 
-  
 
-
-  <li class="md-nav__item md-nav__item--active">
-    
-    <input class="md-toggle md-nav__toggle" data-md-toggle="toc" type="checkbox" id="__toc">
-    
-    
-    <a href="./" title="Stop signals" class="md-nav__link md-nav__link--active">
+  <li class="md-nav__item">
+    <a href="../stop-signals/" title="Stop signals" class="md-nav__link">
       Stop signals
     </a>
-    
   </li>
 
     
@@ -352,24 +383,102 @@
               </div>
             
             
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="toc">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+<nav class="md-nav md-nav--secondary">
+  
+  
+  
+    <label class="md-nav__title" for="__toc">Table of contents</label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#example" class="md-nav__link">
+    Example
+  </a>
+  
+</li>
+      
+      
+      
+      
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
           
           <div class="md-content">
             <article class="md-content__inner md-typeset">
               
                 
-                  <a href="https://github.com/containrrr/watchtower/edit/master/docs/stop-signals.md" title="Edit this page" class="md-icon md-content__icon">&#xE3C9;</a>
+                  <a href="https://github.com/containrrr/watchtower/edit/master/docs/credential-helpers.md" title="Edit this page" class="md-icon md-content__icon">&#xE3C9;</a>
                 
                 
-                  <h1>Stop signals</h1>
+                  <h1>Credential helpers</h1>
                 
-                <p>When watchtower detects that a running container needs to be updated it will stop the container by sending it a SIGTERM signal.
-If your container should be shutdown with a different signal you can communicate this to watchtower by setting a label named <em>com.centurylinklabs.watchtower.stop-signal</em> with the value of the desired signal.</p>
-<p>This label can be coded directly into your image by using the <code>LABEL</code> instruction in your Dockerfile:</p>
-<pre><code class="docker">LABEL com.centurylinklabs.watchtower.stop-signal=&quot;SIGHUP&quot;
+                <p>Some private docker registries (the most prominent probably being AWS ECR) use non-standard ways of authentication.
+To be able to use this together with watchtower, we need to use a credential helper.</p>
+<p>To keep the image size small we've decided to not include any helpers in the watchtower image, instead we'll put the
+helper in a separate container and mount it using volumes.</p>
+<h3 id="example">Example<a class="headerlink" href="#example" title="Permanent link">&para;</a></h3>
+<p>Example implementation for use with <a href="https://github.com/awslabs/amazon-ecr-credential-helper">amazon-ecr-credential-helper</a>:</p>
+<pre><code class="Dockerfile">FROM golang:latest
+
+ENV CGO_ENABLED 0
+ENV REPO github.com/awslabs/amazon-ecr-credential-helper/ecr-login/cli/docker-credential-ecr-login
+
+RUN go get -u $REPO
+
+RUN rm /go/bin/docker-credential-ecr-login
+
+RUN go build \
+  -o /go/bin/docker-credential-ecr-login \
+  /go/src/$REPO
+
+WORKDIR /go/bin/
 </code></pre>
 
-<p>Or, it can be specified as part of the <code>docker run</code> command line:</p>
-<pre><code class="bash">docker run -d --label=com.centurylinklabs.watchtower.stop-signal=SIGHUP someimage
+<p>and the docker-compose definition:</p>
+<pre><code class="yaml">version: &quot;3&quot;
+
+services:
+  watchtower:
+    image: index.docker.io/containrrr/watchtower:latest
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - &lt;PATH_TO_HOME_DIR&gt;/.docker/config.json:/config.json
+      - helper:/go/bin
+    environment:
+      - HOME=/
+      - PATH=$PATH:/go/bin
+      - AWS_REGION=&lt;AWS_REGION&gt;
+      - AWS_ACCESS_KEY_ID=&lt;AWS_ACCESS_KEY&gt;
+      - AWS_SECRET_ACCESS_KEY=&lt;AWS_SECRET_ACCESS_KEY&gt;
+volumes:
+  helper: {}
+</code></pre>
+
+<p>and for <code>.docker/config.yml</code>:</p>
+<pre><code class="yaml">  {
+    &quot;HttpHeaders&quot; : {
+      &quot;User-Agent&quot; : &quot;Docker-Client/19.03.1 (XXXXXX)&quot;
+    },
+    &quot;credsStore&quot; : &quot;osxkeychain&quot;, // ...or your prefered helper
+    &quot;auths&quot; : {
+      &quot;xyzxyzxyz.dkr.ecr.eu-north-1.amazonaws.com&quot; : {},
+      &quot;https://index.docker.io/v1/&quot;: {}
+    },
+    &quot;credHelpers&quot;: {
+      &quot;xyzxyzxyz.dkr.ecr.eu-north-1.amazonaws.com&quot; : &quot;ecr-login&quot;,
+      &quot;index.docker.io&quot;: &quot;osxkeychain&quot; // ...or your prefered helper 
+    }
+  }
 </code></pre>
                 
                   
@@ -391,7 +500,7 @@ If your container should be shutdown with a different signal you can communicate
     <div class="md-footer-nav">
       <nav class="md-footer-nav__inner md-grid">
         
-          <a href="../secure-connections/" title="Secure connections" class="md-flex md-footer-nav__link md-footer-nav__link--prev" rel="prev">
+          <a href="../container-selection/" title="Container selection" class="md-flex md-footer-nav__link md-footer-nav__link--prev" rel="prev">
             <div class="md-flex__cell md-flex__cell--shrink">
               <i class="md-icon md-icon--arrow-back md-footer-nav__button"></i>
             </div>
@@ -400,11 +509,25 @@ If your container should be shutdown with a different signal you can communicate
                 <span class="md-footer-nav__direction">
                   Previous
                 </span>
-                Secure connections
+                Container selection
               </span>
             </div>
           </a>
         
+        
+          <a href="../linked-containers/" title="Linked containers" class="md-flex md-footer-nav__link md-footer-nav__link--next" rel="next">
+            <div class="md-flex__cell md-flex__cell--stretch md-footer-nav__title">
+              <span class="md-flex__ellipsis">
+                <span class="md-footer-nav__direction">
+                  Next
+                </span>
+                Linked containers
+              </span>
+            </div>
+            <div class="md-flex__cell md-flex__cell--shrink">
+              <i class="md-icon md-icon--arrow-forward md-footer-nav__button"></i>
+            </div>
+          </a>
         
       </nav>
     </div>

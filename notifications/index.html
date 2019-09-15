@@ -34,7 +34,7 @@
         <meta name="lang:search.tokenizer" content="[\s\-]+">
       
       <link rel="shortcut icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.0.4, mkdocs-material-4.4.0">
+      <meta name="generator" content="mkdocs-1.0.4, mkdocs-material-4.4.2">
     
     
       
@@ -42,7 +42,7 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/application.0284f74d.css">
+      <link rel="stylesheet" href="../assets/stylesheets/application.30686662.css">
       
       
     
@@ -171,7 +171,7 @@
         
       
       
-      <main class="md-main">
+      <main class="md-main" role="main">
         <div class="md-main__inner md-grid" data-md-component="container">
           
             
@@ -291,14 +291,14 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#settings" title="Settings" class="md-nav__link">
+  <a href="#settings" class="md-nav__link">
     Settings
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#available_services" title="Available services" class="md-nav__link">
+  <a href="#available_services" class="md-nav__link">
     Available services
   </a>
   
@@ -306,22 +306,29 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#email" title="Email" class="md-nav__link">
+  <a href="#email" class="md-nav__link">
     Email
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#slack" title="Slack" class="md-nav__link">
+  <a href="#slack" class="md-nav__link">
     Slack
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#microsoft_teams" title="Microsoft Teams" class="md-nav__link">
+  <a href="#microsoft_teams" class="md-nav__link">
     Microsoft Teams
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gotify" class="md-nav__link">
+    Gotify
   </a>
   
 </li>
@@ -350,6 +357,18 @@
   <li class="md-nav__item">
     <a href="../container-selection/" title="Container selection" class="md-nav__link">
       Container selection
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../credential-helpers/" title="Credential helpers" class="md-nav__link">
+      Credential helpers
     </a>
   </li>
 
@@ -423,14 +442,14 @@
     <ul class="md-nav__list" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#settings" title="Settings" class="md-nav__link">
+  <a href="#settings" class="md-nav__link">
     Settings
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#available_services" title="Available services" class="md-nav__link">
+  <a href="#available_services" class="md-nav__link">
     Available services
   </a>
   
@@ -438,22 +457,29 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#email" title="Email" class="md-nav__link">
+  <a href="#email" class="md-nav__link">
     Email
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#slack" title="Slack" class="md-nav__link">
+  <a href="#slack" class="md-nav__link">
     Slack
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#microsoft_teams" title="Microsoft Teams" class="md-nav__link">
+  <a href="#microsoft_teams" class="md-nav__link">
     Microsoft Teams
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gotify" class="md-nav__link">
+    Gotify
   </a>
   
 </li>
@@ -489,6 +515,7 @@ The types of notifications to send are passed via the comma-separated option <co
 <li><code>email</code> to send notifications via e-mail</li>
 <li><code>slack</code> to send notifications through a Slack webhook</li>
 <li><code>msteams</code> to send notifications via MSTeams webhook</li>
+<li><code>gotify</code> to send notifications via Gotify</li>
 </ul>
 <h2 id="settings">Settings<a class="headerlink" href="#settings" title="Permanent link">&para;</a></h2>
 <ul>
@@ -505,6 +532,7 @@ The types of notifications to send are passed via the comma-separated option <co
 <li><code>--notification-email-server-port</code> (env. <code>WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PORT</code>): The port used to connect to the SMTP server to send e-mails through. Defaults to <code>25</code>.</li>
 <li><code>--notification-email-server-user</code> (env. <code>WATCHTOWER_NOTIFICATION_EMAIL_SERVER_USER</code>): The username to authenticate with the SMTP server with.</li>
 <li><code>--notification-email-server-password</code> (env. <code>WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PASSWORD</code>): The password to authenticate with the SMTP server with.</li>
+<li><code>--notification-email-delay</code> (env. <code>WATCHTOWER_NOTIFICATION_EMAIL_DELAY</code>): Delay before sending notifications expressed in seconds.</li>
 </ul>
 <p>Example:</p>
 <pre><code class="bash">docker run -d \
@@ -516,13 +544,14 @@ The types of notifications to send are passed via the comma-separated option <co
   -e WATCHTOWER_NOTIFICATION_EMAIL_SERVER=smtp.gmail.com \
   -e WATCHTOWER_NOTIFICATION_EMAIL_SERVER_USER=fromaddress@gmail.com \
   -e WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PASSWORD=app_password \
+  -e WATCHTOWER_NOTIFICATION_EMAIL_DELAY=2 \
   containrrr/watchtower
 </code></pre>
 
 <h3 id="slack">Slack<a class="headerlink" href="#slack" title="Permanent link">&para;</a></h3>
 <p>If watchtower is monitoring the same Docker daemon under which the watchtower container itself is running (i.e. if you volume-mounted <em>/var/run/docker.sock</em> into the watchtower container) then it has the ability to update itself. If a new version of the <em>containrrr/watchtower</em> image is pushed to the Docker Hub, your watchtower will pull down the new image and restart itself automatically.</p>
 <p>To receive notifications in Slack, add <code>slack</code> to the <code>--notifications</code> option or the <code>WATCHTOWER_NOTIFICATIONS</code> environment variable.</p>
-<p>Additionally, you should set the Slack webhook url using the <code>--notification-slack-hook-url</code> option or the <code>WATCHTOWER_NOTIFICATION_SLACK_HOOK_URL</code> environment variable.</p>
+<p>Additionally, you should set the Slack webhook URL using the <code>--notification-slack-hook-url</code> option or the <code>WATCHTOWER_NOTIFICATION_SLACK_HOOK_URL</code> environment variable.</p>
 <p>By default, watchtower will send messages under the name <code>watchtower</code>, you can customize this string through the <code>--notification-slack-identifier</code> option or the <code>WATCHTOWER_NOTIFICATION_SLACK_IDENTIFIER</code> environment variable.</p>
 <p>Other, optional, variables include:</p>
 <ul>
@@ -545,7 +574,7 @@ The types of notifications to send are passed via the comma-separated option <co
 
 <h3 id="microsoft_teams">Microsoft Teams<a class="headerlink" href="#microsoft_teams" title="Permanent link">&para;</a></h3>
 <p>To receive notifications in MSTeams channel, add <code>msteams</code> to the <code>--notifications</code> option or the <code>WATCHTOWER_NOTIFICATIONS</code> environment variable.</p>
-<p>Additionally, you should set the MSTeams webhook url using the <code>--notification-msteams-hook</code> option or the <code>WATCHTOWER_NOTIFICATION_MSTEAMS_HOOK_URL</code> environment variable.</p>
+<p>Additionally, you should set the MSTeams webhook URL using the <code>--notification-msteams-hook</code> option or the <code>WATCHTOWER_NOTIFICATION_MSTEAMS_HOOK_URL</code> environment variable.</p>
 <p>MSTeams notifier could send keys/values filled by <code>log.WithField</code> or <code>log.WithFields</code> as MSTeams message facts. To enable this feature add <code>--notification-msteams-data</code> flag or set <code>WATCHTOWER_NOTIFICATION_MSTEAMS_USE_LOG_DATA=true</code> environment variable.</p>
 <p>Example:</p>
 <pre><code class="bash">docker run -d \
@@ -554,6 +583,17 @@ The types of notifications to send are passed via the comma-separated option <co
   -e WATCHTOWER_NOTIFICATIONS=msteams \
   -e WATCHTOWER_NOTIFICATION_MSTEAMS_HOOK_URL=&quot;https://outlook.office.com/webhook/xxxxxxxx@xxxxxxx/IncomingWebhook/yyyyyyyy/zzzzzzzzzz&quot; \
   -e WATCHTOWER_NOTIFICATION_MSTEAMS_USE_LOG_DATA=true \
+  containrrr/watchtower
+</code></pre>
+
+<h3 id="gotify">Gotify<a class="headerlink" href="#gotify" title="Permanent link">&para;</a></h3>
+<p>To push a notification to your Gotify instance, register a Gotify app and specify the Gotify URL and app token:</p>
+<pre><code class="bash">docker run -d \
+  --name watchtower \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -e WATCHTOWER_NOTIFICATIONS=gotify \
+  -e WATCHTOWER_NOTIFICATION_GOTIFY_URL=&quot;https://my.gotify.tld/&quot; \
+  -e WATCHTOWER_NOTIFICATION_GOTIFY_TOKEN=&quot;SuperSecretToken&quot; \
   containrrr/watchtower
 </code></pre>
                 
@@ -625,7 +665,7 @@ The types of notifications to send are passed via the comma-separated option <co
       
     </div>
     
-      <script src="../assets/javascripts/application.245445c6.js"></script>
+      <script src="../assets/javascripts/application.c648116f.js"></script>
       
       <script>app.initialize({version:"1.0.4",url:{base:".."}})</script>
       

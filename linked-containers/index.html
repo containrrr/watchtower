@@ -34,7 +34,7 @@
         <meta name="lang:search.tokenizer" content="[\s\-]+">
       
       <link rel="shortcut icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.0.4, mkdocs-material-4.4.0">
+      <meta name="generator" content="mkdocs-1.0.4, mkdocs-material-4.4.2">
     
     
       
@@ -42,7 +42,7 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/application.0284f74d.css">
+      <link rel="stylesheet" href="../assets/stylesheets/application.30686662.css">
       
       
     
@@ -167,7 +167,7 @@
         
       
       
-      <main class="md-main">
+      <main class="md-main" role="main">
         <div class="md-main__inner md-grid" data-md-component="container">
           
             
@@ -282,6 +282,18 @@
       
       
 
+
+  <li class="md-nav__item">
+    <a href="../credential-helpers/" title="Credential helpers" class="md-nav__link">
+      Credential helpers
+    </a>
+  </li>
+
+    
+      
+      
+      
+
   
 
 
@@ -350,7 +362,7 @@
                 
                   <h1>Linked containers</h1>
                 
-                <p>Watchtower will detect if there are links between any of the running containers and ensure that things are stopped/started in a way that won't break any of the links. If an update is detected for one of the dependencies in a group of linked containers, watchtower will stop and start all of the containers in the correct order so that the application comes back up correctly.</p>
+                <p>Watchtower will detect if there are links between any of the running containers and ensures that things are stopped/started in a way that won't break any of the links. If an update is detected for one of the dependencies in a group of linked containers, watchtower will stop and start all of the containers in the correct order so that the application comes back up correctly.</p>
 <p>For example, imagine you were running a <em>mysql</em> container and a <em>wordpress</em> container which had been linked to the <em>mysql</em> container. If watchtower were to detect that the <em>mysql</em> container required an update, it would first shut down the linked <em>wordpress</em> container followed by the <em>mysql</em> container. When restarting the containers it would handle <em>mysql</em> first and then <em>wordpress</em> to ensure that the link continued to work.</p>
                 
                   
@@ -372,7 +384,7 @@
     <div class="md-footer-nav">
       <nav class="md-footer-nav__inner md-grid">
         
-          <a href="../container-selection/" title="Container selection" class="md-flex md-footer-nav__link md-footer-nav__link--prev" rel="prev">
+          <a href="../credential-helpers/" title="Credential helpers" class="md-flex md-footer-nav__link md-footer-nav__link--prev" rel="prev">
             <div class="md-flex__cell md-flex__cell--shrink">
               <i class="md-icon md-icon--arrow-back md-footer-nav__button"></i>
             </div>
@@ -381,7 +393,7 @@
                 <span class="md-footer-nav__direction">
                   Previous
                 </span>
-                Container selection
+                Credential helpers
               </span>
             </div>
           </a>
@@ -421,7 +433,7 @@
       
     </div>
     
-      <script src="../assets/javascripts/application.245445c6.js"></script>
+      <script src="../assets/javascripts/application.c648116f.js"></script>
       
       <script>app.initialize({version:"1.0.4",url:{base:".."}})</script>
       

@@ -11,7 +11,7 @@
       <meta http-equiv="x-ua-compatible" content="ie=edge">
       
       
-        <link rel="canonical" href="http://containrrr.github.io/watchtower/stop-signals/">
+        <link rel="canonical" href="http://containrrr.github.io/watchtower/lifecycle-hooks/">
       
       
       
@@ -38,7 +38,7 @@
     
     
       
-        <title>Stop signals - Watchtower</title>
+        <title>Lifecycle hooks - Watchtower</title>
       
     
     
@@ -79,6 +79,10 @@
     <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
     <label class="md-overlay" data-md-component="overlay" for="__drawer"></label>
     
+      <a href="#executing_commands_before_and_after_updating" tabindex="1" class="md-skip">
+        Skip to content
+      </a>
+    
     
       <header class="md-header" data-md-component="header">
   <nav class="md-header-nav md-grid">
@@ -101,7 +105,7 @@
             </span>
             <span class="md-header-nav__topic">
               
-                Stop signals
+                Lifecycle hooks
               
             </span>
           
@@ -330,18 +334,11 @@
       
       
 
-  
 
-
-  <li class="md-nav__item md-nav__item--active">
-    
-    <input class="md-toggle md-nav__toggle" data-md-toggle="toc" type="checkbox" id="__toc">
-    
-    
-    <a href="./" title="Stop signals" class="md-nav__link md-nav__link--active">
+  <li class="md-nav__item">
+    <a href="../stop-signals/" title="Stop signals" class="md-nav__link">
       Stop signals
     </a>
-    
   </li>
 
     
@@ -352,25 +349,98 @@
               </div>
             
             
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="toc">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+<nav class="md-nav md-nav--secondary">
+  
+  
+  
+    <label class="md-nav__title" for="__toc">Table of contents</label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#executing_commands_before_and_after_updating" class="md-nav__link">
+    Executing commands before and after updating
+  </a>
+  
+    <nav class="md-nav">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#specifying_update_commands" class="md-nav__link">
+    Specifying update commands
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#execution_failure" class="md-nav__link">
+    Execution failure
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+      
+      
+      
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
           
           <div class="md-content">
             <article class="md-content__inner md-typeset">
               
                 
-                  <a href="https://github.com/containrrr/watchtower/edit/master/docs/stop-signals.md" title="Edit this page" class="md-icon md-content__icon">&#xE3C9;</a>
+                  <a href="https://github.com/containrrr/watchtower/edit/master/docs/lifecycle-hooks.md" title="Edit this page" class="md-icon md-content__icon">&#xE3C9;</a>
                 
                 
-                  <h1>Stop signals</h1>
+                  <h1>Lifecycle hooks</h1>
                 
-                <p>When watchtower detects that a running container needs to be updated it will stop the container by sending it a SIGTERM signal.
-If your container should be shutdown with a different signal you can communicate this to watchtower by setting a label named <em>com.centurylinklabs.watchtower.stop-signal</em> with the value of the desired signal.</p>
-<p>This label can be coded directly into your image by using the <code>LABEL</code> instruction in your Dockerfile:</p>
-<pre><code class="docker">LABEL com.centurylinklabs.watchtower.stop-signal=&quot;SIGHUP&quot;
+                <h2 id="executing_commands_before_and_after_updating">Executing commands before and after updating<a class="headerlink" href="#executing_commands_before_and_after_updating" title="Permanent link">&para;</a></h2>
+<blockquote>
+<p><strong>DO NOTE</strong>: Both commands are shell commands executed with <code>sh</code>, and therefore require the 
+container to provide the <code>sh</code> executable.</p>
+</blockquote>
+<p>It is possible to execute a <em>pre-update</em> command and a <em>post-update</em> command 
+<strong>inside</strong> every container updated by watchtower. The <em>pre-update</em> command is 
+executed before stopping the container, and the <em>post-update</em> command is 
+executed after restarting the container.</p>
+<p>This feature is disabled by default. To enable it, you need to set the option
+<code>--enable-lifecycle-hooks</code> on the command line, or set the environment variable
+<code>WATCHTOWER_LIFECYCLE_HOOKS</code> to <code>true</code>.</p>
+<h3 id="specifying_update_commands">Specifying update commands<a class="headerlink" href="#specifying_update_commands" title="Permanent link">&para;</a></h3>
+<p>The commands are specified using docker container labels, with 
+<code>com.centurylinklabs.watchtower.lifecycle.pre-update-command</code> for the <em>pre-update</em> 
+command and <code>com.centurylinklabs.watchtower.lifecycle.post-update</code> for the
+<em>post-update</em> command.</p>
+<p>These labels can be declared as instructions in a Dockerfile:</p>
+<pre><code class="docker">LABEL com.centurylinklabs.watchtower.lifecycle.pre-update=&quot;/dump-data.sh&quot;
+LABEL com.centurylinklabs.watchtower.lifecycle.post-update=&quot;/restore-data.sh&quot;
 </code></pre>
 
-<p>Or, it can be specified as part of the <code>docker run</code> command line:</p>
-<pre><code class="bash">docker run -d --label=com.centurylinklabs.watchtower.stop-signal=SIGHUP someimage
+<p>Or be specified as part of the <code>docker run</code> command line:</p>
+<pre><code class="bash">docker run -d \
+  --label=com.centurylinklabs.watchtower.lifecycle.pre-update=&quot;/dump-data.sh&quot; \
+  --label=com.centurylinklabs.watchtower.lifecycle.post-update=&quot;/restore-data.sh&quot; \
+  someimage
 </code></pre>
+
+<h3 id="execution_failure">Execution failure<a class="headerlink" href="#execution_failure" title="Permanent link">&para;</a></h3>
+<p>The failure of a command to execute, identified by an exit code different than 
+0, will not prevent watchtower from updating the container. Only an error
+log statement containing the exit code will be reported.</p>
                 
                   
                 
@@ -387,27 +457,6 @@ If your container should be shutdown with a different signal you can communicate
       
         
 <footer class="md-footer">
-  
-    <div class="md-footer-nav">
-      <nav class="md-footer-nav__inner md-grid">
-        
-          <a href="../secure-connections/" title="Secure connections" class="md-flex md-footer-nav__link md-footer-nav__link--prev" rel="prev">
-            <div class="md-flex__cell md-flex__cell--shrink">
-              <i class="md-icon md-icon--arrow-back md-footer-nav__button"></i>
-            </div>
-            <div class="md-flex__cell md-flex__cell--stretch md-footer-nav__title">
-              <span class="md-flex__ellipsis">
-                <span class="md-footer-nav__direction">
-                  Previous
-                </span>
-                Secure connections
-              </span>
-            </div>
-          </a>
-        
-        
-      </nav>
-    </div>
   
   <div class="md-footer-meta md-typeset">
     <div class="md-footer-meta__inner md-grid">
