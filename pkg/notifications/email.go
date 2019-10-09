@@ -43,7 +43,7 @@ func newEmailNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.Notifie
 	port, _ := flags.GetInt("notification-email-server-port")
 	tlsSkipVerify, _ := flags.GetBool("notification-email-server-tls-skip-verify")
 	delay, _ := flags.GetInt("notification-email-delay")
-	subjecttag, _ := flags.GetInt("notification-email-subjecttag")
+	subjecttag, _ := flags.GetString("notification-email-subjecttag")
 
 	n := &emailTypeNotifier{
 		From:          from,
