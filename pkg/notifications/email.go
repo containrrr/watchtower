@@ -24,7 +24,7 @@ const (
 // We work around that by holding on to log entries until the update cycle is done.
 type emailTypeNotifier struct {
 	From, To               string
-	Server, User, Password string
+	Server, User, Password, SubjectTag string
 	Port                   int
 	tlsSkipVerify          bool
 	entries                []*log.Entry
@@ -43,6 +43,7 @@ func newEmailNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.Notifie
 	port, _ := flags.GetInt("notification-email-server-port")
 	tlsSkipVerify, _ := flags.GetBool("notification-email-server-tls-skip-verify")
 	delay, _ := flags.GetInt("notification-email-delay")
+	subjecttag, _ := flags.GetInt("notification-email-subjecttag")
 
 	n := &emailTypeNotifier{
 		From:          from,
@@ -54,6 +55,7 @@ func newEmailNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.Notifie
 		tlsSkipVerify: tlsSkipVerify,
 		logLevels:     acceptedLogLevels,
 		delay:         time.Duration(delay) * time.Second,
+		SubjectTag:    subjecttag,
 	}
 
 	log.AddHook(n)
@@ -62,7 +64,11 @@ func newEmailNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.Notifie
 }
 
 func (e *emailTypeNotifier) buildMessage(entries []*log.Entry) []byte {
-	emailSubject := "Watchtower updates"
+	if SubjectTag == nil {
+		emailSubject := "Watchtower updates"
+	} else {
+		emailSubject := SubjectTag + " Watchtower updates"
+	}
 	if hostname, err := os.Hostname(); err == nil {
 		emailSubject += " on " + hostname
 	}
