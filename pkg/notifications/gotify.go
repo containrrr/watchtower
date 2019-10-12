@@ -31,7 +31,7 @@ func newGotifyNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.Notifi
 	} else if !(strings.HasPrefix(gotifyURL, "http://") || strings.HasPrefix(gotifyURL, "https://")) {
 		log.Fatal("Gotify URL must start with \"http://\" or \"https://\"")
 	} else if strings.HasPrefix(gotifyURL, "http://") {
-		log.Warn("Using an HTTP url fpr Gotify is insecure")
+		log.Warn("Using an HTTP url for Gotify is insecure")
 	}
 
 	gotifyToken, _ := flags.GetString("notification-gotify-token")
