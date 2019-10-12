@@ -366,6 +366,15 @@
       "contributions": [
         "doc"
       ]
+    },
+    {
+      "login": "foosel",
+      "name": "Gina Häußge",
+      "avatar_url": "https://avatars0.githubusercontent.com/u/83657?v=4",
+      "profile": "https://foosel.net",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
