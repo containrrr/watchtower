@@ -9,6 +9,11 @@ The types of notifications to send are passed via the comma-separated option `--
 - `msteams` to send notifications via MSTeams webhook
 - `gotify` to send notifications via Gotify
 
+
+> If you're a `docker-compose` user, make sure to specify environment variables' values in your `.yml` file without double quotes (`"`). 
+>
+> This prevents unexpected errors when watchtower starts.
+
 ## Settings
 
 - `--notifications-level` (env. `WATCHTOWER_NOTIFICATIONS_LEVEL`): Controls the log level which is used for the notifications. If omitted, the default log level is `info`. Possible values are: `panic`, `fatal`, `error`, `warn`, `info` or `debug`.
