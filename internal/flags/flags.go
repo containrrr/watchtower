@@ -146,7 +146,7 @@ func RegisterNotificationFlags(rootCmd *cobra.Command) {
 		"",
 		viper.GetInt("WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PORT"),
 		"SMTP server port to send notification emails through")
-	
+
 	flags.BoolP(
 		"notification-email-server-tls-skip-verify",
 		"",
