@@ -146,7 +146,7 @@ func RegisterNotificationFlags(rootCmd *cobra.Command) {
 		"",
 		viper.GetInt("WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PORT"),
 		"SMTP server port to send notification emails through")
-
+	
 	flags.BoolP(
 		"notification-email-server-tls-skip-verify",
 		"",
@@ -168,6 +168,12 @@ Should only be used for testing.
 		viper.GetString("WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PASSWORD"),
 		"SMTP server password for sending notifications")
 
+	flags.StringP(
+		"notification-email-subjecttag",
+		"",
+		viper.GetString("WATCHTOWER_NOTIFICATION_EMAIL_SUBJECTTAG"),
+		"Subject prefix tag for notifications via mail")
+	
 	flags.StringP(
 		"notification-slack-hook-url",
 		"",
@@ -232,6 +238,7 @@ func SetDefaults() {
 	viper.SetDefault("WATCHTOWER_NOTIFICATIONS", []string{})
 	viper.SetDefault("WATCHTOWER_NOTIFICATIONS_LEVEL", "info")
 	viper.SetDefault("WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PORT", 25)
+	viper.SetDefault("WATCHTOWER_NOTIFICATION_EMAIL_SUBJECTTAG", "")
 	viper.SetDefault("WATCHTOWER_NOTIFICATION_SLACK_IDENTIFIER", "watchtower")
 }
 
