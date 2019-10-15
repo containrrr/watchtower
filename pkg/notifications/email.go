@@ -64,10 +64,7 @@ func newEmailNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.Notifie
 }
 
 func (e *emailTypeNotifier) buildMessage(entries []*log.Entry) []byte {
-	// If variable SubjectTag is empty define emailSubject as "Watchtower updates".
-	// If variable SubjectTag is set define emailSubject as "$SubjectTag Watchtower updates"
-	// For example: SubjectTag=[Server Munich] -> "[Server Munich] Watchtower updates ..."
-	if SubjectTag == nil {
+	if SubjectTag == "" {
 		emailSubject := "Watchtower updates"
 	} else {
 		emailSubject := SubjectTag + " Watchtower updates"
