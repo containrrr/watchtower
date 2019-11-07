@@ -95,6 +95,12 @@ func RegisterSystemFlags(rootCmd *cobra.Command) {
 		"Will also include created and exited containers")
 
 	flags.BoolP(
+		"revive-stopped",
+		"",
+		viper.GetBool("WATCHTOWER_REVIVE_STOPPED"),
+		"Will also start stopped containers that were updated, if include-stopped is active")
+
+	flags.BoolP(
 		"enable-lifecycle-hooks",
 		"",
 		viper.GetBool("WATCHTOWER_LIFECYCLE_HOOKS"),
@@ -128,7 +134,7 @@ func RegisterNotificationFlags(rootCmd *cobra.Command) {
 		"",
 		viper.GetString("WATCHTOWER_NOTIFICATION_EMAIL_TO"),
 		"Address to send notification emails to")
-	
+
 	flags.IntP(
 		"notification-email-delay",
 		"",
