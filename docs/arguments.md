@@ -97,6 +97,16 @@ Environment Variable: WATCHTOWER_INCLUDE_STOPPED
              Default: false
 ```   
 
+## Revive stopped
+Start any stopped containers that have had their image updated. This argument is only usable with the `--include-stopped` argument.
+
+```
+            Argument: --revive-stopped
+Environment Variable: WATCHTOWER_REVIVE_STOPPED
+                Type: Boolean
+             Default: false
+```   
+
 ## Poll interval
 Poll interval (in seconds). This value controls how frequently watchtower will poll for new images.
 
