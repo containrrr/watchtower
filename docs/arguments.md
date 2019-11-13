@@ -98,7 +98,7 @@ Environment Variable: WATCHTOWER_INCLUDE_STOPPED
 ```   
 
 ## Revive stopped
-Will also start stopped containers that were updated, if include-stopped is active.
+Start any stopped containers that have had their image updated. This argument is only usable with the `--include-stopped` argument.
 
 ```
             Argument: --revive-stopped
