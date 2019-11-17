@@ -116,6 +116,7 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
     <td align="center"><a href="https://github.com/sixth"><img src="https://avatars3.githubusercontent.com/u/11591445?v=4" width="100px;" alt="sixth"/><br /><sub><b>sixth</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=sixth" title="Documentation">📖</a></td>
     <td align="center"><a href="https://foosel.net"><img src="https://avatars0.githubusercontent.com/u/83657?v=4" width="100px;" alt="Gina Häußge"/><br /><sub><b>Gina Häußge</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=foosel" title="Code">💻</a></td>
     <td align="center"><a href="https://github.com/8ear"><img src="https://avatars0.githubusercontent.com/u/10329648?v=4" width="100px;" alt="Max H."/><br /><sub><b>Max H.</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=8ear" title="Code">💻</a></td>
+    <td align="center"><a href="https://pjknkda.github.io"><img src="https://avatars0.githubusercontent.com/u/4986524?v=4" width="100px;" alt="Jungkook Park"/><br /><sub><b>Jungkook Park</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=pjknkda" title="Documentation">📖</a></td>
   </tr>
 </table>
 
