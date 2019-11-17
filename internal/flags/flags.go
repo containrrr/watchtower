@@ -175,6 +175,12 @@ Should only be used for testing.
 		"SMTP server password for sending notifications")
 
 	flags.StringP(
+		"notification-email-subjecttag",
+		"",
+		viper.GetString("WATCHTOWER_NOTIFICATION_EMAIL_SUBJECTTAG"),
+		"Subject prefix tag for notifications via mail")
+	
+	flags.StringP(
 		"notification-slack-hook-url",
 		"",
 		viper.GetString("WATCHTOWER_NOTIFICATION_SLACK_HOOK_URL"),
@@ -238,6 +244,7 @@ func SetDefaults() {
 	viper.SetDefault("WATCHTOWER_NOTIFICATIONS", []string{})
 	viper.SetDefault("WATCHTOWER_NOTIFICATIONS_LEVEL", "info")
 	viper.SetDefault("WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PORT", 25)
+	viper.SetDefault("WATCHTOWER_NOTIFICATION_EMAIL_SUBJECTTAG", "")
 	viper.SetDefault("WATCHTOWER_NOTIFICATION_SLACK_IDENTIFIER", "watchtower")
 }
 
