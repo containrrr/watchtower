@@ -179,7 +179,7 @@ Should only be used for testing.
 		"",
 		viper.GetString("WATCHTOWER_NOTIFICATION_EMAIL_SUBJECTTAG"),
 		"Subject prefix tag for notifications via mail")
-	
+
 	flags.StringP(
 		"notification-slack-hook-url",
 		"",
