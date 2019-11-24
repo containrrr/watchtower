@@ -13,13 +13,6 @@ jobs:
           Hi there! 👋🏼
           As you're new to this repo, we'd like to suggest that you read our [code of conduct](https://github.com/containrrr/watchtower/blob/master/CODE_OF_CONDUCT.md)
           as well as our [contribution guidelines](https://github.com/containrrr/watchtower/blob/master/CONTRIBUTING.md).
-          \n
           Thanks a bunch for opening your first issue! 🙏
         pr-message: >
-          Congratulations on opening your first pull request! 🥳\n\n
-          To make sure that your pull request is handled as fast as possible, we recommend that you make sure that you make sure that you've done the following\:\n
-          [ ] Documentation has been updated
-          [ ] Tests have been added to all appropriate places
-          [ ] Changes adhere to our [contribution guidelines](https://github.com/containrrr/watchtower/blob/master/CONTRIBUTING.md)
-
-          Thanks! 🙏🏼
+          Congratulations on opening your first pull request! We'll get back to you as soon as possible. In the meantime, please make sure you've updated the documentation to reflect your changes and have added test automation as needed. Thanks! 🙏🏼
