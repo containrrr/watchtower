@@ -132,3 +132,62 @@ var _ = Describe("the actions package", func() {
 	})
 })
 
+func createMockContainer(id string, name string, image string, created time.Time) container.Container {
+	content := types.ContainerJSON{
+		ContainerJSONBase: &types.ContainerJSONBase{
+			ID:      id,
+			Image:   image,
+			Name:    name,
+			Created: created.String(),
+		},
+	}
+	return *container.NewContainer(&content, nil)
+}
+
+type mockClient struct {
+	TestData      *TestData
+	api           cli.CommonAPIClient
+	pullImages    bool
+	removeVolumes bool
+}
+
+type TestData struct {
+	TriedToRemoveImage    bool
+	NameOfContainerToKeep string
+	Containers            []container.Container
+}
+
+func (client mockClient) ListContainers(f t.Filter) ([]container.Container, error) {
+	return client.TestData.Containers, nil
+}
+
+func (client mockClient) StopContainer(c container.Container, d time.Duration) error {
+	if c.Name() == client.TestData.NameOfContainerToKeep {
+		return errors.New("tried to stop the instance we want to keep")
+	}
+	return nil
+}
+func (client mockClient) StartContainer(c container.Container) (string, error) {
+	panic("Not implemented")
+}
+
+func (client mockClient) RenameContainer(c container.Container, s string) error {
+	panic("Not implemented")
+}
+
+func (client mockClient) RemoveImage(c container.Container) error {
+	client.TestData.TriedToRemoveImage = true
+	return nil
+}
+
+func (client mockClient) GetContainer(containerID string) (container.Container, error) {
+	return container.Container{}, nil
+}
+
+func (client mockClient) ExecuteCommand(containerID string, command string, timeout int) error {
+	return nil
+}
+
+func (client mockClient) IsContainerStale(c container.Container) (bool, error) {
+	panic("Not implemented")
+}
