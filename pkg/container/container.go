@@ -2,9 +2,10 @@ package container
 
 import (
 	"fmt"
-	"github.com/containrrr/watchtower/internal/util"
 	"strconv"
 	"strings"
+
+	"github.com/containrrr/watchtower/internal/util"
 
 	"github.com/docker/docker/api/types"
 	dockercontainer "github.com/docker/docker/api/types/container"
@@ -116,6 +117,25 @@ func (c Container) ToRestart() bool {
 // the container metadata.
 func (c Container) IsWatchtower() bool {
 	return ContainsWatchtowerLabel(c.containerInfo.Config.Labels)
+}
+
+// PreUpdateTimeout checks whether a container has a specific timeout set
+// for how long the pre-update command is allowed to run. This value is expressed
+// either as an integer, in minutes, or as "off" which will allow the command/script
+// to run indefinitely. Users should be cautious with the off option, as that
+// could result in watchtower waiting forever.
+func (c Container) PreUpdateTimeout() int {
+	var minutes int
+	var err error
+
+	val := c.getLabelValueOrEmpty(preUpdateTimeoutLabel)
+
+	minutes, err = strconv.Atoi(val)
+	if err != nil || val == "" {
+		return 1
+	}
+
+	return minutes
 }
 
 // StopSignal returns the custom stop signal (if any) that is encoded in the

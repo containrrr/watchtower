@@ -75,7 +75,6 @@ func stopStaleContainer(container container.Container, client container.Client, 
 	}
 	if params.LifecycleHooks {
 		lifecycle.ExecutePreUpdateCommand(client, container)
-
 	}
 
 	if err := client.StopContainer(container, params.Timeout); err != nil {

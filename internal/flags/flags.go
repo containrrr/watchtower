@@ -30,12 +30,14 @@ func RegisterSystemFlags(rootCmd *cobra.Command) {
 		viper.GetInt("WATCHTOWER_POLL_INTERVAL"),
 		"poll interval (in seconds)")
 
-	flags.StringP("schedule",
+	flags.StringP(
+		"schedule",
 		"s",
 		viper.GetString("WATCHTOWER_SCHEDULE"),
 		"the cron expression which defines when to update")
 
-	flags.DurationP("stop-timeout",
+	flags.DurationP(
+		"stop-timeout",
 		"t",
 		viper.GetDuration("WATCHTOWER_TIMEOUT"),
 		"timeout before a container is forcefully stopped")
