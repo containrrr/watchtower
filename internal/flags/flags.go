@@ -95,6 +95,12 @@ func RegisterSystemFlags(rootCmd *cobra.Command) {
 		"Will also include created and exited containers")
 
 	flags.BoolP(
+		"revive-stopped",
+		"",
+		viper.GetBool("WATCHTOWER_REVIVE_STOPPED"),
+		"Will also start stopped containers that were updated, if include-stopped is active")
+
+	flags.BoolP(
 		"enable-lifecycle-hooks",
 		"",
 		viper.GetBool("WATCHTOWER_LIFECYCLE_HOOKS"),
@@ -128,7 +134,7 @@ func RegisterNotificationFlags(rootCmd *cobra.Command) {
 		"",
 		viper.GetString("WATCHTOWER_NOTIFICATION_EMAIL_TO"),
 		"Address to send notification emails to")
-	
+
 	flags.IntP(
 		"notification-email-delay",
 		"",
@@ -167,6 +173,12 @@ Should only be used for testing.
 		"",
 		viper.GetString("WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PASSWORD"),
 		"SMTP server password for sending notifications")
+
+	flags.StringP(
+		"notification-email-subjecttag",
+		"",
+		viper.GetString("WATCHTOWER_NOTIFICATION_EMAIL_SUBJECTTAG"),
+		"Subject prefix tag for notifications via mail")
 
 	flags.StringP(
 		"notification-slack-hook-url",
@@ -232,6 +244,7 @@ func SetDefaults() {
 	viper.SetDefault("WATCHTOWER_NOTIFICATIONS", []string{})
 	viper.SetDefault("WATCHTOWER_NOTIFICATIONS_LEVEL", "info")
 	viper.SetDefault("WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PORT", 25)
+	viper.SetDefault("WATCHTOWER_NOTIFICATION_EMAIL_SUBJECTTAG", "")
 	viper.SetDefault("WATCHTOWER_NOTIFICATION_SLACK_IDENTIFIER", "watchtower")
 }
 
