@@ -2,7 +2,7 @@
 # Notifications
 
 Watchtower can send notifications when containers are updated. Notifications are sent via hooks in the logging system, [logrus](http://github.com/sirupsen/logrus).
-The types of notifications to send are passed via the comma-separated option `--notifications` (or corresponding environment variable `WATCHTOWER_NOTIFICATIONS`), which has the following valid values:
+The types of notifications to send are passed via the space-separated option `--notifications` (or corresponding environment variable `WATCHTOWER_NOTIFICATIONS`), which has the following valid values:
 
 - `email` to send notifications via e-mail
 - `slack` to send notifications through a Slack webhook
