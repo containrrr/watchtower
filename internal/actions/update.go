@@ -3,7 +3,6 @@ package actions
 import (
 	"github.com/containrrr/watchtower/internal/util"
 	"github.com/containrrr/watchtower/pkg/container"
-	"github.com/deckarep/golang-set"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -74,18 +73,16 @@ func stopStaleContainer(container container.Container, client container.Client, 
 }
 
 func restartContainersInSortedOrder(containers []container.Container, client container.Client, params UpdateParams) {
-	toDelete := mapset.NewSet()
+	toDelete := make(map[container.Container]bool)
 	for _, container := range containers {
 		if !container.Stale {
 			continue
 		}
 		restartStaleContainer(container, client, params)
-		toDelete.Add(container)
+		toDelete[container] = true
 	}
 	if params.Cleanup {
-		iterator := toDelete.Iterator()
-		for c := range iterator.C {
-			cont := c.(container.Container)
+		for cont := range toDelete {
 			if err := client.RemoveImage(cont); err != nil {
 				log.Error(err)
 			}
