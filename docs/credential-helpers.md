@@ -45,7 +45,7 @@ volumes:
   helper: {}
 ```
 
-and for `.docker/config.json`:
+and for `<PATH_TO_HOME_DIR>/.docker/config.json`:
 ```yaml
   {
     "HttpHeaders" : {
