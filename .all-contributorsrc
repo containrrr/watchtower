@@ -299,7 +299,8 @@
       "avatar_url": "https://avatars0.githubusercontent.com/u/21138205?v=4",
       "profile": "https://github.com/zoispag",
       "contributions": [
-        "code"
+        "code",
+        "review"
       ]
     }
   ],
@@ -308,5 +309,6 @@
   "projectOwner": "containrrr",
   "repoType": "github",
   "repoHost": "https://github.com",
-  "commitConvention": "none"
+  "commitConvention": "none",
+  "skipCi": true
 }
