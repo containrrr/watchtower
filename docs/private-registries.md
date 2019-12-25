@@ -3,21 +3,21 @@ Watchtower supports private Docker image registries. In many cases, accessing a 
 The credentials can be provided to watchtower in a configuration file called `config.json`. There are two ways to generate this configuration file:
 
 * The configuration file can be created manually.
-* Call `docker login $REGISTRY_NAME` and share the resulting configuration file.
+* Call `docker login <REGISTRY_NAME>` and share the resulting configuration file.
 
 ### Create the configuration file manually
 Create a new configuration file with the following syntax and a base64 encoded username and password `auth` string:
 ```json
 {
     "auths": {
-        "$REGISTRY_NAME": {
+        "<REGISTRY_NAME>": {
             "auth": "XXXXXXX"
         }
     }
 }
 ```
 
-`$REGISTRY_NAME` needs to be replaced by the name of your private registry (e.g., `my-private-registry.example.org`)
+`<REGISTRY_NAME>` needs to be replaced by the name of your private registry (e.g., `my-private-registry.example.org`)
 
 The required `auth` string can be generated as follows:
 ```bash
