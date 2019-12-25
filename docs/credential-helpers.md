@@ -51,14 +51,16 @@ and for `<PATH_TO_HOME_DIR>/.docker/config.json`:
     "HttpHeaders" : {
       "User-Agent" : "Docker-Client/19.03.1 (XXXXXX)"
     },
-    "credsStore" : "osxkeychain", // ...or your prefered helper
+    "credsStore" : "osxkeychain",
     "auths" : {
       "xyzxyzxyz.dkr.ecr.eu-north-1.amazonaws.com" : {},
       "https://index.docker.io/v1/": {}
     },
     "credHelpers": {
       "xyzxyzxyz.dkr.ecr.eu-north-1.amazonaws.com" : "ecr-login",
-      "index.docker.io": "osxkeychain" // ...or your prefered helper 
+      "index.docker.io": "osxkeychain"
     }
   }
 ```
+
+*Note:* `osxkeychain` can be changed to your prefered credentials helper
