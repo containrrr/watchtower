@@ -46,7 +46,7 @@ volumes:
 ```
 
 and for `<PATH_TO_HOME_DIR>/.docker/config.json`:
-```yaml
+```json
   {
     "HttpHeaders" : {
       "User-Agent" : "Docker-Client/19.03.1 (XXXXXX)"
