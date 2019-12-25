@@ -45,7 +45,7 @@ volumes:
   helper: {}
 ```
 
-and for `.docker/config.yml`:
+and for `.docker/config.json`:
 ```yaml
   {
     "HttpHeaders" : {
