@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/spf13/cobra"
 	"net/http"
 
+	t "github.com/containrrr/watchtower/pkg/types"
 	log "github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
 	"io/ioutil"
 )
 
@@ -21,17 +22,20 @@ type msTeamsTypeNotifier struct {
 	data       bool
 }
 
-func newMsTeamsNotifier(c *cli.Context, acceptedLogLevels []log.Level) typeNotifier {
+func newMsTeamsNotifier(cmd *cobra.Command, acceptedLogLevels []log.Level) t.Notifier {
 
-	webHookURL := c.GlobalString("notification-msteams-hook")
+	flags := cmd.PersistentFlags()
+
+	webHookURL, _ := flags.GetString("notification-msteams-hook")
 	if len(webHookURL) <= 0 {
 		log.Fatal("Required argument --notification-msteams-hook(cli) or WATCHTOWER_NOTIFICATION_MSTEAMS_HOOK_URL(env) is empty.")
 	}
 
+	withData, _ := flags.GetBool("notification-msteams-data")
 	n := &msTeamsTypeNotifier{
 		levels:     acceptedLogLevels,
 		webHookURL: webHookURL,
-		data:       c.GlobalBool("notification-msteams-data"),
+		data:       withData,
 	}
 
 	log.AddHook(n)

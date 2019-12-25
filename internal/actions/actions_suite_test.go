@@ -2,14 +2,15 @@ package actions_test
 
 import (
 	"errors"
+	"github.com/containrrr/watchtower/internal/actions"
 	"testing"
 	"time"
 
-	"github.com/containrrr/watchtower/actions"
-	"github.com/containrrr/watchtower/container"
-	"github.com/containrrr/watchtower/container/mocks"
+	"github.com/containrrr/watchtower/pkg/container"
+	"github.com/containrrr/watchtower/pkg/container/mocks"
 	"github.com/docker/docker/api/types"
 
+	t "github.com/containrrr/watchtower/pkg/types"
 	cli "github.com/docker/docker/client"
 
 	. "github.com/onsi/ginkgo"
@@ -32,9 +33,10 @@ var _ = Describe("the actions package", func() {
 	})
 	BeforeEach(func() {
 		client = mockClient{
-			api:        dockerClient,
-			pullImages: false,
-			TestData:   &TestData{},
+			api:           dockerClient,
+			pullImages:    false,
+			removeVolumes: false,
+			TestData:      &TestData{},
 		}
 	})
 
@@ -62,8 +64,9 @@ var _ = Describe("the actions package", func() {
 		When("given multiple containers", func() {
 			BeforeEach(func() {
 				client = mockClient{
-					api:        dockerClient,
-					pullImages: false,
+					api:           dockerClient,
+					pullImages:    false,
+					removeVolumes: false,
 					TestData: &TestData{
 						NameOfContainerToKeep: "test-container-02",
 						Containers: []container.Container{
@@ -89,8 +92,9 @@ var _ = Describe("the actions package", func() {
 		When("deciding whether to cleanup images", func() {
 			BeforeEach(func() {
 				client = mockClient{
-					api:        dockerClient,
-					pullImages: false,
+					api:           dockerClient,
+					pullImages:    false,
+					removeVolumes: false,
 					TestData: &TestData{
 						Containers: []container.Container{
 							createMockContainer(
@@ -134,9 +138,10 @@ func createMockContainer(id string, name string, image string, created time.Time
 }
 
 type mockClient struct {
-	TestData   *TestData
-	api        cli.CommonAPIClient
-	pullImages bool
+	TestData      *TestData
+	api           cli.CommonAPIClient
+	pullImages    bool
+	removeVolumes bool
 }
 
 type TestData struct {
@@ -145,7 +150,7 @@ type TestData struct {
 	Containers            []container.Container
 }
 
-func (client mockClient) ListContainers(f container.Filter) ([]container.Container, error) {
+func (client mockClient) ListContainers(f t.Filter) ([]container.Container, error) {
 	return client.TestData.Containers, nil
 }
 
@@ -155,7 +160,7 @@ func (client mockClient) StopContainer(c container.Container, d time.Duration) e
 	}
 	return nil
 }
-func (client mockClient) StartContainer(c container.Container) error {
+func (client mockClient) StartContainer(c container.Container) (string, error) {
 	panic("Not implemented")
 }
 
@@ -165,6 +170,14 @@ func (client mockClient) RenameContainer(c container.Container, s string) error 
 
 func (client mockClient) RemoveImage(c container.Container) error {
 	client.TestData.TriedToRemoveImage = true
+	return nil
+}
+
+func (client mockClient) GetContainer(containerID string) (container.Container, error) {
+	return container.Container{}, nil
+}
+
+func (client mockClient) ExecuteCommand(containerID string, command string) error {
 	return nil
 }
 

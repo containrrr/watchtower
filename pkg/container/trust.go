@@ -48,6 +48,10 @@ func EncodedEnvAuth(ref string) (string, error) {
 // The docker config must be mounted on the container
 func EncodedConfigAuth(ref string) (string, error) {
 	server, err := ParseServerAddress(ref)
+	if err != nil {
+		log.Errorf("Unable to parse the image ref %s", err)
+		return "", err
+	}
 	configDir := os.Getenv("DOCKER_CONFIG")
 	if configDir == "" {
 		configDir = "/"
@@ -58,7 +62,8 @@ func EncodedConfigAuth(ref string) (string, error) {
 		return "", err
 	}
 	credStore := CredentialsStore(*configFile)
-	auth, err := credStore.Get(server) // returns (types.AuthConfig{}) if server not in credStore
+	auth, _ := credStore.Get(server) // returns (types.AuthConfig{}) if server not in credStore
+
 	if auth == (types.AuthConfig{}) {
 		log.Debugf("No credentials for %s in %s", server, configFile.Filename)
 		return "", nil

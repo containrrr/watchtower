@@ -14,9 +14,11 @@ nav:
    - 'Arguments': 'arguments.md'
    - 'Notifications': 'notifications.md'
    - 'Container selection': 'container-selection.md'
+   - 'Credential helpers': 'credential-helpers.md'
    - 'Linked containers': 'linked-containers.md'
    - 'Remote hosts': 'remote-hosts.md'
    - 'Secure connections': 'secure-connections.md'
    - 'Stop signals': 'stop-signals.md'
+   - 'Lifecycle hooks': 'lifecycle-hooks.md'
 plugins:
     - search

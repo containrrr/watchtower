@@ -1,6 +1,6 @@
 Watchtower is itself packaged as a Docker container so installation is as simple as pulling the `containrrr/watchtower` image. If you are using ARM based architecture, pull the appropriate `containrrr/watchtower:armhf-<tag>` image from the [containrrr Docker Hub](https://hub.docker.com/r/containrrr/watchtower/tags/).
 
-Since the watchtower code needs to interact with the Docker API in order to monitor the running containers, you need to mount _/var/run/docker.sock_ into the container with the -v flag when you run it.
+Since the watchtower code needs to interact with the Docker API in order to monitor the running containers, you need to mount _/var/run/docker.sock_ into the container with the `-v` flag when you run it.
 
 Run the `watchtower` container with the following command:
 
@@ -37,7 +37,7 @@ docker run -d \
   containrrr/watchtower container_to_watch --debug
 ```
 
-If you mount the config file as described above, be sure to also prepend the url for the registry when starting up your watched image (you can omit the https://). Here is a complete docker-compose.yml file that starts up a docker container from a private repo at dockerhub and monitors it with watchtower. Note the command argument changing the interval to 30s rather than the default 5 minutes.
+If you mount the config file as described above, be sure to also prepend the URL for the registry when starting up your watched image (you can omit the https://). Here is a complete docker-compose.yml file that starts up a docker container from a private repo at Docker Hub and monitors it with watchtower. Note the command argument changing the interval to 30s rather than the default 5 minutes.
 
 ```json
 version: "3"

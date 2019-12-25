@@ -1,12 +1,19 @@
- 
+
 # Notifications
 
 Watchtower can send notifications when containers are updated. Notifications are sent via hooks in the logging system, [logrus](http://github.com/sirupsen/logrus).
-The types of notifications to send are passed via the comma-separated option `--notifications` (or corresponding environment variable `WATCHTOWER_NOTIFICATIONS`), which has the following valid values:
+The types of notifications to send are set by passing a comma-separated list of values to the `--notifications` option (or corresponding environment variable `WATCHTOWER_NOTIFICATIONS`), which has the following valid values:
 
 - `email` to send notifications via e-mail
 - `slack` to send notifications through a Slack webhook
 - `msteams` to send notifications via MSTeams webhook
+- `gotify` to send notifications via Gotify
+
+> There is currently a [bug](https://github.com/spf13/viper/issues/380) in Viper, which prevents comma-separated slices to be used when using the environment variable. A workaround is available where we instead put quotes around the environment variable value and replace the commas with spaces, as `WATCHTOWER_NOTIFICATIONS="slack msteams"`
+
+> If you're a `docker-compose` user, make sure to specify environment variables' values in your `.yml` file without double quotes (`"`). 
+>
+> This prevents unexpected errors when watchtower starts.
 
 ## Settings
 
@@ -25,6 +32,8 @@ To receive notifications by email, the following command-line options, or their 
 - `--notification-email-server-port` (env. `WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PORT`): The port used to connect to the SMTP server to send e-mails through. Defaults to `25`.
 - `--notification-email-server-user` (env. `WATCHTOWER_NOTIFICATION_EMAIL_SERVER_USER`): The username to authenticate with the SMTP server with.
 - `--notification-email-server-password` (env. `WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PASSWORD`): The password to authenticate with the SMTP server with.
+- `--notification-email-delay` (env. `WATCHTOWER_NOTIFICATION_EMAIL_DELAY`): Delay before sending notifications expressed in seconds.
+- `--notification-email-subjecttag` (env. `WATCHTOWER_NOTIFICATION_EMAIL_SUBJECTTAG`): Prefix to include in the subject tag. Useful when running multiple watchtowers.
 
 Example:
 
@@ -38,6 +47,7 @@ docker run -d \
   -e WATCHTOWER_NOTIFICATION_EMAIL_SERVER=smtp.gmail.com \
   -e WATCHTOWER_NOTIFICATION_EMAIL_SERVER_USER=fromaddress@gmail.com \
   -e WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PASSWORD=app_password \
+  -e WATCHTOWER_NOTIFICATION_EMAIL_DELAY=2 \
   containrrr/watchtower
 ```
 
@@ -46,7 +56,7 @@ If watchtower is monitoring the same Docker daemon under which the watchtower co
 
 To receive notifications in Slack, add `slack` to the `--notifications` option or the `WATCHTOWER_NOTIFICATIONS` environment variable.
 
-Additionally, you should set the Slack webhook url using the `--notification-slack-hook-url` option or the `WATCHTOWER_NOTIFICATION_SLACK_HOOK_URL` environment variable.
+Additionally, you should set the Slack webhook URL using the `--notification-slack-hook-url` option or the `WATCHTOWER_NOTIFICATION_SLACK_HOOK_URL` environment variable.
 
 By default, watchtower will send messages under the name `watchtower`, you can customize this string through the `--notification-slack-identifier` option or the `WATCHTOWER_NOTIFICATION_SLACK_IDENTIFIER` environment variable.
 
@@ -75,7 +85,7 @@ docker run -d \
 
 To receive notifications in MSTeams channel, add `msteams` to the `--notifications` option or the `WATCHTOWER_NOTIFICATIONS` environment variable.
 
-Additionally, you should set the MSTeams webhook url using the `--notification-msteams-hook` option or the `WATCHTOWER_NOTIFICATION_MSTEAMS_HOOK_URL` environment variable.
+Additionally, you should set the MSTeams webhook URL using the `--notification-msteams-hook` option or the `WATCHTOWER_NOTIFICATION_MSTEAMS_HOOK_URL` environment variable.
 
 MSTeams notifier could send keys/values filled by `log.WithField` or `log.WithFields` as MSTeams message facts. To enable this feature add `--notification-msteams-data` flag or set `WATCHTOWER_NOTIFICATION_MSTEAMS_USE_LOG_DATA=true` environment variable.
 
@@ -88,5 +98,20 @@ docker run -d \
   -e WATCHTOWER_NOTIFICATIONS=msteams \
   -e WATCHTOWER_NOTIFICATION_MSTEAMS_HOOK_URL="https://outlook.office.com/webhook/xxxxxxxx@xxxxxxx/IncomingWebhook/yyyyyyyy/zzzzzzzzzz" \
   -e WATCHTOWER_NOTIFICATION_MSTEAMS_USE_LOG_DATA=true \
+  containrrr/watchtower
+```
+
+### Gotify
+
+To push a notification to your Gotify instance, register a Gotify app and specify the Gotify URL and app token:
+
+
+```bash
+docker run -d \
+  --name watchtower \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -e WATCHTOWER_NOTIFICATIONS=gotify \
+  -e WATCHTOWER_NOTIFICATION_GOTIFY_URL="https://my.gotify.tld/" \
+  -e WATCHTOWER_NOTIFICATION_GOTIFY_TOKEN="SuperSecretToken" \
   containrrr/watchtower
 ```

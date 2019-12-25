@@ -3,44 +3,59 @@ package notifications
 import (
 	"encoding/base64"
 	"fmt"
+	"github.com/spf13/cobra"
 	"net/smtp"
 	"os"
 	"time"
 
-	"strconv"
-
+	t "github.com/containrrr/watchtower/pkg/types"
 	log "github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
+	"strconv"
 )
 
 const (
 	emailType = "email"
 )
 
-// Implements typeNotifier, logrus.Hook
+// Implements Notifier, logrus.Hook
 // The default logrus email integration would have several issues:
 // - It would send one email per log output
 // - It would only send errors
 // We work around that by holding on to log entries until the update cycle is done.
 type emailTypeNotifier struct {
-	From, To               string
-	Server, User, Password string
-	Port                   int
-	tlsSkipVerify          bool
-	entries                []*log.Entry
-	logLevels              []log.Level
+	From, To                           string
+	Server, User, Password, SubjectTag string
+	Port                               int
+	tlsSkipVerify                      bool
+	entries                            []*log.Entry
+	logLevels                          []log.Level
+	delay                              time.Duration
 }
 
-func newEmailNotifier(c *cli.Context, acceptedLogLevels []log.Level) typeNotifier {
+func newEmailNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.Notifier {
+	flags := c.PersistentFlags()
+
+	from, _ := flags.GetString("notification-email-from")
+	to, _ := flags.GetString("notification-email-to")
+	server, _ := flags.GetString("notification-email-server")
+	user, _ := flags.GetString("notification-email-server-user")
+	password, _ := flags.GetString("notification-email-server-password")
+	port, _ := flags.GetInt("notification-email-server-port")
+	tlsSkipVerify, _ := flags.GetBool("notification-email-server-tls-skip-verify")
+	delay, _ := flags.GetInt("notification-email-delay")
+	subjecttag, _ := flags.GetString("notification-email-subjecttag")
+
 	n := &emailTypeNotifier{
-		From:          c.GlobalString("notification-email-from"),
-		To:            c.GlobalString("notification-email-to"),
-		Server:        c.GlobalString("notification-email-server"),
-		User:          c.GlobalString("notification-email-server-user"),
-		Password:      c.GlobalString("notification-email-server-password"),
-		Port:          c.GlobalInt("notification-email-server-port"),
-		tlsSkipVerify: c.GlobalBool("notification-email-server-tls-skip-verify"),
+		From:          from,
+		To:            to,
+		Server:        server,
+		User:          user,
+		Password:      password,
+		Port:          port,
+		tlsSkipVerify: tlsSkipVerify,
 		logLevels:     acceptedLogLevels,
+		delay:         time.Duration(delay) * time.Second,
+		SubjectTag:    subjecttag,
 	}
 
 	log.AddHook(n)
@@ -49,7 +64,13 @@ func newEmailNotifier(c *cli.Context, acceptedLogLevels []log.Level) typeNotifie
 }
 
 func (e *emailTypeNotifier) buildMessage(entries []*log.Entry) []byte {
-	emailSubject := "Watchtower updates"
+	var emailSubject string
+
+	if e.SubjectTag == "" {
+		emailSubject = "Watchtower updates"
+	} else {
+		emailSubject = e.SubjectTag + " Watchtower updates"
+	}
 	if hostname, err := os.Hostname(); err == nil {
 		emailSubject += " on " + hostname
 	}
@@ -60,7 +81,7 @@ func (e *emailTypeNotifier) buildMessage(entries []*log.Entry) []byte {
 	}
 
 	t := time.Now()
-	
+
 	header := make(map[string]string)
 	header["From"] = e.From
 	header["To"] = e.To
@@ -107,9 +128,15 @@ func (e *emailTypeNotifier) StartNotification() {
 }
 
 func (e *emailTypeNotifier) SendNotification() {
-	if e.entries != nil && len(e.entries) != 0 {
-		e.sendEntries(e.entries)
+	if e.entries == nil || len(e.entries) <= 0 {
+		return
 	}
+
+	if e.delay > 0 {
+		time.Sleep(e.delay)
+	}
+
+	e.sendEntries(e.entries)
 	e.entries = nil
 }
 

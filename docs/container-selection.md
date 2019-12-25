@@ -12,7 +12,7 @@ Or, it can be specified as part of the `docker run` command line:
 docker run -d --label=com.centurylinklabs.watchtower.enable=false someimage
 ```
 
-If you need to only include only some containers, pass the --label-enable flag on startup and set the _com.centurylinklabs.watchtower.enable_ label with a value of true for the containers you want to watch.
+If you need to include only some containers, pass the `--label-enable` flag on startup and set the _com.centurylinklabs.watchtower.enable_ label with a value of `true` for the containers you want to watch.
 
 ```docker
 LABEL com.centurylinklabs.watchtower.enable="true"

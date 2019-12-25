@@ -1,7 +1,7 @@
 package container
 
 import (
-	"github.com/containrrr/watchtower/container/mocks"
+	"github.com/containrrr/watchtower/pkg/container/mocks"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	cli "github.com/docker/docker/client"
@@ -23,8 +23,7 @@ var _ = Describe("the container", func() {
 			server := mocks.NewMockAPIServer()
 			docker, _ = cli.NewClientWithOpts(
 				cli.WithHost(server.URL),
-				cli.WithHTTPClient(server.Client(),
-				))
+				cli.WithHTTPClient(server.Client()))
 			client = dockerClient{
 				api:        docker,
 				pullImages: false,

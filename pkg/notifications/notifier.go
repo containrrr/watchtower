@@ -1,26 +1,25 @@
 package notifications
 
 import (
+	ty "github.com/containrrr/watchtower/pkg/types"
 	"github.com/johntdyer/slackrus"
 	log "github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
+	"github.com/spf13/cobra"
 )
-
-type typeNotifier interface {
-	StartNotification()
-	SendNotification()
-}
 
 // Notifier can send log output as notification to admins, with optional batching.
 type Notifier struct {
-	types []typeNotifier
+	types []ty.Notifier
 }
 
 // NewNotifier creates and returns a new Notifier, using global configuration.
-func NewNotifier(c *cli.Context) *Notifier {
+func NewNotifier(c *cobra.Command) *Notifier {
 	n := &Notifier{}
 
-	logLevel, err := log.ParseLevel(c.GlobalString("notifications-level"))
+	f := c.PersistentFlags()
+
+	level, _ := f.GetString("notifications-level")
+	logLevel, err := log.ParseLevel(level)
 	if err != nil {
 		log.Fatalf("Notifications invalid log level: %s", err.Error())
 	}
@@ -28,9 +27,10 @@ func NewNotifier(c *cli.Context) *Notifier {
 	acceptedLogLevels := slackrus.LevelThreshold(logLevel)
 
 	// Parse types and create notifiers.
-	types := c.GlobalStringSlice("notifications")
+	types, _ := f.GetStringSlice("notifications")
+
 	for _, t := range types {
-		var tn typeNotifier
+		var tn ty.Notifier
 		switch t {
 		case emailType:
 			tn = newEmailNotifier(c, acceptedLogLevels)
@@ -38,6 +38,8 @@ func NewNotifier(c *cli.Context) *Notifier {
 			tn = newSlackNotifier(c, acceptedLogLevels)
 		case msTeamsType:
 			tn = newMsTeamsNotifier(c, acceptedLogLevels)
+		case gotifyType:
+			tn = newGotifyNotifier(c, acceptedLogLevels)
 		default:
 			log.Fatalf("Unknown notification type %q", t)
 		}
