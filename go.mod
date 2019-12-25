@@ -56,5 +56,8 @@ require (
 	gopkg.in/dancannon/gorethink.v3 v3.0.5 // indirect
 	gopkg.in/fatih/pool.v2 v2.0.0 // indirect
 	gopkg.in/gorethink/gorethink.v3 v3.0.5 // indirect
+	golang.org/x/sys v0.0.0-20190403152447-81d4e9dc473e
+	google.golang.org/genproto v0.0.0-20190401181712-f467c93bbac2
+	google.golang.org/grpc v1.21.0
 	gotest.tools v2.2.0+incompatible // indirect
 )

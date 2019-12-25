@@ -2,12 +2,18 @@
 # Notifications
 
 Watchtower can send notifications when containers are updated. Notifications are sent via hooks in the logging system, [logrus](http://github.com/sirupsen/logrus).
-The types of notifications to send are passed via the comma-separated option `--notifications` (or corresponding environment variable `WATCHTOWER_NOTIFICATIONS`), which has the following valid values:
+The types of notifications to send are set by passing a comma-separated list of values to the `--notifications` option (or corresponding environment variable `WATCHTOWER_NOTIFICATIONS`), which has the following valid values:
 
 - `email` to send notifications via e-mail
 - `slack` to send notifications through a Slack webhook
 - `msteams` to send notifications via MSTeams webhook
 - `gotify` to send notifications via Gotify
+
+> There is currently a [bug](https://github.com/spf13/viper/issues/380) in Viper, which prevents comma-separated slices to be used when using the environment variable. A workaround is available where we instead put quotes around the environment variable value and replace the commas with spaces, as `WATCHTOWER_NOTIFICATIONS="slack msteams"`
+
+> If you're a `docker-compose` user, make sure to specify environment variables' values in your `.yml` file without double quotes (`"`). 
+>
+> This prevents unexpected errors when watchtower starts.
 
 ## Settings
 
@@ -27,6 +33,7 @@ To receive notifications by email, the following command-line options, or their 
 - `--notification-email-server-user` (env. `WATCHTOWER_NOTIFICATION_EMAIL_SERVER_USER`): The username to authenticate with the SMTP server with.
 - `--notification-email-server-password` (env. `WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PASSWORD`): The password to authenticate with the SMTP server with.
 - `--notification-email-delay` (env. `WATCHTOWER_NOTIFICATION_EMAIL_DELAY`): Delay before sending notifications expressed in seconds.
+- `--notification-email-subjecttag` (env. `WATCHTOWER_NOTIFICATION_EMAIL_SUBJECTTAG`): Prefix to include in the subject tag. Useful when running multiple watchtowers.
 
 Example:
 

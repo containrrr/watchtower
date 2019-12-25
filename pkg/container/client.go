@@ -38,7 +38,7 @@ type Client interface {
 //  * DOCKER_HOST			the docker-engine host to send api requests to
 //  * DOCKER_TLS_VERIFY		whether to verify tls certificates
 //  * DOCKER_API_VERSION	the minimum docker api version to work with
-func NewClient(pullImages bool, includeStopped bool, removeVolumes bool) Client {
+func NewClient(pullImages bool, includeStopped bool, reviveStopped bool, removeVolumes bool) Client {
 	cli, err := dockerclient.NewClientWithOpts(dockerclient.FromEnv)
 
 	if err != nil {
@@ -50,6 +50,7 @@ func NewClient(pullImages bool, includeStopped bool, removeVolumes bool) Client 
 		pullImages:     pullImages,
 		removeVolumes:  removeVolumes,
 		includeStopped: includeStopped,
+		reviveStopped:  reviveStopped,
 	}
 }
 
@@ -58,6 +59,7 @@ type dockerClient struct {
 	pullImages     bool
 	removeVolumes  bool
 	includeStopped bool
+	reviveStopped  bool
 }
 
 func (client dockerClient) ListContainers(fn t.Filter) ([]Container, error) {
@@ -203,7 +205,7 @@ func (client dockerClient) StartContainer(c Container) (string, error) {
 
 	}
 
-	if !c.IsRunning() {
+	if !c.IsRunning() && !client.reviveStopped {
 		return createdContainer.ID, nil
 	}
 

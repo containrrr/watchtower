@@ -19,5 +19,6 @@ nav:
    - 'Remote hosts': 'remote-hosts.md'
    - 'Secure connections': 'secure-connections.md'
    - 'Stop signals': 'stop-signals.md'
+   - 'Lifecycle hooks': 'lifecycle-hooks.md'
 plugins:
     - search

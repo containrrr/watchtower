@@ -23,13 +23,13 @@ const (
 // - It would only send errors
 // We work around that by holding on to log entries until the update cycle is done.
 type emailTypeNotifier struct {
-	From, To               string
-	Server, User, Password string
-	Port                   int
-	tlsSkipVerify          bool
-	entries                []*log.Entry
-	logLevels              []log.Level
-	delay                  time.Duration
+	From, To                           string
+	Server, User, Password, SubjectTag string
+	Port                               int
+	tlsSkipVerify                      bool
+	entries                            []*log.Entry
+	logLevels                          []log.Level
+	delay                              time.Duration
 }
 
 func newEmailNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.Notifier {
@@ -43,6 +43,7 @@ func newEmailNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.Notifie
 	port, _ := flags.GetInt("notification-email-server-port")
 	tlsSkipVerify, _ := flags.GetBool("notification-email-server-tls-skip-verify")
 	delay, _ := flags.GetInt("notification-email-delay")
+	subjecttag, _ := flags.GetString("notification-email-subjecttag")
 
 	n := &emailTypeNotifier{
 		From:          from,
@@ -54,6 +55,7 @@ func newEmailNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.Notifie
 		tlsSkipVerify: tlsSkipVerify,
 		logLevels:     acceptedLogLevels,
 		delay:         time.Duration(delay) * time.Second,
+		SubjectTag:    subjecttag,
 	}
 
 	log.AddHook(n)
@@ -62,7 +64,13 @@ func newEmailNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.Notifie
 }
 
 func (e *emailTypeNotifier) buildMessage(entries []*log.Entry) []byte {
-	emailSubject := "Watchtower updates"
+	var emailSubject string
+
+	if e.SubjectTag == "" {
+		emailSubject = "Watchtower updates"
+	} else {
+		emailSubject = e.SubjectTag + " Watchtower updates"
+	}
 	if hostname, err := os.Hostname(); err == nil {
 		emailSubject += " on " + hostname
 	}
@@ -128,7 +136,7 @@ func (e *emailTypeNotifier) SendNotification() {
 		time.Sleep(e.delay)
 	}
 
-	e.sendEntries(e.entries)	
+	e.sendEntries(e.entries)
 	e.entries = nil
 }
 
