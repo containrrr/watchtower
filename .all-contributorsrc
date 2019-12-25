@@ -393,6 +393,15 @@
       "contributions": [
         "doc"
       ]
+    },
+    {
+      "login": "jnidzwetzki",
+      "name": "Jan Kristof Nidzwetzki",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/5753622?v=4",
+      "profile": "https://achfrag.net",
+      "contributions": [
+        "doc"
+      ]
     }
   ],
   "contributorsPerLine": 7,
@@ -400,5 +409,6 @@
   "projectOwner": "containrrr",
   "repoType": "github",
   "repoHost": "https://github.com",
-  "commitConvention": "none"
+  "commitConvention": "none",
+  "skipCi": true
 }
