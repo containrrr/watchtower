@@ -63,4 +63,4 @@ and for `<PATH_TO_HOME_DIR>/.docker/config.json`:
   }
 ```
 
-*Note:* `osxkeychain` can be changed to your prefered credentials helper
+*Note:* `osxkeychain` can be changed to your prefered credentials helper.
