@@ -155,7 +155,7 @@ func runUpgradesOnSchedule(filter t.Filter) error {
 		return err
 	}
 
-	log.Debug("Starting Watchtower and scheduling first run: " + cron.Entries()[0].Schedule.Next(time.Now()).String())
+	log.Info("Starting Watchtower and scheduling first run: " + cron.Entries()[0].Schedule.Next(time.Now()).String())
 	cron.Start()
 
 	// Graceful shut-down on SIGINT/SIGTERM
