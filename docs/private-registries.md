@@ -24,7 +24,7 @@ The required `auth` string can be generated as follows:
 echo -n 'username:password' | base64
 ```
 
-When the watchtower Docker container is stared, the created configuration file (`<PATH>/config.json` in this example) needs to be passed to the container:
+When the watchtower Docker container is started, the created configuration file (`<PATH>/config.json` in this example) needs to be passed to the container:
 ```bash
 docker run [...] -v <PATH>/config.json:/config.json containrrr/watchtower
 ```
