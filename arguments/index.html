@@ -34,7 +34,7 @@
         <meta name="lang:search.tokenizer" content="[\s\-]+">
       
       <link rel="shortcut icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.0.4, mkdocs-material-4.4.2">
+      <meta name="generator" content="mkdocs-1.0.4, mkdocs-material-4.6.0">
     
     
       
@@ -42,17 +42,17 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/application.30686662.css">
+      <link rel="stylesheet" href="../assets/stylesheets/application.1b62728e.css">
       
       
     
     
-      <script src="../assets/javascripts/modernizr.74668098.js"></script>
+      <script src="../assets/javascripts/modernizr.268332fc.js"></script>
     
     
       
         <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700|Roboto+Mono&display=fallback">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700%7CRoboto+Mono&display=fallback">
         <style>body,input{font-family:"Roboto","Helvetica Neue",Helvetica,Arial,sans-serif}code,kbd,pre{font-family:"Roboto Mono","Courier New",Courier,monospace}</style>
       
     
@@ -324,6 +324,13 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#revive_stopped" class="md-nav__link">
+    Revive stopped
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#poll_interval" class="md-nav__link">
     Poll interval
   </a>
@@ -340,6 +347,13 @@
         <li class="md-nav__item">
   <a href="#without_updating_containers" class="md-nav__link">
     Without updating containers
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#without_restarting_containers" class="md-nav__link">
+    Without restarting containers
   </a>
   
 </li>
@@ -420,8 +434,8 @@
 
 
   <li class="md-nav__item">
-    <a href="../credential-helpers/" title="Credential helpers" class="md-nav__link">
-      Credential helpers
+    <a href="../private-registries/" title="Private registries" class="md-nav__link">
+      Private registries
     </a>
   </li>
 
@@ -470,6 +484,18 @@
   <li class="md-nav__item">
     <a href="../stop-signals/" title="Stop signals" class="md-nav__link">
       Stop signals
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../lifecycle-hooks/" title="Lifecycle hooks" class="md-nav__link">
+      Lifecycle hooks
     </a>
   </li>
 
@@ -542,6 +568,13 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#revive_stopped" class="md-nav__link">
+    Revive stopped
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#poll_interval" class="md-nav__link">
     Poll interval
   </a>
@@ -558,6 +591,13 @@
         <li class="md-nav__item">
   <a href="#without_updating_containers" class="md-nav__link">
     Without updating containers
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#without_restarting_containers" class="md-nav__link">
+    Without restarting containers
   </a>
   
 </li>
@@ -668,7 +708,7 @@ Environment Variable: WATCHTOWER_REMOVE_VOLUMES
 <h2 id="debug">Debug<a class="headerlink" href="#debug" title="Permanent link">&para;</a></h2>
 <p>Enable debug mode with verbose logging.</p>
 <pre><code>            Argument: --debug
-Environment Variable: N/A
+Environment Variable: WATCHTOWER_DEBUG
                 Type: Boolean
              Default: false
 </code></pre>
@@ -697,6 +737,14 @@ Environment Variable: WATCHTOWER_INCLUDE_STOPPED
              Default: false
 </code></pre>
 
+<h2 id="revive_stopped">Revive stopped<a class="headerlink" href="#revive_stopped" title="Permanent link">&para;</a></h2>
+<p>Start any stopped containers that have had their image updated. This argument is only usable with the <code>--include-stopped</code> argument.</p>
+<pre><code>            Argument: --revive-stopped
+Environment Variable: WATCHTOWER_REVIVE_STOPPED
+                Type: Boolean
+             Default: false
+</code></pre>
+
 <h2 id="poll_interval">Poll interval<a class="headerlink" href="#poll_interval" title="Permanent link">&para;</a></h2>
 <p>Poll interval (in seconds). This value controls how frequently watchtower will poll for new images.</p>
 <pre><code>            Argument: --interval, -i
@@ -717,6 +765,15 @@ Environment Variable: WATCHTOWER_LABEL_ENABLE
 <p>Will only monitor for new images, not update the containers.</p>
 <pre><code>            Argument: --monitor-only
 Environment Variable: WATCHTOWER_MONITOR_ONLY
+                Type: Boolean
+             Default: false
+</code></pre>
+
+<h2 id="without_restarting_containers">Without restarting containers<a class="headerlink" href="#without_restarting_containers" title="Permanent link">&para;</a></h2>
+<p>Do not restart containers after updating. This option can be useful when the start of the containers
+is managed by an external system such as systemd.</p>
+<pre><code>            Argument: --no-restart
+Environment Variable: WATCHTOWER_NO_RESTART
                 Type: Boolean
              Default: false
 </code></pre>
@@ -765,6 +822,7 @@ Environment Variable: DOCKER_TLS_VERIFY
 </code></pre>
                 
                   
+                
                 
               
               
@@ -832,7 +890,7 @@ Environment Variable: DOCKER_TLS_VERIFY
       
     </div>
     
-      <script src="../assets/javascripts/application.c648116f.js"></script>
+      <script src="../assets/javascripts/application.808e90bb.js"></script>
       
       <script>app.initialize({version:"1.0.4",url:{base:".."}})</script>
       
