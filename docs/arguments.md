@@ -168,6 +168,16 @@ Run an update attempt against a container name list one time immediately and exi
 Environment Variable: WATCHTOWER_RUN_ONCE
                 Type: Boolean
              Default: false
+```
+
+## HTTP API Mode
+Runs Watchtower in HTTP API mode, so that image updates must to be triggered by a request.
+
+```
+            Argument: --http-api
+Environment Variable: WATCHTOWER_HTTP_API
+                Type: Boolean
+             Default: false
 ``` 
 
 ## Scheduling

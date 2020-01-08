@@ -105,6 +105,12 @@ func RegisterSystemFlags(rootCmd *cobra.Command) {
 		"",
 		viper.GetBool("WATCHTOWER_LIFECYCLE_HOOKS"),
 		"Enable the execution of commands triggered by pre- and post-update lifecycle hooks")
+
+	flags.BoolP(
+		"http-api",
+		"",
+		viper.GetBool("WATCHTOWER_HTTP_API"),
+		"Runs Watchtower in HTTP API mode, so that image updates must to be triggered by a request")
 }
 
 // RegisterNotificationFlags that are used by watchtower to send notifications

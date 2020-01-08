@@ -16,6 +16,9 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/spf13/cobra"
+
+	"io"
+	"net/http"
 )
 
 var (
@@ -110,6 +113,25 @@ func PreRun(cmd *cobra.Command, args []string) {
 func Run(c *cobra.Command, names []string) {
 	filter := container.BuildFilter(names, enableLabel)
 	runOnce, _ := c.PersistentFlags().GetBool("run-once")
+	httpApi, _ := c.PersistentFlags().GetBool("http-api")
+
+	if httpApi {
+		log.Println("Watchtower HTTP API started.")
+		http.HandleFunc("/v1/update", func(w http.ResponseWriter, r *http.Request){
+			log.Info("Updates triggered by HTTP API request.")
+
+			_, err := io.Copy(os.Stdout, r.Body)
+			if err != nil {
+				log.Println(err)
+				return
+			}
+
+			runUpdatesWithNotifications(filter)
+		})
+		log.Fatal(http.ListenAndServe(":8080", nil))
+		os.Exit(0)
+		return
+	}
 
 	if runOnce {
 		log.Info("Running a one time update.")
