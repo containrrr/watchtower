@@ -113,9 +113,9 @@ func PreRun(cmd *cobra.Command, args []string) {
 func Run(c *cobra.Command, names []string) {
 	filter := container.BuildFilter(names, enableLabel)
 	runOnce, _ := c.PersistentFlags().GetBool("run-once")
-	httpApi, _ := c.PersistentFlags().GetBool("http-api")
+	httpAPI, _ := c.PersistentFlags().GetBool("http-api")
 	
-	if httpApi {
+	if httpAPI {
 		log.Println("Watchtower HTTP API started.")
 		
 		apiToken, _ := c.PersistentFlags().GetString("http-api-token")
