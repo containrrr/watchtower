@@ -412,6 +412,15 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "codingCoffee",
+      "name": "Ameya Shenoy",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/13611153?v=4",
+      "profile": "https://codingcoffee.dev",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
