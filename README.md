@@ -122,6 +122,7 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
   <tr>
     <td align="center"><a href="https://achfrag.net"><img src="https://avatars1.githubusercontent.com/u/5753622?v=4" width="100px;" alt=""/><br /><sub><b>Jan Kristof Nidzwetzki</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=jnidzwetzki" title="Documentation">📖</a></td>
     <td align="center"><a href="https://www.lukaselsner.de"><img src="https://avatars0.githubusercontent.com/u/1413542?v=4" width="100px;" alt=""/><br /><sub><b>lukas</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=mindrunner" title="Code">💻</a></td>
+    <td align="center"><a href="https://codingcoffee.dev"><img src="https://avatars3.githubusercontent.com/u/13611153?v=4" width="100px;" alt=""/><br /><sub><b>Ameya Shenoy</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=codingCoffee" title="Code">💻</a></td>
   </tr>
 </table>
 
