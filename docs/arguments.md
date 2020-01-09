@@ -180,6 +180,16 @@ Environment Variable: WATCHTOWER_HTTP_API
              Default: false
 ``` 
 
+## HTTP API Token
+Sets an authentication token to HTTP API requests.
+
+```
+            Argument: --http-api-token
+Environment Variable: WATCHTOWER_HTTP_API_TOKEN
+                Type: String
+             Default: -
+``` 
+
 ## Scheduling
 [Cron expression](https://godoc.org/github.com/robfig/cron#hdr-CRON_Expression_Format) in 6 fields (rather than the traditional 5) which defines when and how often to check for new images. Either `--interval` or the schedule expression could be defined, but not both. An example: `--schedule "0 0 4 * * *"`
 

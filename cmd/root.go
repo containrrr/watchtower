@@ -114,18 +114,27 @@ func Run(c *cobra.Command, names []string) {
 	filter := container.BuildFilter(names, enableLabel)
 	runOnce, _ := c.PersistentFlags().GetBool("run-once")
 	httpApi, _ := c.PersistentFlags().GetBool("http-api")
-
+	
 	if httpApi {
 		log.Println("Watchtower HTTP API started.")
+		
+		apiToken, _ := c.PersistentFlags().GetString("http-api-token")
+
 		http.HandleFunc("/v1/update", func(w http.ResponseWriter, r *http.Request){
 			log.Info("Updates triggered by HTTP API request.")
-
+			
 			_, err := io.Copy(os.Stdout, r.Body)
 			if err != nil {
 				log.Println(err)
 				return
 			}
 
+			if r.Header.Get("Token") != apiToken {
+				log.Println("Invalid token. Not updating.")
+				return
+			}
+
+			log.Println("Valid token found. Triggering updates.")
 			runUpdatesWithNotifications(filter)
 		})
 		log.Fatal(http.ListenAndServe(":8080", nil))

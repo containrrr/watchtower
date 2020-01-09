@@ -111,6 +111,12 @@ func RegisterSystemFlags(rootCmd *cobra.Command) {
 		"",
 		viper.GetBool("WATCHTOWER_HTTP_API"),
 		"Runs Watchtower in HTTP API mode, so that image updates must to be triggered by a request")
+
+	flags.StringP(
+		"http-api-token",
+		"",
+		viper.GetString("WATCHTOWER_HTTP_API_TOKEN"),
+		"Sets an authentication token to HTTP API requests.")
 }
 
 // RegisterNotificationFlags that are used by watchtower to send notifications
