@@ -7,6 +7,7 @@ import (
 	"time"
 )
 
+// CreateMockContainer creates a container substitute valid for testing
 func CreateMockContainer(id string, name string, image string, created time.Time) container.Container {
 	content := types.ContainerJSON{
 		ContainerJSONBase: &types.ContainerJSONBase{
