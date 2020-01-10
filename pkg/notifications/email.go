@@ -6,6 +6,7 @@ import (
 	"github.com/spf13/cobra"
 	"net/smtp"
 	"os"
+	"strings"
 	"time"
 
 	t "github.com/containrrr/watchtower/pkg/types"
@@ -113,7 +114,7 @@ func (e *emailTypeNotifier) sendEntries(entries []*log.Entry) {
 		if e.User != "" {
 			auth = smtp.PlainAuth("", e.User, e.Password, e.Server)
 		}
-		err := SendMail(e.Server+":"+strconv.Itoa(e.Port), e.tlsSkipVerify, auth, e.From, []string{e.To}, msg)
+		err := SendMail(e.Server+":"+strconv.Itoa(e.Port), e.tlsSkipVerify, auth, e.From, strings.Split(e.To, ","), msg)
 		if err != nil {
 			// Use fmt so it doesn't trigger another email.
 			fmt.Println("Failed to send notification email: ", err)
