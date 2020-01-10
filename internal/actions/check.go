@@ -51,7 +51,7 @@ func cleanupExcessWatchtowers(containers []container.Container, client container
 		}
 
 		if cleanup {
-			if err := client.RemoveImage(c); err != nil {
+			if err := client.RemoveImageByID(c.ImageID()); err != nil {
 				// logging the original here as we're just returning a count
 				logrus.Error(err)
 				cleanupErrors++

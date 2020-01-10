@@ -73,17 +73,18 @@ func stopStaleContainer(container container.Container, client container.Client, 
 }
 
 func restartContainersInSortedOrder(containers []container.Container, client container.Client, params UpdateParams) {
-	toDelete := make(map[container.Container]bool)
+	imageIDs := make(map[string]bool)
+
 	for _, container := range containers {
 		if !container.Stale {
 			continue
 		}
 		restartStaleContainer(container, client, params)
-		toDelete[container] = true
+		imageIDs[container.ImageID()] = true
 	}
 	if params.Cleanup {
-		for cont := range toDelete {
-			if err := client.RemoveImage(cont); err != nil {
+		for imageID := range imageIDs {
+			if err := client.RemoveImageByID(imageID); err != nil {
 				log.Error(err)
 			}
 		}

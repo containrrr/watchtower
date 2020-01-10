@@ -29,7 +29,8 @@ type Client interface {
 	RenameContainer(Container, string) error
 	IsContainerStale(Container) (bool, error)
 	ExecuteCommand(containerID string, command string) error
-	RemoveImage(Container) error
+	RemoveImageByID(string) error
+
 }
 
 // NewClient returns a new Client instance which can be used to interact with
@@ -156,7 +157,7 @@ func (client dockerClient) StopContainer(c Container, timeout time.Duration) err
 
 	// Wait for container to be removed. In this case an error is a good thing
 	if err := client.waitForStopOrTimeout(c, timeout); err == nil {
-		return fmt.Errorf("Container %s (%s) could not be removed", c.Name(), c.ID())
+		return fmt.Errorf("container %s (%s) could not be removed", c.Name(), c.ID())
 	}
 
 	return nil
@@ -279,10 +280,16 @@ func (client dockerClient) IsContainerStale(c Container) (bool, error) {
 	return false, nil
 }
 
-func (client dockerClient) RemoveImage(c Container) error {
-	imageID := c.ImageID()
-	log.Infof("Removing image %s", imageID)
-	_, err := client.api.ImageRemove(context.Background(), imageID, types.ImageRemoveOptions{Force: true})
+func (client dockerClient) RemoveImageByID(id string) error {
+	log.Infof("Removing image %s", id)
+
+	_, err := client.api.ImageRemove(
+		context.Background(),
+		id,
+		types.ImageRemoveOptions{
+			Force: true,
+		})
+
 	return err
 }
 
