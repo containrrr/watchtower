@@ -277,11 +277,12 @@
       "login": "simskij",
       "name": "Simon Aronsson",
       "avatar_url": "https://avatars0.githubusercontent.com/u/1596025?v=4",
-      "profile": "http://www.arcticbit.se",
+      "profile": "http://simme.dev",
       "contributions": [
         "code",
         "maintenance",
-        "review"
+        "review",
+        "doc"
       ]
     },
     {
