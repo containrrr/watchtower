@@ -4,6 +4,7 @@ import (
 	"github.com/containrrr/watchtower/internal/actions"
 	"github.com/containrrr/watchtower/pkg/container"
 	"github.com/containrrr/watchtower/pkg/container/mocks"
+	"github.com/containrrr/watchtower/pkg/types"
 	cli "github.com/docker/docker/client"
 	"time"
 
@@ -59,7 +60,7 @@ var _ = Describe("the update action", func() {
 		When("there are multiple containers using the same image", func() {
 			It("should only try to remove the image once", func() {
 
-				err := actions.Update(client, actions.UpdateParams{ Cleanup: true })
+				err := actions.Update(client, types.UpdateParams{ Cleanup: true })
 				Expect(err).NotTo(HaveOccurred())
 				Expect(client.TestData.TriedToRemoveImageCount).To(Equal(1))
 			})
@@ -75,7 +76,7 @@ var _ = Describe("the update action", func() {
 						time.Now(),
 					),
 				)
-				err := actions.Update(client, actions.UpdateParams{ Cleanup: true })
+				err := actions.Update(client, types.UpdateParams{ Cleanup: true })
 				Expect(err).NotTo(HaveOccurred())
 				Expect(client.TestData.TriedToRemoveImageCount).To(Equal(2))
 			})

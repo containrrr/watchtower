@@ -3,6 +3,7 @@ package container
 import (
 	"bytes"
 	"fmt"
+	"github.com/containrrr/watchtower/pkg/registry"
 	"io/ioutil"
 	"strings"
 	"time"
@@ -12,7 +13,7 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/network"
-	dockerclient "github.com/docker/docker/client"
+	sdkClient "github.com/docker/docker/client"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 )
@@ -40,7 +41,7 @@ type Client interface {
 //  * DOCKER_TLS_VERIFY		whether to verify tls certificates
 //  * DOCKER_API_VERSION	the minimum docker api version to work with
 func NewClient(pullImages bool, includeStopped bool, reviveStopped bool, removeVolumes bool) Client {
-	cli, err := dockerclient.NewClientWithOpts(dockerclient.FromEnv)
+	cli, err := sdkClient.NewClientWithOpts(sdkClient.FromEnv)
 
 	if err != nil {
 		log.Fatalf("Error instantiating Docker client: %s", err)
@@ -56,7 +57,7 @@ func NewClient(pullImages bool, includeStopped bool, reviveStopped bool, removeV
 }
 
 type dockerClient struct {
-	api            dockerclient.CommonAPIClient
+	api            sdkClient.CommonAPIClient
 	pullImages     bool
 	removeVolumes  bool
 	includeStopped bool
@@ -231,53 +232,60 @@ func (client dockerClient) RenameContainer(c Container, newName string) error {
 	return client.api.ContainerRename(bg, c.ID(), newName)
 }
 
-func (client dockerClient) IsContainerStale(c Container) (bool, error) {
-	bg := context.Background()
-	oldImageInfo := c.imageInfo
-	imageName := c.ImageName()
+func (client dockerClient) IsContainerStale(container Container) (bool, error) {
+	ctx := context.Background()
 
-	if client.pullImages {
-		log.Debugf("Pulling %s for %s", imageName, c.Name())
-
-		var opts types.ImagePullOptions // ImagePullOptions can take a RegistryAuth arg to authenticate against a private registry
-		auth, err := EncodedAuth(imageName)
-		log.Debugf("Got auth value: %s", auth)
-		log.Debugf("Got image name: %s", imageName)
-		if err != nil {
-			log.Debugf("Error loading authentication credentials %s", err)
-			return false, err
-		} else if auth == "" {
-			log.Debugf("No authentication credentials found for %s", imageName)
-			opts = types.ImagePullOptions{} // empty/no auth credentials
-		} else {
-			opts = types.ImagePullOptions{RegistryAuth: auth, PrivilegeFunc: DefaultAuthHandler}
-		}
-
-		response, err := client.api.ImagePull(bg, imageName, opts)
-		if err != nil {
-			log.Debugf("Error pulling image %s, %s", imageName, err)
-			return false, err
-		}
-		defer response.Close()
-
-		// the pull request will be aborted prematurely unless the response is read
-		if _, err = ioutil.ReadAll(response); err != nil {
-			log.Error(err)
-		}
+	if !client.pullImages {
+		log.Debugf("Skipping image pull.")
+	} else if err := client.PullImage(ctx, container); err != nil {
+		return false, err
 	}
 
-	newImageInfo, _, err := client.api.ImageInspectWithRaw(bg, imageName)
+	return client.HasNewImage(ctx, container)
+}
+
+func (client dockerClient) HasNewImage(ctx context.Context, container Container) (bool, error) {
+	oldImageID := container.imageInfo.ID
+	imageName := container.ImageName()
+
+	newImageInfo, _, err := client.api.ImageInspectWithRaw(ctx, imageName)
 	if err != nil {
 		return false, err
 	}
 
-	if newImageInfo.ID != oldImageInfo.ID {
-		log.Infof("Found new %s image (%s)", imageName, newImageInfo.ID)
-		return true, nil
+	if newImageInfo.ID == oldImageID {
+		log.Debugf("No new images found for %s", container.Name())
+		return false, nil
 	}
 
-	log.Debugf("No new images found for %s", c.Name())
-	return false, nil
+	log.Infof("Found new %s image (%s)", imageName, newImageInfo.ID)
+	return true, nil
+}
+
+func (client dockerClient) PullImage(ctx context.Context, container Container) error {
+	containerName := container.Name()
+	imageName := container.ImageName()
+	log.Debugf("Pulling %s for %s", imageName, containerName)
+
+	opts, err := registry.GetPullOptions(imageName)
+	if err != nil {
+		log.Debugf("Error loading authentication credentials %s", err)
+		return err
+	}
+
+	response, err := client.api.ImagePull(ctx, imageName, opts)
+	if err != nil {
+		log.Debugf("Error pulling image %s, %s", imageName, err)
+		return err
+	}
+
+	defer response.Close()
+	// the pull request will be aborted prematurely unless the response is read
+	if _, err = ioutil.ReadAll(response); err != nil {
+		log.Error(err)
+		return err
+	}
+	return nil
 }
 
 func (client dockerClient) RemoveImageByID(id string) error {

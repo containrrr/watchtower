@@ -28,6 +28,11 @@ type Container struct {
 	imageInfo     *types.ImageInspect
 }
 
+// ContainerInfo fetches JSON info for the container
+func (c Container) ContainerInfo() *types.ContainerJSON {
+	return c.containerInfo
+}
+
 // ID returns the Docker container ID.
 func (c Container) ID() string {
 	return c.containerInfo.ID
