@@ -1,0 +1,24 @@
+name: Docker image (latest-dev)
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - uses: jerray/publish-docker-action@master
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_PASSWORD }}
+        path: ./dockerfiles/
+        file: Dockerfile.self-contained
+        repository: containrrr/watchtower
+        tags: latest-dev
