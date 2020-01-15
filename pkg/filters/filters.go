@@ -1,15 +1,15 @@
-package container
+package filters
 
 import t "github.com/containrrr/watchtower/pkg/types"
 
 // WatchtowerContainersFilter filters only watchtower containers
 func WatchtowerContainersFilter(c t.FilterableContainer) bool { return c.IsWatchtower() }
 
-// Filter no containers and returns all
-func noFilter(t.FilterableContainer) bool { return true }
+// NoFilter will not filter out any containers
+func NoFilter(t.FilterableContainer) bool { return true }
 
-// Filters containers which don't have a specified name
-func filterByNames(names []string, baseFilter t.Filter) t.Filter {
+// FilterByNames returns all containers that match the specified name
+func FilterByNames(names []string, baseFilter t.Filter) t.Filter {
 	if len(names) == 0 {
 		return baseFilter
 	}
@@ -24,8 +24,8 @@ func filterByNames(names []string, baseFilter t.Filter) t.Filter {
 	}
 }
 
-// Filters out containers that don't have the 'enableLabel'
-func filterByEnableLabel(baseFilter t.Filter) t.Filter {
+// FilterByEnableLabel returns all containers that have the enabled label set
+func FilterByEnableLabel(baseFilter t.Filter) t.Filter {
 	return func(c t.FilterableContainer) bool {
 		// If label filtering is enabled, containers should only be considered
 		// if the label is specifically set.
@@ -38,8 +38,8 @@ func filterByEnableLabel(baseFilter t.Filter) t.Filter {
 	}
 }
 
-// Filters out containers that have a 'enableLabel' and is set to disable.
-func filterByDisabledLabel(baseFilter t.Filter) t.Filter {
+// FilterByDisabledLabel returns all containers that have the enabled label set to disable
+func FilterByDisabledLabel(baseFilter t.Filter) t.Filter {
 	return func(c t.FilterableContainer) bool {
 		enabledLabel, ok := c.Enabled()
 		if ok && !enabledLabel {
@@ -53,13 +53,13 @@ func filterByDisabledLabel(baseFilter t.Filter) t.Filter {
 
 // BuildFilter creates the needed filter of containers
 func BuildFilter(names []string, enableLabel bool) t.Filter {
-	filter := noFilter
-	filter = filterByNames(names, filter)
+	filter := NoFilter
+	filter = FilterByNames(names, filter)
 	if enableLabel {
 		// If label filtering is enabled, containers should only be considered
 		// if the label is specifically set.
-		filter = filterByEnableLabel(filter)
+		filter = FilterByEnableLabel(filter)
 	}
-	filter = filterByDisabledLabel(filter)
+	filter = FilterByDisabledLabel(filter)
 	return filter
 }

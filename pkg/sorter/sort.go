@@ -1,13 +1,14 @@
-package container
+package sorter
 
 import (
 	"fmt"
+	"github.com/containrrr/watchtower/pkg/container"
 	"time"
 )
 
 // ByCreated allows a list of Container structs to be sorted by the container's
 // created date.
-type ByCreated []Container
+type ByCreated []container.Container
 
 func (c ByCreated) Len() int      { return len(c) }
 func (c ByCreated) Swap(i, j int) { c[i], c[j] = c[j], c[i] }
@@ -15,12 +16,12 @@ func (c ByCreated) Swap(i, j int) { c[i], c[j] = c[j], c[i] }
 // Less will compare two elements (identified by index) in the Container
 // list by created-date.
 func (c ByCreated) Less(i, j int) bool {
-	t1, err := time.Parse(time.RFC3339Nano, c[i].containerInfo.Created)
+	t1, err := time.Parse(time.RFC3339Nano, c[i].ContainerInfo().Created)
 	if err != nil {
 		t1 = time.Now()
 	}
 
-	t2, _ := time.Parse(time.RFC3339Nano, c[j].containerInfo.Created)
+	t2, _ := time.Parse(time.RFC3339Nano, c[j].ContainerInfo().Created)
 	if err != nil {
 		t1 = time.Now()
 	}
@@ -33,18 +34,18 @@ func (c ByCreated) Less(i, j int) bool {
 // the front of the list while containers with links will be sorted after all
 // of their dependencies. This sort order ensures that linked containers can
 // be started in the correct order.
-func SortByDependencies(containers []Container) ([]Container, error) {
+func SortByDependencies(containers []container.Container) ([]container.Container, error) {
 	sorter := dependencySorter{}
 	return sorter.Sort(containers)
 }
 
 type dependencySorter struct {
-	unvisited []Container
+	unvisited []container.Container
 	marked    map[string]bool
-	sorted    []Container
+	sorted    []container.Container
 }
 
-func (ds *dependencySorter) Sort(containers []Container) ([]Container, error) {
+func (ds *dependencySorter) Sort(containers []container.Container) ([]container.Container, error) {
 	ds.unvisited = containers
 	ds.marked = map[string]bool{}
 
@@ -57,10 +58,10 @@ func (ds *dependencySorter) Sort(containers []Container) ([]Container, error) {
 	return ds.sorted, nil
 }
 
-func (ds *dependencySorter) visit(c Container) error {
+func (ds *dependencySorter) visit(c container.Container) error {
 
 	if _, ok := ds.marked[c.Name()]; ok {
-		return fmt.Errorf("Circular reference to %s", c.Name())
+		return fmt.Errorf("circular reference to %s", c.Name())
 	}
 
 	// Mark any visited node so that circular references can be detected
@@ -83,7 +84,7 @@ func (ds *dependencySorter) visit(c Container) error {
 	return nil
 }
 
-func (ds *dependencySorter) findUnvisited(name string) *Container {
+func (ds *dependencySorter) findUnvisited(name string) *container.Container {
 	for _, c := range ds.unvisited {
 		if c.Name() == name {
 			return &c
@@ -93,7 +94,7 @@ func (ds *dependencySorter) findUnvisited(name string) *Container {
 	return nil
 }
 
-func (ds *dependencySorter) removeUnvisited(c Container) {
+func (ds *dependencySorter) removeUnvisited(c container.Container) {
 	var idx int
 	for i := range ds.unvisited {
 		if ds.unvisited[i].Name() == c.Name() {

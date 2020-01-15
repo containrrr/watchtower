@@ -1,4 +1,4 @@
-package container
+package registry
 
 import (
 	"github.com/stretchr/testify/assert"

@@ -2,6 +2,7 @@ package container
 
 import (
 	"github.com/containrrr/watchtower/pkg/container/mocks"
+	"github.com/containrrr/watchtower/pkg/filters"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	cli "github.com/docker/docker/client"
@@ -34,14 +35,14 @@ var _ = Describe("the container", func() {
 		})
 		When("listing containers without any filter", func() {
 			It("should return all available containers", func() {
-				containers, err := client.ListContainers(noFilter)
+				containers, err := client.ListContainers(filters.NoFilter)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(len(containers) == 2).To(BeTrue())
 			})
 		})
 		When("listing containers with a filter matching nothing", func() {
 			It("should return an empty array", func() {
-				filter := filterByNames([]string{"lollercoaster"}, noFilter)
+				filter := filters.FilterByNames([]string{"lollercoaster"}, filters.NoFilter)
 				containers, err := client.ListContainers(filter)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(len(containers) == 0).To(BeTrue())
@@ -49,7 +50,7 @@ var _ = Describe("the container", func() {
 		})
 		When("listing containers with a watchtower filter", func() {
 			It("should return only the watchtower container", func() {
-				containers, err := client.ListContainers(WatchtowerContainersFilter)
+				containers, err := client.ListContainers(filters.WatchtowerContainersFilter)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(len(containers) == 1).To(BeTrue())
 				Expect(containers[0].ImageName()).To(Equal("containrrr/watchtower:latest"))
@@ -62,7 +63,7 @@ var _ = Describe("the container", func() {
 					pullImages:     false,
 					includeStopped: true,
 				}
-				containers, err := client.ListContainers(noFilter)
+				containers, err := client.ListContainers(filters.NoFilter)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(len(containers) > 0).To(BeTrue())
 			})

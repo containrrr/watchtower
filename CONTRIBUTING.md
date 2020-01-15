@@ -25,4 +25,14 @@ go build                               # compiles and packages an executable bin
 go test ./... -v                       # runs tests with verbose output
 ./watchtower                           # runs the application (outside of a container)
 ```
+
 If you dont have it enabled, you'll either have to prefix each command with `GO111MODULE=on` or run `export GO111MODULE=on` before running the commands. [You can read more about modules here.](https://github.com/golang/go/wiki/Modules)
+
+To build a Watchtower image of your own, use the self-contained Dockerfiles. As the main Dockerfile, they can be found in `dockerfiles/`:
+- `dockerfiles/Dockerfile.dev-self-contained` will build an image based on your current local Watchtower files.
+- `dockerfiles/Dockerfile.self-contained` will build an image based on current Watchtower's repository on GitHub.
+
+e.g.:
+```bash
+sudo docker build . -f dockerfiles/Dockerfile.dev-self-contained -t containrrr/watchtower # to build an image from local files
+```
