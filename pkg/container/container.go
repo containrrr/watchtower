@@ -138,6 +138,7 @@ func (c Container) StopSignal() string {
 // the options overridden at runtime.
 func (c Container) runtimeConfig() *dockercontainer.Config {
 	config := c.containerInfo.Config
+	hostConfig := c.containerInfo.HostConfig
 	imageConfig := c.imageInfo.Config
 
 	if config.WorkingDir == imageConfig.WorkingDir {
@@ -146,6 +147,10 @@ func (c Container) runtimeConfig() *dockercontainer.Config {
 
 	if config.User == imageConfig.User {
 		config.User = ""
+	}
+
+	if hostConfig.NetworkMode.IsContainer() {
+		config.Hostname = ""
 	}
 
 	if util.SliceEqual(config.Cmd, imageConfig.Cmd) {
