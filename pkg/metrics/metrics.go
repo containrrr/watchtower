@@ -8,11 +8,12 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
+// Metrics provides a HTTP endpoint for Prometheus to fetch metrics from
 type Metrics struct {
 	scanned prometheus.Gauge
 	updated prometheus.Gauge
-	failed prometheus.Gauge
-	total prometheus.Counter
+	failed  prometheus.Gauge
+	total   prometheus.Counter
 	skipped prometheus.Counter
 }
 
@@ -39,9 +40,9 @@ func NewMetrics(port string) *Metrics {
 		Name: "watchtower_scans_skipped",
 		Help: "Number of skipped scans since last restart",
 	})
-	go func () {
+	go func() {
 		http.Handle("/metrics", promhttp.Handler())
-		http.ListenAndServe(":" + port, nil)
+		http.ListenAndServe(":"+port, nil)
 	}()
 
 	return metrics
@@ -49,8 +50,8 @@ func NewMetrics(port string) *Metrics {
 
 // RegisterSkipped increments scans and registers the last one as skipped (rescheduled)
 func (metrics *Metrics) RegisterSkipped() {
-  metrics.total.Inc()
-  metrics.skipped.Inc()
+	metrics.total.Inc()
+	metrics.skipped.Inc()
 }
 
 // RegisterScan registers metrics for an executed scan
