@@ -5,3 +5,5 @@ dist
 .idea
 .DS_Store
 /site
+.history
+.vscode
