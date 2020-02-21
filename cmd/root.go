@@ -1,12 +1,14 @@
 package cmd
 
 import (
-	"github.com/containrrr/watchtower/pkg/filters"
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
+
+	"github.com/containrrr/watchtower/pkg/filters"
 
 	"github.com/containrrr/watchtower/internal/actions"
 	"github.com/containrrr/watchtower/internal/flags"
@@ -20,15 +22,16 @@ import (
 )
 
 var (
-	client         container.Client
-	scheduleSpec   string
-	cleanup        bool
-	noRestart      bool
-	monitorOnly    bool
-	enableLabel    bool
-	notifier       *notifications.Notifier
-	timeout        time.Duration
-	lifecycleHooks bool
+	client                container.Client
+	scheduleSpec          string
+	cleanup               bool
+	noRestart             bool
+	monitorOnly           bool
+	enableLabel           bool
+	notifier              *notifications.Notifier
+	timeout               time.Duration
+	lifecycleHooks        bool
+	maxMemoryPerContainer int64
 )
 
 var rootCmd = &cobra.Command{
@@ -47,6 +50,7 @@ func init() {
 	flags.RegisterDockerFlags(rootCmd)
 	flags.RegisterSystemFlags(rootCmd)
 	flags.RegisterNotificationFlags(rootCmd)
+	flags.RegisterContainerMemoryFlags(rootCmd)
 }
 
 // Execute the root func and exit in case of errors
@@ -96,6 +100,8 @@ func PreRun(cmd *cobra.Command, args []string) {
 	includeStopped, _ := f.GetBool("include-stopped")
 	reviveStopped, _ := f.GetBool("revive-stopped")
 	removeVolumes, _ := f.GetBool("remove-volumes")
+
+	computeMaxMemoryPerContainerInByte(cmd)
 
 	client = container.NewClient(
 		!noPull,
@@ -174,16 +180,34 @@ func runUpgradesOnSchedule(filter t.Filter) error {
 func runUpdatesWithNotifications(filter t.Filter) {
 	notifier.StartNotification()
 	updateParams := t.UpdateParams{
-		Filter:         filter,
-		Cleanup:        cleanup,
-		NoRestart:      noRestart,
-		Timeout:        timeout,
-		MonitorOnly:    monitorOnly,
-		LifecycleHooks: lifecycleHooks,
+		Filter:                filter,
+		Cleanup:               cleanup,
+		NoRestart:             noRestart,
+		Timeout:               timeout,
+		MonitorOnly:           monitorOnly,
+		LifecycleHooks:        lifecycleHooks,
+		MaxMemoryPerContainer: maxMemoryPerContainer,
 	}
 	err := actions.Update(client, updateParams)
 	if err != nil {
 		log.Println(err)
 	}
 	notifier.SendNotification()
+}
+
+// computeMaxMemoryPerContainerInByte computes the max memory in byte from the given arg
+func computeMaxMemoryPerContainerInByte(c *cobra.Command) {
+	f := c.PersistentFlags()
+	// get max memory per container
+	maxMem, _ := f.GetString("max-memory-per-container")
+	memUnit := maxMem[len(maxMem)-1:]
+	memValue, _ := strconv.ParseInt(maxMem[:len(maxMem)-1], 0, 64)
+	if strings.EqualFold(memUnit, "g") {
+		memValue = memValue * (1024 * 3)
+	} else if strings.EqualFold(memUnit, "m") {
+		memValue = memValue * (1024 * 2)
+	} else if strings.EqualFold(memUnit, "k") {
+		memValue = memValue * 1024
+	}
+	maxMemoryPerContainer = memValue
 }

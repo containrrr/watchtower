@@ -37,3 +37,28 @@ func TestEnvConfig_Custom(t *testing.T) {
 	assert.Equal(t, "1", os.Getenv("DOCKER_TLS_VERIFY"))
 	assert.Equal(t, "1.99", os.Getenv("DOCKER_API_VERSION"))
 }
+
+/*
+func TestRegisterContainerMemoryFlags(t *testing.T) {
+	cmd := new(cobra.Command)
+	SetDefaults()
+
+	err := cmd.ParseFlags([]string{"max-memory-per-container", "4g"})
+	require.NoError(t, err)
+	RegisterContainerMemoryFlags(cmd)
+
+	m, _ := cmd.PersistentFlags().GetString("max-memory-per-container")
+
+	assert.Equal(t, "4g", m)
+}
+*/
+func TestRegisterContainerMemoryFlags_default(t *testing.T) {
+	cmd := new(cobra.Command)
+	SetDefaults()
+
+	RegisterContainerMemoryFlags(cmd)
+
+	m, _ := cmd.PersistentFlags().GetString("max-memory-per-container")
+
+	assert.Equal(t, "2g", m)
+}

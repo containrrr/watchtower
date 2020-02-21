@@ -33,6 +33,10 @@ func Update(client container.Client, params types.UpdateParams) error {
 			stale = false
 		}
 		containers[i].Stale = stale
+
+		// check if memory needs to be set
+		client.SetMaxMemoryLimit(container, params.MaxMemoryPerContainer)
+		// mark container for restart
 	}
 
 	containers, err = sorter.SortByDependencies(containers)

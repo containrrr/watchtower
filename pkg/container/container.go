@@ -2,9 +2,10 @@ package container
 
 import (
 	"fmt"
-	"github.com/containrrr/watchtower/internal/util"
 	"strconv"
 	"strings"
+
+	"github.com/containrrr/watchtower/internal/util"
 
 	"github.com/docker/docker/api/types"
 	dockercontainer "github.com/docker/docker/api/types/container"

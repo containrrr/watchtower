@@ -3,10 +3,11 @@ package container
 import (
 	"bytes"
 	"fmt"
-	"github.com/containrrr/watchtower/pkg/registry"
 	"io/ioutil"
 	"strings"
 	"time"
+
+	"github.com/containrrr/watchtower/pkg/registry"
 
 	t "github.com/containrrr/watchtower/pkg/types"
 	"github.com/docker/docker/api/types"
@@ -31,7 +32,7 @@ type Client interface {
 	IsContainerStale(Container) (bool, error)
 	ExecuteCommand(containerID string, command string) error
 	RemoveImageByID(string) error
-
+	SetMaxMemoryLimit(Container, int64)
 }
 
 // NewClient returns a new Client instance which can be used to interact with
@@ -360,6 +361,17 @@ func (client dockerClient) ExecuteCommand(containerID string, command string) er
 	}
 
 	return nil
+}
+func (client dockerClient) SetMaxMemoryLimit(c Container, limit int64) {
+	hc := c.hostConfig()
+	mem := hc.Memory
+	if mem > limit || mem == 0 {
+		c.ContainerInfo().HostConfig.Memory = limit
+		log.Infof("Defined limit is := %d", limit)
+		log.Infof("LIMIT-MEMORY: Memory has been set to:= %d for container %s", c.ContainerInfo().HostConfig.Memory, c.Name())
+		return
+	}
+	log.Infof("NO-ACTION: Memory was already set to:= %d for container %s", c.ContainerInfo().HostConfig.Memory, c.Name())
 }
 
 func (client dockerClient) waitForStopOrTimeout(c Container, waitTime time.Duration) error {
