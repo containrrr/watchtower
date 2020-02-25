@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/containrrr/watchtower/pkg/container"
-	log "github.com/sirupsen/logrus"
 
 	t "github.com/containrrr/watchtower/pkg/types"
 	cli "github.com/docker/docker/client"
@@ -87,7 +86,5 @@ func (client MockClient) IsContainerStale(c container.Container) (bool, error) {
 
 // SetMaxMemoryLimit set max memory
 func (client MockClient) SetMaxMemoryLimit(c container.Container, limit int64) (bool, error) {
-	log.Infof("INFO:= %q", container.Container{}.ContainerInfo())
-	// container.Container{}.ContainerInfo().HostConfig.Memory = 2147483648
 	return true, nil
 }

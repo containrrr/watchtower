@@ -369,22 +369,13 @@ func (client dockerClient) SetMaxMemoryLimit(c Container, limit int64) (bool, er
 		updateConfig := container.UpdateConfig{}
 		updateConfig.Memory = limit
 		client.api.ContainerUpdate(context.Background(), c.ID(), updateConfig)
-		log.Infof("Defined limit is := %d", limit)
-		log.Infof("LIMIT-MEMORY: Memory has been set to:= %d for container %s", updateConfig, c.Name())
+		log.Infof("LIMIT-MEMORY: Memory set to:= %d for container %s", updateConfig.Memory, c.Name())
 		return true, nil
 	}
 	log.Infof("NO-ACTION: Memory was already set to:= %d for container %s", c.ContainerInfo().HostConfig.Memory, c.Name())
 	return false, nil
 }
 
-/*
-func (client dockerClient) DoesContainerNeedUpdate(c Container, params t.UpdateParams) (bool, error) {
-
-	stale,err := client.isContainerStale(c); err != nil{
-		return false, err
-	}
-}
-*/
 func (client dockerClient) waitForStopOrTimeout(c Container, waitTime time.Duration) error {
 	bg := context.Background()
 	timeout := time.After(waitTime)
