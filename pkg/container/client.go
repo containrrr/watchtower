@@ -363,12 +363,14 @@ func (client dockerClient) ExecuteCommand(containerID string, command string) er
 	return nil
 }
 func (client dockerClient) SetMaxMemoryLimit(c Container, limit int64) (bool, error) {
-	hc := c.hostConfig()
-	mem := hc.Memory
+	mem := c.hostConfig().Memory
 	if mem > limit || mem == 0 {
 		c.ContainerInfo().HostConfig.Memory = limit
+		updateConfig := container.UpdateConfig{}
+		updateConfig.Memory = limit
+		client.api.ContainerUpdate(context.Background(), c.ID(), updateConfig)
 		log.Infof("Defined limit is := %d", limit)
-		log.Infof("LIMIT-MEMORY: Memory has been set to:= %d for container %s", c.ContainerInfo().HostConfig.Memory, c.Name())
+		log.Infof("LIMIT-MEMORY: Memory has been set to:= %d for container %s", updateConfig, c.Name())
 		return true, nil
 	}
 	log.Infof("NO-ACTION: Memory was already set to:= %d for container %s", c.ContainerInfo().HostConfig.Memory, c.Name())

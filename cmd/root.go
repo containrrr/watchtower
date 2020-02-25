@@ -193,7 +193,8 @@ func runUpdatesWithNotifications(filter t.Filter) {
 		log.Println(err)
 	}
 	notifier.SendNotification()
-
+	// handle resource limit
+	actions.SetResourceLimit(client, updateParams)
 }
 
 // computeMaxMemoryPerContainerInByte computes the max memory in byte from the given arg
