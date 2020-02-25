@@ -1,7 +1,6 @@
 package actions
 
 import (
-	"github.com/containrrr/watchtower/internal/util"
 	"github.com/containrrr/watchtower/pkg/container"
 	"github.com/containrrr/watchtower/pkg/lifecycle"
 	"github.com/containrrr/watchtower/pkg/sorter"
@@ -35,7 +34,8 @@ func Update(client container.Client, params types.UpdateParams) error {
 		containers[i].Stale = stale
 
 		// check if memory needs to be set
-		client.SetMaxMemoryLimit(container, params.MaxMemoryPerContainer)
+		restart, _ := client.SetMaxMemoryLimit(container, params.MaxMemoryPerContainer)
+		containers[i].NeedUpdate = restart
 		// mark container for restart
 	}
 
@@ -44,7 +44,7 @@ func Update(client container.Client, params types.UpdateParams) error {
 		return err
 	}
 
-	checkDependencies(containers)
+	CheckDependencies(containers)
 
 	if params.MonitorOnly {
 		if params.LifecycleHooks {
@@ -53,14 +53,16 @@ func Update(client container.Client, params types.UpdateParams) error {
 		return nil
 	}
 
-	stopContainersInReversedOrder(containers, client, params)
-	restartContainersInSortedOrder(containers, client, params)
+	StopContainersInReversedOrder(containers, client, params)
+	RestartContainersInSortedOrder(containers, client, params)
 
 	if params.LifecycleHooks {
 		lifecycle.ExecutePostChecks(client, params)
 	}
 	return nil
 }
+
+/*
 
 func stopContainersInReversedOrder(containers []container.Container, client container.Client, params types.UpdateParams) {
 	for i := len(containers) - 1; i >= 0; i-- {
@@ -145,3 +147,4 @@ func checkDependencies(containers []container.Container) {
 		}
 	}
 }
+*/

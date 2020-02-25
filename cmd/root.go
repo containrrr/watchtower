@@ -193,6 +193,7 @@ func runUpdatesWithNotifications(filter t.Filter) {
 		log.Println(err)
 	}
 	notifier.SendNotification()
+
 }
 
 // computeMaxMemoryPerContainerInByte computes the max memory in byte from the given arg
@@ -202,10 +203,11 @@ func computeMaxMemoryPerContainerInByte(c *cobra.Command) {
 	maxMem, _ := f.GetString("max-memory-per-container")
 	memUnit := maxMem[len(maxMem)-1:]
 	memValue, _ := strconv.ParseInt(maxMem[:len(maxMem)-1], 0, 64)
+	log.Infof("The configured max memory limit is =%s, value without unit=%d", maxMem, memValue)
 	if strings.EqualFold(memUnit, "g") {
-		memValue = memValue * (1024 * 3)
+		memValue = memValue * (1024 * 1024 * 1024)
 	} else if strings.EqualFold(memUnit, "m") {
-		memValue = memValue * (1024 * 2)
+		memValue = memValue * (1024 * 1024)
 	} else if strings.EqualFold(memUnit, "k") {
 		memValue = memValue * 1024
 	}

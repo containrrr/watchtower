@@ -22,8 +22,9 @@ func NewContainer(containerInfo *types.ContainerJSON, imageInfo *types.ImageInsp
 
 // Container represents a running Docker container.
 type Container struct {
-	Linked bool
-	Stale  bool
+	Linked     bool
+	Stale      bool
+	NeedUpdate bool
 
 	containerInfo *types.ContainerJSON
 	imageInfo     *types.ImageInspect
@@ -108,7 +109,7 @@ func (c Container) Links() []string {
 // ToRestart return whether the container should be restarted, either because
 // is stale or linked to another stale container.
 func (c Container) ToRestart() bool {
-	return c.Stale || c.Linked
+	return c.Stale || c.Linked || c.NeedUpdate
 }
 
 // IsWatchtower returns a boolean flag indicating whether or not the current

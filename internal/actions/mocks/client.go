@@ -86,7 +86,8 @@ func (client MockClient) IsContainerStale(c container.Container) (bool, error) {
 }
 
 // SetMaxMemoryLimit set max memory
-func (client MockClient) SetMaxMemoryLimit(c container.Container, limit int64) {
+func (client MockClient) SetMaxMemoryLimit(c container.Container, limit int64) (bool, error) {
 	log.Infof("INFO:= %q", container.Container{}.ContainerInfo())
 	// container.Container{}.ContainerInfo().HostConfig.Memory = 2147483648
+	return true, nil
 }

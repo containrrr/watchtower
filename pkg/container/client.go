@@ -32,7 +32,8 @@ type Client interface {
 	IsContainerStale(Container) (bool, error)
 	ExecuteCommand(containerID string, command string) error
 	RemoveImageByID(string) error
-	SetMaxMemoryLimit(Container, int64)
+	SetMaxMemoryLimit(Container, int64) (bool, error)
+	//DoesContainerNeedUpdate(Container, t.UpdateParams) (bool, error)
 }
 
 // NewClient returns a new Client instance which can be used to interact with
@@ -181,7 +182,6 @@ func (client dockerClient) StartContainer(c Container) (string, error) {
 		}
 		return &network.NetworkingConfig{EndpointsConfig: oneEndpoint}
 	}()
-
 	name := c.Name()
 
 	log.Infof("Creating %s", name)
@@ -362,18 +362,27 @@ func (client dockerClient) ExecuteCommand(containerID string, command string) er
 
 	return nil
 }
-func (client dockerClient) SetMaxMemoryLimit(c Container, limit int64) {
+func (client dockerClient) SetMaxMemoryLimit(c Container, limit int64) (bool, error) {
 	hc := c.hostConfig()
 	mem := hc.Memory
 	if mem > limit || mem == 0 {
 		c.ContainerInfo().HostConfig.Memory = limit
 		log.Infof("Defined limit is := %d", limit)
 		log.Infof("LIMIT-MEMORY: Memory has been set to:= %d for container %s", c.ContainerInfo().HostConfig.Memory, c.Name())
-		return
+		return true, nil
 	}
 	log.Infof("NO-ACTION: Memory was already set to:= %d for container %s", c.ContainerInfo().HostConfig.Memory, c.Name())
+	return false, nil
 }
 
+/*
+func (client dockerClient) DoesContainerNeedUpdate(c Container, params t.UpdateParams) (bool, error) {
+
+	stale,err := client.isContainerStale(c); err != nil{
+		return false, err
+	}
+}
+*/
 func (client dockerClient) waitForStopOrTimeout(c Container, waitTime time.Duration) error {
 	bg := context.Background()
 	timeout := time.After(waitTime)
