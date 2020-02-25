@@ -1,15 +1,17 @@
 package cmd
 
 import (
-	"github.com/containrrr/watchtower/pkg/filters"
 	"os"
 	"os/signal"
 	"strconv"
 	"syscall"
 	"time"
 
+	"github.com/containrrr/watchtower/pkg/filters"
+
 	"github.com/containrrr/watchtower/internal/actions"
 	"github.com/containrrr/watchtower/internal/flags"
+	"github.com/containrrr/watchtower/internal/util"
 	"github.com/containrrr/watchtower/pkg/container"
 	"github.com/containrrr/watchtower/pkg/notifications"
 	t "github.com/containrrr/watchtower/pkg/types"
@@ -20,15 +22,17 @@ import (
 )
 
 var (
-	client         container.Client
-	scheduleSpec   string
-	cleanup        bool
-	noRestart      bool
-	monitorOnly    bool
-	enableLabel    bool
-	notifier       *notifications.Notifier
-	timeout        time.Duration
-	lifecycleHooks bool
+	client                container.Client
+	scheduleSpec          string
+	cleanup               bool
+	noRestart             bool
+	monitorOnly           bool
+	enableLabel           bool
+	notifier              *notifications.Notifier
+	timeout               time.Duration
+	lifecycleHooks        bool
+	maxMemoryPerContainer int64
+	applyResourceLimit    bool
 )
 
 var rootCmd = &cobra.Command{
@@ -47,6 +51,7 @@ func init() {
 	flags.RegisterDockerFlags(rootCmd)
 	flags.RegisterSystemFlags(rootCmd)
 	flags.RegisterNotificationFlags(rootCmd)
+	flags.RegisterContainerMemoryFlags(rootCmd)
 }
 
 // Execute the root func and exit in case of errors
@@ -96,6 +101,10 @@ func PreRun(cmd *cobra.Command, args []string) {
 	includeStopped, _ := f.GetBool("include-stopped")
 	reviveStopped, _ := f.GetBool("revive-stopped")
 	removeVolumes, _ := f.GetBool("remove-volumes")
+
+	applyResourceLimit, _ = f.GetBool("apply-resource-limit")
+
+	computeMaxMemoryPerContainerInByte(cmd)
 
 	client = container.NewClient(
 		!noPull,
@@ -174,16 +183,39 @@ func runUpgradesOnSchedule(filter t.Filter) error {
 func runUpdatesWithNotifications(filter t.Filter) {
 	notifier.StartNotification()
 	updateParams := t.UpdateParams{
-		Filter:         filter,
-		Cleanup:        cleanup,
-		NoRestart:      noRestart,
-		Timeout:        timeout,
-		MonitorOnly:    monitorOnly,
-		LifecycleHooks: lifecycleHooks,
+		Filter:                filter,
+		Cleanup:               cleanup,
+		NoRestart:             noRestart,
+		Timeout:               timeout,
+		MonitorOnly:           monitorOnly,
+		LifecycleHooks:        lifecycleHooks,
+		MaxMemoryPerContainer: maxMemoryPerContainer,
 	}
 	err := actions.Update(client, updateParams)
 	if err != nil {
 		log.Println(err)
 	}
 	notifier.SendNotification()
+	// handle resource limit
+	if applyResourceLimit {
+		actions.SetResourceLimit(client, updateParams)
+	}
+}
+
+// computeMaxMemoryPerContainerInByte computes the max memory in byte from the given arg
+func computeMaxMemoryPerContainerInByte(c *cobra.Command) {
+	// applyResourceLimit not set to true, then do nothing
+	if !applyResourceLimit {
+		log.Infof("Not applying the resource limiting since the apply-resource-limit is")
+		return
+	}
+	// get max memory per container
+	limit, _ := c.PersistentFlags().GetString("max-memory-per-container")
+	maxMemory, error := util.ComputeMaxMemoryPerContainerInByte(limit)
+	if error != nil {
+		applyResourceLimit = false
+		log.Error("Error while parsing the max-memory-per-container flag. \n" +
+			"Ignoring the resource handling since we do not have a value for the limit!!!")
+	}
+	maxMemoryPerContainer = maxMemory
 }

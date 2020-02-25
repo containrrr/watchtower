@@ -1,5 +1,12 @@
 package util
 
+import (
+	"strconv"
+	"strings"
+
+	log "github.com/sirupsen/logrus"
+)
+
 // SliceEqual compares two slices and checks whether they have equal content
 func SliceEqual(s1, s2 []string) bool {
 	if len(s1) != len(s2) {
@@ -65,4 +72,22 @@ func StructMapSubtract(m1, m2 map[string]struct{}) map[string]struct{} {
 	}
 
 	return m
+}
+
+// computeMaxMemoryPerContainerInByte computes the max memory in byte from the given arg
+func ComputeMaxMemoryPerContainerInByte(limit string) (int64, error) {
+	memUnit := limit[len(limit)-1:]
+	memValue, err := strconv.ParseInt(limit[:len(limit)-1], 0, 64)
+	if err != nil {
+		return memValue, err
+	}
+	log.Debugf("The configured max memory limit is =%s, value without unit=%d", limit, memValue)
+	if strings.EqualFold(memUnit, "g") {
+		memValue = memValue * (1024 * 1024 * 1024)
+	} else if strings.EqualFold(memUnit, "m") {
+		memValue = memValue * (1024 * 1024)
+	} else if strings.EqualFold(memUnit, "k") {
+		memValue = memValue * 1024
+	}
+	return memValue, nil
 }

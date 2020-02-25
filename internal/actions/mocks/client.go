@@ -2,8 +2,9 @@ package mocks
 
 import (
 	"errors"
-	"github.com/containrrr/watchtower/pkg/container"
 	"time"
+
+	"github.com/containrrr/watchtower/pkg/container"
 
 	t "github.com/containrrr/watchtower/pkg/types"
 	cli "github.com/docker/docker/client"
@@ -20,8 +21,8 @@ type MockClient struct {
 // TestData is the data used to perform the test
 type TestData struct {
 	TriedToRemoveImageCount int
-	NameOfContainerToKeep string
-	Containers            []container.Container
+	NameOfContainerToKeep   string
+	Containers              []container.Container
 }
 
 // TriedToRemoveImage is a test helper function to check whether RemoveImageByID has been called
@@ -31,7 +32,7 @@ func (testdata *TestData) TriedToRemoveImage() bool {
 
 // CreateMockClient creates a mock watchtower Client for usage in tests
 func CreateMockClient(data *TestData, api cli.CommonAPIClient, pullImages bool, removeVolumes bool) MockClient {
-	return MockClient {
+	return MockClient{
 		data,
 		api,
 		pullImages,
@@ -56,6 +57,7 @@ func (client MockClient) StopContainer(c container.Container, d time.Duration) e
 func (client MockClient) StartContainer(c container.Container) (string, error) {
 	return "", nil
 }
+
 // RenameContainer is a mock method
 func (client MockClient) RenameContainer(c container.Container, s string) error {
 	return nil
@@ -81,4 +83,6 @@ func (client MockClient) ExecuteCommand(containerID string, command string) erro
 func (client MockClient) IsContainerStale(c container.Container) (bool, error) {
 	return true, nil
 }
-
+func (client MockClient) SetMaxMemoryLimit(c container.Container, limit int64) error {
+	return nil
+}
