@@ -1,10 +1,6 @@
 package container
 
 import (
-	"testing"
-
-	"time"
-
 	"github.com/containrrr/watchtower/pkg/container/mocks"
 	"github.com/docker/docker/api/types"
 	container2 "github.com/docker/docker/api/types/container"
@@ -16,85 +12,72 @@ import (
 var (
 	docker *cli.Client
 	client Client
+	c      Container
 )
 
-func TestMain(m *testing.M) {
-	server := mocks.NewMockAPIServer()
-	docker, _ := cli.NewClientWithOpts(
-		cli.WithHost(server.URL),
-		cli.WithHTTPClient(server.Client()))
+var _ = Describe("Client-SetMaxMemoryLimit", func() {
+	BeforeEach(func() {
+		server := mocks.NewMockAPIServer()
+		docker, _ := cli.NewClientWithOpts(
+			cli.WithHost(server.URL),
+			cli.WithHTTPClient(server.Client()))
 
-	client = dockerClient{
-		api:        docker,
-		pullImages: false,
-	}
-}
+		client = dockerClient{
+			api:        docker,
+			pullImages: false,
+		}
+		c = CreateMockContainer(
+			"test-container-01",
+			"test-container-01",
+			"fake-image:latest",
+		)
 
-func TestSetMaxMemoryLimit_shouldHaveReduceMemory(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "TestSetMaxMemoryLimit_positive")
-	limit := int64(2147483648)
-	c := CreateMockContainer(
-		"test-container-01",
-		"test-container-01",
-		"fake-image:latest",
-		time.Now().AddDate(0, 0, -1),
-		int64(8589934592), // 8G
-	)
-	apply, err := client.SetMaxMemoryLimit(c, limit)
+	})
 
-	Expect(err).NotTo(HaveOccurred())
-	Expect(apply).To(BeTrue())
-}
+	When("When container memory limit is too high", func() {
+		It("should reduce it to the configured limit", func() {
+			limit := int64(2147483648)
+			c.ContainerInfo().HostConfig.Memory = 8589934592 //8G
+			apply, err := client.SetMaxMemoryLimit(c, limit)
 
-func TestSetMaxMemoryLimit_shouldNotApply(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "TestSetMaxMemoryLimit sould not apply limit")
-	limit := int64(8589934592) // limit 8G
-	c := CreateMockContainer(
-		"test-container-01",
-		"test-container-01",
-		"fake-image:latest",
-		time.Now().AddDate(0, 0, -1),
-		int64(1073741824), // actual using 1G
-	)
-	apply, err := client.SetMaxMemoryLimit(c, limit)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(apply).To(BeTrue())
+			Expect(limit == c.ContainerInfo().HostConfig.Memory).To(BeTrue())
+		})
+	})
+	When("When container has no memory limit", func() {
+		It("should set it to the configured limit", func() {
+			limit := int64(8589934592) // limit 8G
 
-	Expect(err).NotTo(HaveOccurred())
-	Expect(apply).To(BeFalse())
-}
+			c.ContainerInfo().HostConfig.Memory = 0 // has no limit, will use amount host memory if needed
+			apply, err := client.SetMaxMemoryLimit(c, limit)
 
-func TestSetMaxMemoryLimit_shouldNotApply_on_same_value(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "TestSetMaxMemoryLimit sould not apply limit")
-	limit := int64(8589934592) // limit 8G
-	c := CreateMockContainer(
-		"test-container-01",
-		"test-container-01",
-		"fake-image:latest",
-		time.Now().AddDate(0, 0, -1),
-		int64(8589934592), // actual using 8G
-	)
-	apply, err := client.SetMaxMemoryLimit(c, limit)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(apply).To(BeTrue())
+			Expect(limit == c.ContainerInfo().HostConfig.Memory).To(BeTrue())
+		})
+	})
 
-	Expect(err).NotTo(HaveOccurred())
-	Expect(apply).To(BeFalse())
-}
+	When("When container memory limit is then or egal configured limit", func() {
+		It("should do nothing", func() {
+			limit := int64(9663676416)                       // limit 9G
+			c.ContainerInfo().HostConfig.Memory = 8589934592 // 8G
+			apply, err := client.SetMaxMemoryLimit(c, limit)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(apply).To(BeFalse())
+			Expect(limit > c.ContainerInfo().HostConfig.Memory).To(BeTrue())
+		})
+	})
+})
 
 // CreateMockContainer creates a container substitute valid for testing
-func CreateMockContainer(id string, name string, image string, created time.Time, actualMemory int64) Container {
-	hostConfig := &container2.HostConfig{}
-	hostConfig.Memory = actualMemory
+func CreateMockContainer(id string, name string, image string) Container {
 	content := types.ContainerJSON{
 		ContainerJSONBase: &types.ContainerJSONBase{
 			ID:         id,
-			Image:      image,
 			Name:       name,
-			Created:    created.String(),
-			HostConfig: hostConfig,
-		},
-		Config: &container2.Config{
-			Labels: make(map[string]string),
+			HostConfig: &container2.HostConfig{},
 		},
 	}
 	return *NewContainer(
