@@ -8,6 +8,7 @@ import (
 
 	t "github.com/containrrr/watchtower/pkg/types"
 	cli "github.com/docker/docker/client"
+	log "github.com/sirupsen/logrus"
 )
 
 // MockClient is a mock that passes as a watchtower Client
@@ -86,5 +87,7 @@ func (client MockClient) IsContainerStale(c container.Container) (bool, error) {
 
 // SetMaxMemoryLimit set max memory
 func (client MockClient) SetMaxMemoryLimit(c container.Container, limit int64) (bool, error) {
+	log.Infof("Have been called!!!")
+	c.ContainerInfo().HostConfig.Memory = limit
 	return true, nil
 }

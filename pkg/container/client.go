@@ -33,7 +33,6 @@ type Client interface {
 	ExecuteCommand(containerID string, command string) error
 	RemoveImageByID(string) error
 	SetMaxMemoryLimit(Container, int64) (bool, error)
-	//DoesContainerNeedUpdate(Container, t.UpdateParams) (bool, error)
 }
 
 // NewClient returns a new Client instance which can be used to interact with

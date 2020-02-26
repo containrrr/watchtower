@@ -19,9 +19,9 @@ func SetResourceLimit(client container.Client, params types.UpdateParams) error 
 
 	// check if memory needs to be set
 	for _, container := range containers {
-		_, error := client.SetMaxMemoryLimit(container, params.MaxMemoryPerContainer)
-		if error != nil {
+		if _, error := client.SetMaxMemoryLimit(container, params.MaxMemoryPerContainer); error != nil {
 			log.Infof("Error while setting the resource limit. Detail: %s", err)
+			return error
 		}
 	}
 	return nil
