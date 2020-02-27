@@ -1,10 +1,11 @@
 package mocks
 
 import (
+	"time"
+
 	"github.com/containrrr/watchtower/pkg/container"
 	"github.com/docker/docker/api/types"
 	container2 "github.com/docker/docker/api/types/container"
-	"time"
 )
 
 // CreateMockContainer creates a container substitute valid for testing

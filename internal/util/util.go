@@ -74,20 +74,29 @@ func StructMapSubtract(m1, m2 map[string]struct{}) map[string]struct{} {
 	return m
 }
 
-// computeMaxMemoryPerContainerInByte computes the max memory in byte from the given arg
-func ComputeMaxMemoryPerContainerInByte(limit string) (int64, error) {
-	memUnit := limit[len(limit)-1:]
-	memValue, err := strconv.ParseInt(limit[:len(limit)-1], 0, 64)
-	if err != nil {
-		return memValue, err
+// ComputeMaxMemoryPerContainerInByte computes the max memory in byte from the given arg
+func ComputeMaxMemoryPerContainerInByte(paramLimit string) (int64, error) {
+	paramLimit = strings.ToUpper(paramLimit)
+	if strings.HasSuffix(paramLimit, "G") || strings.HasSuffix(paramLimit, "M") || strings.HasSuffix(paramLimit, "K") {
+		memUnit := paramLimit[len(paramLimit)-1:]
+		memValue, err := strconv.ParseInt(paramLimit[:len(paramLimit)-1], 0, 64)
+		if err != nil {
+			log.Errorf("Error while extracting the memory. Root cause:=%s", err)
+			return memValue, err
+		}
+		log.Infof("The configured max memory limit is =%s, value without unit=%d", paramLimit, memValue)
+		if strings.EqualFold(memUnit, "G") {
+			memValue = memValue * (1024 * 1024 * 1024)
+		} else if strings.EqualFold(memUnit, "M") {
+			memValue = memValue * (1024 * 1024)
+		} else if strings.EqualFold(memUnit, "K") {
+			memValue = memValue * 1024
+		}
+		return memValue, nil
 	}
-	log.Debugf("The configured max memory limit is =%s, value without unit=%d", limit, memValue)
-	if strings.EqualFold(memUnit, "g") {
-		memValue = memValue * (1024 * 1024 * 1024)
-	} else if strings.EqualFold(memUnit, "m") {
-		memValue = memValue * (1024 * 1024)
-	} else if strings.EqualFold(memUnit, "k") {
-		memValue = memValue * 1024
+	value, error := strconv.ParseInt(paramLimit, 0, 64)
+	if error != nil {
+		log.Errorf("Error while extracting the memory. Root cause:=%s", error)
 	}
-	return memValue, nil
+	return value, nil
 }

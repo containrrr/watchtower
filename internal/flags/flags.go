@@ -246,9 +246,10 @@ func RegisterContainerMemoryFlags(rootCmd *cobra.Command) {
 
 	flags.BoolP(
 		"apply-resource-limit",
-		"r",
-		viper.GetBool("APPLY_RESOURCE_LIMIT"),
-		"If true, resource limitation will be applied")
+		"",
+		false,
+		"Apply the limitation of memory usage",
+	)
 }
 
 // SetDefaults provides default values for environment variables
@@ -256,15 +257,13 @@ func SetDefaults() {
 	viper.AutomaticEnv()
 	viper.SetDefault("DOCKER_HOST", "unix:///var/run/docker.sock")
 	viper.SetDefault("DOCKER_API_VERSION", DockerAPIMinVersion)
-	viper.SetDefault("WATCHTOWER_POLL_INTERVAL", 100)
+	viper.SetDefault("WATCHTOWER_POLL_INTERVAL", 300)
 	viper.SetDefault("WATCHTOWER_TIMEOUT", time.Second*10)
 	viper.SetDefault("WATCHTOWER_NOTIFICATIONS", []string{})
 	viper.SetDefault("WATCHTOWER_NOTIFICATIONS_LEVEL", "info")
 	viper.SetDefault("WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PORT", 25)
 	viper.SetDefault("WATCHTOWER_NOTIFICATION_EMAIL_SUBJECTTAG", "")
 	viper.SetDefault("WATCHTOWER_NOTIFICATION_SLACK_IDENTIFIER", "watchtower")
-	viper.SetDefault("MAX_MEMORY_PER_CONTAINER", "2g")
-	viper.SetDefault("APPLY_RESOURCE_LIMIT", false)
 }
 
 // EnvConfig translates the command-line options into environment variables

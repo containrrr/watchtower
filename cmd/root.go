@@ -102,10 +102,10 @@ func PreRun(cmd *cobra.Command, args []string) {
 	reviveStopped, _ := f.GetBool("revive-stopped")
 	removeVolumes, _ := f.GetBool("remove-volumes")
 
-	applyResourceLimit, _ = f.GetBool("apply-resource-limit")
-
-	computeMaxMemoryPerContainerInByte(cmd)
-
+	if applyResourceLimit, err = f.GetBool("apply-resource-limit"); applyResourceLimit {
+		paramLimit, _ := f.GetString("max-memory-per-container")
+		maxMemoryPerContainer, _ = util.ComputeMaxMemoryPerContainerInByte(paramLimit)
+	}
 	client = container.NewClient(
 		!noPull,
 		includeStopped,
@@ -200,22 +200,4 @@ func runUpdatesWithNotifications(filter t.Filter) {
 	if applyResourceLimit {
 		actions.SetResourceLimit(client, updateParams)
 	}
-}
-
-// computeMaxMemoryPerContainerInByte computes the max memory in byte from the given arg
-func computeMaxMemoryPerContainerInByte(c *cobra.Command) {
-	// applyResourceLimit not set to true, then do nothing
-	if !applyResourceLimit {
-		log.Infof("Not applying the resource limiting since the apply-resource-limit is")
-		return
-	}
-	// get max memory per container
-	limit, _ := c.PersistentFlags().GetString("max-memory-per-container")
-	maxMemory, error := util.ComputeMaxMemoryPerContainerInByte(limit)
-	if error != nil {
-		applyResourceLimit = false
-		log.Error("Error while parsing the max-memory-per-container flag. \n" +
-			"Ignoring the resource handling since we do not have a value for the limit!!!")
-	}
-	maxMemoryPerContainer = maxMemory
 }

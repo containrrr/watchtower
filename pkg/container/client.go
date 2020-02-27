@@ -32,7 +32,7 @@ type Client interface {
 	IsContainerStale(Container) (bool, error)
 	ExecuteCommand(containerID string, command string) error
 	RemoveImageByID(string) error
-	SetMaxMemoryLimit(Container, int64) error
+	SetMaxMemoryLimit(Container, int64) (bool, error)
 }
 
 // NewClient returns a new Client instance which can be used to interact with
@@ -181,7 +181,6 @@ func (client dockerClient) StartContainer(c Container) (string, error) {
 		}
 		return &network.NetworkingConfig{EndpointsConfig: oneEndpoint}
 	}()
-
 	name := c.Name()
 
 	log.Infof("Creating %s", name)
@@ -362,22 +361,18 @@ func (client dockerClient) ExecuteCommand(containerID string, command string) er
 
 	return nil
 }
-func (client dockerClient) SetMaxMemoryLimit(c Container, limit int64) error {
+func (client dockerClient) SetMaxMemoryLimit(c Container, limit int64) (bool, error) {
 	mem := c.hostConfig().Memory
 	if mem > limit || mem == 0 {
+		c.ContainerInfo().HostConfig.Memory = limit
 		updateConfig := container.UpdateConfig{}
 		updateConfig.Memory = limit
-		_, err := client.api.ContainerUpdate(context.Background(), c.ID(), updateConfig)
-		if err != nil {
-			log.Errorf("While updating the memory limit of container %s. Detail %s", c.Name(), err)
-			return err
-		}
-		log.Infof("LIMITING-MEMORY: Memory set to:= %d for container %s", updateConfig.Memory, c.Name())
-		return nil
+		client.api.ContainerUpdate(context.Background(), c.ID(), updateConfig)
+		log.Infof("LIMIT-MEMORY: Memory set to:= %d for container %s", updateConfig.Memory, c.Name())
+		return true, nil
 	}
-	log.Debugf("NO-ACTION: For container (%s) memory (%d) already below limit or out filtered",
-		c.Name(), c.ContainerInfo().HostConfig.Memory)
-	return nil
+	log.Infof("NO-ACTION: Memory was already set to:= %d for container %s", c.ContainerInfo().HostConfig.Memory, c.Name())
+	return false, nil
 }
 
 func (client dockerClient) waitForStopOrTimeout(c Container, waitTime time.Duration) error {

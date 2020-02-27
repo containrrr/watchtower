@@ -1,6 +1,8 @@
 package container
 
 import (
+	"testing"
+
 	"github.com/containrrr/watchtower/pkg/container/mocks"
 	"github.com/containrrr/watchtower/pkg/filters"
 	"github.com/docker/docker/api/types"
@@ -8,7 +10,6 @@ import (
 	cli "github.com/docker/docker/client"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"testing"
 )
 
 func TestContainer(t *testing.T) {

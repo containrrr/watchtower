@@ -48,14 +48,3 @@ func TestRegisterContainerMemoryFlags_default(t *testing.T) {
 
 	assert.Equal(t, "2g", m)
 }
-
-func TestRegisterContainerMemoryFlags_applyResourceLimit(t *testing.T) {
-	cmd := new(cobra.Command)
-	SetDefaults()
-
-	RegisterContainerMemoryFlags(cmd)
-
-	m, _ := cmd.PersistentFlags().GetBool("apply-resource-limit")
-
-	assert.Equal(t, false, m)
-}

@@ -2,12 +2,13 @@ package mocks
 
 import (
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
 	"strings"
+
+	"github.com/sirupsen/logrus"
 )
 
 // NewMockAPIServer returns a mocked docker api server that responds to some fixed requests

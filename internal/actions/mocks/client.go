@@ -83,6 +83,11 @@ func (client MockClient) ExecuteCommand(containerID string, command string) erro
 func (client MockClient) IsContainerStale(c container.Container) (bool, error) {
 	return true, nil
 }
-func (client MockClient) SetMaxMemoryLimit(c container.Container, limit int64) error {
-	return nil
+
+// SetMaxMemoryLimit set max memory
+func (client MockClient) SetMaxMemoryLimit(c container.Container, limit int64) (bool, error) {
+	if c.ContainerInfo().HostConfig != nil {
+		return true, nil
+	}
+	return false, errors.New("Couldn´t set the memory limit")
 }

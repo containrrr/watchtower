@@ -68,7 +68,9 @@
     "State": "running",
     "Status": "Up 3 days",
     "HostConfig": {
-      "NetworkMode": "default"
+      "NetworkMode": "default",
+      "Memory": 2147483648,
+      "NanoCpus": 2000000000
     },
     "NetworkSettings": {
       "Networks": {

@@ -4,12 +4,16 @@ import (
 	"testing"
 
 	"github.com/spf13/cobra"
+<<<<<<< HEAD
 	"github.com/spf13/viper"
+=======
+>>>>>>> 9da817df68673fd4ef0d58b7219d99fb1d79d55e
 	"github.com/stretchr/testify/assert"
 
 	"github.com/containrrr/watchtower/internal/flags"
 )
 
+<<<<<<< HEAD
 func TestComputeMaxMemoryPerContainerInByte_default_2G_applyFlagSet(t *testing.T) {
 	cmd := new(cobra.Command)
 	defaultMaxMemory := int64(2 * (1024 * 1024 * 1024))
@@ -59,6 +63,16 @@ func TestComputeMaxMemoryPerContainerInByte_custom_512m(t *testing.T) {
 	assert.Equal(t, defaultMaxMemory, maxMemoryPerContainer)
 }
 */
+=======
+func TestComputeMaxMemoryPerContainerInByte_shouldBe0(t *testing.T) {
+	cmd := new(cobra.Command)
+	initializeCmd(cmd)
+	PreRun(cmd, cmd.Flags().Args())
+
+	assert.Equal(t, int64(0), maxMemoryPerContainer)
+}
+
+>>>>>>> 9da817df68673fd4ef0d58b7219d99fb1d79d55e
 func initializeCmd(cmd *cobra.Command) {
 	flags.SetDefaults()
 	flags.RegisterDockerFlags(cmd)
