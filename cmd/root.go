@@ -32,6 +32,7 @@ var (
 	timeout               time.Duration
 	lifecycleHooks        bool
 	maxMemoryPerContainer int64
+	applyResourceLimit    bool
 )
 
 var rootCmd = &cobra.Command{
@@ -101,7 +102,12 @@ func PreRun(cmd *cobra.Command, args []string) {
 	reviveStopped, _ := f.GetBool("revive-stopped")
 	removeVolumes, _ := f.GetBool("remove-volumes")
 
-	computeMaxMemoryPerContainerInByte(cmd)
+	if applyResourceLimit, err = f.GetBool("apply-resource-limit"); err != nil {
+		applyResourceLimit = false
+	}
+	if applyResourceLimit {
+		computeMaxMemoryPerContainerInByte(cmd)
+	}
 
 	client = container.NewClient(
 		!noPull,
@@ -194,7 +200,9 @@ func runUpdatesWithNotifications(filter t.Filter) {
 	}
 	notifier.SendNotification()
 	// handle resource limit
-	actions.SetResourceLimit(client, updateParams)
+	if applyResourceLimit {
+		actions.SetResourceLimit(client, updateParams)
+	}
 }
 
 // computeMaxMemoryPerContainerInByte computes the max memory in byte from the given arg

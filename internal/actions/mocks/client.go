@@ -89,5 +89,5 @@ func (client MockClient) SetMaxMemoryLimit(c container.Container, limit int64) (
 	if c.ContainerInfo().HostConfig != nil {
 		return true, nil
 	}
-	return false, errors.New("Couldn´t set memory!!!")
+	return false, errors.New("Couldn´t set the memory limit")
 }
