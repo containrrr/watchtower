@@ -1,8 +1,9 @@
 package util
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestSliceEqual_True(t *testing.T) {
@@ -61,4 +62,28 @@ func TestStructMapSubtract(t *testing.T) {
 	assert.Equal(t, map[string]struct{}{"b": x}, result)
 	assert.Equal(t, map[string]struct{}{"a": x, "b": x, "c": x}, m1)
 	assert.Equal(t, map[string]struct{}{"a": x, "c": x}, m2)
+}
+func TestComputeMaxMemoryPerContainerInByte_Giga(t *testing.T) {
+	valueInByte, err := ComputeMaxMemoryPerContainerInByte("4g")
+	assert.Nil(t, err)
+	assert.Equal(t, int64(4*1024*1024*1024), valueInByte)
+}
+func TestComputeMaxMemoryPerContainerInByte_Mega(t *testing.T) {
+	valueInByte, err := ComputeMaxMemoryPerContainerInByte("4M")
+	assert.Nil(t, err)
+	assert.Equal(t, int64(4*1024*1024), valueInByte)
+}
+func TestComputeMaxMemoryPerContainerInByte_kilo(t *testing.T) {
+	valueInByte, err := ComputeMaxMemoryPerContainerInByte("4k")
+	assert.Nil(t, err)
+	assert.Equal(t, int64(4*1024), valueInByte)
+}
+func TestComputeMaxMemoryPerContainerInByte_Byte(t *testing.T) {
+	valueInByte, err := ComputeMaxMemoryPerContainerInByte("4")
+	assert.Nil(t, err)
+	assert.Equal(t, int64(4), valueInByte)
+}
+func TestComputeMaxMemoryPerContainerInByte_Error(t *testing.T) {
+	_, err := ComputeMaxMemoryPerContainerInByte("4.5G")
+	assert.NotNil(t, err)
 }

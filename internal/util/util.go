@@ -1,5 +1,12 @@
 package util
 
+import (
+	"strconv"
+	"strings"
+
+	log "github.com/sirupsen/logrus"
+)
+
 // SliceEqual compares two slices and checks whether they have equal content
 func SliceEqual(s1, s2 []string) bool {
 	if len(s1) != len(s2) {
@@ -65,4 +72,31 @@ func StructMapSubtract(m1, m2 map[string]struct{}) map[string]struct{} {
 	}
 
 	return m
+}
+
+// ComputeMaxMemoryPerContainerInByte computes the max memory in byte from the given arg
+func ComputeMaxMemoryPerContainerInByte(paramLimit string) (int64, error) {
+	paramLimit = strings.ToUpper(paramLimit)
+	if strings.HasSuffix(paramLimit, "G") || strings.HasSuffix(paramLimit, "M") || strings.HasSuffix(paramLimit, "K") {
+		memUnit := paramLimit[len(paramLimit)-1:]
+		memValue, err := strconv.ParseInt(paramLimit[:len(paramLimit)-1], 0, 64)
+		if err != nil {
+			log.Errorf("Error while extracting the memory. Root cause:=%s", err)
+			return memValue, err
+		}
+		log.Infof("The configured max memory limit is =%s, value without unit=%d", paramLimit, memValue)
+		if strings.EqualFold(memUnit, "G") {
+			memValue = memValue * (1024 * 1024 * 1024)
+		} else if strings.EqualFold(memUnit, "M") {
+			memValue = memValue * (1024 * 1024)
+		} else if strings.EqualFold(memUnit, "K") {
+			memValue = memValue * 1024
+		}
+		return memValue, nil
+	}
+	value, error := strconv.ParseInt(paramLimit, 0, 64)
+	if error != nil {
+		log.Errorf("Error while extracting the memory. Root cause:=%s", error)
+	}
+	return value, nil
 }

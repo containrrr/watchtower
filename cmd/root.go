@@ -4,7 +4,6 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
-	"strings"
 	"syscall"
 	"time"
 
@@ -12,6 +11,7 @@ import (
 
 	"github.com/containrrr/watchtower/internal/actions"
 	"github.com/containrrr/watchtower/internal/flags"
+	"github.com/containrrr/watchtower/internal/util"
 	"github.com/containrrr/watchtower/pkg/container"
 	"github.com/containrrr/watchtower/pkg/notifications"
 	t "github.com/containrrr/watchtower/pkg/types"
@@ -106,7 +106,8 @@ func PreRun(cmd *cobra.Command, args []string) {
 		applyResourceLimit = false
 	}
 	if applyResourceLimit {
-		computeMaxMemoryPerContainerInByte(cmd)
+		paramLimit, _ := f.GetString("max-memory-per-container")
+		maxMemoryPerContainer, _ = util.ComputeMaxMemoryPerContainerInByte(paramLimit)
 	}
 
 	client = container.NewClient(
@@ -203,22 +204,4 @@ func runUpdatesWithNotifications(filter t.Filter) {
 	if applyResourceLimit {
 		actions.SetResourceLimit(client, updateParams)
 	}
-}
-
-// computeMaxMemoryPerContainerInByte computes the max memory in byte from the given arg
-func computeMaxMemoryPerContainerInByte(c *cobra.Command) {
-	f := c.PersistentFlags()
-	// get max memory per container
-	maxMem, _ := f.GetString("max-memory-per-container")
-	memUnit := maxMem[len(maxMem)-1:]
-	memValue, _ := strconv.ParseInt(maxMem[:len(maxMem)-1], 0, 64)
-	log.Infof("The configured max memory limit is =%s, value without unit=%d", maxMem, memValue)
-	if strings.EqualFold(memUnit, "g") {
-		memValue = memValue * (1024 * 1024 * 1024)
-	} else if strings.EqualFold(memUnit, "m") {
-		memValue = memValue * (1024 * 1024)
-	} else if strings.EqualFold(memUnit, "k") {
-		memValue = memValue * 1024
-	}
-	maxMemoryPerContainer = memValue
 }
