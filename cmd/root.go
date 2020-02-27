@@ -102,10 +102,7 @@ func PreRun(cmd *cobra.Command, args []string) {
 	reviveStopped, _ := f.GetBool("revive-stopped")
 	removeVolumes, _ := f.GetBool("remove-volumes")
 
-	if applyResourceLimit, err = f.GetBool("apply-resource-limit"); err != nil {
-		applyResourceLimit = false
-	}
-	if applyResourceLimit {
+	if applyResourceLimit, err = f.GetBool("apply-resource-limit"); applyResourceLimit {
 		paramLimit, _ := f.GetString("max-memory-per-container")
 		maxMemoryPerContainer, _ = util.ComputeMaxMemoryPerContainerInByte(paramLimit)
 	}
