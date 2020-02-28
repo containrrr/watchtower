@@ -17,6 +17,7 @@ nav:
    - 'Private registries': 'private-registries.md'
    - 'Linked containers': 'linked-containers.md'
    - 'Remote hosts': 'remote-hosts.md'
+   - 'Resource Limitation': 'resource-Limitation.md'
    - 'Secure connections': 'secure-connections.md'
    - 'Stop signals': 'stop-signals.md'
    - 'Lifecycle hooks': 'lifecycle-hooks.md'
