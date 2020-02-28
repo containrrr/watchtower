@@ -46,5 +46,5 @@ func TestRegisterContainerMemoryFlags_default(t *testing.T) {
 
 	m, _ := cmd.PersistentFlags().GetString("max-memory-per-container")
 
-	assert.Equal(t, "2g", m)
+	assert.Equal(t, "4g", m)
 }

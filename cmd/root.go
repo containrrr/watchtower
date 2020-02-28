@@ -106,7 +106,6 @@ func PreRun(cmd *cobra.Command, args []string) {
 		paramLimit, _ := f.GetString("max-memory-per-container")
 		maxMemoryPerContainer, _ = util.ComputeMaxMemoryPerContainerInByte(paramLimit)
 	}
-
 	client = container.NewClient(
 		!noPull,
 		includeStopped,

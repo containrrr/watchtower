@@ -247,7 +247,7 @@ func RegisterContainerMemoryFlags(rootCmd *cobra.Command) {
 	flags.BoolP(
 		"apply-resource-limit",
 		"",
-		false,
+		viper.GetBool("APPLY_RESOURCE_LIMIT"),
 		"Apply the limitation of memory usage",
 	)
 }
@@ -264,7 +264,8 @@ func SetDefaults() {
 	viper.SetDefault("WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PORT", 25)
 	viper.SetDefault("WATCHTOWER_NOTIFICATION_EMAIL_SUBJECTTAG", "")
 	viper.SetDefault("WATCHTOWER_NOTIFICATION_SLACK_IDENTIFIER", "watchtower")
-	viper.SetDefault("MAX_MEMORY_PER_CONTAINER", "2g")
+	viper.SetDefault("MAX_MEMORY_PER_CONTAINER", "4g")
+	viper.SetDefault("APPLY_RESOURCE_LIMIT", false)
 }
 
 // EnvConfig translates the command-line options into environment variables
