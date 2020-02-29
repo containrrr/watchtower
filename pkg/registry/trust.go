@@ -1,4 +1,4 @@
-package container
+package registry
 
 import (
 	"errors"
@@ -96,12 +96,4 @@ func CredentialsStore(configFile configfile.ConfigFile) credentials.Store {
 // EncodeAuth Base64 encode an AuthConfig struct for transmission over HTTP
 func EncodeAuth(auth types.AuthConfig) (string, error) {
 	return command.EncodeAuthToBase64(auth)
-}
-
-// DefaultAuthHandler will be invoked if an AuthConfig is rejected
-// It could be used to return a new value for the "X-Registry-Auth" authentication header,
-// but there's no point trying again with the same value as used in AuthConfig
-func DefaultAuthHandler() (string, error) {
-	log.Debug("Authentication request was rejected. Trying again without authentication")
-	return "", nil
 }

@@ -29,7 +29,7 @@ dockers:
     goos: linux
     goarch: amd64
     goarm: ''
-    dockerfile: Dockerfile
+    dockerfile: dockerfiles/Dockerfile
     image_templates:
       - containrrr/watchtower:amd64-{{ .Version }}
       - containrrr/watchtower:amd64-latest
@@ -39,7 +39,7 @@ dockers:
     goos: linux
     goarch: 386
     goarm: ''
-    dockerfile: Dockerfile
+    dockerfile: dockerfiles/Dockerfile
     image_templates:
       - containrrr/watchtower:i386-{{ .Version }}
       - containrrr/watchtower:i386-latest
@@ -49,7 +49,7 @@ dockers:
     goos: linux
     goarch: arm
     goarm: 6
-    dockerfile: Dockerfile
+    dockerfile: dockerfiles/Dockerfile
     image_templates:
       - containrrr/watchtower:armhf-{{ .Version }}
       - containrrr/watchtower:armhf-latest
@@ -59,7 +59,7 @@ dockers:
     goos: linux
     goarch: arm64
     goarm: ''
-    dockerfile: Dockerfile
+    dockerfile: dockerfiles/Dockerfile
     image_templates:
       - containrrr/watchtower:arm64v8-{{ .Version }}
       - containrrr/watchtower:arm64v8-latest

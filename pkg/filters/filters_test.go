@@ -1,4 +1,4 @@
-package container
+package filters
 
 import (
 	"testing"
@@ -20,7 +20,7 @@ func TestWatchtowerContainersFilter(t *testing.T) {
 func TestNoFilter(t *testing.T) {
 	container := new(mocks.FilterableContainer)
 
-	assert.True(t, noFilter(container))
+	assert.True(t, NoFilter(container))
 
 	container.AssertExpectations(t)
 }
@@ -28,12 +28,12 @@ func TestNoFilter(t *testing.T) {
 func TestFilterByNames(t *testing.T) {
 	var names []string
 
-	filter := filterByNames(names, nil)
+	filter := FilterByNames(names, nil)
 	assert.Nil(t, filter)
 
 	names = append(names, "test")
 
-	filter = filterByNames(names, noFilter)
+	filter = FilterByNames(names, NoFilter)
 	assert.NotNil(t, filter)
 
 	container := new(mocks.FilterableContainer)
@@ -48,7 +48,7 @@ func TestFilterByNames(t *testing.T) {
 }
 
 func TestFilterByEnableLabel(t *testing.T) {
-	filter := filterByEnableLabel(noFilter)
+	filter := FilterByEnableLabel(NoFilter)
 	assert.NotNil(t, filter)
 
 	container := new(mocks.FilterableContainer)
@@ -68,7 +68,7 @@ func TestFilterByEnableLabel(t *testing.T) {
 }
 
 func TestFilterByDisabledLabel(t *testing.T) {
-	filter := filterByDisabledLabel(noFilter)
+	filter := FilterByDisabledLabel(NoFilter)
 	assert.NotNil(t, filter)
 
 	container := new(mocks.FilterableContainer)

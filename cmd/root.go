@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/containrrr/watchtower/pkg/filters"
 	"os"
 	"os/signal"
 	"strconv"
@@ -108,7 +109,7 @@ func PreRun(cmd *cobra.Command, args []string) {
 
 // Run is the main execution flow of the command
 func Run(c *cobra.Command, names []string) {
-	filter := container.BuildFilter(names, enableLabel)
+	filter := filters.BuildFilter(names, enableLabel)
 	runOnce, _ := c.PersistentFlags().GetBool("run-once")
 
 	if runOnce {
@@ -155,7 +156,7 @@ func runUpgradesOnSchedule(filter t.Filter) error {
 		return err
 	}
 
-	log.Debug("Starting Watchtower and scheduling first run: " + cron.Entries()[0].Schedule.Next(time.Now()).String())
+	log.Info("Starting Watchtower and scheduling first run: " + cron.Entries()[0].Schedule.Next(time.Now()).String())
 	cron.Start()
 
 	// Graceful shut-down on SIGINT/SIGTERM
@@ -172,7 +173,7 @@ func runUpgradesOnSchedule(filter t.Filter) error {
 
 func runUpdatesWithNotifications(filter t.Filter) {
 	notifier.StartNotification()
-	updateParams := actions.UpdateParams{
+	updateParams := t.UpdateParams{
 		Filter:         filter,
 		Cleanup:        cleanup,
 		NoRestart:      noRestart,

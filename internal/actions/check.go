@@ -3,6 +3,8 @@ package actions
 import (
 	"errors"
 	"fmt"
+	"github.com/containrrr/watchtower/pkg/filters"
+	"github.com/containrrr/watchtower/pkg/sorter"
 	"sort"
 	"strings"
 	"time"
@@ -19,7 +21,7 @@ import (
 // will stop and remove all but the most recently started container.
 func CheckForMultipleWatchtowerInstances(client container.Client, cleanup bool) error {
 	awaitDockerClient()
-	containers, err := client.ListContainers(container.WatchtowerContainersFilter)
+	containers, err := client.ListContainers(filters.WatchtowerContainersFilter)
 
 	if err != nil {
 		log.Fatal(err)
@@ -39,7 +41,7 @@ func cleanupExcessWatchtowers(containers []container.Container, client container
 	var cleanupErrors int
 	var stopErrors int
 
-	sort.Sort(container.ByCreated(containers))
+	sort.Sort(sorter.ByCreated(containers))
 	allContainersExceptLast := containers[0 : len(containers)-1]
 
 	for _, c := range allContainersExceptLast {
@@ -51,7 +53,7 @@ func cleanupExcessWatchtowers(containers []container.Container, client container
 		}
 
 		if cleanup {
-			if err := client.RemoveImage(c); err != nil {
+			if err := client.RemoveImageByID(c.ImageID()); err != nil {
 				// logging the original here as we're just returning a count
 				logrus.Error(err)
 				cleanupErrors++

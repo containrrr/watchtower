@@ -277,11 +277,12 @@
       "login": "simskij",
       "name": "Simon Aronsson",
       "avatar_url": "https://avatars0.githubusercontent.com/u/1596025?v=4",
-      "profile": "http://www.arcticbit.se",
+      "profile": "http://simme.dev",
       "contributions": [
         "code",
         "maintenance",
-        "review"
+        "review",
+        "doc"
       ]
     },
     {
@@ -309,7 +310,8 @@
       "avatar_url": "https://avatars0.githubusercontent.com/u/21138205?v=4",
       "profile": "https://github.com/zoispag",
       "contributions": [
-        "code"
+        "code",
+        "review"
       ]
     },
     {
@@ -393,6 +395,42 @@
       "contributions": [
         "doc"
       ]
+    },
+    {
+      "login": "jnidzwetzki",
+      "name": "Jan Kristof Nidzwetzki",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/5753622?v=4",
+      "profile": "https://achfrag.net",
+      "contributions": [
+        "doc"
+      ]
+    },
+    {
+      "login": "mindrunner",
+      "name": "lukas",
+      "avatar_url": "https://avatars0.githubusercontent.com/u/1413542?v=4",
+      "profile": "https://www.lukaselsner.de",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "codingCoffee",
+      "name": "Ameya Shenoy",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/13611153?v=4",
+      "profile": "https://codingcoffee.dev",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "raymondelooff",
+      "name": "Raymon de Looff",
+      "avatar_url": "https://avatars0.githubusercontent.com/u/9716806?v=4",
+      "profile": "https://github.com/raymondelooff",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
@@ -400,5 +438,6 @@
   "projectOwner": "containrrr",
   "repoType": "github",
   "repoHost": "https://github.com",
-  "commitConvention": "none"
+  "commitConvention": "none",
+  "skipCi": true
 }
