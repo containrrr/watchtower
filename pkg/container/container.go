@@ -153,12 +153,11 @@ func (c Container) runtimeConfig() *dockercontainer.Config {
 		config.Hostname = ""
 	}
 
-	if util.SliceEqual(config.Cmd, imageConfig.Cmd) {
-		config.Cmd = nil
-	}
-
 	if util.SliceEqual(config.Entrypoint, imageConfig.Entrypoint) {
 		config.Entrypoint = nil
+		if util.SliceEqual(config.Cmd, imageConfig.Cmd) {
+			config.Cmd = nil
+		}
 	}
 
 	config.Env = util.SliceSubtract(config.Env, imageConfig.Env)
