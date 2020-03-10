@@ -200,7 +200,7 @@ Environment Variable: DOCKER_TLS_VERIFY
              Default: false
 ```
 ## Apply Resource limit
-Use this flag to (de)activate the maximum memory limit a container can use.
+Limits the maximum amount of memory a container can use.
 
 ```
             Argument: --apply-resource-limit
@@ -210,7 +210,7 @@ Environment Variable: APPLY_RESOURCE_LIMIT
 ```
 
 ## Max Memory per container
-The maximum of memory a container can use. This flag has an effect only if the flag is set to true `--apply-resource-limit=true`.
+The maximum amount of memory a container can use. This flag has an effect only if the flag is set to true `--apply-resource-limit=true`.
 
 ```
             Argument: --max-memory-per-container
