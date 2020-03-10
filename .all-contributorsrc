@@ -442,6 +442,15 @@
         "test",
         "doc"
       ]
+    },
+    {
+      "login": "jsclayton",
+      "name": "John Clayton",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/704034?v=4",
+      "profile": "http://codemonkeylabs.com",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
