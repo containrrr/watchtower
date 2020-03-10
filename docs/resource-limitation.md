@@ -16,6 +16,11 @@ This flag has an effect only if the `apply-resource-limit` is activate.
 Value format is: plain number (integer) followed with unit `{G,g,M,m,K,k}` e.g 10M for 10 Megabyte.
 Default: `4G`
 
+- `--max-swap-per-container` (env. `MAX_SWAP_PER_CONTAINER`):
+The swap flag has an effect only if the `max-memory-per-container` is set.
+Value format is: plain number (integer) followed with unit `{G,g,M,m,K,k}` e.g 10M for 10 Megabyte.
+Default: `4G`
+
 Example:
 - Activate the resource limitation and use the default max memory limit, which is 4G per container
 
@@ -34,6 +39,17 @@ docker run -d \
   -v /var/run/docker.sock:/var/run/docker.sock \
   --apply-resource-limit=true \
   --max-memory-per-container 5g \
+  containrrr/watchtower
+```
+
+- Apply resource limit and set max memory to 300m and max-swap to 1g. Some possible values 512M, 1024K
+```bash
+docker run -d \
+  --name watchtower \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  --apply-resource-limit=true \
+  --max-memory-per-container 300m \
+  --max-swap-per-container 1g \
   containrrr/watchtower
 ```
 ``

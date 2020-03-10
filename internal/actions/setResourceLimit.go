@@ -18,7 +18,11 @@ func SetResourceLimit(client container.Client, params types.UpdateParams) error 
 		}
 
 		for _, container := range containers {
-			if _, error := client.SetMaxMemoryLimit(container, params.MaxMemoryPerContainer); error != nil {
+			if params.MaxSwapPerContainer < params.MaxMemoryPerContainer {
+				params.MaxSwapPerContainer = params.MaxMemoryPerContainer
+			}
+			if _, error := client.SetMaxMemoryLimit(
+				container, params.MaxMemoryPerContainer, params.MaxSwapPerContainer); error != nil {
 				log.Errorf("Error while setting the resource limit. Detail: %s", error)
 			}
 		}

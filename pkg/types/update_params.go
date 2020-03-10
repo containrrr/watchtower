@@ -13,4 +13,5 @@ type UpdateParams struct {
 	MonitorOnly           bool
 	LifecycleHooks        bool
 	MaxMemoryPerContainer int64
+	MaxSwapPerContainer   int64
 }

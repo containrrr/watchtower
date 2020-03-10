@@ -32,7 +32,7 @@ type Client interface {
 	IsContainerStale(Container) (bool, error)
 	ExecuteCommand(containerID string, command string) error
 	RemoveImageByID(string) error
-	SetMaxMemoryLimit(Container, int64) (bool, error)
+	SetMaxMemoryLimit(Container, int64, int64) (bool, error)
 }
 
 // NewClient returns a new Client instance which can be used to interact with
@@ -361,12 +361,14 @@ func (client dockerClient) ExecuteCommand(containerID string, command string) er
 
 	return nil
 }
-func (client dockerClient) SetMaxMemoryLimit(c Container, limit int64) (bool, error) {
+func (client dockerClient) SetMaxMemoryLimit(c Container, memoryLimit int64, swapLimit int64) (bool, error) {
 	mem := c.hostConfig().Memory
-	if mem > limit || mem == 0 {
-		c.ContainerInfo().HostConfig.Memory = limit
+	if mem > memoryLimit || mem == 0 {
+		c.ContainerInfo().HostConfig.Memory = memoryLimit
+		c.ContainerInfo().HostConfig.MemorySwap = swapLimit
 		updateConfig := container.UpdateConfig{}
-		updateConfig.Memory = limit
+		updateConfig.Memory = c.ContainerInfo().HostConfig.Memory
+		updateConfig.MemorySwap = c.ContainerInfo().HostConfig.MemorySwap
 		client.api.ContainerUpdate(context.Background(), c.ID(), updateConfig)
 		log.Infof("LIMIT-MEMORY: Memory set to:= %d for container %s", updateConfig.Memory, c.Name())
 		return true, nil

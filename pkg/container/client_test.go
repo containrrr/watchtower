@@ -38,7 +38,7 @@ var _ = Describe("Client-SetMaxMemoryLimit", func() {
 		It("should reduce it to the configured limit", func() {
 			limit := int64(2147483648)
 			c.ContainerInfo().HostConfig.Memory = 8589934592 //8G
-			apply, err := client.SetMaxMemoryLimit(c, limit)
+			apply, err := client.SetMaxMemoryLimit(c, limit, 0)
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(apply).To(BeTrue())
@@ -50,7 +50,7 @@ var _ = Describe("Client-SetMaxMemoryLimit", func() {
 			limit := int64(8589934592) // limit 8G
 
 			c.ContainerInfo().HostConfig.Memory = 0 // has no limit, will use amount host memory if needed
-			apply, err := client.SetMaxMemoryLimit(c, limit)
+			apply, err := client.SetMaxMemoryLimit(c, limit, 0)
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(apply).To(BeTrue())
@@ -58,11 +58,22 @@ var _ = Describe("Client-SetMaxMemoryLimit", func() {
 		})
 	})
 
+	When("When container memory is less or egal configured limit", func() {
+		It("should do nothing", func() {
+			limit := int64(9663676416)                       // limit 9G
+			c.ContainerInfo().HostConfig.Memory = 8589934592 // 8G
+			apply, err := client.SetMaxMemoryLimit(c, limit, 0)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(apply).To(BeFalse())
+			Expect(limit > c.ContainerInfo().HostConfig.Memory).To(BeTrue())
+		})
+	})
 	When("When container memory limit is then or egal configured limit", func() {
 		It("should do nothing", func() {
 			limit := int64(9663676416)                       // limit 9G
 			c.ContainerInfo().HostConfig.Memory = 8589934592 // 8G
-			apply, err := client.SetMaxMemoryLimit(c, limit)
+			apply, err := client.SetMaxMemoryLimit(c, limit, 0)
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(apply).To(BeFalse())

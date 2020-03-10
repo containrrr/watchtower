@@ -218,3 +218,19 @@ Environment Variable: MAX_MEMORY_PER_CONTAINER
                 Type: String
              Default: 4g
 ```
+
+## Max Swap per container
+Max swap is a modifier flag that only has meaning if `--max-memory-per-container` is also set.
+Using swap allows the container to write excess memory requirements to disk when the container has exhausted all the RAM that is available to it.
+Swap represents the total amount of memory and swap that can be used. 
+- If `--max-memory-per-container="300m"` and `--max-swap-per-container="1g"`, the container can use 300m of memory and 700m (1g - 300m) swap. 
+- If `--max-swap-per-container` is positive and smaller than `--max-memory-per-container`, we will use the value of `--max-memory-per-container` e.g. `max-swap-per-container=max-memory-per-container`, which means that the container will no be allow to swap out.
+- If `--max-swap-per-container` is set to `-1`, the container has no swap limit.
+For more [details](https://docs.docker.com/config/containers/resource_constraints/#--memory-swap-details)
+
+```
+            Argument: --max-swap-per-container
+Environment Variable: MAX_SWAP_PER_CONTAINER
+                Type: String
+             Default: 4g
+```

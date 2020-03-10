@@ -32,6 +32,7 @@ var (
 	timeout               time.Duration
 	lifecycleHooks        bool
 	maxMemoryPerContainer int64
+	maxSwapPerContainer   int64
 	applyResourceLimit    bool
 )
 
@@ -103,8 +104,10 @@ func PreRun(cmd *cobra.Command, args []string) {
 	removeVolumes, _ := f.GetBool("remove-volumes")
 
 	if applyResourceLimit, err = f.GetBool("apply-resource-limit"); applyResourceLimit {
-		paramLimit, _ := f.GetString("max-memory-per-container")
-		maxMemoryPerContainer, _ = util.ComputeMaxMemoryPerContainerInByte(paramLimit)
+		paramMemLimit, _ := f.GetString("max-memory-per-container")
+		paramSwapLimit, _ := f.GetString("max-memory-per-container")
+		maxMemoryPerContainer, _ = util.ComputeMaxMemoryPerContainerInByte(paramMemLimit)
+		maxSwapPerContainer, _ = util.ComputeMaxMemoryPerContainerInByte(paramSwapLimit)
 	}
 	client = container.NewClient(
 		!noPull,
@@ -190,6 +193,7 @@ func runUpdatesWithNotifications(filter t.Filter) {
 		MonitorOnly:           monitorOnly,
 		LifecycleHooks:        lifecycleHooks,
 		MaxMemoryPerContainer: maxMemoryPerContainer,
+		MaxSwapPerContainer:   maxSwapPerContainer,
 	}
 	err := actions.Update(client, updateParams)
 	if err != nil {

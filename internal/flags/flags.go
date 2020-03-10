@@ -243,6 +243,11 @@ func RegisterContainerMemoryFlags(rootCmd *cobra.Command) {
 		"",
 		viper.GetString("MAX_MEMORY_PER_CONTAINER"),
 		"The maximum of memory one container can use")
+	flags.StringP(
+		"max-swap-per-container",
+		"",
+		viper.GetString("MAX_SWAP_PER_CONTAINER"),
+		"The maximum of swap one container can use")
 
 	flags.BoolP(
 		"apply-resource-limit",
@@ -265,6 +270,7 @@ func SetDefaults() {
 	viper.SetDefault("WATCHTOWER_NOTIFICATION_EMAIL_SUBJECTTAG", "")
 	viper.SetDefault("WATCHTOWER_NOTIFICATION_SLACK_IDENTIFIER", "watchtower")
 	viper.SetDefault("MAX_MEMORY_PER_CONTAINER", "4g")
+	viper.SetDefault("MAX_SWAP_PER_CONTAINER", "4g")
 	viper.SetDefault("APPLY_RESOURCE_LIMIT", false)
 }
 
