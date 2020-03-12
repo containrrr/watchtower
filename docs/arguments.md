@@ -37,6 +37,16 @@ Environment Variable: N/A
              Default: N/A
 ```
 
+## Time Zone
+Sets the time zone to be used by WatchTower's logs and the optional Cron scheduling argument (--schedule). If this environment variable is not set, Watchtower will use the default time zone: UTC.
+
+```
+            Argument: N/A
+Environment Variable: TZ
+                Type: String
+             Default: "UTC"
+```
+
 ## Cleanup
 Removes old images after updating. When this flag is specified, watchtower will remove the old image after restarting a container with a new image. Use this option to prevent the accumulation of orphaned images on your system as containers are updated.
 
