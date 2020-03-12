@@ -43,6 +43,11 @@
   </a>
 </p>
 
+> ### ⚠️ Help needed
+>
+> As I (@simskij) currently am the sole maintainer of watchtower, i'm finding it a bit hard to keep up with all issues and pull requests. Interested in helping out with triage, troubleshooting and issue handling? Let me know on gitter!
+
+
 ## Quick Start
 
 With watchtower you can update the running version of your containerized app simply by pushing a new image to the Docker Hub or your own image registry. Watchtower will pull down your new image, gracefully shut down your existing container and restart it with the same options that were used when it was deployed initially. Run the watchtower container with the following command:
