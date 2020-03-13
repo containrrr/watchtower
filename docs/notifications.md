@@ -18,6 +18,7 @@ The types of notifications to send are set by passing a comma-separated list of 
 ## Settings
 
 - `--notifications-level` (env. `WATCHTOWER_NOTIFICATIONS_LEVEL`): Controls the log level which is used for the notifications. If omitted, the default log level is `info`. Possible values are: `panic`, `fatal`, `error`, `warn`, `info` or `debug`.
+- `--no-startup-message` (env. `WATCHTOWER_NOTIFICATION_NO_STARTUP_MESSAGE`): Prevents watchtower from sending a startup message.
 
 ## Available services
 

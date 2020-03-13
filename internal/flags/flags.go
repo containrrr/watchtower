@@ -123,6 +123,12 @@ func RegisterNotificationFlags(rootCmd *cobra.Command) {
 		viper.GetString("WATCHTOWER_NOTIFICATIONS_LEVEL"),
 		"The log level used for sending notifications. Possible values: panic, fatal, error, warn, info or debug")
 
+	flags.BoolP(
+		"no-startup-message",
+		"",
+		viper.GetBool("WATCHTOWER_NOTIFICATION_NO_STARTUP_MESSAGE"),
+		"Prevents watchtower from sending a startup message")
+
 	flags.StringP(
 		"notification-email-from",
 		"",
