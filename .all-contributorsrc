@@ -449,6 +449,15 @@
       "contributions": [
         "doc"
       ]
+    },
+    {
+      "login": "lukwil",
+      "name": "Lukas Willburger",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/30203234?v=4",
+      "profile": "https://github.com/lukwil",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
