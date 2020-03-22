@@ -53,6 +53,12 @@ func RegisterSystemFlags(rootCmd *cobra.Command) {
 		"do not restart any containers")
 
 	flags.BoolP(
+		"no-startup-message",
+		"",
+		viper.GetBool("WATCHTOWER_NO_STARTUP_MESSAGE"),
+		"Prevents watchtower from sending a startup message")
+
+	flags.BoolP(
 		"cleanup",
 		"c",
 		viper.GetBool("WATCHTOWER_CLEANUP"),
