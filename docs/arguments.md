@@ -170,6 +170,16 @@ Environment Variable: WATCHTOWER_NO_PULL
              Default: false
 ``` 
 
+## Without sending a startup message
+Do not send a send a message after watchtower started. Otherwise there will be an info-level notification. 
+
+```
+            Argument: --no-startup-message
+Environment Variable: WATCHTOWER_NO_STARTUP_MESSAGE
+                Type: Boolean
+             Default: false
+```
+
 ## Run once
 Run an update attempt against a container name list one time immediately and exit.
 
