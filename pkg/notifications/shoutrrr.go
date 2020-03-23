@@ -3,6 +3,7 @@ package notifications
 import (
 	"fmt"
 	"github.com/containrrr/shoutrrr"
+	"github.com/containrrr/shoutrrr/pkg/router"
 	t "github.com/containrrr/watchtower/pkg/types"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -15,6 +16,7 @@ const (
 // Implements Notifier, logrus.Hook
 type shoutrrrTypeNotifier struct {
 	Urls      []string
+	Router    *router.ServiceRouter
 	entries   []*log.Entry
 	logLevels []log.Level
 }
@@ -23,9 +25,11 @@ func newShoutrrrNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.Noti
 	flags := c.PersistentFlags()
 
 	urls, _ := flags.GetStringArray("notification-url")
+	r, _ := shoutrrr.CreateSender(urls...)
 
 	n := &shoutrrrTypeNotifier{
 		Urls:      urls,
+		Router:    r,
 		logLevels: acceptedLogLevels,
 	}
 
@@ -48,8 +52,7 @@ func (e *shoutrrrTypeNotifier) sendEntries(entries []*log.Entry) {
 	// Do the sending in a separate goroutine so we don't block the main process.
 	msg := e.buildMessage(entries)
 	go func() {
-		router, _ := shoutrrr.CreateSender(e.Urls...)
-		errs := router.Send(msg, nil)
+		errs := e.Router.Send(msg, nil)
 
 		for i, err := range errs {
 			if err != nil {
