@@ -22,7 +22,7 @@ type shoutrrrTypeNotifier struct {
 func newShoutrrrNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.Notifier {
 	flags := c.PersistentFlags()
 
-	urls, _ := flags.GetStringArray("notification-shoutrrr-url")
+	urls, _ := flags.GetStringArray("notification-url")
 
 	n := &shoutrrrTypeNotifier{
 		Urls:      urls,

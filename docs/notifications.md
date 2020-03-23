@@ -121,7 +121,7 @@ docker run -d \
 
 To send notifications via shoutrrr, the following command-line options, or their corresponding environment variables, can be set:
 
-- `--notification-shoutrrr-url` (env. `WATCHTOWER_NOTIFICATION_SHOUTRRR_URL`): The shoutrrr service URL to be used.
+- `--notification-url` (env. `WATCHTOWER_NOTIFICATION_URL`): The shoutrrr service URL to be used.
 
 Go to [https://github.com/containrrr/shoutrrr#service-urls](https://github.com/containrrr/shoutrrr#service-urls) to learn more about the different service URLs you can use.
 
@@ -132,7 +132,7 @@ docker run -d \
   --name watchtower \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -e WATCHTOWER_NOTIFICATIONS=shoutrrr \
-  -e WATCHTOWER_NOTIFICATION_SHOUTRRR_URL=discord://channel/token \
-  -e WATCHTOWER_NOTIFICATION_SHOUTRRR_URL=slack://watchtower@token-a/token-b/token-c \
+  -e WATCHTOWER_NOTIFICATION_URL=discord://channel/token \
+  -e WATCHTOWER_NOTIFICATION_URL=slack://watchtower@token-a/token-b/token-c \
   containrrr/watchtower
 ```

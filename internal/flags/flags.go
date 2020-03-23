@@ -240,9 +240,9 @@ Should only be used for testing.
 		"The Gotify Application required to query the Gotify API")
 
 	flags.StringArrayP(
-		"notification-shoutrrr-url",
+		"notification-url",
 		"",
-		viper.GetStringSlice("WATCHTOWER_NOTIFICATION_SHOUTRRR_URL"),
+		viper.GetStringSlice("WATCHTOWER_NOTIFICATION_URL"),
 		"The shoutrrr URL to send notifications to")
 }
 
