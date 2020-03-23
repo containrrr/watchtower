@@ -48,11 +48,13 @@ func (e *shoutrrrTypeNotifier) sendEntries(entries []*log.Entry) {
 	// Do the sending in a separate goroutine so we don't block the main process.
 	msg := e.buildMessage(entries)
 	go func() {
-		for _, url := range e.Urls {
-			err := shoutrrr.Send(url, msg)
+		router, _ := shoutrrr.CreateSender(e.Urls...)
+		errs := router.Send(msg, nil)
+
+		for i, err := range errs {
 			if err != nil {
 				// Use fmt so it doesn't trigger another notification.
-				fmt.Println("Failed to send notification via shoutrrr (url="+url+"): ", err)
+				fmt.Println("Failed to send notification via shoutrrr (url="+e.Urls[i]+"): ", err)
 			}
 		}
 	}()
