@@ -113,7 +113,9 @@ func Run(c *cobra.Command, names []string) {
 	runOnce, _ := c.PersistentFlags().GetBool("run-once")
 
 	if runOnce {
-		log.Info("Running a one time update.")
+		if noStartupMessage, _ := c.PersistentFlags().GetBool("no-startup-message"); !noStartupMessage {
+			log.Info("Running a one time update.")
+		}
 		runUpdatesWithNotifications(filter)
 		os.Exit(0)
 		return
