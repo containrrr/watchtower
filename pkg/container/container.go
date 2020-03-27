@@ -95,6 +95,13 @@ func (c Container) Enabled() (bool, bool) {
 func (c Container) Links() []string {
 	var links []string
 
+	dependsOnLabelValue := c.getLabelValueOrEmpty(dependsOnLabel)
+
+	if dependsOnLabelValue != "" {
+		links := strings.Split(dependsOnLabelValue, ",")
+		return links
+	}
+
 	if (c.containerInfo != nil) && (c.containerInfo.HostConfig != nil) {
 		for _, link := range c.containerInfo.HostConfig.Links {
 			name := strings.Split(link, ":")[0]
