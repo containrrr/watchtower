@@ -121,8 +121,8 @@ func (c Container) IsWatchtower() bool {
 
 // PreUpdateTimeout checks whether a container has a specific timeout set
 // for how long the pre-update command is allowed to run. This value is expressed
-// either as an integer, in minutes, or as "off" which will allow the command/script
-// to run indefinitely. Users should be cautious with the off option, as that
+// either as an integer, in minutes, or as 0 which will allow the command/script
+// to run indefinitely. Users should be cautious with the 0 option, as that
 // could result in watchtower waiting forever.
 func (c Container) PreUpdateTimeout() int {
 	var minutes int
