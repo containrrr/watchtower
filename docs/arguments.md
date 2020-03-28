@@ -171,7 +171,7 @@ Environment Variable: WATCHTOWER_RUN_ONCE
 ```
 
 ## HTTP API Mode
-Runs Watchtower in HTTP API mode, so that image updates must to be triggered by a request.
+Runs Watchtower in HTTP API mode, only allowing image updates to be triggered by an HTTP request.
 
 ```
             Argument: --http-api
