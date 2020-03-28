@@ -139,7 +139,11 @@ Environment Variable: WATCHTOWER_LABEL_ENABLE
 ```   
 
 ## Without updating containers
-Will only monitor for new images, not update the containers. Please note: Due to Docker API limitations the latest image will still be pulled from the registry.
+Will only monitor for new images, not update the containers. 
+
+> ### ⚠️ Please note
+>
+> Due to Docker API limitations the latest image will still be pulled from the registry.
 
 ```
             Argument: --monitor-only
