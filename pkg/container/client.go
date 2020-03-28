@@ -29,9 +29,8 @@ type Client interface {
 	StartContainer(Container) (string, error)
 	RenameContainer(Container, string) error
 	IsContainerStale(Container) (bool, error)
-	ExecuteCommand(containerID string, command string) error
+	ExecuteCommand(containerID string, command string, timeout int) error
 	RemoveImageByID(string) error
-
 }
 
 // NewClient returns a new Client instance which can be used to interact with
@@ -301,7 +300,7 @@ func (client dockerClient) RemoveImageByID(id string) error {
 	return err
 }
 
-func (client dockerClient) ExecuteCommand(containerID string, command string) error {
+func (client dockerClient) ExecuteCommand(containerID string, command string, timeout int) error {
 	bg := context.Background()
 
 	// Create the exec
@@ -331,7 +330,7 @@ func (client dockerClient) ExecuteCommand(containerID string, command string) er
 		return err
 	}
 
-	var execOutput string
+	var output string
 	if attachErr == nil {
 		defer response.Close()
 		var writer bytes.Buffer
@@ -339,26 +338,56 @@ func (client dockerClient) ExecuteCommand(containerID string, command string) er
 		if err != nil {
 			log.Error(err)
 		} else if written > 0 {
-			execOutput = strings.TrimSpace(writer.String())
+			output = strings.TrimSpace(writer.String())
 		}
 	}
 
 	// Inspect the exec to get the exit code and print a message if the
 	// exit code is not success.
-	execInspect, err := client.api.ContainerExecInspect(bg, exec.ID)
+	err = client.waitForExecOrTimeout(bg, exec.ID, output, timeout)
 	if err != nil {
 		return err
 	}
 
-	if execInspect.ExitCode > 0 {
-		log.Errorf("Command exited with code %v.", execInspect.ExitCode)
-		log.Error(execOutput)
+	return nil
+}
+
+func (client dockerClient) waitForExecOrTimeout(bg context.Context, ID string, execOutput string, timeout int) error {
+	var ctx context.Context
+	var cancel context.CancelFunc
+
+	if timeout > 0 {
+		ctx, cancel = context.WithTimeout(bg, time.Duration(timeout)*time.Minute)
+		defer cancel()
 	} else {
+		ctx = bg
+	}
+
+	for {
+		execInspect, err := client.api.ContainerExecInspect(ctx, ID)
+
+		log.WithFields(log.Fields{
+			"exit-code": execInspect.ExitCode,
+			"exec-id":   execInspect.ExecID,
+			"running":   execInspect.Running,
+		}).Debug("Awaiting timeout or completion")
+
+		if err != nil {
+			return err
+		}
+		if execInspect.Running == true {
+			time.Sleep(1 * time.Second)
+			continue
+		}
 		if len(execOutput) > 0 {
 			log.Infof("Command output:\n%v", execOutput)
 		}
+		if execInspect.ExitCode > 0 {
+			log.Errorf("Command exited with code %v.", execInspect.ExitCode)
+			log.Error(execOutput)
+		}
+		break
 	}
-
 	return nil
 }
 
@@ -377,7 +406,6 @@ func (client dockerClient) waitForStopOrTimeout(c Container, waitTime time.Durat
 				return nil
 			}
 		}
-
 		time.Sleep(1 * time.Second)
 	}
 }

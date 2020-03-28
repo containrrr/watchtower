@@ -1,14 +1,15 @@
 package container
 
 const (
-	watchtowerLabel = "com.centurylinklabs.watchtower"
-	signalLabel     = "com.centurylinklabs.watchtower.stop-signal"
-	enableLabel     = "com.centurylinklabs.watchtower.enable"
-	zodiacLabel     = "com.centurylinklabs.zodiac.original-image"
-	preCheckLabel   = "com.centurylinklabs.watchtower.lifecycle.pre-check"
-	postCheckLabel  = "com.centurylinklabs.watchtower.lifecycle.post-check"
-	preUpdateLabel  = "com.centurylinklabs.watchtower.lifecycle.pre-update"
-	postUpdateLabel = "com.centurylinklabs.watchtower.lifecycle.post-update"
+	watchtowerLabel       = "com.centurylinklabs.watchtower"
+	signalLabel           = "com.centurylinklabs.watchtower.stop-signal"
+	enableLabel           = "com.centurylinklabs.watchtower.enable"
+	zodiacLabel           = "com.centurylinklabs.zodiac.original-image"
+	preCheckLabel         = "com.centurylinklabs.watchtower.lifecycle.pre-check"
+	postCheckLabel        = "com.centurylinklabs.watchtower.lifecycle.post-check"
+	preUpdateLabel        = "com.centurylinklabs.watchtower.lifecycle.pre-update"
+	postUpdateLabel       = "com.centurylinklabs.watchtower.lifecycle.post-update"
+	preUpdateTimeoutLabel = "com.centurylinklabs.watchtower.lifecycle.pre-update-timeout"
 )
 
 // GetLifecyclePreCheckCommand returns the pre-check command set in the container metadata or an empty string
