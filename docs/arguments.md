@@ -119,7 +119,7 @@ Environment Variable: WATCHTOWER_REVIVE_STOPPED
 ```   
 
 ## Poll interval
-Poll interval (in seconds). This value controls how frequently watchtower will poll for new images.
+Poll interval (in seconds). This value controls how frequently watchtower will poll for new images. Either `--schedule` or a poll interval can be defined, but not both.
 
 ```
             Argument: --interval, -i
@@ -196,7 +196,8 @@ Environment Variable: WATCHTOWER_RUN_ONCE
 ``` 
 
 ## Scheduling
-[Cron expression](https://godoc.org/github.com/robfig/cron#hdr-CRON_Expression_Format) in 6 fields (rather than the traditional 5) which defines when and how often to check for new images. Either `--interval` or the schedule expression could be defined, but not both. An example: `--schedule "0 0 4 * * *"`
+[Cron expression](https://godoc.org/github.com/robfig/cron#hdr-CRON_Expression_Format) in 6 fields (rather than the traditional 5) which defines when and how often to check for new images. Either `--interval` or the schedule expression 
+can be defined, but not both. An example: `--schedule "0 0 4 * * *"`
 
 ```
             Argument: --schedule, -s
