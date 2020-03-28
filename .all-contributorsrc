@@ -485,6 +485,15 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "aneisch",
+      "name": "Andrew",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/6991461?v=4",
+      "profile": "https://github.com/aneisch",
+      "contributions": [
+        "doc"
+      ]
     }
   ],
   "contributorsPerLine": 7,
