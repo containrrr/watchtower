@@ -123,7 +123,7 @@ To send notifications via shoutrrr, the following command-line options, or their
 
 - `--notification-url` (env. `WATCHTOWER_NOTIFICATION_URL`): The shoutrrr service URL to be used.
 
-Go to [https://github.com/containrrr/shoutrrr#service-urls](https://github.com/containrrr/shoutrrr#service-urls) to learn more about the different service URLs you can use.
+Go to [containrrr.github.io/shoutrrr/services/overview](https://containrrr.github.io/shoutrrr/services/overview) to learn more about the different service URLs you can use.
 You can define multiple services by space separating the URLs. (See example below)
 
 Example:
@@ -133,6 +133,6 @@ docker run -d \
   --name watchtower \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -e WATCHTOWER_NOTIFICATIONS=shoutrrr \
-  -e WATCHTOWER_NOTIFICATION_URL="discord://channel/token slack://watchtower@token-a/token-b/token-c" \
+  -e WATCHTOWER_NOTIFICATION_URL="discord://token@channel slack://watchtower@token-a/token-b/token-c" \
   containrrr/watchtower
 ```
