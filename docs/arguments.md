@@ -196,7 +196,7 @@ Environment Variable: WATCHTOWER_RUN_ONCE
 ``` 
 
 ## Scheduling
-[Cron expression](https://godoc.org/github.com/robfig/cron#hdr-CRON_Expression_Format) in 6 fields (rather than the traditional 5) which defines when and how often to check for new images. Either `--interval` or the schedule expression 
+[Cron expression](https://pkg.go.dev/github.com/robfig/cron@v1.2.0?tab=doc#hdr-CRON_Expression_Format) in 6 fields (rather than the traditional 5) which defines when and how often to check for new images. Either `--interval` or the schedule expression 
 can be defined, but not both. An example: `--schedule "0 0 4 * * *"`
 
 ```
