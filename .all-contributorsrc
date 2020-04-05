@@ -512,6 +512,16 @@
       "contributions": [
         "doc"
       ]
+    },
+    {
+      "login": "arnested",
+      "name": "Arne Jørgensen",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/190005?v=4",
+      "profile": "https://arnested.dk",
+      "contributions": [
+        "test",
+        "review"
+      ]
     }
   ],
   "contributorsPerLine": 7,
