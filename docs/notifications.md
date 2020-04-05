@@ -8,6 +8,7 @@ The types of notifications to send are set by passing a comma-separated list of 
 - `slack` to send notifications through a Slack webhook
 - `msteams` to send notifications via MSTeams webhook
 - `gotify` to send notifications via Gotify
+- `shoutrrr` to send notifications via [containrrr/shoutrrr](https://github.com/containrrr/shoutrrr)
 
 > There is currently a [bug](https://github.com/spf13/viper/issues/380) in Viper, which prevents comma-separated slices to be used when using the environment variable. A workaround is available where we instead put quotes around the environment variable value and replace the commas with spaces, as `WATCHTOWER_NOTIFICATIONS="slack msteams"`
 
@@ -114,5 +115,25 @@ docker run -d \
   -e WATCHTOWER_NOTIFICATIONS=gotify \
   -e WATCHTOWER_NOTIFICATION_GOTIFY_URL="https://my.gotify.tld/" \
   -e WATCHTOWER_NOTIFICATION_GOTIFY_TOKEN="SuperSecretToken" \
+  containrrr/watchtower
+```
+
+### [containrrr/shoutrrr](https://github.com/containrrr/shoutrrr)
+
+To send notifications via shoutrrr, the following command-line options, or their corresponding environment variables, can be set:
+
+- `--notification-url` (env. `WATCHTOWER_NOTIFICATION_URL`): The shoutrrr service URL to be used.
+
+Go to [containrrr.github.io/shoutrrr/services/overview](https://containrrr.github.io/shoutrrr/services/overview) to learn more about the different service URLs you can use.
+You can define multiple services by space separating the URLs. (See example below)
+
+Example:
+
+```bash
+docker run -d \
+  --name watchtower \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -e WATCHTOWER_NOTIFICATIONS=shoutrrr \
+  -e WATCHTOWER_NOTIFICATION_URL="discord://token@channel slack://watchtower@token-a/token-b/token-c" \
   containrrr/watchtower
 ```

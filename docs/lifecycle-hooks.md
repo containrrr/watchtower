@@ -46,6 +46,19 @@ docker run -d \
   --label=com.centurylinklabs.watchtower.lifecycle.post-check="/send-heartbeat.sh" \
 ```
 
+### Timeouts
+The timeout for all lifecycle commands is 60 seconds. After that, a timeout will
+occur, forcing Watchtower to continue the update loop.
+
+#### Pre-update timeouts
+
+For the `pre-update` lifecycle command, it is possible to override this timeout to
+allow the script to finish before forcefully killing it. This is done by adding the
+label `com.centurylinklabs.watchtower.lifecycle.pre-update-timeout` followed by
+the timeout expressed in minutes.
+
+If the label value is explicitly set to `0`, the timeout will be disabled.  
+
 ### Execution failure
 
 The failure of a command to execute, identified by an exit code different than

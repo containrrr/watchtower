@@ -73,7 +73,7 @@ func (client MockClient) GetContainer(containerID string) (container.Container, 
 }
 
 // ExecuteCommand is a mock method
-func (client MockClient) ExecuteCommand(containerID string, command string) error {
+func (client MockClient) ExecuteCommand(containerID string, command string, timeout int) error {
 	return nil
 }
 

@@ -486,6 +486,43 @@
         "code",
         "test"
       ]
+    },
+    {
+      "login": "aneisch",
+      "name": "Andrew",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/6991461?v=4",
+      "profile": "https://github.com/aneisch",
+      "contributions": [
+        "doc"
+      ]
+    },
+    {
+      "login": "sixcorners",
+      "name": "sixcorners",
+      "avatar_url": "https://avatars0.githubusercontent.com/u/585501?v=4",
+      "profile": "https://github.com/sixcorners",
+      "contributions": [
+        "doc"
+      ]
+    },
+    {
+      "login": "piksel",
+      "name": "nils måsén",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/807383?v=4",
+      "profile": "https://piksel.se",
+      "contributions": [
+        "doc"
+      ]
+    },
+    {
+      "login": "arnested",
+      "name": "Arne Jørgensen",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/190005?v=4",
+      "profile": "https://arnested.dk",
+      "contributions": [
+        "test",
+        "review"
+      ]
     }
   ],
   "contributorsPerLine": 7,

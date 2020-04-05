@@ -9,6 +9,7 @@ import (
 	"github.com/containrrr/watchtower/pkg/container/mocks"
 
 	cli "github.com/docker/docker/client"
+	"github.com/docker/docker/api/types"
 
 	. "github.com/containrrr/watchtower/internal/actions/mocks"
 	. "github.com/onsi/ginkgo"
@@ -132,3 +133,14 @@ var _ = Describe("the actions package", func() {
 	})
 })
 
+func createMockContainer(id string, name string, image string, created time.Time) container.Container {
+	content := types.ContainerJSON{
+		ContainerJSONBase: &types.ContainerJSONBase{
+			ID:      id,
+			Image:   image,
+			Name:    name,
+			Created: created.String(),
+		},
+	}
+	return *container.NewContainer(&content, nil)
+}
