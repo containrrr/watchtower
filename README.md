@@ -136,7 +136,7 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
   <tr>
     <td align="center"><a href="https://github.com/auanasgheps"><img src="https://avatars2.githubusercontent.com/u/20586878?v=4" width="100px;" alt=""/><br /><sub><b>Oliver Cervera</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=auanasgheps" title="Documentation">📖</a></td>
     <td align="center"><a href="https://github.com/victorcmoura"><img src="https://avatars1.githubusercontent.com/u/26290053?v=4" width="100px;" alt=""/><br /><sub><b>Victor Moura</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=victorcmoura" title="Tests">⚠️</a></td>
-    <td align="center"><a href="https://github.com/mbrandau"><img src="https://avatars3.githubusercontent.com/u/12972798?v=4" width="100px;" alt=""/><br /><sub><b>Maximilian Brandau</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=mbrandau" title="Code">💻</a></td>
+    <td align="center"><a href="https://github.com/mbrandau"><img src="https://avatars3.githubusercontent.com/u/12972798?v=4" width="100px;" alt=""/><br /><sub><b>Maximilian Brandau</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=mbrandau" title="Code">💻</a> <a href="https://github.com/containrrr/watchtower/commits?author=mbrandau" title="Tests">⚠️</a></td>
   </tr>
 </table>
 
