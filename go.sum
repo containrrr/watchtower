@@ -45,6 +45,8 @@ github.com/containerd/continuity v0.0.0-20181203112020-004b46473808 h1:4BX8f882b
 github.com/containerd/continuity v0.0.0-20181203112020-004b46473808/go.mod h1:GL3xCUCBDV3CZiTSEKksMWbLE66hEyuu9qyDOOqM47Y=
 github.com/containrrr/shoutrrr v0.0.0-20200308125025-1981b9ef7752 h1:g7iPN6gYedYNetNT7pdSO2jyZWyg9f7OqIVB4wOcEh4=
 github.com/containrrr/shoutrrr v0.0.0-20200308125025-1981b9ef7752/go.mod h1:eotQeC9bHbsf9eMUnXOU/y5bskegseWNB4PwmxRO7Wc=
+github.com/containrrr/shoutrrr v0.0.0-20200404203330-157bd996ea13 h1:5KIwcRac24xehTL/xrhXNIiI9JnV2Mbfl52OgGbloIM=
+github.com/containrrr/shoutrrr v0.0.0-20200404203330-157bd996ea13/go.mod h1:eotQeC9bHbsf9eMUnXOU/y5bskegseWNB4PwmxRO7Wc=
 github.com/coreos/bbolt v1.3.2/go.mod h1:iRUV2dpdMOn7Bo10OQBFzIJO9kkE559Wcmn+qkEiiKk=
 github.com/coreos/etcd v3.3.10+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
 github.com/coreos/go-semver v0.2.0/go.mod h1:nnelYz7RCh+5ahJtPPxZlU+153eP4D4r3EedlOD2RNk=
