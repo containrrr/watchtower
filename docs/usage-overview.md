@@ -52,5 +52,5 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - /root/.docker/config.json:/config.json
-    command: --interval 30
+    command: --interval=30
 ```
