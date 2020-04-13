@@ -176,7 +176,7 @@ Environment Variable: WATCHTOWER_NO_PULL
 ``` 
 
 ## Without sending a startup message
-Do not send a send a message after watchtower started. Otherwise there will be an info-level notification. 
+Do not send a message after watchtower started. Otherwise there will be an info-level notification. 
 
 ```
             Argument: --no-startup-message
