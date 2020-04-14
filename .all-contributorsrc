@@ -523,6 +523,15 @@
         "test",
         "review"
       ]
+    },
+    {
+      "login": "patski123",
+      "name": "PatSki123",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/19295295?v=4",
+      "profile": "https://github.com/patski123",
+      "contributions": [
+        "doc"
+      ]
     }
   ],
   "contributorsPerLine": 7,
