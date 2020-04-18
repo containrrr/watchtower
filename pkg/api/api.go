@@ -8,6 +8,15 @@ import (
 	"io"
 )
 
+var (
+	lock         chan bool
+)
+
+func init() {
+	lock = make(chan bool, 1)
+	lock <- true
+}
+
 func SetupHTTPUpdates(apiToken string, updateFunction func()) error {
 	if apiToken == "" {
 		return errors.New("API token is empty or has not been set. Not starting API.")
@@ -29,9 +38,17 @@ func SetupHTTPUpdates(apiToken string, updateFunction func()) error {
 			return
 		}
 
-		log.Println("Valid token found. Triggering updates.")
+		log.Println("Valid token found. Attempting to update.")
 		
-		updateFunction()
+		select {
+			case chanValue := <- lock:
+				defer func() { lock <- chanValue }()
+				updateFunction()
+			default:
+				log.Debug("Skipped. Another update already running.")
+		}
+
+		
 	})
 	
 	return nil
