@@ -117,12 +117,11 @@ func Run(c *cobra.Command, names []string) {
 	if httpAPI {
 		apiToken, _ := c.PersistentFlags().GetString("http-api-token")
 
-		api.SetupHTTPUpdates(
-			apiToken,
-			func() {
-				runUpdatesWithNotifications(filter)
-		})
-		
+		if err := api.SetupHTTPUpdates(apiToken, func() { runUpdatesWithNotifications(filter) }); err != nil {
+			log.Fatal(err)
+			os.Exit(1)
+		}
+
 		api.WaitForHTTPUpdates()
 	}
 

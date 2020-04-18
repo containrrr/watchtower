@@ -3,11 +3,16 @@ package api
 import (
 	"os"
 	"net/http"
+	"errors"
 	log "github.com/sirupsen/logrus"
 	"io"
 )
 
 func SetupHTTPUpdates(apiToken string, updateFunction func()) error {
+	if apiToken == "" {
+		return errors.New("API token is empty or has not been set. Not starting API.")
+	}
+	
 	log.Println("Watchtower HTTP API started.")
 
 	http.HandleFunc("/v1/update", func(w http.ResponseWriter, r *http.Request){
