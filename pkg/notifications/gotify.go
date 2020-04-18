@@ -83,6 +83,7 @@ func (n *gotifyTypeNotifier) Fire(entry *log.Entry) error {
 		resp, err := http.Post(n.getURL(), "application/json", jsonBodyBuffer)
 		if err != nil {
 			fmt.Println("Failed to send Gotify notification: ", err)
+			return
 		}
 		defer resp.Body.Close()
 

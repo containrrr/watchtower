@@ -422,6 +422,116 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "raymondelooff",
+      "name": "Raymon de Looff",
+      "avatar_url": "https://avatars0.githubusercontent.com/u/9716806?v=4",
+      "profile": "https://github.com/raymondelooff",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "jsclayton",
+      "name": "John Clayton",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/704034?v=4",
+      "profile": "http://codemonkeylabs.com",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "Germs2004",
+      "name": "Germs2004",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/5519340?v=4",
+      "profile": "https://github.com/Germs2004",
+      "contributions": [
+        "doc"
+      ]
+    },
+    {
+      "login": "lukwil",
+      "name": "Lukas Willburger",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/30203234?v=4",
+      "profile": "https://github.com/lukwil",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "auanasgheps",
+      "name": "Oliver Cervera",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/20586878?v=4",
+      "profile": "https://github.com/auanasgheps",
+      "contributions": [
+        "doc"
+      ]
+    },
+    {
+      "login": "victorcmoura",
+      "name": "Victor Moura",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/26290053?v=4",
+      "profile": "https://github.com/victorcmoura",
+      "contributions": [
+        "test"
+      ]
+    },
+    {
+      "login": "mbrandau",
+      "name": "Maximilian Brandau",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/12972798?v=4",
+      "profile": "https://github.com/mbrandau",
+      "contributions": [
+        "code",
+        "test"
+      ]
+    },
+    {
+      "login": "aneisch",
+      "name": "Andrew",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/6991461?v=4",
+      "profile": "https://github.com/aneisch",
+      "contributions": [
+        "doc"
+      ]
+    },
+    {
+      "login": "sixcorners",
+      "name": "sixcorners",
+      "avatar_url": "https://avatars0.githubusercontent.com/u/585501?v=4",
+      "profile": "https://github.com/sixcorners",
+      "contributions": [
+        "doc"
+      ]
+    },
+    {
+      "login": "piksel",
+      "name": "nils måsén",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/807383?v=4",
+      "profile": "https://piksel.se",
+      "contributions": [
+        "doc"
+      ]
+    },
+    {
+      "login": "arnested",
+      "name": "Arne Jørgensen",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/190005?v=4",
+      "profile": "https://arnested.dk",
+      "contributions": [
+        "test",
+        "review"
+      ]
+    },
+    {
+      "login": "patski123",
+      "name": "PatSki123",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/19295295?v=4",
+      "profile": "https://github.com/patski123",
+      "contributions": [
+        "doc"
+      ]
     }
   ],
   "contributorsPerLine": 7,

@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"github.com/containrrr/watchtower/pkg/filters"
 	"os"
 	"os/signal"
 	"strconv"
@@ -12,6 +11,7 @@ import (
 	"github.com/containrrr/watchtower/internal/flags"
 	"github.com/containrrr/watchtower/pkg/api"
 	"github.com/containrrr/watchtower/pkg/container"
+	"github.com/containrrr/watchtower/pkg/filters"
 	"github.com/containrrr/watchtower/pkg/notifications"
 	t "github.com/containrrr/watchtower/pkg/types"
 	"github.com/robfig/cron"
@@ -126,7 +126,9 @@ func Run(c *cobra.Command, names []string) {
 	}
 
 	if runOnce {
-		log.Info("Running a one time update.")
+		if noStartupMessage, _ := c.PersistentFlags().GetBool("no-startup-message"); !noStartupMessage {
+			log.Info("Running a one time update.")
+		}
 		runUpdatesWithNotifications(filter)
 		os.Exit(0)
 		return
@@ -136,14 +138,14 @@ func Run(c *cobra.Command, names []string) {
 		log.Fatal(err)
 	}
 
-	if err := runUpgradesOnSchedule(filter); err != nil {
+	if err := runUpgradesOnSchedule(c, filter); err != nil {
 		log.Error(err)
 	}
 
 	os.Exit(1)
 }
 
-func runUpgradesOnSchedule(filter t.Filter) error {
+func runUpgradesOnSchedule(c *cobra.Command, filter t.Filter) error {
 	tryLockSem := make(chan bool, 1)
 	tryLockSem <- true
 
@@ -169,7 +171,10 @@ func runUpgradesOnSchedule(filter t.Filter) error {
 		return err
 	}
 
-	log.Info("Starting Watchtower and scheduling first run: " + cron.Entries()[0].Schedule.Next(time.Now()).String())
+	if noStartupMessage, _ := c.PersistentFlags().GetBool("no-startup-message"); !noStartupMessage {
+		log.Info("Starting Watchtower and scheduling first run: " + cron.Entries()[0].Schedule.Next(time.Now()).String())
+	}
+
 	cron.Start()
 
 	// Graceful shut-down on SIGINT/SIGTERM

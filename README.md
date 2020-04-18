@@ -43,6 +43,11 @@
   </a>
 </p>
 
+> ### ⚠️ Help needed
+>
+> As I [@simskij](https://github.com/simskij) currently am the sole maintainer of watchtower, i'm finding it a bit hard to keep up with all issues and pull requests. Interested in helping out with triage, troubleshooting and issue handling? Let me know on gitter!
+
+
 ## Quick Start
 
 With watchtower you can update the running version of your containerized app simply by pushing a new image to the Docker Hub or your own image registry. Watchtower will pull down your new image, gracefully shut down your existing container and restart it with the same options that were used when it was deployed initially. Run the watchtower container with the following command:
@@ -103,7 +108,7 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
   </tr>
   <tr>
     <td align="center"><a href="https://markwoodbridge.com"><img src="https://avatars2.githubusercontent.com/u/1101318?v=4" width="100px;" alt=""/><br /><sub><b>Mark Woodbridge</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=mrw34" title="Code">💻</a></td>
-    <td align="center"><a href="http://www.arcticbit.se"><img src="https://avatars0.githubusercontent.com/u/1596025?v=4" width="100px;" alt=""/><br /><sub><b>Simon Aronsson</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=simskij" title="Code">💻</a> <a href="#maintenance-simskij" title="Maintenance">🚧</a> <a href="https://github.com/containrrr/watchtower/pulls?q=is%3Apr+reviewed-by%3Asimskij" title="Reviewed Pull Requests">👀</a></td>
+    <td align="center"><a href="http://simme.dev"><img src="https://avatars0.githubusercontent.com/u/1596025?v=4" width="100px;" alt=""/><br /><sub><b>Simon Aronsson</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=simskij" title="Code">💻</a> <a href="#maintenance-simskij" title="Maintenance">🚧</a> <a href="https://github.com/containrrr/watchtower/pulls?q=is%3Apr+reviewed-by%3Asimskij" title="Reviewed Pull Requests">👀</a> <a href="https://github.com/containrrr/watchtower/commits?author=simskij" title="Documentation">📖</a></td>
     <td align="center"><a href="https://github.com/Ansem93"><img src="https://avatars3.githubusercontent.com/u/6626218?v=4" width="100px;" alt=""/><br /><sub><b>Ansem93</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=Ansem93" title="Documentation">📖</a></td>
     <td align="center"><a href="https://github.com/lukapeschke"><img src="https://avatars1.githubusercontent.com/u/17085536?v=4" width="100px;" alt=""/><br /><sub><b>Luka Peschke</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=lukapeschke" title="Code">💻</a> <a href="https://github.com/containrrr/watchtower/commits?author=lukapeschke" title="Documentation">📖</a></td>
     <td align="center"><a href="https://github.com/zoispag"><img src="https://avatars0.githubusercontent.com/u/21138205?v=4" width="100px;" alt=""/><br /><sub><b>Zois Pagoulatos</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=zoispag" title="Code">💻</a> <a href="https://github.com/containrrr/watchtower/pulls?q=is%3Apr+reviewed-by%3Azoispag" title="Reviewed Pull Requests">👀</a></td>
@@ -123,6 +128,22 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
     <td align="center"><a href="https://achfrag.net"><img src="https://avatars1.githubusercontent.com/u/5753622?v=4" width="100px;" alt=""/><br /><sub><b>Jan Kristof Nidzwetzki</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=jnidzwetzki" title="Documentation">📖</a></td>
     <td align="center"><a href="https://www.lukaselsner.de"><img src="https://avatars0.githubusercontent.com/u/1413542?v=4" width="100px;" alt=""/><br /><sub><b>lukas</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=mindrunner" title="Code">💻</a></td>
     <td align="center"><a href="https://codingcoffee.dev"><img src="https://avatars3.githubusercontent.com/u/13611153?v=4" width="100px;" alt=""/><br /><sub><b>Ameya Shenoy</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=codingCoffee" title="Code">💻</a></td>
+    <td align="center"><a href="https://github.com/raymondelooff"><img src="https://avatars0.githubusercontent.com/u/9716806?v=4" width="100px;" alt=""/><br /><sub><b>Raymon de Looff</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=raymondelooff" title="Code">💻</a></td>
+    <td align="center"><a href="http://codemonkeylabs.com"><img src="https://avatars2.githubusercontent.com/u/704034?v=4" width="100px;" alt=""/><br /><sub><b>John Clayton</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=jsclayton" title="Code">💻</a></td>
+    <td align="center"><a href="https://github.com/Germs2004"><img src="https://avatars2.githubusercontent.com/u/5519340?v=4" width="100px;" alt=""/><br /><sub><b>Germs2004</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=Germs2004" title="Documentation">📖</a></td>
+    <td align="center"><a href="https://github.com/lukwil"><img src="https://avatars1.githubusercontent.com/u/30203234?v=4" width="100px;" alt=""/><br /><sub><b>Lukas Willburger</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=lukwil" title="Code">💻</a></td>
+  </tr>
+  <tr>
+    <td align="center"><a href="https://github.com/auanasgheps"><img src="https://avatars2.githubusercontent.com/u/20586878?v=4" width="100px;" alt=""/><br /><sub><b>Oliver Cervera</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=auanasgheps" title="Documentation">📖</a></td>
+    <td align="center"><a href="https://github.com/victorcmoura"><img src="https://avatars1.githubusercontent.com/u/26290053?v=4" width="100px;" alt=""/><br /><sub><b>Victor Moura</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=victorcmoura" title="Tests">⚠️</a></td>
+    <td align="center"><a href="https://github.com/mbrandau"><img src="https://avatars3.githubusercontent.com/u/12972798?v=4" width="100px;" alt=""/><br /><sub><b>Maximilian Brandau</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=mbrandau" title="Code">💻</a> <a href="https://github.com/containrrr/watchtower/commits?author=mbrandau" title="Tests">⚠️</a></td>
+    <td align="center"><a href="https://github.com/aneisch"><img src="https://avatars1.githubusercontent.com/u/6991461?v=4" width="100px;" alt=""/><br /><sub><b>Andrew</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=aneisch" title="Documentation">📖</a></td>
+    <td align="center"><a href="https://github.com/sixcorners"><img src="https://avatars0.githubusercontent.com/u/585501?v=4" width="100px;" alt=""/><br /><sub><b>sixcorners</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=sixcorners" title="Documentation">📖</a></td>
+    <td align="center"><a href="https://piksel.se"><img src="https://avatars2.githubusercontent.com/u/807383?v=4" width="100px;" alt=""/><br /><sub><b>nils måsén</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=piksel" title="Documentation">📖</a></td>
+    <td align="center"><a href="https://arnested.dk"><img src="https://avatars2.githubusercontent.com/u/190005?v=4" width="100px;" alt=""/><br /><sub><b>Arne Jørgensen</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=arnested" title="Tests">⚠️</a> <a href="https://github.com/containrrr/watchtower/pulls?q=is%3Apr+reviewed-by%3Aarnested" title="Reviewed Pull Requests">👀</a></td>
+  </tr>
+  <tr>
+    <td align="center"><a href="https://github.com/patski123"><img src="https://avatars1.githubusercontent.com/u/19295295?v=4" width="100px;" alt=""/><br /><sub><b>PatSki123</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=patski123" title="Documentation">📖</a></td>
   </tr>
 </table>
 

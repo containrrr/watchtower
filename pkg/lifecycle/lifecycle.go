@@ -37,7 +37,7 @@ func ExecutePreCheckCommand(client container.Client, container container.Contain
 	}
 
 	log.Info("Executing pre-check command.")
-	if err := client.ExecuteCommand(container.ID(), command); err != nil {
+	if err := client.ExecuteCommand(container.ID(), command, 1); err != nil {
 		log.Error(err)
 	}
 }
@@ -51,24 +51,22 @@ func ExecutePostCheckCommand(client container.Client, container container.Contai
 	}
 
 	log.Info("Executing post-check command.")
-	if err := client.ExecuteCommand(container.ID(), command); err != nil {
+	if err := client.ExecuteCommand(container.ID(), command, 1); err != nil {
 		log.Error(err)
 	}
 }
 
 // ExecutePreUpdateCommand tries to run the pre-update lifecycle hook for a single container.
-func ExecutePreUpdateCommand(client container.Client, container container.Container) {
-
+func ExecutePreUpdateCommand(client container.Client, container container.Container) error {
+	timeout := container.PreUpdateTimeout()
 	command := container.GetLifecyclePreUpdateCommand()
 	if len(command) == 0 {
 		log.Debug("No pre-update command supplied. Skipping")
-		return
+		return nil
 	}
 
 	log.Info("Executing pre-update command.")
-	if err := client.ExecuteCommand(container.ID(), command); err != nil {
-		log.Error(err)
-	}
+	return client.ExecuteCommand(container.ID(), command, timeout)
 }
 
 // ExecutePostUpdateCommand tries to run the post-update lifecycle hook for a single container.
@@ -86,7 +84,7 @@ func ExecutePostUpdateCommand(client container.Client, newContainerID string) {
 	}
 
 	log.Info("Executing post-update command.")
-	if err := client.ExecuteCommand(newContainerID, command); err != nil {
+	if err := client.ExecuteCommand(newContainerID, command, 1); err != nil {
 		log.Error(err)
 	}
 }
