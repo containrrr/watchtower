@@ -10,6 +10,7 @@ import (
 
 	"github.com/containrrr/watchtower/internal/actions"
 	"github.com/containrrr/watchtower/internal/flags"
+	"github.com/containrrr/watchtower/pkg/api"
 	"github.com/containrrr/watchtower/pkg/container"
 	"github.com/containrrr/watchtower/pkg/notifications"
 	t "github.com/containrrr/watchtower/pkg/types"
@@ -17,9 +18,6 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/spf13/cobra"
-
-	"io"
-	"net/http"
 )
 
 var (
@@ -115,32 +113,17 @@ func Run(c *cobra.Command, names []string) {
 	filter := filters.BuildFilter(names, enableLabel)
 	runOnce, _ := c.PersistentFlags().GetBool("run-once")
 	httpAPI, _ := c.PersistentFlags().GetBool("http-api")
-	
+
 	if httpAPI {
-		log.Println("Watchtower HTTP API started.")
-		
 		apiToken, _ := c.PersistentFlags().GetString("http-api-token")
 
-		http.HandleFunc("/v1/update", func(w http.ResponseWriter, r *http.Request){
-			log.Info("Updates triggered by HTTP API request.")
-			
-			_, err := io.Copy(os.Stdout, r.Body)
-			if err != nil {
-				log.Println(err)
-				return
-			}
-
-			if r.Header.Get("Token") != apiToken {
-				log.Println("Invalid token. Not updating.")
-				return
-			}
-
-			log.Println("Valid token found. Triggering updates.")
-			runUpdatesWithNotifications(filter)
+		api.SetupHTTPUpdates(
+			apiToken,
+			func() {
+				runUpdatesWithNotifications(filter)
 		})
-		log.Fatal(http.ListenAndServe(":8080", nil))
-		os.Exit(0)
-		return
+		
+		api.WaitForHTTPUpdates()
 	}
 
 	if runOnce {
