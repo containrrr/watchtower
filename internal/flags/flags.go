@@ -30,12 +30,14 @@ func RegisterSystemFlags(rootCmd *cobra.Command) {
 		viper.GetInt("WATCHTOWER_POLL_INTERVAL"),
 		"poll interval (in seconds)")
 
-	flags.StringP("schedule",
+	flags.StringP(
+		"schedule",
 		"s",
 		viper.GetString("WATCHTOWER_SCHEDULE"),
 		"the cron expression which defines when to update")
 
-	flags.DurationP("stop-timeout",
+	flags.DurationP(
+		"stop-timeout",
 		"t",
 		viper.GetDuration("WATCHTOWER_TIMEOUT"),
 		"timeout before a container is forcefully stopped")
@@ -111,6 +113,18 @@ func RegisterSystemFlags(rootCmd *cobra.Command) {
 		"",
 		viper.GetBool("WATCHTOWER_LIFECYCLE_HOOKS"),
 		"Enable the execution of commands triggered by pre- and post-update lifecycle hooks")
+
+	flags.BoolP(
+		"http-api",
+		"",
+		viper.GetBool("WATCHTOWER_HTTP_API"),
+		"Runs Watchtower in HTTP API mode, so that image updates must to be triggered by a request")
+
+	flags.StringP(
+		"http-api-token",
+		"",
+		viper.GetString("WATCHTOWER_HTTP_API_TOKEN"),
+		"Sets an authentication token to HTTP API requests.")
 }
 
 // RegisterNotificationFlags that are used by watchtower to send notifications
@@ -121,7 +135,7 @@ func RegisterNotificationFlags(rootCmd *cobra.Command) {
 		"notifications",
 		"n",
 		viper.GetStringSlice("WATCHTOWER_NOTIFICATIONS"),
-		" notification types to send (valid: email, slack, msteams, gotify)")
+		" notification types to send (valid: email, slack, msteams, gotify, shoutrrr)")
 
 	flags.StringP(
 		"notifications-level",
@@ -238,6 +252,12 @@ Should only be used for testing.
 		"",
 		viper.GetString("WATCHTOWER_NOTIFICATION_GOTIFY_TOKEN"),
 		"The Gotify Application required to query the Gotify API")
+
+	flags.StringArrayP(
+		"notification-url",
+		"",
+		viper.GetStringSlice("WATCHTOWER_NOTIFICATION_URL"),
+		"The shoutrrr URL to send notifications to")
 }
 
 // SetDefaults provides default values for environment variables

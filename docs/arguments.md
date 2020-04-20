@@ -39,7 +39,7 @@ Environment Variable: N/A
 
 ## Time Zone
 Sets the time zone to be used by WatchTower's logs and the optional Cron scheduling argument (--schedule). If this environment variable is not set, Watchtower will use the default time zone: UTC.
-To find out the right value, see [this list](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones), find your location and use the value in _TZ Database Name_, e.g _Europe/Rome_.
+To find out the right value, see [this list](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones), find your location and use the value in _TZ Database Name_, e.g _Europe/Rome_. The timezome can alternatively be set by volume mounting your hosts /etc/timezone file. `-v /etc/timezone:/etc/timezone:ro`
 
 ```
             Argument: N/A
@@ -119,7 +119,7 @@ Environment Variable: WATCHTOWER_REVIVE_STOPPED
 ```   
 
 ## Poll interval
-Poll interval (in seconds). This value controls how frequently watchtower will poll for new images.
+Poll interval (in seconds). This value controls how frequently watchtower will poll for new images. Either `--schedule` or a poll interval can be defined, but not both.
 
 ```
             Argument: --interval, -i
@@ -139,7 +139,11 @@ Environment Variable: WATCHTOWER_LABEL_ENABLE
 ```   
 
 ## Without updating containers
-Will only monitor for new images, not update the containers.
+Will only monitor for new images, not update the containers. 
+
+> ### ⚠️ Please note
+>
+> Due to Docker API limitations the latest image will still be pulled from the registry.
 
 ```
             Argument: --monitor-only
@@ -172,7 +176,7 @@ Environment Variable: WATCHTOWER_NO_PULL
 ``` 
 
 ## Without sending a startup message
-Do not send a send a message after watchtower started. Otherwise there will be an info-level notification. 
+Do not send a message after watchtower started. Otherwise there will be an info-level notification. 
 
 ```
             Argument: --no-startup-message
@@ -189,10 +193,31 @@ Run an update attempt against a container name list one time immediately and exi
 Environment Variable: WATCHTOWER_RUN_ONCE
                 Type: Boolean
              Default: false
+```
+
+## HTTP API Mode
+Runs Watchtower in HTTP API mode, only allowing image updates to be triggered by an HTTP request.
+
+```
+            Argument: --http-api
+Environment Variable: WATCHTOWER_HTTP_API
+                Type: Boolean
+             Default: false
+``` 
+
+## HTTP API Token
+Sets an authentication token to HTTP API requests.
+
+```
+            Argument: --http-api-token
+Environment Variable: WATCHTOWER_HTTP_API_TOKEN
+                Type: String
+             Default: -
 ``` 
 
 ## Scheduling
-[Cron expression](https://godoc.org/github.com/robfig/cron#hdr-CRON_Expression_Format) in 6 fields (rather than the traditional 5) which defines when and how often to check for new images. Either `--interval` or the schedule expression could be defined, but not both. An example: `--schedule "0 0 4 * * *"`
+[Cron expression](https://pkg.go.dev/github.com/robfig/cron@v1.2.0?tab=doc#hdr-CRON_Expression_Format) in 6 fields (rather than the traditional 5) which defines when and how often to check for new images. Either `--interval` or the schedule expression 
+can be defined, but not both. An example: `--schedule "0 0 4 * * *"`
 
 ```
             Argument: --schedule, -s

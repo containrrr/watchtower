@@ -9,6 +9,7 @@ import (
 
 	"github.com/containrrr/watchtower/internal/actions"
 	"github.com/containrrr/watchtower/internal/flags"
+	"github.com/containrrr/watchtower/pkg/api"
 	"github.com/containrrr/watchtower/pkg/container"
 	"github.com/containrrr/watchtower/pkg/filters"
 	"github.com/containrrr/watchtower/pkg/notifications"
@@ -111,9 +112,23 @@ func PreRun(cmd *cobra.Command, args []string) {
 func Run(c *cobra.Command, names []string) {
 	filter := filters.BuildFilter(names, enableLabel)
 	runOnce, _ := c.PersistentFlags().GetBool("run-once")
+	httpAPI, _ := c.PersistentFlags().GetBool("http-api")
+
+	if httpAPI {
+		apiToken, _ := c.PersistentFlags().GetString("http-api-token")
+
+		if err := api.SetupHTTPUpdates(apiToken, func() { runUpdatesWithNotifications(filter) }); err != nil {
+			log.Fatal(err)
+			os.Exit(1)
+		}
+
+		api.WaitForHTTPUpdates()
+	}
 
 	if runOnce {
-		log.Info("Running a one time update.")
+		if noStartupMessage, _ := c.PersistentFlags().GetBool("no-startup-message"); !noStartupMessage {
+			log.Info("Running a one time update.")
+		}
 		runUpdatesWithNotifications(filter)
 		os.Exit(0)
 		return
