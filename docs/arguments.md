@@ -193,6 +193,26 @@ Run an update attempt against a container name list one time immediately and exi
 Environment Variable: WATCHTOWER_RUN_ONCE
                 Type: Boolean
              Default: false
+```
+
+## HTTP API Mode
+Runs Watchtower in HTTP API mode, only allowing image updates to be triggered by an HTTP request.
+
+```
+            Argument: --http-api
+Environment Variable: WATCHTOWER_HTTP_API
+                Type: Boolean
+             Default: false
+``` 
+
+## HTTP API Token
+Sets an authentication token to HTTP API requests.
+
+```
+            Argument: --http-api-token
+Environment Variable: WATCHTOWER_HTTP_API_TOKEN
+                Type: String
+             Default: -
 ``` 
 
 ## Scheduling
