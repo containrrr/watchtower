@@ -46,7 +46,7 @@ var _ = Describe("the actions package", func() {
 		When("given an empty array", func() {
 			It("should not do anything", func() {
 				client.TestData.Containers = []container.Container{}
-				err := actions.CheckForMultipleWatchtowerInstances(client, false)
+				err := actions.CheckForMultipleWatchtowerInstances(client, false, "")
 				Expect(err).NotTo(HaveOccurred())
 			})
 		})
@@ -59,7 +59,7 @@ var _ = Describe("the actions package", func() {
 						"watchtower",
 						time.Now()),
 				}
-				err := actions.CheckForMultipleWatchtowerInstances(client, false)
+				err := actions.CheckForMultipleWatchtowerInstances(client, false, "")
 				Expect(err).NotTo(HaveOccurred())
 			})
 		})
@@ -90,7 +90,7 @@ var _ = Describe("the actions package", func() {
 			})
 
 			It("should stop all but the latest one", func() {
-				err := actions.CheckForMultipleWatchtowerInstances(client, false)
+				err := actions.CheckForMultipleWatchtowerInstances(client, false, "")
 				Expect(err).NotTo(HaveOccurred())
 			})
 		})
@@ -120,12 +120,12 @@ var _ = Describe("the actions package", func() {
 				)
 			})
 			It("should try to delete the image if the cleanup flag is true", func() {
-				err := actions.CheckForMultipleWatchtowerInstances(client, true)
+				err := actions.CheckForMultipleWatchtowerInstances(client, true, "")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(client.TestData.TriedToRemoveImage()).To(BeTrue())
 			})
 			It("should not try to delete the image if the cleanup flag is false", func() {
-				err := actions.CheckForMultipleWatchtowerInstances(client, false)
+				err := actions.CheckForMultipleWatchtowerInstances(client, false, "")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(client.TestData.TriedToRemoveImage()).To(BeFalse())
 			})

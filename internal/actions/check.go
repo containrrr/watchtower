@@ -18,8 +18,9 @@ import (
 
 // CheckForMultipleWatchtowerInstances will ensure that there are not multiple instances of the
 // watchtower running simultaneously. If multiple watchtower containers are detected, this function
-// will stop and remove all but the most recently started container.
-func CheckForMultipleWatchtowerInstances(client container.Client, cleanup bool) error {
+// will stop and remove all but the most recently started container. This behaviour can be bypassed
+// if a scope UID is defined.
+func CheckForMultipleWatchtowerInstances(client container.Client, cleanup bool, scopeUID string) error {
 	awaitDockerClient()
 	containers, err := client.ListContainers(filters.WatchtowerContainersFilter)
 
@@ -33,7 +34,12 @@ func CheckForMultipleWatchtowerInstances(client container.Client, cleanup bool) 
 		return nil
 	}
 
-	log.Info("Found multiple running watchtower instances. Cleaning up.")
+	if scopeUID != "" {
+		log.Debug("Found multiple running watchtower instances, but scope UID is defined. Not cleaning up.")
+		return nil
+	}
+
+	log.Info("Found multiple running watchtower instances and scope UID has not been defined. Cleaning up.")
 	return cleanupExcessWatchtowers(containers, client, cleanup)
 }
 

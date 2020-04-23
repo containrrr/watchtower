@@ -125,6 +125,12 @@ func RegisterSystemFlags(rootCmd *cobra.Command) {
 		"",
 		viper.GetString("WATCHTOWER_HTTP_API_TOKEN"),
 		"Sets an authentication token to HTTP API requests.")
+	
+	flags.StringP(
+		"scope-uid",
+		"",
+		viper.GetString("WATCHTOWER_SCOPE_UID"),
+		"Defines a monitoring scope for the Watchtower instance.")
 }
 
 // RegisterNotificationFlags that are used by watchtower to send notifications
