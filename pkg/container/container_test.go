@@ -181,6 +181,42 @@ var _ = Describe("the container", func() {
 				Expect(imageName).To(Equal(name + ":latest"))
 			})
 		})
+
+		When("fetching container links", func() {
+			When("the depends on label is present", func() {
+				It("should fetch depending containers from it", func() {
+					c = mockContainerWithLabels(map[string]string{
+						"com.centurylinklabs.watchtower.depends-on": "postgres",
+					})
+					links := c.Links()
+					Expect(links).To(SatisfyAll(ContainElement("postgres"), HaveLen(1)))
+				})
+				It("should fetch depending containers if there are many", func() {
+					c = mockContainerWithLabels(map[string]string{
+						"com.centurylinklabs.watchtower.depends-on": "postgres,redis",
+					})
+					links := c.Links()
+					Expect(links).To(SatisfyAll(ContainElement("postgres"), ContainElement("redis"), HaveLen(2)))
+				})
+				It("should fetch depending containers if label is blank", func() {
+					c = mockContainerWithLabels(map[string]string{
+						"com.centurylinklabs.watchtower.depends-on": "",
+					})
+					links := c.Links()
+					Expect(links).To(HaveLen(0))
+				})
+			})
+			When("the depends on label is not present", func() {
+				It("should fetch depending containers from host config links", func() {
+					c = mockContainerWithLinks([]string{
+						"redis:test-containrrr",
+						"postgres:test-containrrr",
+					})
+					links := c.Links()
+					Expect(links).To(SatisfyAll(ContainElement("redis"), ContainElement("postgres"), HaveLen(2)))
+				})
+			})
+		})
 	})
 })
 
@@ -188,6 +224,23 @@ func mockContainerWithImageName(name string) *Container {
 	container := mockContainerWithLabels(nil)
 	container.containerInfo.Config.Image = name
 	return container
+}
+
+func mockContainerWithLinks(links []string) *Container {
+	content := types.ContainerJSON{
+		ContainerJSONBase: &types.ContainerJSONBase{
+			ID:    "container_id",
+			Image: "image",
+			Name:  "test-containrrr",
+			HostConfig: &container.HostConfig{
+				Links: links,
+			},
+		},
+		Config: &container.Config{
+			Labels: map[string]string{},
+		},
+	}
+	return NewContainer(&content, nil)
 }
 
 func mockContainerWithLabels(labels map[string]string) *Container {
