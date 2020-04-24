@@ -29,7 +29,7 @@ func NewNotifier(c *cobra.Command) *Notifier {
 	// Parse types and create notifiers.
 	types, err := f.GetStringSlice("notifications")
 	if err != nil {
-		log.WithField("could not read notifications argument", log.Fields{ "Error": err }).Fatal()
+		log.WithField("could not read notifications argument", log.Fields{"Error": err}).Fatal()
 	}
 	for _, t := range types {
 		var tn ty.Notifier

@@ -8,8 +8,8 @@ import (
 	"github.com/containrrr/watchtower/pkg/container"
 	"github.com/containrrr/watchtower/pkg/container/mocks"
 
-	cli "github.com/docker/docker/client"
 	"github.com/docker/docker/api/types"
+	cli "github.com/docker/docker/client"
 
 	. "github.com/containrrr/watchtower/internal/actions/mocks"
 	. "github.com/onsi/ginkgo"
@@ -35,7 +35,7 @@ var _ = Describe("the actions package", func() {
 		removeVolumes := false
 
 		client = CreateMockClient(
-			&TestData {},
+			&TestData{},
 			dockerClient,
 			pullImages,
 			removeVolumes,
