@@ -534,6 +534,17 @@
       "contributions": [
         "doc"
       ]
+    },
+    {
+      "login": "Saicheg",
+      "name": "Valentine Zavadsky",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/624999?v=4",
+      "profile": "https://rubyroidlabs.com/",
+      "contributions": [
+        "code",
+        "doc",
+        "test"
+      ]
     }
   ],
   "contributorsPerLine": 7,
