@@ -15,7 +15,7 @@ type API struct {
 	hasHandlers bool
 }
 
-// New creates a new instance of the API struct
+// New is a factory function creating a new API instance
 func New(token string) *API {
 	return &API{
 		Token:       token,

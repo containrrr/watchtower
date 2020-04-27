@@ -20,7 +20,7 @@ func TestContainer(t *testing.T) {
 	RunSpecs(t, "Metrics Suite")
 }
 
-func runTestServer(m *metrics.MetricsHandle) {
+func runTestServer(m *metrics.Handler) {
 	http.Handle(m.Path, m.Handle)
 	go func() {
 		http.ListenAndServe(":8080", nil)
