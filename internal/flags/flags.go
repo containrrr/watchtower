@@ -134,7 +134,6 @@ func RegisterSystemFlags(rootCmd *cobra.Command) {
 		viper.GetBool("WATCHTOWER_HTTP_API_METRICS"),
 		"Runs Watchtower with the Prometheus metrics API enabled")
 
-
 	flags.StringP(
 		"http-api-token",
 		"",

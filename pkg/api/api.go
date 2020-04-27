@@ -7,10 +7,11 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const TokenMissingMsg = "api token is empty or has not been set. exiting"
+const tokenMissingMsg = "api token is empty or has not been set. exiting"
 
+// API is the http server responsible for serving the HTTP API endpoints
 type API struct {
-	Token string
+	Token       string
 	hasHandlers bool
 }
 
@@ -22,22 +23,25 @@ func SetupHTTPUpdates(apiToken string, updateFunction func()) error {
 
 
 func New(token string) *API {
-	return &API {
-		Token: token,
+	return &API{
+		Token:       token,
 		hasHandlers: false,
 	}
 }
 
+// RegisterFunc is a wrapper around http.HandleFunc that also flips the bool used to determine whether to launch the API
 func (api *API) RegisterFunc(path string, fn http.HandlerFunc) {
 	api.hasHandlers = true
 	http.HandleFunc(path, fn)
 }
 
+// RegisterHandler is a wrapper around http.Handler that also flips the bool used to determine whether to launch the API
 func (api *API) RegisterHandler(path string, handler http.Handler) {
 	api.hasHandlers = true
 	http.Handle(path, handler)
 }
 
+// Start the API and serve over HTTP. Requires an API Token to be set.
 func (api *API) Start(block bool) error {
 
 	if !api.hasHandlers {
@@ -46,21 +50,21 @@ func (api *API) Start(block bool) error {
 	}
 
 	if api.Token == "" {
-		log.Fatal(TokenMissingMsg)
+		log.Fatal(tokenMissingMsg)
 	}
 
 	log.Info("Watchtower HTTP API started.")
 	if block {
-		runHttpServer()
+		runHTTPServer()
 	} else {
 		go func() {
-			runHttpServer()
+			runHTTPServer()
 		}()
 	}
 	return nil
 }
 
-func runHttpServer() {
+func runHTTPServer() {
 	log.Info("Serving HTTP")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 	os.Exit(0)
