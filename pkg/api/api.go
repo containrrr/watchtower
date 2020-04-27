@@ -1,21 +1,17 @@
 package api
 
 import (
-	"errors"
-	"io"
 	"net/http"
 	"os"
 
 	log "github.com/sirupsen/logrus"
 )
 
-var (
-	lock chan bool
-)
+const TokenMissingMsg = "api token is empty or has not been set. exiting"
 
-func init() {
-	lock = make(chan bool, 1)
-	lock <- true
+type API struct {
+	Token string
+	hasHandlers bool
 }
 
 // SetupHTTPUpdates configures the endpoint needed for triggering updates via http
@@ -24,40 +20,48 @@ func SetupHTTPUpdates(apiToken string, updateFunction func()) error {
 		return errors.New("api token is empty or has not been set. not starting api")
 	}
 
-	log.Println("Watchtower HTTP API started.")
 
-	http.HandleFunc("/v1/update", func(w http.ResponseWriter, r *http.Request) {
-		log.Info("Updates triggered by HTTP API request.")
+func New(token string) *API {
+	return &API {
+		Token: token,
+		hasHandlers: false,
+	}
+}
 
-		_, err := io.Copy(os.Stdout, r.Body)
-		if err != nil {
-			log.Println(err)
-			return
-		}
+func (api *API) RegisterFunc(path string, fn http.HandlerFunc) {
+	api.hasHandlers = true
+	http.HandleFunc(path, fn)
+}
 
-		if r.Header.Get("Token") != apiToken {
-			log.Println("Invalid token. Not updating.")
-			return
-		}
+func (api *API) RegisterHandler(path string, handler http.Handler) {
+	api.hasHandlers = true
+	http.Handle(path, handler)
+}
 
-		log.Println("Valid token found. Attempting to update.")
+func (api *API) Start(block bool) error {
 
-		select {
-		case chanValue := <-lock:
-			defer func() { lock <- chanValue }()
-			updateFunction()
-		default:
-			log.Debug("Skipped. Another update already running.")
-		}
+	if !api.hasHandlers {
+		log.Debug("Watchtower HTTP API skipped.")
+		return nil
+	}
 
-	})
+	if api.Token == "" {
+		log.Fatal(TokenMissingMsg)
+	}
 
+	log.Info("Watchtower HTTP API started.")
+	if block {
+		runHttpServer()
+	} else {
+		go func() {
+			runHttpServer()
+		}()
+	}
 	return nil
 }
 
-// WaitForHTTPUpdates starts the http server and listens for requests.
-func WaitForHTTPUpdates() error {
+func runHttpServer() {
+	log.Info("Serving HTTP")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 	os.Exit(0)
-	return nil
 }

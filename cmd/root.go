@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"github.com/containrrr/watchtower/pkg/api/metrics"
+	"github.com/containrrr/watchtower/pkg/api/update"
 	"os"
 	"os/signal"
 	"strconv"
@@ -116,18 +118,23 @@ func PreRun(cmd *cobra.Command, args []string) {
 func Run(c *cobra.Command, names []string) {
 	filter := filters.BuildFilter(names, enableLabel)
 	runOnce, _ := c.PersistentFlags().GetBool("run-once")
-	httpAPI, _ := c.PersistentFlags().GetBool("http-api")
+	enableUpdateAPI, _ := c.PersistentFlags().GetBool("http-api-update")
+	enableMetricsAPI, _ := c.PersistentFlags().GetBool("http-api-metrics")
 
-	if httpAPI {
-		apiToken, _ := c.PersistentFlags().GetString("http-api-token")
+	apiToken, _ := c.PersistentFlags().GetString("http-api-token")
+	httpApi := api.New(apiToken)
 
-		if err := api.SetupHTTPUpdates(apiToken, func() { runUpdatesWithNotifications(filter) }); err != nil {
-			log.Fatal(err)
-			os.Exit(1)
-		}
-
-		api.WaitForHTTPUpdates()
+	if enableUpdateAPI {
+		updateHandler := update.New(func() { runUpdatesWithNotifications(filter)}, apiToken)
+		httpApi.RegisterFunc(updateHandler.Path, updateHandler.Handle)
 	}
+
+	if enableMetricsAPI {
+		metricsHandler := metrics.New(apiToken)
+		httpApi.RegisterHandler(metricsHandler.Path, metricsHandler.Handle)
+	}
+
+	httpApi.Start(enableUpdateAPI)
 
 	if runOnce {
 		if noStartupMessage, _ := c.PersistentFlags().GetBool("no-startup-message"); !noStartupMessage {
