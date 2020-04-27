@@ -1,10 +1,11 @@
 package update
 
 import (
-	log "github.com/sirupsen/logrus"
 	"io"
 	"net/http"
 	"os"
+
+	log "github.com/sirupsen/logrus"
 )
 
 var (

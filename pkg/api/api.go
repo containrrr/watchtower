@@ -1,7 +1,6 @@
 package api
 
 import (
-	"errors"
 	"net/http"
 	"os"
 
@@ -16,10 +15,11 @@ type API struct {
 	hasHandlers bool
 }
 
-// SetupHTTPUpdates configures the endpoint needed for triggering updates via http
-func SetupHTTPUpdates(apiToken string, updateFunction func()) error {
-	if apiToken == "" {
-		return errors.New("api token is empty or has not been set. not starting api")
+// New creates a new instance of the API struct
+func New(token string) *API {
+	return &API{
+		Token:       token,
+		hasHandlers: false,
 	}
 
 

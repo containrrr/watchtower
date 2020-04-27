@@ -2,11 +2,12 @@ package metrics_test
 
 import (
 	"fmt"
-	"github.com/containrrr/watchtower/pkg/api"
-	"github.com/containrrr/watchtower/pkg/api/metrics"
 	"io/ioutil"
 	"net/http"
 	"testing"
+
+	"github.com/containrrr/watchtower/pkg/api"
+	"github.com/containrrr/watchtower/pkg/api/metrics"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -17,6 +18,13 @@ const Token = "123123123"
 func TestContainer(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Metrics Suite")
+}
+
+func runTestServer(m *metrics.MetricsHandle) {
+	http.Handle(m.Path, m.Handle)
+	go func() {
+		http.ListenAndServe(":8080", nil)
+	}()
 }
 
 func getWithToken(c http.Client, url string) (*http.Response, error) {
