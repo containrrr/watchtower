@@ -118,19 +118,19 @@ func Run(c *cobra.Command, names []string) {
 	enableMetricsAPI, _ := c.PersistentFlags().GetBool("http-api-metrics")
 
 	apiToken, _ := c.PersistentFlags().GetString("http-api-token")
-	httpApi := api.New(apiToken)
+	httpAPI := api.New(apiToken)
 
 	if enableUpdateAPI {
-		updateHandler := update.New(func() { runUpdatesWithNotifications(filter)}, apiToken)
-		httpApi.RegisterFunc(updateHandler.Path, updateHandler.Handle)
+		updateHandler := update.New(func() { runUpdatesWithNotifications(filter) }, apiToken)
+		httpAPI.RegisterFunc(updateHandler.Path, updateHandler.Handle)
 	}
 
 	if enableMetricsAPI {
 		metricsHandler := metrics.New(apiToken)
-		httpApi.RegisterHandler(metricsHandler.Path, metricsHandler.Handle)
+		httpAPI.RegisterHandler(metricsHandler.Path, metricsHandler.Handle)
 	}
 
-	httpApi.Start(enableUpdateAPI)
+	httpAPI.Start(enableUpdateAPI)
 
 	if runOnce {
 		if noStartupMessage, _ := c.PersistentFlags().GetBool("no-startup-message"); !noStartupMessage {

@@ -18,20 +18,18 @@ func TestContainer(t *testing.T) {
 	RunSpecs(t, "Metrics Suite")
 }
 
-func runTestServer(m *metrics.MetricsHandle) {
+func runTestServer(m *metrics.Handler) {
 	http.Handle(m.Path, m.Handle)
 	go func() {
 		http.ListenAndServe(":8080", nil)
 	}()
 }
 
-
 func getWithToken(c http.Client, url string) (*http.Response, error) {
 	req, _ := http.NewRequest("GET", url, nil)
 	req.Header.Add("Token", Token)
 	return c.Do(req)
 }
-
 
 var _ = Describe("the metrics", func() {
 	m := metrics.New(Token)
@@ -57,7 +55,6 @@ var _ = Describe("the metrics", func() {
 		for i := 0; i < 3; i++ {
 			m.Metrics.RegisterSkipped()
 		}
-
 
 		res, err = getWithToken(c, "http://localhost:8080/v1/metrics")
 		Expect(err).NotTo(HaveOccurred())

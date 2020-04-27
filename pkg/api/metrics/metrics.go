@@ -18,14 +18,15 @@ type Metrics struct {
 	skipped prometheus.Counter
 }
 
-type MetricsHandle struct{
-	Path string
-	Handle http.HandlerFunc
+// Handler is an HTTP handle for serving metric data
+type Handler struct {
+	Path    string
+	Handle  http.HandlerFunc
 	Metrics *Metrics
 }
 
 // New is a factory function creating a new Metrics instance
-func New(token string) *MetricsHandle {
+func New(token string) *Handler {
 	metrics := &Metrics{}
 	metrics.scanned = promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "watchtower_containers_scanned",
@@ -58,9 +59,9 @@ func New(token string) *MetricsHandle {
 		handler.ServeHTTP(w, r)
 	}
 
-	return &MetricsHandle{
-		Path: "/v1/metrics",
-		Handle: authAndHandle,
+	return &Handler{
+		Path:    "/v1/metrics",
+		Handle:  authAndHandle,
 		Metrics: metrics,
 	}
 }
