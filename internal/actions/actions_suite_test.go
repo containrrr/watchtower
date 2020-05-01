@@ -129,6 +129,11 @@ var _ = Describe("the actions package", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(client.TestData.TriedToRemoveImage()).To(BeFalse())
 			})
+			It("should not try to delete the image if the scopeUID is not empty", func() {
+				err := actions.CheckForMultipleWatchtowerInstances(client, true, "testscope")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(client.TestData.TriedToRemoveImage()).To(BeFalse())
+			})
 		})
 	})
 })
