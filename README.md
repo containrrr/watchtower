@@ -144,6 +144,7 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
   </tr>
   <tr>
     <td align="center"><a href="https://github.com/patski123"><img src="https://avatars1.githubusercontent.com/u/19295295?v=4" width="100px;" alt=""/><br /><sub><b>PatSki123</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=patski123" title="Documentation">📖</a></td>
+    <td align="center"><a href="https://rubyroidlabs.com/"><img src="https://avatars2.githubusercontent.com/u/624999?v=4" width="100px;" alt=""/><br /><sub><b>Valentine Zavadsky</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=Saicheg" title="Code">💻</a> <a href="https://github.com/containrrr/watchtower/commits?author=Saicheg" title="Documentation">📖</a> <a href="https://github.com/containrrr/watchtower/commits?author=Saicheg" title="Tests">⚠️</a></td>
   </tr>
 </table>
 

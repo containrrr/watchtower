@@ -1,15 +1,16 @@
 package api
 
 import (
-	"os"
-	"net/http"
 	"errors"
-	log "github.com/sirupsen/logrus"
 	"io"
+	"net/http"
+	"os"
+
+	log "github.com/sirupsen/logrus"
 )
 
 var (
-	lock         chan bool
+	lock chan bool
 )
 
 func init() {
@@ -17,16 +18,17 @@ func init() {
 	lock <- true
 }
 
+// SetupHTTPUpdates configures the endopint needed for triggering updates via http
 func SetupHTTPUpdates(apiToken string, updateFunction func()) error {
 	if apiToken == "" {
-		return errors.New("API token is empty or has not been set. Not starting API.")
+		return errors.New("api token is empty or has not been set. not starting api")
 	}
-	
+
 	log.Println("Watchtower HTTP API started.")
 
-	http.HandleFunc("/v1/update", func(w http.ResponseWriter, r *http.Request){
+	http.HandleFunc("/v1/update", func(w http.ResponseWriter, r *http.Request) {
 		log.Info("Updates triggered by HTTP API request.")
-		
+
 		_, err := io.Copy(os.Stdout, r.Body)
 		if err != nil {
 			log.Println(err)
@@ -39,21 +41,21 @@ func SetupHTTPUpdates(apiToken string, updateFunction func()) error {
 		}
 
 		log.Println("Valid token found. Attempting to update.")
-		
+
 		select {
-			case chanValue := <- lock:
-				defer func() { lock <- chanValue }()
-				updateFunction()
-			default:
-				log.Debug("Skipped. Another update already running.")
+		case chanValue := <-lock:
+			defer func() { lock <- chanValue }()
+			updateFunction()
+		default:
+			log.Debug("Skipped. Another update already running.")
 		}
 
-		
 	})
-	
+
 	return nil
 }
 
+// WaitForHTTPUpdates starts the http server and listens for requests.
 func WaitForHTTPUpdates() error {
 	log.Fatal(http.ListenAndServe(":8080", nil))
 	os.Exit(0)

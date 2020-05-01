@@ -80,7 +80,7 @@ func stopStaleContainer(container container.Container, client container.Client, 
 			return
 		}
 	}
-	
+
 	if err := client.StopContainer(container, params.Timeout); err != nil {
 		log.Error(err)
 	}

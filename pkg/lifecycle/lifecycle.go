@@ -88,4 +88,3 @@ func ExecutePostUpdateCommand(client container.Client, newContainerID string) {
 		log.Error(err)
 	}
 }
-

@@ -4,6 +4,7 @@ const (
 	watchtowerLabel       = "com.centurylinklabs.watchtower"
 	signalLabel           = "com.centurylinklabs.watchtower.stop-signal"
 	enableLabel           = "com.centurylinklabs.watchtower.enable"
+	dependsOnLabel        = "com.centurylinklabs.watchtower.depends-on"
 	zodiacLabel           = "com.centurylinklabs.zodiac.original-image"
 	scopeUID			  = "com.centurylinklabs.watchtower.scope-uid"
 	preCheckLabel         = "com.centurylinklabs.watchtower.lifecycle.pre-check"
