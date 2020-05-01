@@ -45,7 +45,7 @@ func cleanupExcessWatchtowers(containers []container.Container, client container
 	allContainersExceptLast := containers[0 : len(containers)-1]
 
 	for _, c := range allContainersExceptLast {
-		if err := client.StopContainer(c, 60); err != nil {
+		if err := client.StopContainer(c, 600); err != nil {
 			// logging the original here as we're just returning a count
 			logrus.Error(err)
 			stopErrors++
