@@ -3,11 +3,12 @@ package actions
 import (
 	"errors"
 	"fmt"
-	"github.com/containrrr/watchtower/pkg/filters"
-	"github.com/containrrr/watchtower/pkg/sorter"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/containrrr/watchtower/pkg/filters"
+	"github.com/containrrr/watchtower/pkg/sorter"
 
 	"github.com/opencontainers/runc/Godeps/_workspace/src/github.com/Sirupsen/logrus"
 
@@ -45,7 +46,7 @@ func cleanupExcessWatchtowers(containers []container.Container, client container
 	allContainersExceptLast := containers[0 : len(containers)-1]
 
 	for _, c := range allContainersExceptLast {
-		if err := client.StopContainer(c, 600); err != nil {
+		if err := client.StopContainer(c, 10*time.Minute); err != nil {
 			// logging the original here as we're just returning a count
 			logrus.Error(err)
 			stopErrors++
