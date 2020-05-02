@@ -545,6 +545,16 @@
         "doc",
         "test"
       ]
+    },
+    {
+      "login": "bopoh24",
+      "name": "Alexander Voronin",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/4086631?v=4",
+      "profile": "https://github.com/bopoh24",
+      "contributions": [
+        "code",
+        "bug"
+      ]
     }
   ],
   "contributorsPerLine": 7,
