@@ -53,7 +53,59 @@ docker run -d \
   containrrr/watchtower
 ```
 
+The previous example assumes, that you already have an SMTP server up and running you can connect to. If you don't or you want to bring up watchtower with your own simple SMTP relay the following `docker-compose.yml` might be a good start for you.
+
+The following example assumes, that your domain is called `your-domain.com` and that you are going to use a certificate valid for `smtp.your-domain.com`. This hostname has to be used as `WATCHTOWER_NOTIFICATION_EMAIL_SERVER` otherwise the TLS connection is going to fail with  `Failed to send notification email` or `connect: connection refused`. We also have to add a network for this setup in order to add an alias to it. If you also want to enable DKIM or other features on the SMTP server, you will find more information at [freinet/postfix-relay](https://hub.docker.com/r/freinet/postfix-relay).
+
+Example including an SMTP relay:
+
+```yaml
+---
+version: "3.8"
+services:
+  watchtower:
+    image: containrrr/watchtower:latest
+    container_name: watchtower
+    environment:
+      WATCHTOWER_MONITOR_ONLY: "true"
+      WATCHTOWER_NOTIFICATIONS: email
+      WATCHTOWER_NOTIFICATION_EMAIL_FROM: from-address@your-domain.com
+      WATCHTOWER_NOTIFICATION_EMAIL_TO: to-address@your-domain.com
+      # you have to use a network alias here, if you use your own certificate
+      WATCHTOWER_NOTIFICATION_EMAIL_SERVER: smtp.your-domain.com
+      WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PORT: 25
+      WATCHTOWER_NOTIFICATION_EMAIL_DELAY: 2
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - watchtower
+    depends_on:
+      - postfix
+
+  # SMTP needed to send out status emails
+  postfix:
+    image: freinet/postfix-relay:latest
+    expose:
+      - 25
+    environment:
+      MAILNAME: somename.your-domain.com
+      TLS_KEY: "/etc/ssl/domains/your-domain.com/your-domain.com.key"
+      TLS_CRT: "/etc/ssl/domains/your-domain.com/your-domain.com.crt"
+      TLS_CA: "/etc/ssl/domains/your-domain.com/intermediate.crt"
+    volumes:
+      - /etc/ssl/domains/your-domain.com/:/etc/ssl/domains/your-domain.com/:ro
+    networks:
+      watchtower:
+        # this alias is really important to make your certificate work
+        aliases:
+          - smtp.your-domain.com
+networks:
+  watchtower:
+    external: false
+```
+
 ### Slack
+
 If watchtower is monitoring the same Docker daemon under which the watchtower container itself is running (i.e. if you volume-mounted _/var/run/docker.sock_ into the watchtower container) then it has the ability to update itself. If a new version of the _containrrr/watchtower_ image is pushed to the Docker Hub, your watchtower will pull down the new image and restart itself automatically.
 
 To receive notifications in Slack, add `slack` to the `--notifications` option or the `WATCHTOWER_NOTIFICATIONS` environment variable.
