@@ -36,7 +36,7 @@ func EncodedEnvAuth(ref string) (string, error) {
 			Username: username,
 			Password: password,
 		}
-		log.Debugf("Loaded auth credentials %s for %s", auth, ref)
+		log.Debugf("Loaded auth credentials for user %s on registry %s", auth.Username, ref)
 		return EncodeAuth(auth)
 	}
 	return "", errors.New("Registry auth environment variables (REPO_USER, REPO_PASS) not set")
@@ -68,7 +68,7 @@ func EncodedConfigAuth(ref string) (string, error) {
 		log.Debugf("No credentials for %s in %s", server, configFile.Filename)
 		return "", nil
 	}
-	log.Debugf("Loaded auth credentials %s from %s", auth, configFile.Filename)
+	log.Debugf("Loaded auth credentials for user %s, on registry %s, from file %s", auth.Username, ref, configFile.Filename)
 	return EncodeAuth(auth)
 }
 
