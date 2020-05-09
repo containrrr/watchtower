@@ -85,6 +85,12 @@ func RegisterSystemFlags(rootCmd *cobra.Command) {
 		"enable debug mode with verbose logging")
 
 	flags.BoolP(
+		"trace",
+		"",
+		viper.GetBool("WATCHTOWER_TRACE"),
+		"enable trace mode with very verbose logging - caution, exposes credentials")
+
+	flags.BoolP(
 		"monitor-only",
 		"m",
 		viper.GetBool("WATCHTOWER_MONITOR_ONLY"),

@@ -16,7 +16,7 @@ func GetPullOptions(imageName string) (types.ImagePullOptions, error) {
 	if auth == "" {
 		return types.ImagePullOptions{}, nil
 	}
-	log.Debugf("Got auth value")
+	log.Tracef("Got auth value: %s", auth)
 
 	return types.ImagePullOptions{
 		RegistryAuth:  auth,

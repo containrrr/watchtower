@@ -72,8 +72,18 @@ Environment Variable: WATCHTOWER_REMOVE_VOLUMES
 Enable debug mode with verbose logging.
 
 ```
-            Argument: --debug
+            Argument: --debug, -d
 Environment Variable: WATCHTOWER_DEBUG
+                Type: Boolean
+             Default: false
+```
+
+## Trace
+Enable trace mode with very verbose logging. Caution: exposes credentials!
+
+```
+            Argument: --trace
+Environment Variable: WATCHTOWER_TRACE
                 Type: Boolean
              Default: false
 ```
