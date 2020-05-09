@@ -110,6 +110,10 @@ func (e *emailTypeNotifier) sendEntries(entries []*log.Entry) {
 	// Do the sending in a separate goroutine so we don't block the main process.
 	msg := e.buildMessage(entries)
 	go func() {
+		if e.delay > 0 {
+			time.Sleep(e.delay)
+		}
+
 		var auth smtp.Auth
 		if e.User != "" {
 			auth = smtp.PlainAuth("", e.User, e.Password, e.Server)
@@ -133,10 +137,6 @@ func (e *emailTypeNotifier) SendNotification() {
 		return
 	}
 
-	if e.delay > 0 {
-		time.Sleep(e.delay)
-	}
-
 	e.sendEntries(e.entries)
 	e.entries = nil
 }
@@ -149,7 +149,6 @@ func (e *emailTypeNotifier) Fire(entry *log.Entry) error {
 	if e.entries != nil {
 		e.entries = append(e.entries, entry)
 	} else {
-		// Log output generated outside a cycle is sent immediately.
 		e.sendEntries([]*log.Entry{entry})
 	}
 	return nil
