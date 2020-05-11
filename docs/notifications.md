@@ -170,6 +170,8 @@ docker run -d \
   containrrr/watchtower
 ```
 
+If you want to disable TLS verification for the Gotify instance, you can use either `-e WATCHTOWER_NOTIFICATION_GOTIFY_TLS_SKIP_VERIFY=true` or `--notification-gotify-tls-skip-verify`. 
+
 ### [containrrr/shoutrrr](https://github.com/containrrr/shoutrrr)
 
 To send notifications via shoutrrr, the following command-line options, or their corresponding environment variables, can be set:
