@@ -1,7 +1,10 @@
 package notifications
 
 import (
+	"bytes"
 	"fmt"
+	"text/template"
+
 	"github.com/containrrr/shoutrrr"
 	"github.com/containrrr/shoutrrr/pkg/router"
 	t "github.com/containrrr/watchtower/pkg/types"
@@ -10,7 +13,8 @@ import (
 )
 
 const (
-	shoutrrrType = "shoutrrr"
+	shoutrrrDefaultTemplate = "{{range .}}{{.Message}}{{println}}{{end}}"
+	shoutrrrType            = "shoutrrr"
 )
 
 // Implements Notifier, logrus.Hook
@@ -19,6 +23,7 @@ type shoutrrrTypeNotifier struct {
 	Router    *router.ServiceRouter
 	entries   []*log.Entry
 	logLevels []log.Level
+	template  *template.Template
 }
 
 func newShoutrrrNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.Notifier {
@@ -31,6 +36,7 @@ func newShoutrrrNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.Noti
 		Urls:      urls,
 		Router:    r,
 		logLevels: acceptedLogLevels,
+		template:  getShoutrrrTemplate(c),
 	}
 
 	log.AddHook(n)
@@ -39,13 +45,10 @@ func newShoutrrrNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.Noti
 }
 
 func (e *shoutrrrTypeNotifier) buildMessage(entries []*log.Entry) string {
-	body := ""
-	for _, entry := range entries {
-		body += entry.Time.Format("2006-01-02 15:04:05") + " (" + entry.Level.String() + "): " + entry.Message + "\r\n"
-		// We don't use fields in watchtower, so don't bother sending them.
-	}
+	var body bytes.Buffer
+	e.template.Execute(&body, entries)
 
-	return body
+	return body.String()
 }
 
 func (e *shoutrrrTypeNotifier) sendEntries(entries []*log.Entry) {
@@ -90,4 +93,36 @@ func (e *shoutrrrTypeNotifier) Fire(entry *log.Entry) error {
 		e.sendEntries([]*log.Entry{entry})
 	}
 	return nil
+}
+
+func getShoutrrrTemplate(c *cobra.Command) *template.Template {
+	var tpl *template.Template
+
+	flags := c.PersistentFlags()
+
+	tplString, err := flags.GetString("notification-template")
+
+	// If we succeed in getting a non-empty template configuration
+	// try to parse the template string.
+	if tplString != "" && err == nil {
+		tpl, err = template.New("").Parse(tplString)
+	}
+
+	// In case of errors (either from parsing the template string
+	// or from getting the template configuration) log an error
+	// message about this and the fact that we'll use the default
+	// template instead.
+	if err != nil {
+		log.Errorf("Could not use configured notification template: %s. Using default template", err)
+	}
+
+	// If we had an error (either from parsing the template string
+	// or from getting the template configuration) or we a
+	// template wasn't configured (the empty template string)
+	// fallback to using the default template.
+	if err != nil || tplString == "" {
+		tpl = template.Must(template.New("").Parse(shoutrrrDefaultTemplate))
+	}
+
+	return tpl
 }

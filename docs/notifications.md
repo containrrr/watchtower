@@ -179,6 +179,14 @@ To send notifications via shoutrrr, the following command-line options, or their
 Go to [containrrr.github.io/shoutrrr/services/overview](https://containrrr.github.io/shoutrrr/services/overview) to learn more about the different service URLs you can use.
 You can define multiple services by space separating the URLs. (See example below)
 
+You can customize the message posted by setting a template.
+
+- `--notification-template` (env. `WATCHTOWER_NOTIFICATION_TEMPLATE`): The template used for the message.
+
+The template is a Go [template](https://golang.org/pkg/text/template/) and the you format a list of [log entries](https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry).
+
+The default value if not set is `{{range .}}{{.Message}}{{println}}{{end}}`. The example below uses a template that also outputs timestamp and log level.
+
 Example:
 
 ```bash
@@ -187,5 +195,6 @@ docker run -d \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -e WATCHTOWER_NOTIFICATIONS=shoutrrr \
   -e WATCHTOWER_NOTIFICATION_URL="discord://token@channel slack://watchtower@token-a/token-b/token-c" \
+  -e WATCHTOWER_NOTIFICATION_TEMPLATE="{{range .}}{{.Time.Format \"2006-01-02 15:04:05\"}} ({{.Level}}): {{.Message}}{{println}}{{end}}" \
   containrrr/watchtower
 ```

@@ -259,6 +259,12 @@ Should only be used for testing.
 		viper.GetString("WATCHTOWER_NOTIFICATION_GOTIFY_TOKEN"),
 		"The Gotify Application required to query the Gotify API")
 
+	flags.StringP(
+		"notification-template",
+		"",
+		viper.GetString("WATCHTOWER_NOTIFICATION_TEMPLATE"),
+		"The shoutrrr text/template for the messages")
+
 	flags.StringArrayP(
 		"notification-url",
 		"",
