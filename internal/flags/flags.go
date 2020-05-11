@@ -11,7 +11,7 @@ import (
 
 // DockerAPIMinVersion is the minimum version of the docker api required to
 // use watchtower
-const DockerAPIMinVersion string = "1.24"
+const DockerAPIMinVersion string = "1.25"
 
 // RegisterDockerFlags that are used directly by the docker api client
 func RegisterDockerFlags(rootCmd *cobra.Command) {
