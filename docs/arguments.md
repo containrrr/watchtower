@@ -138,6 +138,9 @@ Environment Variable: WATCHTOWER_LABEL_ENABLE
              Default: false
 ```   
 
+## Filter by disable label
+**Do not** update containers that have `com.centurylinklabs.watchtower.enable` label set to false and no `--label-enable` argument is passed. Note that only one or the other (targeting by enable label) can be used at the same time to target containers.
+
 ## Without updating containers
 Will only monitor for new images, not update the containers. 
 
