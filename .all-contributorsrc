@@ -573,6 +573,15 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "miosame",
+      "name": "miosame",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/8201077?v=4",
+      "profile": "https://github.com/Miosame",
+      "contributions": [
+        "doc"
+      ]
     }
   ],
   "contributorsPerLine": 7,
