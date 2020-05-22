@@ -380,7 +380,6 @@ func GetSecretsFromFiles(rootCmd *cobra.Command) {
 		"notification-slack-hook-url",
 		"notification-msteams-hook",
 		"notification-gotify-token",
-		"notification-url",
 	}
 	for _, secret := range secrets {
 		getSecretFromFile(flags, secret)
@@ -409,7 +408,6 @@ func isFile(s string) bool {
 	_, err := os.Stat(s)
 	if os.IsNotExist(err) {
 		return false
-	} else {
-		return true
 	}
+	return true
 }
