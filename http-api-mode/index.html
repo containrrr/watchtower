@@ -9,7 +9,7 @@
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
       
-        <link rel="canonical" href="http://containrrr.github.io/watchtower/remote-hosts/">
+        <link rel="canonical" href="http://containrrr.github.io/watchtower/http-api-mode/">
       
       
       <link rel="shortcut icon" href="../assets/images/favicon.png">
@@ -17,7 +17,7 @@
     
     
       
-        <title>Remote hosts - Watchtower</title>
+        <title>Http api mode - Watchtower</title>
       
     
     
@@ -73,7 +73,7 @@
           </span>
           <span class="md-header-nav__topic md-ellipsis">
             
-              Remote hosts
+              Http api mode
             
           </span>
         </div>
@@ -267,18 +267,11 @@
       
       
 
-  
 
-
-  <li class="md-nav__item md-nav__item--active">
-    
-    <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
-    
-    
-    <a href="./" title="Remote hosts" class="md-nav__link md-nav__link--active">
+  <li class="md-nav__item">
+    <a href="../remote-hosts/" title="Remote hosts" class="md-nav__link">
       Remote hosts
     </a>
-    
   </li>
 
     
@@ -330,7 +323,7 @@
             <article class="md-content__inner md-typeset">
               
                 
-                  <a href="https://github.com/containrrr/watchtower/edit/master/docs/remote-hosts.md" title="Edit this page" class="md-content__button md-icon">
+                  <a href="https://github.com/containrrr/watchtower/edit/master/docs/http-api-mode.md" title="Edit this page" class="md-content__button md-icon">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25z"/></svg>
                   </a>
                 
@@ -338,22 +331,38 @@
                   
                 
                 
-                  <h1>Remote hosts</h1>
+                  <h1>Http api mode</h1>
                 
-                <p>By default, watchtower is set-up to monitor the local Docker daemon (the same daemon running the watchtower container itself). However, it is possible to configure watchtower to monitor a remote Docker endpoint. When starting the watchtower container you can specify a remote Docker endpoint with either the <code>--host</code> flag or the <code>DOCKER_HOST</code> environment variable:</p>
-<pre><code class="bash">docker run -d \
-  --name watchtower \
-  containrrr/watchtower --host &quot;tcp://10.0.1.2:2375&quot;
+                <p>Watchtower provides an HTTP API mode that enables an HTTP endpoint that can be requested to trigger container updating. The current available endpoint list is:</p>
+<ul>
+<li><code>/v1/update</code> - triggers an update for all of the containers monitored by this Watchtower instance.</li>
+</ul>
+<hr />
+<p>To enable this mode, use the flag <code>--http-api</code>. For example, in a Docker Compose config file:</p>
+<pre><code class="json">version: '3'
+
+services:
+  app-monitored-by-watchtower:
+    image: myapps/monitored-by-watchtower
+    labels:
+      - &quot;com.centurylinklabs.watchtower.enable=true&quot;
+
+  watchtower:
+    image: containrrr/watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --debug --http-api
+    environment:
+      - WATCHTOWER_HTTP_API_TOKEN=mytoken
+    labels:
+      - &quot;com.centurylinklabs.watchtower.enable=false&quot;
+    ports:
+      - 8080:8080
 </code></pre>
 
-<p>or</p>
-<pre><code class="bash">docker run -d \
-  --name watchtower \
-  -e DOCKER_HOST=&quot;tcp://10.0.1.2:2375&quot; \
-  containrrr/watchtower
+<p>Notice that there is an environment variable named WATCHTOWER_HTTP_API_TOKEN. To prevent external services from accidentally triggering image updates, all of the requests have to contain a "Token" field, valued as the token defined in WATCHTOWER_HTTP_API_TOKEN, in their headers. In this case, there is a port bind to the host machine, allowing to request localhost:8080 to reach Watchtower. The following <code>curl</code> command would trigger an image update:</p>
+<pre><code class="bash">curl -H &quot;Token: mytoken&quot; localhost:8080/v1/update
 </code></pre>
-
-<p>Note in both of the examples above that it is unnecessary to mount the <em>/var/run/docker.sock</em> into the watchtower container.</p>
                 
               
               
@@ -368,41 +377,6 @@
       
         
 <footer class="md-footer">
-  
-    <div class="md-footer-nav">
-      <nav class="md-footer-nav__inner md-grid" aria-label="Footer">
-        
-          <a href="../linked-containers/" title="Linked containers" class="md-footer-nav__link md-footer-nav__link--prev" rel="prev">
-            <div class="md-footer-nav__button md-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
-            </div>
-            <div class="md-footer-nav__title">
-              <div class="md-ellipsis">
-                <span class="md-footer-nav__direction">
-                  Previous
-                </span>
-                Linked containers
-              </div>
-            </div>
-          </a>
-        
-        
-          <a href="../secure-connections/" title="Secure connections" class="md-footer-nav__link md-footer-nav__link--next" rel="next">
-            <div class="md-footer-nav__title">
-              <div class="md-ellipsis">
-                <span class="md-footer-nav__direction">
-                  Next
-                </span>
-                Secure connections
-              </div>
-            </div>
-            <div class="md-footer-nav__button md-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11H4z"/></svg>
-            </div>
-          </a>
-        
-      </nav>
-    </div>
   
   <div class="md-footer-meta md-typeset">
     <div class="md-footer-meta__inner md-grid">
