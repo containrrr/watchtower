@@ -18,7 +18,7 @@ func init() {
 	lock <- true
 }
 
-// SetupHTTPUpdates configures the endopint needed for triggering updates via http
+// SetupHTTPUpdates configures the endpoint needed for triggering updates via http
 func SetupHTTPUpdates(apiToken string, updateFunction func()) error {
 	if apiToken == "" {
 		return errors.New("api token is empty or has not been set. not starting api")

@@ -183,10 +183,8 @@ func RegisterNotificationFlags(rootCmd *cobra.Command) {
 		"notification-email-server-tls-skip-verify",
 		"",
 		viper.GetBool("WATCHTOWER_NOTIFICATION_EMAIL_SERVER_TLS_SKIP_VERIFY"),
-		`
-Controls whether watchtower verifies the SMTP server's certificate chain and host name.
-Should only be used for testing.
-`)
+		`Controls whether watchtower verifies the SMTP server's certificate chain and host name.
+Should only be used for testing.`)
 
 	flags.StringP(
 		"notification-email-server-user",
@@ -253,11 +251,19 @@ Should only be used for testing.
 		"",
 		viper.GetString("WATCHTOWER_NOTIFICATION_GOTIFY_URL"),
 		"The Gotify URL to send notifications to")
+
 	flags.StringP(
 		"notification-gotify-token",
 		"",
 		viper.GetString("WATCHTOWER_NOTIFICATION_GOTIFY_TOKEN"),
 		"The Gotify Application required to query the Gotify API")
+
+	flags.BoolP(
+		"notification-gotify-tls-skip-verify",
+		"",
+		viper.GetBool("WATCHTOWER_NOTIFICATION_GOTIFY_TLS_SKIP_VERIFY"),
+		`Controls whether watchtower verifies the Gotify server's certificate chain and host name.
+Should only be used for testing.`)
 
 	flags.StringP(
 		"notification-template",

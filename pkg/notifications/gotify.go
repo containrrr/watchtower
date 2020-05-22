@@ -2,6 +2,7 @@ package notifications
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -17,9 +18,10 @@ const (
 )
 
 type gotifyTypeNotifier struct {
-	gotifyURL      string
-	gotifyAppToken string
-	logLevels      []log.Level
+	gotifyURL                string
+	gotifyAppToken           string
+	gotifyInsecureSkipVerify bool
+	logLevels                []log.Level
 }
 
 func newGotifyNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.Notifier {
@@ -39,10 +41,13 @@ func newGotifyNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.Notifi
 		log.Fatal("Required argument --notification-gotify-token(cli) or WATCHTOWER_NOTIFICATION_GOTIFY_TOKEN(env) is empty.")
 	}
 
+	gotifyInsecureSkipVerify, _ := flags.GetBool("notification-gotify-tls-skip-verify")
+
 	n := &gotifyTypeNotifier{
-		gotifyURL:      gotifyURL,
-		gotifyAppToken: gotifyToken,
-		logLevels:      acceptedLogLevels,
+		gotifyURL:                gotifyURL,
+		gotifyAppToken:           gotifyToken,
+		gotifyInsecureSkipVerify: gotifyInsecureSkipVerify,
+		logLevels:                acceptedLogLevels,
 	}
 
 	log.AddHook(n)
@@ -79,8 +84,16 @@ func (n *gotifyTypeNotifier) Fire(entry *log.Entry) error {
 			return
 		}
 
+		// Explicitly define the client so we can set InsecureSkipVerify to the desired value.
+		client := &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{
+					InsecureSkipVerify: n.gotifyInsecureSkipVerify,
+				},
+			},
+		}
 		jsonBodyBuffer := bytes.NewBuffer([]byte(jsonBody))
-		resp, err := http.Post(n.getURL(), "application/json", jsonBodyBuffer)
+		resp, err := client.Post(n.getURL(), "application/json", jsonBodyBuffer)
 		if err != nil {
 			fmt.Println("Failed to send Gotify notification: ", err)
 			return
