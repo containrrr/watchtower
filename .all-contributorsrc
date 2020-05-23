@@ -582,6 +582,16 @@
       "contributions": [
         "doc"
       ]
+    },
+    {
+      "login": "andrewjmetzger",
+      "name": "Andrew Metzger",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/590246?v=4",
+      "profile": "https://mtz.gr",
+      "contributions": [
+        "bug",
+        "example"
+      ]
     }
   ],
   "contributorsPerLine": 7,

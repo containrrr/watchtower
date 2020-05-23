@@ -149,6 +149,7 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
     <td align="center"><a href="http://www.teqneers.de"><img src="https://avatars0.githubusercontent.com/u/788989?v=4" width="100px;" alt=""/><br /><sub><b>Oliver Mueller</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=ogmueller" title="Documentation">📖</a></td>
     <td align="center"><a href="https://github.com/tammert"><img src="https://avatars0.githubusercontent.com/u/8885250?v=4" width="100px;" alt=""/><br /><sub><b>Sebastiaan Tammer</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=tammert" title="Code">💻</a></td>
     <td align="center"><a href="https://github.com/Miosame"><img src="https://avatars1.githubusercontent.com/u/8201077?v=4" width="100px;" alt=""/><br /><sub><b>miosame</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=miosame" title="Documentation">📖</a></td>
+    <td align="center"><a href="https://mtz.gr"><img src="https://avatars3.githubusercontent.com/u/590246?v=4" width="100px;" alt=""/><br /><sub><b>Andrew Metzger</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/issues?q=author%3Aandrewjmetzger" title="Bug reports">🐛</a> <a href="#example-andrewjmetzger" title="Examples">💡</a></td>
   </tr>
 </table>
 
