@@ -30,7 +30,11 @@ func newShoutrrrNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.Noti
 	flags := c.PersistentFlags()
 
 	urls, _ := flags.GetStringArray("notification-url")
-	r, _ := shoutrrr.CreateSender(urls...)
+	r, err := shoutrrr.CreateSender(urls...)
+	if err != nil {
+		fmt.Printf("Failed to initialize Shoutrrr notifications: %s\n", err.Error())
+		return nil
+	}
 
 	n := &shoutrrrTypeNotifier{
 		Urls:      urls,
@@ -52,8 +56,10 @@ func (e *shoutrrrTypeNotifier) buildMessage(entries []*log.Entry) string {
 }
 
 func (e *shoutrrrTypeNotifier) sendEntries(entries []*log.Entry) {
-	// Do the sending in a separate goroutine so we don't block the main process.
+
 	msg := e.buildMessage(entries)
+
+	// Do the sending in a separate goroutine so we don't block the main process.
 	go func() {
 		errs := e.Router.Send(msg, nil)
 
