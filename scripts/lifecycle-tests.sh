@@ -89,7 +89,7 @@ builddocker
 # Run container
 docker run -d -p 0.0.0.0:8888:8888 --name $CONTAINER $IMAGE:latest >> /dev/null
 sleep 1
-echo "Container $CONTAINER is runnning"
+echo "Container $CONTAINER is running"
 
 # Test default value
 RESP=$(curl -s http://localhost:8888)
@@ -126,7 +126,7 @@ docker run -d -p 0.0.0.0:8888:8888 \
 	--label=com.centurylinklabs.watchtower.lifecycle.post-update="echo container > /opt/test/value.txt" \
 	--name $CONTAINER $IMAGE:latest >> /dev/null
 sleep 1
-echo "Container $CONTAINER is runnning"
+echo "Container $CONTAINER is running"
 
 # Test default value
 RESP=$(curl -s http://localhost:8888)
@@ -170,7 +170,7 @@ docker run -d -p 0.0.0.0:8989:8888 \
 	--link $CONTAINER \
 	--name $LINKED_CONTAINER $LINKED_IMAGE:latest >> /dev/null
 sleep 1
-echo "Container $CONTAINER and $LINKED_CONTAINER are runnning"
+echo "Container $CONTAINER and $LINKED_CONTAINER are running"
 
 # Test default value
 RESP=$(curl -s http://localhost:8888)
