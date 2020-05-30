@@ -32,8 +32,7 @@ func newShoutrrrNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.Noti
 	urls, _ := flags.GetStringArray("notification-url")
 	r, err := shoutrrr.CreateSender(urls...)
 	if err != nil {
-		fmt.Printf("Failed to initialize Shoutrrr notifications: %s\n", err.Error())
-		return nil
+		log.Fatalf("Failed to initialize Shoutrrr notifications: %s\n", err.Error())
 	}
 
 	n := &shoutrrrTypeNotifier{
@@ -50,7 +49,9 @@ func newShoutrrrNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.Noti
 
 func (e *shoutrrrTypeNotifier) buildMessage(entries []*log.Entry) string {
 	var body bytes.Buffer
-	e.template.Execute(&body, entries)
+	if err := e.template.Execute(&body, entries); err != nil {
+		fmt.Printf("Failed to execute Shoutrrrr template: %s\n", err.Error())
+	}
 
 	return body.String()
 }
