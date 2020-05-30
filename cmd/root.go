@@ -61,6 +61,8 @@ func Execute() {
 func PreRun(cmd *cobra.Command, args []string) {
 	f := cmd.PersistentFlags()
 
+	log.SetFormatter(&log.TextFormatter{ForceColors: true, FullTimestamp: true})
+
 	if enabled, _ := f.GetBool("debug"); enabled {
 		log.SetLevel(log.DebugLevel)
 	}
