@@ -47,9 +47,7 @@ func NewNotifier(c *cobra.Command) *Notifier {
 		default:
 			log.Fatalf("Unknown notification type %q", t)
 		}
-		if tn != nil {
-			n.types = append(n.types, tn)
-		}
+		n.types = append(n.types, tn)
 	}
 
 	return n
