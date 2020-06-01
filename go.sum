@@ -43,8 +43,8 @@ github.com/cloudflare/cfssl v0.0.0-20190911221928-1a911ca1b1d6 h1:A7RURps5t4yDU0
 github.com/cloudflare/cfssl v0.0.0-20190911221928-1a911ca1b1d6/go.mod h1:yMWuSON2oQp+43nFtAV/uvKQIFpSPerB57DCt9t8sSA=
 github.com/containerd/continuity v0.0.0-20181203112020-004b46473808 h1:4BX8f882bXEDKfWIf0wa8HRvpnBoPszJJXL+TVbBw4M=
 github.com/containerd/continuity v0.0.0-20181203112020-004b46473808/go.mod h1:GL3xCUCBDV3CZiTSEKksMWbLE66hEyuu9qyDOOqM47Y=
-github.com/containrrr/shoutrrr v0.0.0-20200404203330-157bd996ea13 h1:5KIwcRac24xehTL/xrhXNIiI9JnV2Mbfl52OgGbloIM=
-github.com/containrrr/shoutrrr v0.0.0-20200404203330-157bd996ea13/go.mod h1:eotQeC9bHbsf9eMUnXOU/y5bskegseWNB4PwmxRO7Wc=
+github.com/containrrr/shoutrrr v0.0.0-20200601144753-78bb9685bc2f h1:Ln4yl+CYjrapeTEzMJQpgBwLjruKHcMosWFB/d1M4RQ=
+github.com/containrrr/shoutrrr v0.0.0-20200601144753-78bb9685bc2f/go.mod h1:eotQeC9bHbsf9eMUnXOU/y5bskegseWNB4PwmxRO7Wc=
 github.com/coreos/bbolt v1.3.2/go.mod h1:iRUV2dpdMOn7Bo10OQBFzIJO9kkE559Wcmn+qkEiiKk=
 github.com/coreos/etcd v3.3.10+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
 github.com/coreos/go-semver v0.2.0/go.mod h1:nnelYz7RCh+5ahJtPPxZlU+153eP4D4r3EedlOD2RNk=
