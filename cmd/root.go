@@ -133,6 +133,7 @@ func Run(c *cobra.Command, names []string) {
 			log.Info("Running a one time update.")
 		}
 		runUpdatesWithNotifications(filter)
+		notifier.Close()
 		os.Exit(0)
 		return
 	}

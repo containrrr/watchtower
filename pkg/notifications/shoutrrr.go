@@ -3,10 +3,10 @@ package notifications
 import (
 	"bytes"
 	"fmt"
+	"github.com/containrrr/shoutrrr/pkg/types"
 	"text/template"
 
 	"github.com/containrrr/shoutrrr"
-	"github.com/containrrr/shoutrrr/pkg/router"
 	t "github.com/containrrr/watchtower/pkg/types"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -17,13 +17,19 @@ const (
 	shoutrrrType            = "shoutrrr"
 )
 
+type router interface {
+	Send(message string, params *types.Params) []error
+}
+
 // Implements Notifier, logrus.Hook
 type shoutrrrTypeNotifier struct {
 	Urls      []string
-	Router    *router.ServiceRouter
+	Router    router
 	entries   []*log.Entry
 	logLevels []log.Level
 	template  *template.Template
+	messages  chan string
+	done      chan bool
 }
 
 func newShoutrrrNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.Notifier {
@@ -40,11 +46,31 @@ func newShoutrrrNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.Noti
 		Router:    r,
 		logLevels: acceptedLogLevels,
 		template:  getShoutrrrTemplate(c),
+		messages:  make(chan string, 1),
+		done:      make(chan bool),
 	}
 
 	log.AddHook(n)
 
+	// Do the sending in a separate goroutine so we don't block the main process.
+	go sendNotifications(n)
+
 	return n
+}
+
+func sendNotifications(n *shoutrrrTypeNotifier) {
+	for msg := range n.messages {
+		errs := n.Router.Send(msg, nil)
+
+		for i, err := range errs {
+			if err != nil {
+				// Use fmt so it doesn't trigger another notification.
+				fmt.Println("Failed to send notification via shoutrrr (url="+n.Urls[i]+"): ", err)
+			}
+		}
+	}
+
+	n.done <- true
 }
 
 func (e *shoutrrrTypeNotifier) buildMessage(entries []*log.Entry) string {
@@ -57,20 +83,8 @@ func (e *shoutrrrTypeNotifier) buildMessage(entries []*log.Entry) string {
 }
 
 func (e *shoutrrrTypeNotifier) sendEntries(entries []*log.Entry) {
-
 	msg := e.buildMessage(entries)
-
-	// Do the sending in a separate goroutine so we don't block the main process.
-	go func() {
-		errs := e.Router.Send(msg, nil)
-
-		for i, err := range errs {
-			if err != nil {
-				// Use fmt so it doesn't trigger another notification.
-				fmt.Println("Failed to send notification via shoutrrr (url="+e.Urls[i]+"): ", err)
-			}
-		}
-	}()
+	e.messages <- msg
 }
 
 func (e *shoutrrrTypeNotifier) StartNotification() {
@@ -86,6 +100,15 @@ func (e *shoutrrrTypeNotifier) SendNotification() {
 
 	e.sendEntries(e.entries)
 	e.entries = nil
+}
+
+func (e *shoutrrrTypeNotifier) Close() {
+	close(e.messages)
+
+	// Use fmt so it doesn't trigger another notification.
+	fmt.Println("Waiting for the notification goroutine to finish")
+
+	_ = <-e.done
 }
 
 func (e *shoutrrrTypeNotifier) Levels() []log.Level {
