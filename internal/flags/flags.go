@@ -1,6 +1,7 @@
 package flags
 
 import (
+	"bytes"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -380,6 +381,7 @@ func GetSecretsFromFiles(rootCmd *cobra.Command) {
 		"notification-slack-hook-url",
 		"notification-msteams-hook",
 		"notification-gotify-token",
+		"notification-url",
 	}
 	for _, secret := range secrets {
 		getSecretFromFile(flags, secret)
@@ -397,9 +399,23 @@ func getSecretFromFile(flags *pflag.FlagSet, secret string) {
 		if err != nil {
 			log.Fatal(err)
 		}
-		err = flags.Set(secret, strings.TrimSpace(string(file)))
-		if err != nil {
-			log.Error(err)
+		flag := flags.Lookup(secret)
+		if flag.Value.Type() == "stringArray" {
+			rows := bytes.Split(file, []byte{'\n'})
+
+			for _, row := range rows {
+				err = flags.Set(secret, strings.TrimSpace(string(row)))
+				if err != nil {
+					log.Error(err)
+				}
+			}
+
+		} else {
+
+			err = flags.Set(secret, strings.TrimSpace(string(file)))
+			if err != nil {
+				log.Error(err)
+			}
 		}
 	}
 }
