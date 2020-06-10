@@ -81,6 +81,7 @@ func PreRun(cmd *cobra.Command, args []string) {
 		scheduleSpec = "@every " + strconv.Itoa(interval) + "s"
 	}
 
+	flags.GetSecretsFromFiles(cmd)
 	cleanup, noRestart, monitorOnly, timeout = flags.ReadFlags(cmd)
 
 	if timeout < 0 {
