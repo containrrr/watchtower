@@ -602,6 +602,15 @@
       "contributions": [
         "doc"
       ]
+    },
+    {
+      "login": "mattdoran",
+      "name": "Matt Doran",
+      "avatar_url": "https://avatars0.githubusercontent.com/u/577779?v=4",
+      "profile": "https://github.com/mattdoran",
+      "contributions": [
+        "doc"
+      ]
     }
   ],
   "contributorsPerLine": 7,
