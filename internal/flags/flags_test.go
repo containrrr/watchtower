@@ -93,8 +93,9 @@ func TestGetSecretsArrayFromFilesWithFile(t *testing.T) {
 	actual, err := cmd.PersistentFlags().GetStringArray("notification-url")
 	require.NoError(t, err)
 
-	assert.Equal(t, expected[0], actual[0])
-	assert.Equal(t, expected[1], actual[1])
+	require.Equal(t, 2, len(actual))
+	require.Equal(t, expected[0], actual[0])
+	require.Equal(t, expected[1], actual[1])
 }
 
 func testGetSecretsFromFiles(t *testing.T, flagName string, expected string) {

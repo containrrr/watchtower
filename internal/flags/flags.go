@@ -390,26 +390,40 @@ func GetSecretsFromFiles(rootCmd *cobra.Command) {
 
 // getSecretFromFile will check if the flag contains a reference to a file; if it does, replaces the value of the flag with the contents of the file.
 func getSecretFromFile(flags *pflag.FlagSet, secret string) {
+
 	flag := flags.Lookup(secret)
-	value := flag.Value.String()
-	if value != "" && isFile(value) {
-		file, err := ioutil.ReadFile(value)
+	if flags.Lookup(secret).Value.Type() == "stringArray" {
+
+		values, err := flags.GetStringArray(secret)
 		if err != nil {
-			log.Fatal(err)
+			log.Error(err)
 		}
 
-		if flag.Value.Type() == "stringArray" {
-			rows := bytes.Split(file, []byte{'\n'})
-
-			for _, row := range rows {
-				err = flags.Set(secret, strings.TrimSpace(string(row)))
+		for _, value := range values {
+			if value != "" && isFile(value) {
+				file, err := ioutil.ReadFile(value)
 				if err != nil {
-					log.Error(err)
+					log.Fatal(err)
+				}
+
+				flag.Changed = false
+				rows := bytes.Split(file, []byte{'\n'})
+
+				for _, row := range rows {
+					err = flags.Set(secret, strings.TrimSpace(string(row)))
+					if err != nil {
+						log.Error(err)
+					}
 				}
 			}
-
-		} else {
-
+		}
+	} else {
+		value := flag.Value.String()
+		if value != "" && isFile(value) {
+			file, err := ioutil.ReadFile(value)
+			if err != nil {
+				log.Fatal(err)
+			}
 			err = flags.Set(secret, strings.TrimSpace(string(file)))
 			if err != nil {
 				log.Error(err)
