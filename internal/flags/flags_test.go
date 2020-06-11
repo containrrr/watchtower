@@ -3,6 +3,7 @@ package flags
 import (
 	"io/ioutil"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/spf13/cobra"
@@ -67,6 +68,33 @@ func TestGetSecretsFromFilesWithFile(t *testing.T) {
 	require.NoError(t, err)
 
 	testGetSecretsFromFiles(t, "notification-email-server-password", value)
+}
+
+func TestGetSecretsArrayFromFilesWithFile(t *testing.T) {
+	expected := []string{"first line", "second line"}
+
+	// Create the temporary file which will contain a secret.
+	file, err := ioutil.TempFile(os.TempDir(), "watchtower-")
+	require.NoError(t, err)
+	defer os.Remove(file.Name()) // Make sure to remove the temporary file later.
+
+	// Write the secret to the temporary file.
+	secret := []byte(strings.Join(expected, "\n"))
+	_, err = file.Write(secret)
+	require.NoError(t, err)
+
+	err = os.Setenv("WATCHTOWER_NOTIFICATION_URL", file.Name())
+	require.NoError(t, err)
+
+	cmd := new(cobra.Command)
+	SetDefaults()
+	RegisterNotificationFlags(cmd)
+	GetSecretsFromFiles(cmd)
+	actual, err := cmd.PersistentFlags().GetStringArray("notification-url")
+	require.NoError(t, err)
+
+	assert.Equal(t, expected[0], actual[0])
+	assert.Equal(t, expected[1], actual[1])
 }
 
 func testGetSecretsFromFiles(t *testing.T, flagName string, expected string) {

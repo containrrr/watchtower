@@ -390,16 +390,14 @@ func GetSecretsFromFiles(rootCmd *cobra.Command) {
 
 // getSecretFromFile will check if the flag contains a reference to a file; if it does, replaces the value of the flag with the contents of the file.
 func getSecretFromFile(flags *pflag.FlagSet, secret string) {
-	value, err := flags.GetString(secret)
-	if err != nil {
-		log.Error(err)
-	}
+	flag := flags.Lookup(secret)
+	value := flag.Value.String()
 	if value != "" && isFile(value) {
 		file, err := ioutil.ReadFile(value)
 		if err != nil {
 			log.Fatal(err)
 		}
-		flag := flags.Lookup(secret)
+
 		if flag.Value.Type() == "stringArray" {
 			rows := bytes.Split(file, []byte{'\n'})
 
