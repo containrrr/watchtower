@@ -178,7 +178,8 @@ If you want to disable TLS verification for the Gotify instance, you can use eit
 
 To send notifications via shoutrrr, the following command-line options, or their corresponding environment variables, can be set:
 
-- `--notification-url` (env. `WATCHTOWER_NOTIFICATION_URL`): The shoutrrr service URL to be used.
+- `--notification-url` (env. `WATCHTOWER_NOTIFICATION_URL`): The shoutrrr service URL to be used.  
+**Note:** Can also reference a file, in which case the contents of the file are used (one URL per line, separated by a newline character).
 
 Go to [containrrr.github.io/shoutrrr/services/overview](https://containrrr.github.io/shoutrrr/services/overview) to learn more about the different service URLs you can use.
 You can define multiple services by space separating the URLs. (See example below)
