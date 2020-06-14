@@ -60,7 +60,7 @@ $ docker run -d \
 ```
 
 ## Documentation
-The full documentation is available at https://containrrr.github.io/watchtower.
+The full documentation is available at https://containrrr.dev/watchtower.
 
 ## Contributors
 
