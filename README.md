@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./gopher-watchtower.png" width="450" />
+  <img src="./logo.png" width="450" />
 </p>
 <h1 align="center">
   Watchtower
