@@ -21,6 +21,7 @@ type gotifyTypeNotifier struct {
 	gotifyURL                string
 	gotifyAppToken           string
 	gotifyInsecureSkipVerify bool
+	gotifyPriority           int
 	logLevels                []log.Level
 }
 
@@ -43,10 +44,13 @@ func newGotifyNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.Notifi
 
 	gotifyInsecureSkipVerify, _ := flags.GetBool("notification-gotify-tls-skip-verify")
 
+	gotifyPriority, _ := flags.GetInt("notification-gotify-priority")
+
 	n := &gotifyTypeNotifier{
 		gotifyURL:                gotifyURL,
 		gotifyAppToken:           gotifyToken,
 		gotifyInsecureSkipVerify: gotifyInsecureSkipVerify,
+		gotifyPriority:           gotifyPriority,
 		logLevels:                acceptedLogLevels,
 	}
 
@@ -77,7 +81,7 @@ func (n *gotifyTypeNotifier) Fire(entry *log.Entry) error {
 		jsonBody, err := json.Marshal(gotifyMessage{
 			Message:  "(" + entry.Level.String() + "): " + entry.Message,
 			Title:    "Watchtower",
-			Priority: 0,
+			Priority: n.gotifyPriority,
 		})
 		if err != nil {
 			fmt.Println("Failed to create JSON body for Gotify notification: ", err)

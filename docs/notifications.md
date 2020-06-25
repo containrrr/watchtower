@@ -172,6 +172,8 @@ docker run -d \
 
 `-e WATCHTOWER_NOTIFICATION_GOTIFY_TOKEN` or `--notification-gotify-token` can also reference a file, in which case the contents of the file are used.
 
+To specify the priority level for the Gotify notifications, you can use the `WATCHTOWER_NOTIFICATION_GOTIFY_PRIORITY` environment variable or the `--notification-gotify-priority` flag.
+
 If you want to disable TLS verification for the Gotify instance, you can use either `-e WATCHTOWER_NOTIFICATION_GOTIFY_TLS_SKIP_VERIFY=true` or `--notification-gotify-tls-skip-verify`. 
 
 ### [containrrr/shoutrrr](https://github.com/containrrr/shoutrrr)

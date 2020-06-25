@@ -261,6 +261,12 @@ Should only be used for testing.`)
 		viper.GetString("WATCHTOWER_NOTIFICATION_GOTIFY_TOKEN"),
 		"The Gotify Application required to query the Gotify API")
 
+	flags.IntP(
+		"notification-gotify-priority",
+		"",
+		viper.GetInt("WATCHTOWER_NOTIFICATION_GOTIFY_PRIORITY"),
+		`Sets the priority level for Gotify notifications`)
+
 	flags.BoolP(
 		"notification-gotify-tls-skip-verify",
 		"",
@@ -293,6 +299,7 @@ func SetDefaults() {
 	viper.SetDefault("WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PORT", 25)
 	viper.SetDefault("WATCHTOWER_NOTIFICATION_EMAIL_SUBJECTTAG", "")
 	viper.SetDefault("WATCHTOWER_NOTIFICATION_SLACK_IDENTIFIER", "watchtower")
+	viper.SetDefault("WATCHTOWER_NOTIFICATION_GOTIFY_PRIORITY", 0)
 }
 
 // EnvConfig translates the command-line options into environment variables
