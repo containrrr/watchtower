@@ -2,6 +2,7 @@ package metrics_test
 
 import (
 	"fmt"
+	"github.com/containrrr/watchtower/pkg/api"
 	"github.com/containrrr/watchtower/pkg/api/metrics"
 	"io/ioutil"
 	"net/http"
@@ -18,13 +19,6 @@ func TestContainer(t *testing.T) {
 	RunSpecs(t, "Metrics Suite")
 }
 
-func runTestServer(m *metrics.Handler) {
-	http.Handle(m.Path, m.Handle)
-	go func() {
-		http.ListenAndServe(":8080", nil)
-	}()
-}
-
 func getWithToken(c http.Client, url string) (*http.Response, error) {
 	req, _ := http.NewRequest("GET", url, nil)
 	req.Header.Add("Token", Token)
@@ -32,8 +26,10 @@ func getWithToken(c http.Client, url string) (*http.Response, error) {
 }
 
 var _ = Describe("the metrics", func() {
-	m := metrics.New(Token)
-	runTestServer(m)
+	httpAPI := api.New(Token)
+	m := metrics.New()
+	httpAPI.RegisterHandler(m.Path, m.Handle)
+	httpAPI.Start(false)
 
 	// We should likely split this into multiple tests, but as prometheus requires a restart of the binary
 	// to reset the metrics and gauges, we'll just do it all at once.

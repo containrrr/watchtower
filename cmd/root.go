@@ -121,12 +121,12 @@ func Run(c *cobra.Command, names []string) {
 	httpAPI := api.New(apiToken)
 
 	if enableUpdateAPI {
-		updateHandler := update.New(func() { runUpdatesWithNotifications(filter) }, apiToken)
+		updateHandler := update.New(func() { runUpdatesWithNotifications(filter) })
 		httpAPI.RegisterFunc(updateHandler.Path, updateHandler.Handle)
 	}
 
 	if enableMetricsAPI {
-		metricsHandler := metrics.New(apiToken)
+		metricsHandler := metrics.New()
 		httpAPI.RegisterHandler(metricsHandler.Path, metricsHandler.Handle)
 	}
 
