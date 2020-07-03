@@ -611,6 +611,15 @@
       "contributions": [
         "doc"
       ]
+    },
+    {
+      "login": "MihailITPlace",
+      "name": "MihailITPlace",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/28401551?v=4",
+      "profile": "https://github.com/MihailITPlace",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
