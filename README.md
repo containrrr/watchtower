@@ -154,6 +154,7 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
   <tr>
     <td align="center"><a href="https://github.com/pgrimaud"><img src="https://avatars1.githubusercontent.com/u/1866496?v=4" width="100px;" alt=""/><br /><sub><b>Pierre Grimaud</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=pgrimaud" title="Documentation">📖</a></td>
     <td align="center"><a href="https://github.com/mattdoran"><img src="https://avatars0.githubusercontent.com/u/577779?v=4" width="100px;" alt=""/><br /><sub><b>Matt Doran</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=mattdoran" title="Documentation">📖</a></td>
+    <td align="center"><a href="https://github.com/MihailITPlace"><img src="https://avatars2.githubusercontent.com/u/28401551?v=4" width="100px;" alt=""/><br /><sub><b>MihailITPlace</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=MihailITPlace" title="Code">💻</a></td>
   </tr>
 </table>
 
