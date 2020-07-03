@@ -29,16 +29,28 @@ func New(token string) *API {
 	}
 }
 
+// RequireToken is wrapper around http.HandleFunc that checks token validity
+func (api *API) RequireToken(fn http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Token") != api.Token {
+			log.Error("Invalid token.")
+			return
+		}
+		log.Println("Valid token found.")
+		fn(w, r)
+	}
+}
+
 // RegisterFunc is a wrapper around http.HandleFunc that also flips the bool used to determine whether to launch the API
 func (api *API) RegisterFunc(path string, fn http.HandlerFunc) {
 	api.hasHandlers = true
-	http.HandleFunc(path, fn)
+	http.HandleFunc(path, api.RequireToken(fn))
 }
 
 // RegisterHandler is a wrapper around http.Handler that also flips the bool used to determine whether to launch the API
 func (api *API) RegisterHandler(path string, handler http.Handler) {
 	api.hasHandlers = true
-	http.Handle(path, handler)
+	http.Handle(path, api.RequireToken(handler.ServeHTTP))
 }
 
 // Start the API and serve over HTTP. Requires an API Token to be set.

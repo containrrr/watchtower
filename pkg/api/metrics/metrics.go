@@ -1,7 +1,6 @@
 package metrics
 
 import (
-	log "github.com/sirupsen/logrus"
 	"net/http"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -26,7 +25,7 @@ type Handler struct {
 }
 
 // New is a factory function creating a new Metrics instance
-func New(token string) *Handler {
+func New() *Handler {
 	metrics := &Metrics{}
 	metrics.scanned = promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "watchtower_containers_scanned",
@@ -50,18 +49,10 @@ func New(token string) *Handler {
 	})
 
 	handler := promhttp.Handler()
-	authAndHandle := func(w http.ResponseWriter, r *http.Request) {
-		// Hijacking the prometheus handler and adding a token check
-		if r.Header.Get("Token") != token {
-			log.Error("Invalid token. Not serving any metrics.")
-			return
-		}
-		handler.ServeHTTP(w, r)
-	}
 
 	return &Handler{
 		Path:    "/v1/metrics",
-		Handle:  authAndHandle,
+		Handle:  handler.ServeHTTP,
 		Metrics: metrics,
 	}
 }
