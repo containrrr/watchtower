@@ -41,11 +41,11 @@ func New() *Handler {
 	})
 	metrics.total = promauto.NewCounter(prometheus.CounterOpts{
 		Name: "watchtower_scans_total",
-		Help: "Number of scans since last restart",
+		Help: "Number of scans since the watchtower started",
 	})
 	metrics.skipped = promauto.NewCounter(prometheus.CounterOpts{
 		Name: "watchtower_scans_skipped",
-		Help: "Number of skipped scans since last restart",
+		Help: "Number of skipped scans since watchtower started",
 	})
 
 	handler := promhttp.Handler()
