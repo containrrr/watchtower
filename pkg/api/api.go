@@ -35,7 +35,7 @@ func (api *API) RequireToken(fn http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-// RegisterFunc is a wrapper around http.HandleFunc that also flips the bool used to determine whether to launch the API
+// RegisterFunc is a wrapper around http.HandleFunc that also sets the flag used to determine whether to launch the API
 func (api *API) RegisterFunc(path string, fn http.HandlerFunc) {
 	api.hasHandlers = true
 	http.HandleFunc(path, api.RequireToken(fn))
