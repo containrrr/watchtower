@@ -18,14 +18,14 @@ func New(updateFn func()) *Handler {
 	lock <- true
 
 	return &Handler{
-		Fn:   updateFn,
+		fn:   updateFn,
 		Path: "/v1/update",
 	}
 }
 
 // Handler is an API handler used for triggering container update scans
 type Handler struct {
-	Fn   func()
+	fn   func()
 	Path string
 }
 
@@ -42,7 +42,7 @@ func (handle *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 	select {
 	case chanValue := <-lock:
 		defer func() { lock <- chanValue }()
-		handle.Fn()
+		handle.fn()
 	default:
 		log.Debug("Skipped. Another update already running.")
 	}

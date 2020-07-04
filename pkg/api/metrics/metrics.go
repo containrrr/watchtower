@@ -20,7 +20,7 @@ type Metrics struct {
 // Handler is an HTTP handle for serving metric data
 type Handler struct {
 	Path    string
-	Fn      http.HandlerFunc
+	Handle  http.HandlerFunc
 	Metrics *Metrics
 }
 
@@ -52,7 +52,7 @@ func New() *Handler {
 
 	return &Handler{
 		Path:    "/v1/metrics",
-		Fn:      handler.ServeHTTP,
+		Handle:  handler.ServeHTTP,
 		Metrics: metrics,
 	}
 }

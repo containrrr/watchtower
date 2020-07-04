@@ -37,17 +37,6 @@ func NewNotifier(c *cobra.Command) *Notifier {
 	return n
 }
 
-func convertToShoutrrrURL(c *cobra.Command, notificationType string) string {
-
-	switch notificationType {
-	case emailType:
-		emailNotifier := newEmailNotifier(c, []log.Level{})
-		return emailNotifier.GetURL()
-	default:
-		return ""
-	}
-}
-
 // GetNotificationTypes produces an array of notifiers from a list of types
 func (n *Notifier) GetNotificationTypes(c *cobra.Command, acceptedLogLevels []log.Level, types []string) []ty.Notifier {
 	output := make([]ty.Notifier, 0)
@@ -56,9 +45,17 @@ func (n *Notifier) GetNotificationTypes(c *cobra.Command, acceptedLogLevels []lo
 		var tn ty.Notifier
 		switch t {
 		case emailType:
-			tn = newEmailNotifier(c, acceptedLogLevels)
+			emailNotifier := newEmailNotifier(c, []log.Level{})
+			tn = newShoutrrrNotifierFromURL(
+				c,
+				emailNotifier.GetURL(),
+				acceptedLogLevels)
 		case slackType:
-			tn = newSlackNotifier(c, acceptedLogLevels)
+			slackNotifier := newSlackNotifier(c, []log.Level{})
+			tn = newShoutrrrNotifierFromURL(
+				c,
+				slackNotifier.GetURL(),
+				acceptedLogLevels)
 		case msTeamsType:
 			tn = newMsTeamsNotifier(c, acceptedLogLevels)
 		case gotifyType:

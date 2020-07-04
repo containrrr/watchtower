@@ -21,13 +21,6 @@ func New(token string) *API {
 		Token:       token,
 		hasHandlers: false,
 	}
-
-
-func New(token string) *API {
-	return &API{
-		Token:       token,
-		hasHandlers: false,
-	}
 }
 
 // RequireToken is wrapper around http.HandleFunc that checks token validity
