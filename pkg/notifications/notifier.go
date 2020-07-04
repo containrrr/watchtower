@@ -38,34 +38,38 @@ func NewNotifier(c *cobra.Command) *Notifier {
 }
 
 // GetNotificationTypes produces an array of notifiers from a list of types
-func (n *Notifier) GetNotificationTypes(c *cobra.Command, acceptedLogLevels []log.Level, types []string) []ty.Notifier {
+func (n *Notifier) GetNotificationTypes(cmd *cobra.Command, levels []log.Level, types []string) []ty.Notifier {
 	output := make([]ty.Notifier, 0)
 
 	for _, t := range types {
-		var tn ty.Notifier
+
+		if t == shoutrrrType {
+			output = append(output, newShoutrrrNotifier(cmd, levels))
+			continue
+		}
+
+		var legacyNotifier ty.ConvertableNotifier
+
 		switch t {
 		case emailType:
-			emailNotifier := newEmailNotifier(c, []log.Level{})
-			tn = newShoutrrrNotifierFromURL(
-				c,
-				emailNotifier.GetURL(),
-				acceptedLogLevels)
+			legacyNotifier = newEmailNotifier(cmd, []log.Level{})
 		case slackType:
-			slackNotifier := newSlackNotifier(c, []log.Level{})
-			tn = newShoutrrrNotifierFromURL(
-				c,
-				slackNotifier.GetURL(),
-				acceptedLogLevels)
+			legacyNotifier = newSlackNotifier(cmd, []log.Level{})
 		case msTeamsType:
-			tn = newMsTeamsNotifier(c, acceptedLogLevels)
+			legacyNotifier = newMsTeamsNotifier(cmd, levels)
 		case gotifyType:
-			tn = newGotifyNotifier(c, acceptedLogLevels)
-		case shoutrrrType:
-			tn = newShoutrrrNotifier(c, acceptedLogLevels)
+			legacyNotifier = newGotifyNotifier(cmd, []log.Level{})
 		default:
 			log.Fatalf("Unknown notification type %q", t)
 		}
-		output = append(output, tn)
+
+		notifier := newShoutrrrNotifierFromURL(
+			cmd,
+			legacyNotifier.GetURL(),
+			levels,
+		)
+
+		output = append(output, notifier)
 	}
 
 	return output

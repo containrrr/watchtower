@@ -58,6 +58,30 @@ var _ = Describe("notifications", func() {
 			})
 		})
 	})
+
+	Describe("the teams notifier", func() {
+		When("converting a teams service config into a shoutrrr url", func() {
+			builderFn := notifications.NewMsTeamsNotifier
+
+			It("should return the expected URL", func() {
+
+				tokenA := "aaa"
+				tokenB := "bbb"
+				tokenC := "ccc"
+
+				hookURL := fmt.Sprintf("https://outlook.office.com/webhook/%s/IncomingWebhook/%s/%s", tokenA, tokenB, tokenC)
+				expectedOutput := fmt.Sprintf("teams://%s:%s@%s", tokenA, tokenB, tokenC)
+
+				args := []string{
+					"--notification-msteams-hook",
+					hookURL,
+				}
+
+				testURL(builderFn, args, expectedOutput)
+			})
+		})
+	})
+
 	Describe("the email notifier", func() {
 
 		builderFn := notifications.NewEmailNotifier
