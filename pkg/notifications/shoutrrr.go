@@ -40,7 +40,6 @@ func newShoutrrrNotifierFromURL(c *cobra.Command, url string, levels []log.Level
 
 func createSender(urls []string, levels []log.Level, template *template.Template) t.Notifier {
 	r, err := shoutrrr.CreateSender(urls...)
-	fmt.Println(urls)
 	if err != nil {
 		log.Fatalf("Failed to initialize Shoutrrr notifications: %s\n", err.Error())
 	}
