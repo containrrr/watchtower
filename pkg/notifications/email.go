@@ -3,15 +3,18 @@ package notifications
 import (
 	"encoding/base64"
 	"fmt"
-	"github.com/spf13/cobra"
 	"net/smtp"
 	"os"
 	"strings"
 	"time"
 
+	"github.com/spf13/cobra"
+
+	"strconv"
+
+	shoutrrrSmtp "github.com/containrrr/shoutrrr/pkg/services/smtp"
 	t "github.com/containrrr/watchtower/pkg/types"
 	log "github.com/sirupsen/logrus"
-	"strconv"
 )
 
 const (
@@ -33,7 +36,11 @@ type emailTypeNotifier struct {
 	delay                              time.Duration
 }
 
-func newEmailNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.Notifier {
+func NewEmailNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.ConvertableNotifier {
+	return newEmailNotifier(c, acceptedLogLevels)
+}
+
+func newEmailNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.ConvertableNotifier {
 	flags := c.PersistentFlags()
 
 	from, _ := flags.GetString("notification-email-from")
@@ -64,7 +71,30 @@ func newEmailNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.Notifie
 	return n
 }
 
-func (e *emailTypeNotifier) buildMessage(entries []*log.Entry) []byte {
+func (e *emailTypeNotifier) GetURL() string {
+	conf := &shoutrrrSmtp.Config{
+		FromAddress: e.From,
+		FromName:    "Watchtower",
+		ToAddresses: []string{e.To},
+		Port:        uint16(e.Port),
+		Host:        e.Server,
+		Subject:     e.getSubject(),
+		Username:    e.User,
+		Password:    e.Password,
+		UseStartTLS: false,
+		UseHTML:     false,
+	}
+
+	if len(e.User) > 0 {
+		conf.Set("auth", "Plain")
+	} else {
+		conf.Set("auth", "None")
+	}
+
+	return conf.GetURL().String()
+}
+
+func (e *emailTypeNotifier) getSubject() string {
 	var emailSubject string
 
 	if e.SubjectTag == "" {
@@ -75,6 +105,12 @@ func (e *emailTypeNotifier) buildMessage(entries []*log.Entry) []byte {
 	if hostname, err := os.Hostname(); err == nil {
 		emailSubject += " on " + hostname
 	}
+	return emailSubject
+}
+
+func (e *emailTypeNotifier) buildMessage(entries []*log.Entry) []byte {
+	emailSubject := e.getSubject()
+
 	body := ""
 	for _, entry := range entries {
 		body += entry.Time.Format("2006-01-02 15:04:05") + " (" + entry.Level.String() + "): " + entry.Message + "\r\n"

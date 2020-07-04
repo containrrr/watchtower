@@ -35,15 +35,19 @@ var (
 	lifecycleHooks bool
 )
 
-var rootCmd = &cobra.Command{
-	Use:   "watchtower",
-	Short: "Automatically updates running Docker containers",
-	Long: `
-Watchtower automatically updates running Docker containers whenever a new image is released.
-More information available at https://github.com/containrrr/watchtower/.
-`,
-	Run:    Run,
-	PreRun: PreRun,
+var rootCmd = NewRootCommand()
+
+func NewRootCommand() *cobra.Command {
+	return &cobra.Command{
+		Use:   "watchtower",
+		Short: "Automatically updates running Docker containers",
+		Long: `
+	Watchtower automatically updates running Docker containers whenever a new image is released.
+	More information available at https://github.com/containrrr/watchtower/.
+	`,
+		Run:    Run,
+		PreRun: PreRun,
+	}
 }
 
 func init() {

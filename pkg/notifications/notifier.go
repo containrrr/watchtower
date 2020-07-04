@@ -31,6 +31,27 @@ func NewNotifier(c *cobra.Command) *Notifier {
 	if err != nil {
 		log.WithField("could not read notifications argument", log.Fields{"Error": err}).Fatal()
 	}
+
+	n.types = n.GetNotificationTypes(c, acceptedLogLevels, types)
+
+	return n
+}
+
+func convertToShoutrrrURL(c *cobra.Command, notificationType string) string {
+
+	switch notificationType {
+	case emailType:
+		emailNotifier := newEmailNotifier(c, []log.Level{})
+		return emailNotifier.GetURL()
+	default:
+		return ""
+	}
+}
+
+// GetNotificationTypes produces an array of notifiers from a list of types
+func (n *Notifier) GetNotificationTypes(c *cobra.Command, acceptedLogLevels []log.Level, types []string) []ty.Notifier {
+	output := make([]ty.Notifier, 0)
+
 	for _, t := range types {
 		var tn ty.Notifier
 		switch t {
@@ -47,10 +68,10 @@ func NewNotifier(c *cobra.Command) *Notifier {
 		default:
 			log.Fatalf("Unknown notification type %q", t)
 		}
-		n.types = append(n.types, tn)
+		output = append(output, tn)
 	}
 
-	return n
+	return output
 }
 
 // StartNotification starts a log batch. Notifications will be accumulated after this point and only sent when SendNotification() is called.
