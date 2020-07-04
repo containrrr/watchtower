@@ -66,24 +66,25 @@ func getGotifyURL(flags *pflag.FlagSet) string {
 	return gotifyURL
 }
 
-func (n *gotifyTypeNotifier) StartNotification() {}
-
-func (n *gotifyTypeNotifier) SendNotification() {}
-
-func (n *gotifyTypeNotifier) Levels() []log.Level { return nil }
-
 func (n *gotifyTypeNotifier) GetURL() string {
+	url := n.gotifyURL
+
+	if strings.HasPrefix(url, "https://") {
+		url = strings.TrimPrefix(url, "https://")
+	} else {
+		url = strings.TrimPrefix(url, "http://")
+	}
+
+	url = strings.TrimSuffix(url, "/")
+
 	config := &shoutrrrGotify.Config{
-		Host:  n.gotifyURL,
+		Host:  url,
 		Token: n.gotifyAppToken,
-		// TODO: Shoutrrr does not currently support InsecureSkipVerify. This needs to be fixed at some point.
 	}
 
 	return config.GetURL().String()
 }
 
-type gotifyMessage struct {
-	Message  string `json:"message"`
-	Title    string `json:"title"`
-	Priority int    `json:"priority"`
-}
+func (n *gotifyTypeNotifier) StartNotification()  {}
+func (n *gotifyTypeNotifier) SendNotification()   {}
+func (n *gotifyTypeNotifier) Levels() []log.Level { return nil }

@@ -59,6 +59,28 @@ var _ = Describe("notifications", func() {
 		})
 	})
 
+	Describe("the gotify notifier", func() {
+		When("converting a gotify service config into a shoutrrr url", func() {
+			builderFn := notifications.NewGotifyNotifier
+
+			It("should return the expected URL", func() {
+				token := "aaa"
+				host := "shoutrrr.local"
+
+				expectedOutput := fmt.Sprintf("gotify://%s/%s", host, token)
+
+				args := []string{
+					"--notification-gotify-url",
+					fmt.Sprintf("https://%s", host),
+					"--notification-gotify-token",
+					token,
+				}
+
+				testURL(builderFn, args, expectedOutput)
+			})
+		})
+	})
+
 	Describe("the teams notifier", func() {
 		When("converting a teams service config into a shoutrrr url", func() {
 			builderFn := notifications.NewMsTeamsNotifier
