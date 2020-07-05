@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"text/template"
+    "strings"
 
 	"github.com/containrrr/shoutrrr"
 	"github.com/containrrr/shoutrrr/pkg/router"
@@ -109,10 +110,22 @@ func getShoutrrrTemplate(c *cobra.Command) *template.Template {
 
 	tplString, err := flags.GetString("notification-template")
 
+	funcs := template.FuncMap{
+		"ToUpper": func(input interface{}) string {
+			return strings.ToUpper(fmt.Sprintf("%v", input))
+		},
+		"ToLower":func(input interface{}) string {
+			return strings.ToLower(fmt.Sprintf("%v", input))
+		},
+		"Title":func(input interface{}) string {
+			return strings.Title(fmt.Sprintf("%v", input))
+		},
+	}
+
 	// If we succeed in getting a non-empty template configuration
 	// try to parse the template string.
 	if tplString != "" && err == nil {
-		tpl, err = template.New("").Parse(tplString)
+		tpl, err = template.New("").Funcs(funcs).Parse(tplString)
 	}
 
 	// In case of errors (either from parsing the template string
@@ -128,7 +141,7 @@ func getShoutrrrTemplate(c *cobra.Command) *template.Template {
 	// template wasn't configured (the empty template string)
 	// fallback to using the default template.
 	if err != nil || tplString == "" {
-		tpl = template.Must(template.New("").Parse(shoutrrrDefaultTemplate))
+		tpl = template.Must(template.New("").Funcs(funcs).Parse(shoutrrrDefaultTemplate))
 	}
 
 	return tpl

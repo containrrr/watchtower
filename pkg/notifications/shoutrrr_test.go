@@ -51,6 +51,30 @@ func TestShoutrrrTemplate(t *testing.T) {
 	require.Equal(t, "info: foo bar\n", s)
 }
 
+func TestShoutrrrStringFunctions(t *testing.T) {
+	cmd := new(cobra.Command)
+	flags.RegisterNotificationFlags(cmd)
+	err := cmd.ParseFlags([]string{"--notification-template={{range .}}{{.Level | ToUpper }}: {{.Message | ToLower }} {{.Message | Title }}{{println}}{{end}}"})
+
+	require.NoError(t, err)
+
+	shoutrrr := &shoutrrrTypeNotifier{
+		template: getShoutrrrTemplate(cmd),
+	}
+
+	entries := []*log.Entry{
+		{
+			Level:   log.InfoLevel,
+			Message: "foo Bar",
+		},
+	}
+
+	s := shoutrrr.buildMessage(entries)
+
+	require.Equal(t, "INFO: foo bar Foo Bar\n", s)
+}
+
+
 func TestShoutrrrInvalidTemplateUsesTemplate(t *testing.T) {
 	cmd := new(cobra.Command)
 
