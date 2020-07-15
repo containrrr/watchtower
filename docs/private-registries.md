@@ -69,6 +69,21 @@ watchtower:
 [...]
 ```
 
+#### Docker Config path
+By default, watchtower will look for the `config.json` file in `/`, but this can be changed by setting the `DOCKER_CONFIG` environment variable to the directory path where your config is located. This is useful for setups where the config.json file is changed while the watchtower instance is running, as the changes will not be picked up for a mounted file if the inode changes.
+Example usage:
+
+```yaml
+watchtower:
+  image: containrrr/watchtower
+  environment:
+      DOCKER_CONFIG: /config
+    volumes:
+      - /etc/watchtower/config/:/config/
+      - /var/run/docker.sock:/var/run/docker.sock
+```
+
+
 ## Credential helpers
 Some private Docker registries (the most prominent probably being AWS ECR) use non-standard ways of authentication.
 To be able to use this together with watchtower, we need to use a credential helper.
