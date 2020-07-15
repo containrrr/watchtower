@@ -113,9 +113,7 @@ func getShoutrrrTemplate(c *cobra.Command) *template.Template {
 	funcs := template.FuncMap{
 		"ToUpper": strings.ToUpper,
 		"ToLower": strings.ToLower,
-		"Title":func(input interface{}) string {
-			return strings.Title(fmt.Sprintf("%v", input))
-		},
+		"Title": strings.Title,
 	}
 
 	// If we succeed in getting a non-empty template configuration
