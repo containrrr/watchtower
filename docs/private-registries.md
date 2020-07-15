@@ -32,9 +32,11 @@ echo -n 'username:password' | base64
 
 > ### ℹ️ Username and Password for GCloud
 >
-> For gcloud, we'll use `__json_key` as our username and the content
+> For gcloud, we'll use `_json_key` as our username and the content
 > of `gcloudauth.json` as the password.
-
+>```bash
+> echo -n "_json_key:$(cat gcloudauth.json)" | base64 -w0
+>```
 When the watchtower Docker container is started, the created configuration file
 (`<PATH>/config.json` in this example) needs to be passed to the container:
 
