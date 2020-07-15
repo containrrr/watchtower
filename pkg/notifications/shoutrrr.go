@@ -114,9 +114,7 @@ func getShoutrrrTemplate(c *cobra.Command) *template.Template {
 		"ToUpper": func(input interface{}) string {
 			return strings.ToUpper(fmt.Sprintf("%v", input))
 		},
-		"ToLower":func(input interface{}) string {
-			return strings.ToLower(fmt.Sprintf("%v", input))
-		},
+		"ToLower": strings.ToLower,
 		"Title":func(input interface{}) string {
 			return strings.Title(fmt.Sprintf("%v", input))
 		},
