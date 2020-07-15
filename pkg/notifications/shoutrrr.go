@@ -111,9 +111,7 @@ func getShoutrrrTemplate(c *cobra.Command) *template.Template {
 	tplString, err := flags.GetString("notification-template")
 
 	funcs := template.FuncMap{
-		"ToUpper": func(input interface{}) string {
-			return strings.ToUpper(fmt.Sprintf("%v", input))
-		},
+		"ToUpper": strings.ToUpper,
 		"ToLower": strings.ToLower,
 		"Title":func(input interface{}) string {
 			return strings.Title(fmt.Sprintf("%v", input))
