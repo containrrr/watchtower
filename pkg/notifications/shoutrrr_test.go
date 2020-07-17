@@ -54,7 +54,7 @@ func TestShoutrrrTemplate(t *testing.T) {
 func TestShoutrrrStringFunctions(t *testing.T) {
 	cmd := new(cobra.Command)
 	flags.RegisterNotificationFlags(cmd)
-	err := cmd.ParseFlags([]string{"--notification-template={{range .}}{{.Level | printf "%v" | ToUpper }}: {{.Message | ToLower }} {{.Message | Title }}{{println}}{{end}}"})
+	err := cmd.ParseFlags([]string{"--notification-template={{range .}}{{.Level | printf \"%v\" | ToUpper }}: {{.Message | ToLower }} {{.Message | Title }}{{println}}{{end}}"})
 
 	require.NoError(t, err)
 
