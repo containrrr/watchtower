@@ -58,8 +58,8 @@ func FilterByScope(scope string, baseFilter t.Filter) t.Filter {
 	}
 	
 	return func(c t.FilterableContainer) bool {
-		container_scope, ok := c.Scope()
-		if ok && container_scope == scope {
+		containerScope, ok := c.Scope()
+		if ok && containerScope == scope {
 			return baseFilter(c)
 		}
 

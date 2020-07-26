@@ -56,7 +56,7 @@ func (_m *FilterableContainer) Name() string {
 	return r0
 }
 
-// Name provides a mock function with given fields:
+// Scope provides a mock function with given fields:
 func (_m *FilterableContainer) Scope() (string, bool) {
 	ret := _m.Called()
 
