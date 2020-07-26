@@ -127,9 +127,9 @@ func RegisterSystemFlags(rootCmd *cobra.Command) {
 		"Sets an authentication token to HTTP API requests.")
 	
 	flags.StringP(
-		"scope-uid",
+		"scope",
 		"",
-		viper.GetString("WATCHTOWER_SCOPE_UID"),
+		viper.GetString("WATCHTOWER_SCOPE"),
 		"Defines a monitoring scope for the Watchtower instance.")
 }
 

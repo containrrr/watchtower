@@ -67,25 +67,25 @@ func TestFilterByEnableLabel(t *testing.T) {
 	container.AssertExpectations(t)
 }
 
-func TestFilterByScopeUID(t *testing.T) {
-	var scopeUID string
-	scopeUID = "testscope"
+func TestFilterByScope(t *testing.T) {
+	var scope string
+	scope = "testscope"
 
-	filter := FilterByScopeUID(scopeUID, NoFilter)
+	filter := FilterByScope(scope, NoFilter)
 	assert.NotNil(t, filter)
 
 	container := new(mocks.FilterableContainer)
-	container.On("ScopeUID").Return("testscope", true)
+	container.On("Scope").Return("testscope", true)
 	assert.True(t, filter(container))
 	container.AssertExpectations(t)
 
 	container = new(mocks.FilterableContainer)
-	container.On("ScopeUID").Return("nottestscope", true)
+	container.On("Scope").Return("nottestscope", true)
 	assert.False(t, filter(container))
 	container.AssertExpectations(t)
 
 	container = new(mocks.FilterableContainer)
-	container.On("ScopeUID").Return("", false)
+	container.On("Scope").Return("", false)
 	assert.False(t, filter(container))
 	container.AssertExpectations(t)
 }

@@ -57,7 +57,7 @@ func (_m *FilterableContainer) Name() string {
 }
 
 // Name provides a mock function with given fields:
-func (_m *FilterableContainer) ScopeUID() (string, bool) {
+func (_m *FilterableContainer) Scope() (string, bool) {
 	ret := _m.Called()
 
 	var r0 string

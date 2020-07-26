@@ -216,11 +216,11 @@ Environment Variable: WATCHTOWER_HTTP_API_TOKEN
 ``` 
 
 ## Filter by scope
-Update containers that have a `com.centurylinklabs.watchtower.scope-uid` label set with the same value as the given argument. This enables [running multiple instances](https://containrrr.github.io/watchtower/running-multiple-instances).
+Update containers that have a `com.centurylinklabs.watchtower.scope` label set with the same value as the given argument. This enables [running multiple instances](https://containrrr.github.io/watchtower/running-multiple-instances).
 
 ```
-            Argument: --scope-uid
-Environment Variable: WATCHTOWER_SCOPE_UID
+            Argument: --scope
+Environment Variable: WATCHTOWER_SCOPE
                 Type: String
              Default: -
 ``` 

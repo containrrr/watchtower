@@ -90,10 +90,10 @@ func (c Container) Enabled() (bool, bool) {
 	return parsedBool, true
 }
 
-// ScopeUID returns the value of the scope UID label and if the label
+// Scope returns the value of the scope UID label and if the label
 // was set.
-func (c Container) ScopeUID() (string, bool) {
-	rawString, ok := c.getLabelValue(scopeUID)
+func (c Container) Scope() (string, bool) {
+	rawString, ok := c.getLabelValue(scope)
 	if !ok {
 		return "", false
 	}

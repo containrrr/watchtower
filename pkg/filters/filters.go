@@ -51,15 +51,15 @@ func FilterByDisabledLabel(baseFilter t.Filter) t.Filter {
 	}
 }
 
-// FilterByScopeUID returns all containers that belongs to a specific scope
-func FilterByScopeUID(scopeUID string, baseFilter t.Filter) t.Filter {
-	if scopeUID == "" {
+// FilterByScope returns all containers that belongs to a specific scope
+func FilterByScope(scope string, baseFilter t.Filter) t.Filter {
+	if scope == "" {
 		return baseFilter
 	}
 	
 	return func(c t.FilterableContainer) bool {
-		container_scope, ok := c.ScopeUID()
-		if ok && container_scope == scopeUID {
+		container_scope, ok := c.Scope()
+		if ok && container_scope == scope {
 			return baseFilter(c)
 		}
 
@@ -68,7 +68,7 @@ func FilterByScopeUID(scopeUID string, baseFilter t.Filter) t.Filter {
 }
 
 // BuildFilter creates the needed filter of containers
-func BuildFilter(names []string, enableLabel bool, scopeUID string) t.Filter {
+func BuildFilter(names []string, enableLabel bool, scope string) t.Filter {
 	filter := NoFilter
 	filter = FilterByNames(names, filter)
 	if enableLabel {
@@ -76,10 +76,10 @@ func BuildFilter(names []string, enableLabel bool, scopeUID string) t.Filter {
 		// if the label is specifically set.
 		filter = FilterByEnableLabel(filter)
 	}
-	if scopeUID != "" {
+	if scope != "" {
 		// If a scope has been defined, containers should only be considered
 		// if the scope is specifically set.
-		filter = FilterByScopeUID(scopeUID, filter)
+		filter = FilterByScope(scope, filter)
 	}
 	filter = FilterByDisabledLabel(filter)
 	return filter

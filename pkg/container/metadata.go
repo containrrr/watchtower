@@ -6,7 +6,7 @@ const (
 	enableLabel           = "com.centurylinklabs.watchtower.enable"
 	dependsOnLabel        = "com.centurylinklabs.watchtower.depends-on"
 	zodiacLabel           = "com.centurylinklabs.zodiac.original-image"
-	scopeUID			  = "com.centurylinklabs.watchtower.scope-uid"
+	scope                 = "com.centurylinklabs.watchtower.scope"
 	preCheckLabel         = "com.centurylinklabs.watchtower.lifecycle.pre-check"
 	postCheckLabel        = "com.centurylinklabs.watchtower.lifecycle.post-check"
 	preUpdateLabel        = "com.centurylinklabs.watchtower.lifecycle.pre-update"

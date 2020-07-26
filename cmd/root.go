@@ -30,7 +30,7 @@ var (
 	notifier       *notifications.Notifier
 	timeout        time.Duration
 	lifecycleHooks bool
-	scopeUID	   string
+	scope	   string
 )
 
 var rootCmd = &cobra.Command{
@@ -87,7 +87,9 @@ func PreRun(cmd *cobra.Command, args []string) {
 
 	enableLabel, _ = f.GetBool("label-enable")
 	lifecycleHooks, _ = f.GetBool("enable-lifecycle-hooks")
-	scopeUID, _ = f.GetString("scope-uid")
+	scope, _ = f.GetString("scope")
+
+	log.Debug(scope)
 
 	// configure environment vars for client
 	err := flags.EnvConfig(cmd)
@@ -112,7 +114,7 @@ func PreRun(cmd *cobra.Command, args []string) {
 
 // Run is the main execution flow of the command
 func Run(c *cobra.Command, names []string) {
-	filter := filters.BuildFilter(names, enableLabel, scopeUID)
+	filter := filters.BuildFilter(names, enableLabel, scope)
 	runOnce, _ := c.PersistentFlags().GetBool("run-once")
 	httpAPI, _ := c.PersistentFlags().GetBool("http-api")
 
@@ -125,7 +127,7 @@ func Run(c *cobra.Command, names []string) {
 		return
 	}
 
-	if err := actions.CheckForMultipleWatchtowerInstances(client, cleanup, scopeUID); err != nil {
+	if err := actions.CheckForMultipleWatchtowerInstances(client, cleanup, scope); err != nil {
 		log.Fatal(err)
 	}
 

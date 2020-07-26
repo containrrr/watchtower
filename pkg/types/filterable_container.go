@@ -6,5 +6,5 @@ type FilterableContainer interface {
 	Name() string
 	IsWatchtower() bool
 	Enabled() (bool, bool)
-	ScopeUID() (string, bool)
+	Scope() (string, bool)
 }
