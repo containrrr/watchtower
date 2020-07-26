@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://0x12b.com/watchtower-logo.png" width="450" />
+  <img src="./logo.png" width="450" />
 </p>
 <h1 align="center">
   Watchtower
@@ -45,7 +45,7 @@
 
 > ### ⚠️ Help needed
 >
-> As I [@simskij](https://github.com/simskij) currently am the sole maintainer of watchtower, i'm finding it a bit hard to keep up with all issues and pull requests. Interested in helping out with triage, troubleshooting and issue handling? Let me know on gitter!
+> We're finding it a bit hard to keep up with all issues and pull requests. Interested in helping out with triage, troubleshooting and issue handling? Let us know on gitter!
 
 
 ## Quick Start
@@ -60,7 +60,7 @@ $ docker run -d \
 ```
 
 ## Documentation
-The full documentation is available at https://containrrr.github.io/watchtower.
+The full documentation is available at https://containrrr.dev/watchtower.
 
 ## Contributors
 
@@ -139,12 +139,23 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
     <td align="center"><a href="https://github.com/mbrandau"><img src="https://avatars3.githubusercontent.com/u/12972798?v=4" width="100px;" alt=""/><br /><sub><b>Maximilian Brandau</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=mbrandau" title="Code">💻</a> <a href="https://github.com/containrrr/watchtower/commits?author=mbrandau" title="Tests">⚠️</a></td>
     <td align="center"><a href="https://github.com/aneisch"><img src="https://avatars1.githubusercontent.com/u/6991461?v=4" width="100px;" alt=""/><br /><sub><b>Andrew</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=aneisch" title="Documentation">📖</a></td>
     <td align="center"><a href="https://github.com/sixcorners"><img src="https://avatars0.githubusercontent.com/u/585501?v=4" width="100px;" alt=""/><br /><sub><b>sixcorners</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=sixcorners" title="Documentation">📖</a></td>
-    <td align="center"><a href="https://piksel.se"><img src="https://avatars2.githubusercontent.com/u/807383?v=4" width="100px;" alt=""/><br /><sub><b>nils måsén</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=piksel" title="Documentation">📖</a></td>
+    <td align="center"><a href="https://piksel.se"><img src="https://avatars2.githubusercontent.com/u/807383?v=4" width="100px;" alt=""/><br /><sub><b>nils måsén</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=piksel" title="Documentation">📖</a> <a href="https://github.com/containrrr/watchtower/commits?author=piksel" title="Code">💻</a></td>
     <td align="center"><a href="https://arnested.dk"><img src="https://avatars2.githubusercontent.com/u/190005?v=4" width="100px;" alt=""/><br /><sub><b>Arne Jørgensen</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=arnested" title="Tests">⚠️</a> <a href="https://github.com/containrrr/watchtower/pulls?q=is%3Apr+reviewed-by%3Aarnested" title="Reviewed Pull Requests">👀</a></td>
   </tr>
   <tr>
     <td align="center"><a href="https://github.com/patski123"><img src="https://avatars1.githubusercontent.com/u/19295295?v=4" width="100px;" alt=""/><br /><sub><b>PatSki123</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=patski123" title="Documentation">📖</a></td>
     <td align="center"><a href="https://rubyroidlabs.com/"><img src="https://avatars2.githubusercontent.com/u/624999?v=4" width="100px;" alt=""/><br /><sub><b>Valentine Zavadsky</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=Saicheg" title="Code">💻</a> <a href="https://github.com/containrrr/watchtower/commits?author=Saicheg" title="Documentation">📖</a> <a href="https://github.com/containrrr/watchtower/commits?author=Saicheg" title="Tests">⚠️</a></td>
+    <td align="center"><a href="https://github.com/bopoh24"><img src="https://avatars2.githubusercontent.com/u/4086631?v=4" width="100px;" alt=""/><br /><sub><b>Alexander Voronin</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=bopoh24" title="Code">💻</a> <a href="https://github.com/containrrr/watchtower/issues?q=author%3Abopoh24" title="Bug reports">🐛</a></td>
+    <td align="center"><a href="http://www.teqneers.de"><img src="https://avatars0.githubusercontent.com/u/788989?v=4" width="100px;" alt=""/><br /><sub><b>Oliver Mueller</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=ogmueller" title="Documentation">📖</a></td>
+    <td align="center"><a href="https://github.com/tammert"><img src="https://avatars0.githubusercontent.com/u/8885250?v=4" width="100px;" alt=""/><br /><sub><b>Sebastiaan Tammer</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=tammert" title="Code">💻</a></td>
+    <td align="center"><a href="https://github.com/Miosame"><img src="https://avatars1.githubusercontent.com/u/8201077?v=4" width="100px;" alt=""/><br /><sub><b>miosame</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=miosame" title="Documentation">📖</a></td>
+    <td align="center"><a href="https://mtz.gr"><img src="https://avatars3.githubusercontent.com/u/590246?v=4" width="100px;" alt=""/><br /><sub><b>Andrew Metzger</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/issues?q=author%3Aandrewjmetzger" title="Bug reports">🐛</a> <a href="#example-andrewjmetzger" title="Examples">💡</a></td>
+  </tr>
+  <tr>
+    <td align="center"><a href="https://github.com/pgrimaud"><img src="https://avatars1.githubusercontent.com/u/1866496?v=4" width="100px;" alt=""/><br /><sub><b>Pierre Grimaud</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=pgrimaud" title="Documentation">📖</a></td>
+    <td align="center"><a href="https://github.com/mattdoran"><img src="https://avatars0.githubusercontent.com/u/577779?v=4" width="100px;" alt=""/><br /><sub><b>Matt Doran</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=mattdoran" title="Documentation">📖</a></td>
+    <td align="center"><a href="https://github.com/MihailITPlace"><img src="https://avatars2.githubusercontent.com/u/28401551?v=4" width="100px;" alt=""/><br /><sub><b>MihailITPlace</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=MihailITPlace" title="Code">💻</a></td>
+    <td align="center"><a href="https://github.com/bugficks"><img src="https://avatars1.githubusercontent.com/u/2992895?v=4" width="100px;" alt=""/><br /><sub><b>bugficks</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=bugficks" title="Documentation">📖</a></td>
   </tr>
 </table>
 

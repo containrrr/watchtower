@@ -79,7 +79,7 @@ jobs:
           at: .
       - run: go build .
       - run: go get -u golang.org/x/lint/golint
-      - run: golint -set_exit_status ./... 
+      - run: golint -set_exit_status ./...
   testing:
     executor: go
     steps:
@@ -88,7 +88,7 @@ jobs:
       - run: go build ./...
       - run: go get github.com/schrej/godacov
       - run: go test ./... -coverprofile coverage.out
-      - run: godacov -t $CODACY_TOKEN -r ./coverage.out -c $CIRCLE_SHA1
+      # - run: godacov -t $CODACY_TOKEN -r ./coverage.out -c $CIRCLE_SHA1
   build:
     executor: go
     steps:
@@ -102,7 +102,7 @@ jobs:
             wget https://github.com/goreleaser/goreleaser/releases/download/v0.104.1/goreleaser_Linux_x86_64.tar.gz && \
             tar -xvf goreleaser_Linux_x86_64.tar.gz && \
             ./goreleaser -v
-      - run: 
+      - run:
           name: Execute goreleaser
           command: CGO_ENABLED=${CGO_ENABLED:-0} ../goreleaser --snapshot --skip-publish --debug
   publishing:
@@ -121,8 +121,8 @@ jobs:
       - run:
           name: Login to docker hub
           command: |
-            echo "$DOCKER_PASS" | docker login -u $DOCKER_USER --password-stdin 
-      - run: 
+            echo "$DOCKER_PASS" | docker login -u $DOCKER_USER --password-stdin
+      - run:
           name: Execute goreleaser
           command: CGO_ENABLED=${CGO_ENABLED:-0} ../goreleaser --debug
       - run:
@@ -204,17 +204,6 @@ jobs:
             echo "$DOCKER_PASS" | docker login -u $DOCKER_USER --password-stdin &&
             docker manifest push containrrr/watchtower:$(echo $CIRCLE_TAG | sed 's/^v*//') && \
             docker manifest push containrrr/watchtower:latest
-      - run:
-          name: Sync Readme to Dockerhub
-          command: |
-            docker pull lsiodev/readme-sync && \
-            docker run --rm=true \
-              -e DOCKERHUB_USERNAME=$DOCKER_USER \
-              -e DOCKERHUB_PASSWORD="$DOCKER_PASS" \
-              -e GIT_REPOSITORY=containrrr/watchtower \
-              -e DOCKER_REPOSITORY=containrrr/watchtower \
-              -e GIT_BRANCH=master \
-              lsiodev/readme-sync bash -c 'node sync'
   publish-docs:
     executor: py
     steps:
@@ -229,7 +218,7 @@ jobs:
               md-toc
       - add_ssh_keys:
           fingerprints:
-            - "91:75:47:15:b2:8e:85:e5:67:0e:63:7f:22:d2:b4:6e"
+            - '91:75:47:15:b2:8e:85:e5:67:0e:63:7f:22:d2:b4:6e'
       - run:
           name: Generate and publish
           command: |

@@ -15,7 +15,7 @@ require (
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
 	github.com/cloudflare/cfssl v0.0.0-20190911221928-1a911ca1b1d6 // indirect
 	github.com/containerd/continuity v0.0.0-20181203112020-004b46473808 // indirect
-	github.com/containrrr/shoutrrr v0.0.0-20200404203330-157bd996ea13
+	github.com/containrrr/shoutrrr v0.0.0-20200601144753-78bb9685bc2f
 	github.com/docker/cli v0.0.0-20190327152802-57b27434ea29
 	github.com/docker/distribution v2.7.1+incompatible
 	github.com/docker/docker v0.0.0-20190404075923-dbe4a30928d4
@@ -48,6 +48,7 @@ require (
 	github.com/robfig/cron v0.0.0-20180505203441-b41be1df6967
 	github.com/sirupsen/logrus v1.4.1
 	github.com/spf13/cobra v0.0.3
+	github.com/spf13/pflag v1.0.3
 	github.com/spf13/viper v1.4.0
 	github.com/stretchr/testify v1.3.0
 	github.com/theupdateframework/notary v0.6.1 // indirect

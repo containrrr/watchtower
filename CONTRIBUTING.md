@@ -3,7 +3,7 @@ To contribute code changes to this project you will need the following developme
  * [Go](https://golang.org/doc/install)
  * [Docker](https://docs.docker.com/engine/installation/)
  
-As watchtower utilizes go modules for vendor locking, you'll need atleast Go 1.11.
+As watchtower utilizes go modules for vendor locking, you'll need at least Go 1.11.
 You can check your current version of the go language as follows:
 ```bash
   ~ $ go version

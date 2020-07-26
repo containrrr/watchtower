@@ -32,9 +32,11 @@ echo -n 'username:password' | base64
 
 > ### ℹ️ Username and Password for GCloud
 >
-> For gcloud, we'll use `__json_key` as our username and the content
+> For gcloud, we'll use `_json_key` as our username and the content
 > of `gcloudauth.json` as the password.
-
+>```bash
+> echo -n "_json_key:$(cat gcloudauth.json)" | base64 -w0
+>```
 When the watchtower Docker container is started, the created configuration file
 (`<PATH>/config.json` in this example) needs to be passed to the container:
 
@@ -66,6 +68,21 @@ watchtower:
       - <PATH_TO_HOME_DIR>/.docker/config.json:/config.json
 [...]
 ```
+
+#### Docker Config path
+By default, watchtower will look for the `config.json` file in `/`, but this can be changed by setting the `DOCKER_CONFIG` environment variable to the directory path where your config is located. This is useful for setups where the config.json file is changed while the watchtower instance is running, as the changes will not be picked up for a mounted file if the inode changes.
+Example usage:
+
+```yaml
+watchtower:
+  image: containrrr/watchtower
+  environment:
+      DOCKER_CONFIG: /config
+    volumes:
+      - /etc/watchtower/config/:/config/
+      - /var/run/docker.sock:/var/run/docker.sock
+```
+
 
 ## Credential helpers
 Some private Docker registries (the most prominent probably being AWS ECR) use non-standard ways of authentication.
@@ -133,4 +150,4 @@ and for `<PATH_TO_HOME_DIR>/.docker/config.json`:
   }
 ```
 
-*Note:* `osxkeychain` can be changed to your prefered credentials helper.
+*Note:* `osxkeychain` can be changed to your preferred credentials helper.

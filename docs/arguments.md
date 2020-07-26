@@ -72,8 +72,18 @@ Environment Variable: WATCHTOWER_REMOVE_VOLUMES
 Enable debug mode with verbose logging.
 
 ```
-            Argument: --debug
+            Argument: --debug, -d
 Environment Variable: WATCHTOWER_DEBUG
+                Type: Boolean
+             Default: false
+```
+
+## Trace
+Enable trace mode with very verbose logging. Caution: exposes credentials!
+
+```
+            Argument: --trace
+Environment Variable: WATCHTOWER_TRACE
                 Type: Boolean
              Default: false
 ```
@@ -137,6 +147,9 @@ Environment Variable: WATCHTOWER_LABEL_ENABLE
                 Type: Boolean
              Default: false
 ```   
+
+## Filter by disable label
+**Do not** update containers that have `com.centurylinklabs.watchtower.enable` label set to false and no `--label-enable` argument is passed. Note that only one or the other (targeting by enable label) can be used at the same time to target containers.
 
 ## Without updating containers
 Will only monitor for new images, not update the containers. 

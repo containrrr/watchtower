@@ -65,6 +65,9 @@ func PreRun(cmd *cobra.Command, args []string) {
 	if enabled, _ := f.GetBool("debug"); enabled {
 		log.SetLevel(log.DebugLevel)
 	}
+	if enabled, _ := f.GetBool("trace"); enabled {
+		log.SetLevel(log.TraceLevel)
+	}
 
 	pollingSet := f.Changed("interval")
 	schedule, _ := f.GetString("schedule")
@@ -79,6 +82,7 @@ func PreRun(cmd *cobra.Command, args []string) {
 		scheduleSpec = "@every " + strconv.Itoa(interval) + "s"
 	}
 
+	flags.GetSecretsFromFiles(cmd)
 	cleanup, noRestart, monitorOnly, timeout = flags.ReadFlags(cmd)
 
 	if timeout < 0 {

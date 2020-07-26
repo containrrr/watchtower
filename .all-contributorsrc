@@ -513,7 +513,8 @@
       "avatar_url": "https://avatars2.githubusercontent.com/u/807383?v=4",
       "profile": "https://piksel.se",
       "contributions": [
-        "doc"
+        "doc",
+        "code"
       ]
     },
     {
@@ -544,6 +545,89 @@
         "code",
         "doc",
         "test"
+      ]
+    },
+    {
+      "login": "bopoh24",
+      "name": "Alexander Voronin",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/4086631?v=4",
+      "profile": "https://github.com/bopoh24",
+      "contributions": [
+        "code",
+        "bug"
+      ]
+    },
+    {
+      "login": "ogmueller",
+      "name": "Oliver Mueller",
+      "avatar_url": "https://avatars0.githubusercontent.com/u/788989?v=4",
+      "profile": "http://www.teqneers.de",
+      "contributions": [
+        "doc"
+      ]
+    },
+    {
+      "login": "tammert",
+      "name": "Sebastiaan Tammer",
+      "avatar_url": "https://avatars0.githubusercontent.com/u/8885250?v=4",
+      "profile": "https://github.com/tammert",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "miosame",
+      "name": "miosame",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/8201077?v=4",
+      "profile": "https://github.com/Miosame",
+      "contributions": [
+        "doc"
+      ]
+    },
+    {
+      "login": "andrewjmetzger",
+      "name": "Andrew Metzger",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/590246?v=4",
+      "profile": "https://mtz.gr",
+      "contributions": [
+        "bug",
+        "example"
+      ]
+    },
+    {
+      "login": "pgrimaud",
+      "name": "Pierre Grimaud",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/1866496?v=4",
+      "profile": "https://github.com/pgrimaud",
+      "contributions": [
+        "doc"
+      ]
+    },
+    {
+      "login": "mattdoran",
+      "name": "Matt Doran",
+      "avatar_url": "https://avatars0.githubusercontent.com/u/577779?v=4",
+      "profile": "https://github.com/mattdoran",
+      "contributions": [
+        "doc"
+      ]
+    },
+    {
+      "login": "MihailITPlace",
+      "name": "MihailITPlace",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/28401551?v=4",
+      "profile": "https://github.com/MihailITPlace",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "bugficks",
+      "name": "bugficks",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/2992895?v=4",
+      "profile": "https://github.com/bugficks",
+      "contributions": [
+        "doc"
       ]
     }
   ],

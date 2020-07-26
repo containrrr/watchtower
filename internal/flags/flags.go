@@ -1,17 +1,20 @@
 package flags
 
 import (
+	"io/ioutil"
 	"os"
+	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
 
 // DockerAPIMinVersion is the minimum version of the docker api required to
 // use watchtower
-const DockerAPIMinVersion string = "1.24"
+const DockerAPIMinVersion string = "1.25"
 
 // RegisterDockerFlags that are used directly by the docker api client
 func RegisterDockerFlags(rootCmd *cobra.Command) {
@@ -83,6 +86,12 @@ func RegisterSystemFlags(rootCmd *cobra.Command) {
 		"d",
 		viper.GetBool("WATCHTOWER_DEBUG"),
 		"enable debug mode with verbose logging")
+
+	flags.BoolP(
+		"trace",
+		"",
+		viper.GetBool("WATCHTOWER_TRACE"),
+		"enable trace mode with very verbose logging - caution, exposes credentials")
 
 	flags.BoolP(
 		"monitor-only",
@@ -183,10 +192,8 @@ func RegisterNotificationFlags(rootCmd *cobra.Command) {
 		"notification-email-server-tls-skip-verify",
 		"",
 		viper.GetBool("WATCHTOWER_NOTIFICATION_EMAIL_SERVER_TLS_SKIP_VERIFY"),
-		`
-Controls whether watchtower verifies the SMTP server's certificate chain and host name.
-Should only be used for testing.
-`)
+		`Controls whether watchtower verifies the SMTP server's certificate chain and host name.
+Should only be used for testing.`)
 
 	flags.StringP(
 		"notification-email-server-user",
@@ -253,11 +260,25 @@ Should only be used for testing.
 		"",
 		viper.GetString("WATCHTOWER_NOTIFICATION_GOTIFY_URL"),
 		"The Gotify URL to send notifications to")
+
 	flags.StringP(
 		"notification-gotify-token",
 		"",
 		viper.GetString("WATCHTOWER_NOTIFICATION_GOTIFY_TOKEN"),
 		"The Gotify Application required to query the Gotify API")
+
+	flags.BoolP(
+		"notification-gotify-tls-skip-verify",
+		"",
+		viper.GetBool("WATCHTOWER_NOTIFICATION_GOTIFY_TLS_SKIP_VERIFY"),
+		`Controls whether watchtower verifies the Gotify server's certificate chain and host name.
+Should only be used for testing.`)
+
+	flags.StringP(
+		"notification-template",
+		"",
+		viper.GetString("WATCHTOWER_NOTIFICATION_TEMPLATE"),
+		"The shoutrrr text/template for the messages")
 
 	flags.StringArrayP(
 		"notification-url",
@@ -353,4 +374,46 @@ func setEnvOptBool(env string, opt bool) error {
 		return setEnvOptStr(env, "1")
 	}
 	return nil
+}
+
+// GetSecretsFromFiles checks if passwords/tokens/webhooks have been passed as a file instead of plaintext.
+// If so, the value of the flag will be replaced with the contents of the file.
+func GetSecretsFromFiles(rootCmd *cobra.Command) {
+	flags := rootCmd.PersistentFlags()
+
+	secrets := []string{
+		"notification-email-server-password",
+		"notification-slack-hook-url",
+		"notification-msteams-hook",
+		"notification-gotify-token",
+	}
+	for _, secret := range secrets {
+		getSecretFromFile(flags, secret)
+	}
+}
+
+// getSecretFromFile will check if the flag contains a reference to a file; if it does, replaces the value of the flag with the contents of the file.
+func getSecretFromFile(flags *pflag.FlagSet, secret string) {
+	value, err := flags.GetString(secret)
+	if err != nil {
+		log.Error(err)
+	}
+	if value != "" && isFile(value) {
+		file, err := ioutil.ReadFile(value)
+		if err != nil {
+			log.Fatal(err)
+		}
+		err = flags.Set(secret, strings.TrimSpace(string(file)))
+		if err != nil {
+			log.Error(err)
+		}
+	}
+}
+
+func isFile(s string) bool {
+	_, err := os.Stat(s)
+	if os.IsNotExist(err) {
+		return false
+	}
+	return true
 }
