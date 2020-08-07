@@ -244,7 +244,7 @@ func (client dockerClient) IsContainerStale(container Container) (bool, error) {
 }
 
 func (client dockerClient) HasNewImage(ctx context.Context, container Container) (bool, error) {
-	oldImageID := container.imageInfo.ID
+	oldImageID := container.containerInfo.ContainerJSONBase.Image
 	imageName := container.ImageName()
 
 	newImageInfo, _, err := client.api.ImageInspectWithRaw(ctx, imageName)
