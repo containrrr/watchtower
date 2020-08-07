@@ -119,7 +119,12 @@ func (client dockerClient) GetContainer(containerID string) (Container, error) {
 		return Container{}, err
 	}
 
-	container := Container{containerInfo: &containerInfo}
+	imageInfo, _, err := client.api.ImageInspectWithRaw(bg, containerInfo.Image)
+	if err != nil {
+		return Container{}, err
+	}
+
+	container := Container{containerInfo: &containerInfo, imageInfo: &imageInfo}
 	return container, nil
 }
 
@@ -239,7 +244,7 @@ func (client dockerClient) IsContainerStale(container Container) (bool, error) {
 }
 
 func (client dockerClient) HasNewImage(ctx context.Context, container Container) (bool, error) {
-	oldImageID := container.containerInfo.ContainerJSONBase.Image
+	oldImageID := container.imageInfo.ID
 	imageName := container.ImageName()
 
 	newImageInfo, _, err := client.api.ImageInspectWithRaw(ctx, imageName)
