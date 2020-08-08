@@ -102,6 +102,10 @@ func PreRun(cmd *cobra.Command, args []string) {
 	reviveStopped, _ := f.GetBool("revive-stopped")
 	removeVolumes, _ := f.GetBool("remove-volumes")
 
+	if monitorOnly && noPull {
+		log.Warn("Using `WATCHTOWER_NO_PULL` and `WATCHTOWER_MONITOR_ONLY` simultaneously might lead to no action being taken at all. If this is intentional, you may safely ignore this message.")
+	}
+
 	client = container.NewClient(
 		!noPull,
 		includeStopped,
