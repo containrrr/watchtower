@@ -121,11 +121,10 @@ func (client dockerClient) GetContainer(containerID string) (Container, error) {
 
 	imageInfo, _, err := client.api.ImageInspectWithRaw(bg, containerInfo.Image)
 	if err != nil {
-		return Container{}, err
+		log.Warnf("Failed to retrieve container image info: %v", err)
 	}
 
-	container := Container{containerInfo: &containerInfo, imageInfo: &imageInfo}
-	return container, nil
+	return Container{containerInfo: &containerInfo, imageInfo: &imageInfo}, nil
 }
 
 func (client dockerClient) StopContainer(c Container, timeout time.Duration) error {

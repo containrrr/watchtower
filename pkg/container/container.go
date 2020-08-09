@@ -221,3 +221,8 @@ func (c Container) hostConfig() *dockercontainer.HostConfig {
 
 	return hostConfig
 }
+
+// HasImageInfo returns whether image information could be retrieved for the container
+func (c Container) HasImageInfo() bool {
+	return c.imageInfo != nil
+}
