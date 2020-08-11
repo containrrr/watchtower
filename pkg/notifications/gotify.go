@@ -59,6 +59,8 @@ func (n *gotifyTypeNotifier) StartNotification() {}
 
 func (n *gotifyTypeNotifier) SendNotification() {}
 
+func (n *gotifyTypeNotifier) Close() {}
+
 func (n *gotifyTypeNotifier) Levels() []log.Level {
 	return n.logLevels
 }

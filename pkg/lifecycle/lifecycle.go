@@ -36,7 +36,7 @@ func ExecutePreCheckCommand(client container.Client, container container.Contain
 		return
 	}
 
-	log.Info("Executing pre-check command.")
+	log.Debug("Executing pre-check command.")
 	if err := client.ExecuteCommand(container.ID(), command, 1); err != nil {
 		log.Error(err)
 	}
@@ -50,7 +50,7 @@ func ExecutePostCheckCommand(client container.Client, container container.Contai
 		return
 	}
 
-	log.Info("Executing post-check command.")
+	log.Debug("Executing post-check command.")
 	if err := client.ExecuteCommand(container.ID(), command, 1); err != nil {
 		log.Error(err)
 	}
@@ -65,7 +65,7 @@ func ExecutePreUpdateCommand(client container.Client, container container.Contai
 		return nil
 	}
 
-	log.Info("Executing pre-update command.")
+	log.Debug("Executing pre-update command.")
 	return client.ExecuteCommand(container.ID(), command, timeout)
 }
 
@@ -83,7 +83,7 @@ func ExecutePostUpdateCommand(client container.Client, newContainerID string) {
 		return
 	}
 
-	log.Info("Executing post-update command.")
+	log.Debug("Executing post-update command.")
 	if err := client.ExecuteCommand(newContainerID, command, 1); err != nil {
 		log.Error(err)
 	}
