@@ -134,6 +134,13 @@ func RegisterSystemFlags(rootCmd *cobra.Command) {
 		"",
 		viper.GetString("WATCHTOWER_HTTP_API_TOKEN"),
 		"Sets an authentication token to HTTP API requests.")
+
+	// https://no-color.org/
+	flags.BoolP(
+		"no-color",
+		"",
+		viper.IsSet("NO_COLOR"),
+		"Disable ANSI color escape codes in log output")
 }
 
 // RegisterNotificationFlags that are used by watchtower to send notifications

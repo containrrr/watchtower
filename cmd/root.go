@@ -61,8 +61,7 @@ func Execute() {
 func PreRun(cmd *cobra.Command, args []string) {
 	f := cmd.PersistentFlags()
 
-	// https://no-color.org/
-	if _, enabled := os.LookupEnv("NO_COLOR"); enabled {
+	if enabled, _ := f.GetBool("no-color"); enabled {
 		log.SetFormatter(&log.TextFormatter{
 			DisableColors: true,
 		})
