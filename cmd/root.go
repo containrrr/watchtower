@@ -30,6 +30,7 @@ var (
 	notifier       *notifications.Notifier
 	timeout        time.Duration
 	lifecycleHooks bool
+	rollingRestart bool
 )
 
 var rootCmd = &cobra.Command{
@@ -89,6 +90,7 @@ func PreRun(cmd *cobra.Command, args []string) {
 
 	enableLabel, _ = f.GetBool("label-enable")
 	lifecycleHooks, _ = f.GetBool("enable-lifecycle-hooks")
+	rollingRestart, _ = f.GetBool("rolling-restart")
 
 	// configure environment vars for client
 	err := flags.EnvConfig(cmd)
@@ -201,6 +203,7 @@ func runUpdatesWithNotifications(filter t.Filter) {
 		Timeout:        timeout,
 		MonitorOnly:    monitorOnly,
 		LifecycleHooks: lifecycleHooks,
+		RollingRestart: rollingRestart,
 	}
 	err := actions.Update(client, updateParams)
 	if err != nil {

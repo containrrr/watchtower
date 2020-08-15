@@ -49,9 +49,21 @@ func Update(client container.Client, params types.UpdateParams) error {
 		return nil
 	}
 
-	stopContainersInReversedOrder(containers, client, params)
-	restartContainersInSortedOrder(containers, client, params)
+	if params.RollingRestart {
+		cleanupImageIDs := make(map[string]bool)
 
+		for i := len(containers) - 1; i >= 0; i-- {
+			if containers[i].Stale {
+				stopStaleContainer(containers[i], client, params)
+				restartStaleContainer(containers[i], client, params)
+			}
+		}
+
+		cleanupImages(client, cleanupImageIDs)
+	} else {
+		stopContainersInReversedOrder(containers, client, params)
+		restartContainersInSortedOrder(containers, client, params)
+	}
 	if params.LifecycleHooks {
 		lifecycle.ExecutePostChecks(client, params)
 	}
@@ -96,11 +108,16 @@ func restartContainersInSortedOrder(containers []container.Container, client con
 		restartStaleContainer(container, client, params)
 		imageIDs[container.ImageID()] = true
 	}
+
 	if params.Cleanup {
-		for imageID := range imageIDs {
-			if err := client.RemoveImageByID(imageID); err != nil {
-				log.Error(err)
-			}
+		cleanupImages(client, imageIDs)
+	}
+}
+
+func cleanupImages(client container.Client, imageIDs map[string]bool) {
+	for imageID := range imageIDs {
+		if err := client.RemoveImageByID(imageID); err != nil {
+			log.Error(err)
 		}
 	}
 }
