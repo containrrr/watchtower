@@ -50,16 +50,7 @@ func Update(client container.Client, params types.UpdateParams) error {
 	}
 
 	if params.RollingRestart {
-		cleanupImageIDs := make(map[string]bool)
-
-		for i := len(containers) - 1; i >= 0; i-- {
-			if containers[i].Stale {
-				stopStaleContainer(containers[i], client, params)
-				restartStaleContainer(containers[i], client, params)
-			}
-		}
-
-		cleanupImages(client, cleanupImageIDs)
+		performRollingRestart(containers, client, params)
 	} else {
 		stopContainersInReversedOrder(containers, client, params)
 		restartContainersInSortedOrder(containers, client, params)
@@ -68,6 +59,19 @@ func Update(client container.Client, params types.UpdateParams) error {
 		lifecycle.ExecutePostChecks(client, params)
 	}
 	return nil
+}
+
+func performRollingRestart(containers []container.Container, client container.Client, params types.UpdateParams) {
+	cleanupImageIDs := make(map[string]bool)
+
+	for i := len(containers) - 1; i >= 0; i-- {
+		if containers[i].Stale {
+			stopStaleContainer(containers[i], client, params)
+			restartStaleContainer(containers[i], client, params)
+		}
+	}
+
+	cleanupImages(client, cleanupImageIDs)
 }
 
 func stopContainersInReversedOrder(containers []container.Container, client container.Client, params types.UpdateParams) {
