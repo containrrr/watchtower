@@ -71,7 +71,9 @@ func performRollingRestart(containers []container.Container, client container.Cl
 		}
 	}
 
-	cleanupImages(client, cleanupImageIDs)
+	if params.Cleanup {
+		cleanupImages(client, cleanupImageIDs)
+	}
 }
 
 func stopContainersInReversedOrder(containers []container.Container, client container.Client, params types.UpdateParams) {
