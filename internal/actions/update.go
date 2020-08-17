@@ -35,12 +35,26 @@ func Update(client container.Client, params types.UpdateParams) error {
 		containers[i].Stale = stale
 	}
 
-	containers, err = sorter.SortByDependencies(containers)
+	checkDependencies(containers)
+
+	var dependency_sorted_graphs [][]container.Container
+
+	undirected_nodes := make(map[string][]string)
+	for i:= 0; i < len(containers); i++ {
+		undirected_nodes[containers[i].Name()] = containers[i].Links()
+	}
+
+	for i:= 0; i< len(containers); i++ {
+		for j:=0; j < len(containers[i].Links()); j++ {
+			undirected_nodes[containers[i].Links()[j]] = append(undirected_nodes[containers[i].Links()[j]], containers[i].Name())
+		}
+	}
+
+	dependency_sorted_graphs, err = sorter.SortByDependencies(containers,undirected_nodes)
+
 	if err != nil {
 		return err
 	}
-
-	checkDependencies(containers)
 
 	if params.MonitorOnly {
 		if params.LifecycleHooks {
@@ -48,9 +62,23 @@ func Update(client container.Client, params types.UpdateParams) error {
 		}
 		return nil
 	}
+	//shared map for independent and linked update
+	imageIDs := make(map[string]bool)
 
-	stopContainersInReversedOrder(containers, client, params)
-	restartContainersInSortedOrder(containers, client, params)
+	//Use ordered start and stop for each independent set of containers
+	for _, dependency_graph:= range dependency_sorted_graphs {
+		stopContainersInReversedOrder(dependency_graph, client, params)
+		restartContainersInSortedOrder(dependency_graph, client, params, imageIDs)
+	}
+
+	//clean up outside after containers updated
+	if params.Cleanup {
+		for imageID := range imageIDs {
+			if err := client.RemoveImageByID(imageID); err != nil {
+				log.Error(err)
+			}
+		}
+	}
 
 	if params.LifecycleHooks {
 		lifecycle.ExecutePostChecks(client, params)
@@ -86,22 +114,13 @@ func stopStaleContainer(container container.Container, client container.Client, 
 	}
 }
 
-func restartContainersInSortedOrder(containers []container.Container, client container.Client, params types.UpdateParams) {
-	imageIDs := make(map[string]bool)
-
+func restartContainersInSortedOrder(containers []container.Container, client container.Client, params types.UpdateParams, imageIDs map[string]bool) {
 	for _, container := range containers {
 		if !container.Stale {
 			continue
 		}
 		restartStaleContainer(container, client, params)
 		imageIDs[container.ImageID()] = true
-	}
-	if params.Cleanup {
-		for imageID := range imageIDs {
-			if err := client.RemoveImageByID(imageID); err != nil {
-				log.Error(err)
-			}
-		}
 	}
 }
 
@@ -143,4 +162,13 @@ func checkDependencies(containers []container.Container) {
 			}
 		}
 	}
+}
+
+func Find(links []string, target string) bool {
+	for i:=0; i < len(links); i++{
+		if links[i] == target{
+			return true
+		}
+	}
+	return false
 }

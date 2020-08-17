@@ -1,7 +1,6 @@
 package sorter
 
 import (
-	"fmt"
 	"github.com/containrrr/watchtower/pkg/container"
 	"time"
 )
@@ -31,26 +30,29 @@ func (c ByCreated) Less(i, j int) bool {
 
 // SortByDependencies will sort the list of containers taking into account any
 // links between containers. Container with no outgoing links will be sorted to
-// the front of the list while containers with links will be sorted after all
-// of their dependencies. This sort order ensures that linked containers can
-// be started in the correct order.
-func SortByDependencies(containers []container.Container) ([]container.Container, error) {
+// the front of their dependency list while containers without links will be
+// placed into their own list.This sort order ensures that linked containers can
+// be started in the correct order as well as separate independent sets of linked
+// containers from each other.
+func SortByDependencies(containers []container.Container, undirected_nodes map[string][]string) ([][]container.Container, error) {
 	sorter := dependencySorter{}
-	return sorter.Sort(containers)
+	return sorter.Sort(containers,undirected_nodes)
 }
 
 type dependencySorter struct {
 	unvisited []container.Container
 	marked    map[string]bool
-	sorted    []container.Container
+	sorted    [][]container.Container
 }
 
-func (ds *dependencySorter) Sort(containers []container.Container) ([]container.Container, error) {
+func (ds *dependencySorter) Sort(containers []container.Container, undirected_nodes map[string][]string) ([][]container.Container, error) {
 	ds.unvisited = containers
 	ds.marked = map[string]bool{}
 
 	for len(ds.unvisited) > 0 {
-		if err := ds.visit(ds.unvisited[0]); err != nil {
+		linked_graph := make([]container.Container,0,0)
+		ds.sorted = append(ds.sorted,linked_graph)
+		if err := ds.visit(ds.unvisited[0],undirected_nodes); err != nil {
 			return nil, err
 		}
 	}
@@ -58,20 +60,20 @@ func (ds *dependencySorter) Sort(containers []container.Container) ([]container.
 	return ds.sorted, nil
 }
 
-func (ds *dependencySorter) visit(c container.Container) error {
+func (ds *dependencySorter) visit(c container.Container, undirected_nodes map[string][]string) error {
 
 	if _, ok := ds.marked[c.Name()]; ok {
-		return fmt.Errorf("circular reference to %s", c.Name())
+		return nil
 	}
 
-	// Mark any visited node so that circular references can be detected
+	// Mark any visited node so that we don't visit it again
 	ds.marked[c.Name()] = true
 	defer delete(ds.marked, c.Name())
 
 	// Recursively visit links
-	for _, linkName := range c.Links() {
+	for _, linkName := range undirected_nodes[c.Name()] {
 		if linkedContainer := ds.findUnvisited(linkName); linkedContainer != nil {
-			if err := ds.visit(*linkedContainer); err != nil {
+			if err := ds.visit(*linkedContainer,undirected_nodes); err != nil {
 				return err
 			}
 		}
@@ -79,7 +81,7 @@ func (ds *dependencySorter) visit(c container.Container) error {
 
 	// Move container from unvisited to sorted
 	ds.removeUnvisited(c)
-	ds.sorted = append(ds.sorted, c)
+	ds.sorted[len(ds.sorted)-1] = append(ds.sorted[len(ds.sorted)-1], c)
 
 	return nil
 }
