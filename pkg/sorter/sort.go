@@ -34,9 +34,9 @@ func (c ByCreated) Less(i, j int) bool {
 // placed into their own list.This sort order ensures that linked containers can
 // be started in the correct order as well as separate independent sets of linked
 // containers from each other.
-func SortByDependencies(containers []container.Container, undirected_nodes map[string][]string) ([][]container.Container, error) {
+func SortByDependencies(containers []container.Container, undirectedNodes map[string][]string) ([][]container.Container, error) {
 	sorter := dependencySorter{}
-	return sorter.Sort(containers,undirected_nodes)
+	return sorter.Sort(containers,undirectedNodes)
 }
 
 type dependencySorter struct {
@@ -45,14 +45,14 @@ type dependencySorter struct {
 	sorted    [][]container.Container
 }
 
-func (ds *dependencySorter) Sort(containers []container.Container, undirected_nodes map[string][]string) ([][]container.Container, error) {
+func (ds *dependencySorter) Sort(containers []container.Container, undirectedNodes map[string][]string) ([][]container.Container, error) {
 	ds.unvisited = containers
 	ds.marked = map[string]bool{}
 
 	for len(ds.unvisited) > 0 {
-		linked_graph := make([]container.Container,0,0)
-		ds.sorted = append(ds.sorted,linked_graph)
-		if err := ds.visit(ds.unvisited[0],undirected_nodes); err != nil {
+		linkedGraph := make([]container.Container,0,0)
+		ds.sorted = append(ds.sorted,linkedGraph)
+		if err := ds.visit(ds.unvisited[0],undirectedNodes); err != nil {
 			return nil, err
 		}
 	}
@@ -60,7 +60,7 @@ func (ds *dependencySorter) Sort(containers []container.Container, undirected_no
 	return ds.sorted, nil
 }
 
-func (ds *dependencySorter) visit(c container.Container, undirected_nodes map[string][]string) error {
+func (ds *dependencySorter) visit(c container.Container, undirectedNodes map[string][]string) error {
 
 	if _, ok := ds.marked[c.Name()]; ok {
 		return nil
@@ -71,9 +71,9 @@ func (ds *dependencySorter) visit(c container.Container, undirected_nodes map[st
 	defer delete(ds.marked, c.Name())
 
 	// Recursively visit links
-	for _, linkName := range undirected_nodes[c.Name()] {
+	for _, linkName := range undirectedNodes[c.Name()] {
 		if linkedContainer := ds.findUnvisited(linkName); linkedContainer != nil {
-			if err := ds.visit(*linkedContainer,undirected_nodes); err != nil {
+			if err := ds.visit(*linkedContainer,undirectedNodes); err != nil {
 				return err
 			}
 		}

@@ -37,20 +37,20 @@ func Update(client container.Client, params types.UpdateParams) error {
 
 	checkDependencies(containers)
 
-	var dependency_sorted_graphs [][]container.Container
+	var dependencySortedGraphs [][]container.Container
 
-	undirected_nodes := make(map[string][]string)
+	undirectedNodes := make(map[string][]string)
 	for i:= 0; i < len(containers); i++ {
-		undirected_nodes[containers[i].Name()] = containers[i].Links()
+		undirectedNodes[containers[i].Name()] = containers[i].Links()
 	}
 
 	for i:= 0; i< len(containers); i++ {
 		for j:=0; j < len(containers[i].Links()); j++ {
-			undirected_nodes[containers[i].Links()[j]] = append(undirected_nodes[containers[i].Links()[j]], containers[i].Name())
+			undirectedNodes[containers[i].Links()[j]] = append(undirectedNodes[containers[i].Links()[j]], containers[i].Name())
 		}
 	}
 
-	dependency_sorted_graphs, err = sorter.SortByDependencies(containers,undirected_nodes)
+	dependencySortedGraphs, err = sorter.SortByDependencies(containers,undirectedNodes)
 
 	if err != nil {
 		return err
@@ -66,9 +66,9 @@ func Update(client container.Client, params types.UpdateParams) error {
 	imageIDs := make(map[string]bool)
 
 	//Use ordered start and stop for each independent set of containers
-	for _, dependency_graph:= range dependency_sorted_graphs {
-		stopContainersInReversedOrder(dependency_graph, client, params)
-		restartContainersInSortedOrder(dependency_graph, client, params, imageIDs)
+	for _, dependencyGraph:= range dependencySortedGraphs {
+		stopContainersInReversedOrder(dependencyGraph, client, params)
+		restartContainersInSortedOrder(dependencyGraph, client, params, imageIDs)
 	}
 
 	//clean up outside after containers updated
