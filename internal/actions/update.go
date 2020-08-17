@@ -163,12 +163,3 @@ func checkDependencies(containers []container.Container) {
 		}
 	}
 }
-
-func Find(links []string, target string) bool {
-	for i:=0; i < len(links); i++{
-		if links[i] == target{
-			return true
-		}
-	}
-	return false
-}
