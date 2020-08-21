@@ -1,0 +1,8 @@
+pkg/notifications/smtp.go     @piksel
+pkg/notifications/email.go    @piksel
+pkg/notifications/shoutrrr.go @piksel @simskij @arnested
+pkg/container/*               @simskij
+pkg/api/*                     @victorcmoura
+.devbots/*                    @simskij
+.github/*                     @simskij
+docs/*                        @containrrr/watchtower-contributors

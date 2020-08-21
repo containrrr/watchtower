@@ -602,6 +602,51 @@
       "contributions": [
         "doc"
       ]
+    },
+    {
+      "login": "mattdoran",
+      "name": "Matt Doran",
+      "avatar_url": "https://avatars0.githubusercontent.com/u/577779?v=4",
+      "profile": "https://github.com/mattdoran",
+      "contributions": [
+        "doc"
+      ]
+    },
+    {
+      "login": "MihailITPlace",
+      "name": "MihailITPlace",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/28401551?v=4",
+      "profile": "https://github.com/MihailITPlace",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "bugficks",
+      "name": "bugficks",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/2992895?v=4",
+      "profile": "https://github.com/bugficks",
+      "contributions": [
+        "doc"
+      ]
+    },
+    {
+      "login": "MichaelSp",
+      "name": "Michael",
+      "avatar_url": "https://avatars0.githubusercontent.com/u/448282?v=4",
+      "profile": "https://github.com/MichaelSp",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "x-jokay",
+      "name": "D. Domig",
+      "avatar_url": "https://avatars0.githubusercontent.com/u/18613935?v=4",
+      "profile": "https://github.com/x-jokay",
+      "contributions": [
+        "doc"
+      ]
     }
   ],
   "contributorsPerLine": 7,

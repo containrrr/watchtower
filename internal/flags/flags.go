@@ -1,11 +1,14 @@
 package flags
 
 import (
+	"io/ioutil"
 	"os"
+	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
 
@@ -137,6 +140,12 @@ func RegisterSystemFlags(rootCmd *cobra.Command) {
 		"",
 		viper.GetString("WATCHTOWER_HTTP_API_TOKEN"),
 		"Sets an authentication token to HTTP API requests.")
+	
+	flags.StringP(
+		"scope",
+		"",
+		viper.GetString("WATCHTOWER_SCOPE"),
+		"Defines a monitoring scope for the Watchtower instance.")
 }
 
 // RegisterNotificationFlags that are used by watchtower to send notifications
@@ -371,4 +380,46 @@ func setEnvOptBool(env string, opt bool) error {
 		return setEnvOptStr(env, "1")
 	}
 	return nil
+}
+
+// GetSecretsFromFiles checks if passwords/tokens/webhooks have been passed as a file instead of plaintext.
+// If so, the value of the flag will be replaced with the contents of the file.
+func GetSecretsFromFiles(rootCmd *cobra.Command) {
+	flags := rootCmd.PersistentFlags()
+
+	secrets := []string{
+		"notification-email-server-password",
+		"notification-slack-hook-url",
+		"notification-msteams-hook",
+		"notification-gotify-token",
+	}
+	for _, secret := range secrets {
+		getSecretFromFile(flags, secret)
+	}
+}
+
+// getSecretFromFile will check if the flag contains a reference to a file; if it does, replaces the value of the flag with the contents of the file.
+func getSecretFromFile(flags *pflag.FlagSet, secret string) {
+	value, err := flags.GetString(secret)
+	if err != nil {
+		log.Error(err)
+	}
+	if value != "" && isFile(value) {
+		file, err := ioutil.ReadFile(value)
+		if err != nil {
+			log.Fatal(err)
+		}
+		err = flags.Set(secret, strings.TrimSpace(string(file)))
+		if err != nil {
+			log.Error(err)
+		}
+	}
+}
+
+func isFile(s string) bool {
+	_, err := os.Stat(s)
+	if os.IsNotExist(err) {
+		return false
+	}
+	return true
 }

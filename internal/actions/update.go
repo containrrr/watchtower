@@ -1,6 +1,7 @@
 package actions
 
 import (
+	"errors"
 	"github.com/containrrr/watchtower/internal/util"
 	"github.com/containrrr/watchtower/pkg/container"
 	"github.com/containrrr/watchtower/pkg/lifecycle"
@@ -25,11 +26,13 @@ func Update(client container.Client, params types.UpdateParams) error {
 		return err
 	}
 
-	for i, container := range containers {
-		stale, err := client.IsContainerStale(container)
+	for i, targetContainer := range containers {
+		stale, err := client.IsContainerStale(targetContainer)
+		if stale && !params.NoRestart && !params.MonitorOnly && !targetContainer.HasImageInfo() {
+			err = errors.New("no available image info")
+		}
 		if err != nil {
-			log.Infof("Unable to update container %s. Proceeding to next.", containers[i].Name())
-			log.Debug(err)
+			log.Infof("Unable to update container %q: %v. Proceeding to next.", containers[i].Name(), err)
 			stale = false
 		}
 		containers[i].Stale = stale
@@ -107,12 +110,12 @@ func stopStaleContainer(container container.Container, client container.Client, 
 func restartContainersInSortedOrder(containers []container.Container, client container.Client, params types.UpdateParams) {
 	imageIDs := make(map[string]bool)
 
-	for _, container := range containers {
-		if !container.Stale {
+	for _, staleContainer := range containers {
+		if !staleContainer.Stale {
 			continue
 		}
-		restartStaleContainer(container, client, params)
-		imageIDs[container.ImageID()] = true
+		restartStaleContainer(staleContainer, client, params)
+		imageIDs[staleContainer.ImageID()] = true
 	}
 
 	if params.Cleanup {
