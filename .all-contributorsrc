@@ -627,7 +627,34 @@
       "avatar_url": "https://avatars1.githubusercontent.com/u/2992895?v=4",
       "profile": "https://github.com/bugficks",
       "contributions": [
-        "doc",
+        "code",
+        "doc"
+      ]
+    },
+    {
+      "login": "MichaelSp",
+      "name": "Michael",
+      "avatar_url": "https://avatars0.githubusercontent.com/u/448282?v=4",
+      "profile": "https://github.com/MichaelSp",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "x-jokay",
+      "name": "D. Domig",
+      "avatar_url": "https://avatars0.githubusercontent.com/u/18613935?v=4",
+      "profile": "https://github.com/x-jokay",
+      "contributions": [
+        "doc"
+      ]
+    },
+    {
+      "login": "osheroff",
+      "name": "Ben Osheroff",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/260084?v=4",
+      "profile": "https://maxwells-daemon.io",
+      "contributions": [
         "code"
       ]
     }

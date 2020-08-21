@@ -12,4 +12,5 @@ type UpdateParams struct {
 	Timeout        time.Duration
 	MonitorOnly    bool
 	LifecycleHooks bool
+	RollingRestart bool
 }

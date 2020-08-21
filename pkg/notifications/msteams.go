@@ -47,6 +47,8 @@ func (n *msTeamsTypeNotifier) StartNotification() {}
 
 func (n *msTeamsTypeNotifier) SendNotification() {}
 
+func (n *msTeamsTypeNotifier) Close() {}
+
 func (n *msTeamsTypeNotifier) Levels() []log.Level {
 	return n.levels
 }

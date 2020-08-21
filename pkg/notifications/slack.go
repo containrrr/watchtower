@@ -42,3 +42,5 @@ func newSlackNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.Notifie
 func (s *slackTypeNotifier) StartNotification() {}
 
 func (s *slackTypeNotifier) SendNotification() {}
+
+func (s *slackTypeNotifier) Close() {}
