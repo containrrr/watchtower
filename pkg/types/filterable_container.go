@@ -6,4 +6,5 @@ type FilterableContainer interface {
 	Name() string
 	IsWatchtower() bool
 	Enabled() (bool, bool)
+	Scope() (string, bool)
 }

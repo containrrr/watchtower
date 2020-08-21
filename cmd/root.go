@@ -30,6 +30,8 @@ var (
 	notifier       *notifications.Notifier
 	timeout        time.Duration
 	lifecycleHooks bool
+	rollingRestart bool
+	scope	         string
 )
 
 var rootCmd = &cobra.Command{
@@ -101,6 +103,10 @@ func PreRun(cmd *cobra.Command, args []string) {
 
 	enableLabel, _ = f.GetBool("label-enable")
 	lifecycleHooks, _ = f.GetBool("enable-lifecycle-hooks")
+	rollingRestart, _ = f.GetBool("rolling-restart")
+	scope, _ = f.GetString("scope")
+
+	log.Debug(scope)
 
 	// configure environment vars for client
 	err := flags.EnvConfig(cmd)
@@ -129,20 +135,9 @@ func PreRun(cmd *cobra.Command, args []string) {
 
 // Run is the main execution flow of the command
 func Run(c *cobra.Command, names []string) {
-	filter := filters.BuildFilter(names, enableLabel)
+	filter := filters.BuildFilter(names, enableLabel, scope)
 	runOnce, _ := c.PersistentFlags().GetBool("run-once")
 	httpAPI, _ := c.PersistentFlags().GetBool("http-api")
-
-	if httpAPI {
-		apiToken, _ := c.PersistentFlags().GetString("http-api-token")
-
-		if err := api.SetupHTTPUpdates(apiToken, func() { runUpdatesWithNotifications(filter) }); err != nil {
-			log.Fatal(err)
-			os.Exit(1)
-		}
-
-		api.WaitForHTTPUpdates()
-	}
 
 	if runOnce {
 		if noStartupMessage, _ := c.PersistentFlags().GetBool("no-startup-message"); !noStartupMessage {
@@ -154,8 +149,19 @@ func Run(c *cobra.Command, names []string) {
 		return
 	}
 
-	if err := actions.CheckForMultipleWatchtowerInstances(client, cleanup); err != nil {
+	if err := actions.CheckForMultipleWatchtowerInstances(client, cleanup, scope); err != nil {
 		log.Fatal(err)
+	}
+
+	if httpAPI {
+		apiToken, _ := c.PersistentFlags().GetString("http-api-token")
+
+		if err := api.SetupHTTPUpdates(apiToken, func() { runUpdatesWithNotifications(filter) }); err != nil {
+			log.Fatal(err)
+			os.Exit(1)
+		}
+
+		api.WaitForHTTPUpdates()
 	}
 
 	if err := runUpgradesOnSchedule(c, filter); err != nil {
@@ -218,6 +224,7 @@ func runUpdatesWithNotifications(filter t.Filter) {
 		Timeout:        timeout,
 		MonitorOnly:    monitorOnly,
 		LifecycleHooks: lifecycleHooks,
+		RollingRestart: rollingRestart,
 	}
 	err := actions.Update(client, updateParams)
 	if err != nil {

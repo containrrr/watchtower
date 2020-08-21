@@ -238,6 +238,16 @@ Environment Variable: WATCHTOWER_HTTP_API_TOKEN
              Default: -
 ```
 
+## Filter by scope
+Update containers that have a `com.centurylinklabs.watchtower.scope` label set with the same value as the given argument. This enables [running multiple instances](https://containrrr.github.io/watchtower/running-multiple-instances).
+
+```
+            Argument: --scope
+Environment Variable: WATCHTOWER_SCOPE
+                Type: String
+             Default: -
+``` 
+
 ## Scheduling
 [Cron expression](https://pkg.go.dev/github.com/robfig/cron@v1.2.0?tab=doc#hdr-CRON_Expression_Format) in 6 fields (rather than the traditional 5) which defines when and how often to check for new images. Either `--interval` or the schedule expression
 can be defined, but not both. An example: `--schedule "0 0 4 * * *"`
@@ -247,6 +257,17 @@ can be defined, but not both. An example: `--schedule "0 0 4 * * *"`
 Environment Variable: WATCHTOWER_SCHEDULE
                 Type: String
              Default: -
+```
+
+## Rolling restart
+Restart one image at time instead of stopping and starting all at once.  Useful in conjunction with lifecycle hooks
+to implement zero-downtime deploy.
+
+```
+            Argument: --rolling-restart
+Environment Variable: WATCHTOWER_ROLLING_RESTART
+                Type: Boolean
+             Default: false
 ```
 
 ## Wait until timeout

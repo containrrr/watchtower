@@ -647,6 +647,15 @@
       "contributions": [
         "doc"
       ]
+    },
+    {
+      "login": "osheroff",
+      "name": "Ben Osheroff",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/260084?v=4",
+      "profile": "https://maxwells-daemon.io",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,

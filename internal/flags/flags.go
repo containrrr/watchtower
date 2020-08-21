@@ -124,6 +124,12 @@ func RegisterSystemFlags(rootCmd *cobra.Command) {
 		"Enable the execution of commands triggered by pre- and post-update lifecycle hooks")
 
 	flags.BoolP(
+		"rolling-restart",
+		"",
+		viper.GetBool("WATCHTOWER_ROLLING_RESTART"),
+		"Restart containers one at a time")
+
+	flags.BoolP(
 		"http-api",
 		"",
 		viper.GetBool("WATCHTOWER_HTTP_API"),
@@ -134,13 +140,17 @@ func RegisterSystemFlags(rootCmd *cobra.Command) {
 		"",
 		viper.GetString("WATCHTOWER_HTTP_API_TOKEN"),
 		"Sets an authentication token to HTTP API requests.")
-
 	// https://no-color.org/
 	flags.BoolP(
 		"no-color",
 		"",
 		viper.IsSet("NO_COLOR"),
 		"Disable ANSI color escape codes in log output")
+	flags.StringP(
+		"scope",
+		"",
+		viper.GetString("WATCHTOWER_SCOPE"),
+		"Defines a monitoring scope for the Watchtower instance.")
 }
 
 // RegisterNotificationFlags that are used by watchtower to send notifications
