@@ -63,6 +63,17 @@ func Execute() {
 func PreRun(cmd *cobra.Command, args []string) {
 	f := cmd.PersistentFlags()
 
+	if enabled, _ := f.GetBool("no-color"); enabled {
+		log.SetFormatter(&log.TextFormatter{
+			DisableColors: true,
+		})
+	} else {
+		// enable logrus built-in support for https://bixense.com/clicolors/
+		log.SetFormatter(&log.TextFormatter{
+			EnvironmentOverrideColors: true,
+		})
+	}
+
 	if enabled, _ := f.GetBool("debug"); enabled {
 		log.SetLevel(log.DebugLevel)
 	}
