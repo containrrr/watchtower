@@ -90,6 +90,17 @@ func (c Container) Enabled() (bool, bool) {
 	return parsedBool, true
 }
 
+// Scope returns the value of the scope UID label and if the label
+// was set.
+func (c Container) Scope() (string, bool) {
+	rawString, ok := c.getLabelValue(scope)
+	if !ok {
+		return "", false
+	}
+
+	return rawString, true
+}
+
 // Links returns a list containing the names of all the containers to which
 // this container is linked.
 func (c Container) Links() []string {

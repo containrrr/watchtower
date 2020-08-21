@@ -67,6 +67,29 @@ func TestFilterByEnableLabel(t *testing.T) {
 	container.AssertExpectations(t)
 }
 
+func TestFilterByScope(t *testing.T) {
+	var scope string
+	scope = "testscope"
+
+	filter := FilterByScope(scope, NoFilter)
+	assert.NotNil(t, filter)
+
+	container := new(mocks.FilterableContainer)
+	container.On("Scope").Return("testscope", true)
+	assert.True(t, filter(container))
+	container.AssertExpectations(t)
+
+	container = new(mocks.FilterableContainer)
+	container.On("Scope").Return("nottestscope", true)
+	assert.False(t, filter(container))
+	container.AssertExpectations(t)
+
+	container = new(mocks.FilterableContainer)
+	container.On("Scope").Return("", false)
+	assert.False(t, filter(container))
+	container.AssertExpectations(t)
+}
+
 func TestFilterByDisabledLabel(t *testing.T) {
 	filter := FilterByDisabledLabel(NoFilter)
 	assert.NotNil(t, filter)
@@ -91,7 +114,7 @@ func TestBuildFilter(t *testing.T) {
 	var names []string
 	names = append(names, "test")
 
-	filter := BuildFilter(names, false)
+	filter := BuildFilter(names, false, "")
 
 	container := new(mocks.FilterableContainer)
 	container.On("Name").Return("Invalid")
@@ -127,7 +150,7 @@ func TestBuildFilterEnableLabel(t *testing.T) {
 	var names []string
 	names = append(names, "test")
 
-	filter := BuildFilter(names, true)
+	filter := BuildFilter(names, true, "")
 
 	container := new(mocks.FilterableContainer)
 	container.On("Enabled").Return(false, false)
