@@ -158,6 +158,7 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
     <td align="center"><a href="https://github.com/bugficks"><img src="https://avatars1.githubusercontent.com/u/2992895?v=4" width="100px;" alt=""/><br /><sub><b>bugficks</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=bugficks" title="Documentation">📖</a></td>
     <td align="center"><a href="https://github.com/MichaelSp"><img src="https://avatars0.githubusercontent.com/u/448282?v=4" width="100px;" alt=""/><br /><sub><b>Michael</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=MichaelSp" title="Code">💻</a></td>
     <td align="center"><a href="https://github.com/x-jokay"><img src="https://avatars0.githubusercontent.com/u/18613935?v=4" width="100px;" alt=""/><br /><sub><b>D. Domig</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=x-jokay" title="Documentation">📖</a></td>
+    <td align="center"><a href="https://maxwells-daemon.io"><img src="https://avatars1.githubusercontent.com/u/260084?v=4" width="100px;" alt=""/><br /><sub><b>Ben Osheroff</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=osheroff" title="Code">💻</a></td>
   </tr>
 </table>
 
