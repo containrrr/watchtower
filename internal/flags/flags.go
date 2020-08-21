@@ -124,6 +124,12 @@ func RegisterSystemFlags(rootCmd *cobra.Command) {
 		"Enable the execution of commands triggered by pre- and post-update lifecycle hooks")
 
 	flags.BoolP(
+		"rolling-restart",
+		"",
+		viper.GetBool("WATCHTOWER_ROLLING_RESTART"),
+		"Restart containers one at a time")
+
+	flags.BoolP(
 		"http-api",
 		"",
 		viper.GetBool("WATCHTOWER_HTTP_API"),
