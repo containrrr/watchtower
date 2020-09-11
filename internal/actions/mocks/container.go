@@ -20,15 +20,15 @@ func CreateMockContainer(id string, name string, image string, created time.Time
 			Labels: make(map[string]string),
 		},
 	}
-	dependency_string := ""
+	dependencyString := ""
 	for ind, i := range depends {
 		if ind == 0 {
-			dependency_string += i;
+			dependencyString += i;
 		}else{
-			dependency_string += "," + i;
+			dependencyString += "," + i;
 		}
 	}
-	content.Config.Labels["com.centurylinklabs.watchtower.depends-on"] = dependency_string
+	content.Config.Labels["com.centurylinklabs.watchtower.depends-on"] = dependencyString
 	return *container.NewContainer(
 		&content,
 		&types.ImageInspect{
