@@ -22,6 +22,8 @@ type TestData struct {
 	TriedToRemoveImageCount int
 	NameOfContainerToKeep   string
 	Containers              []container.Container
+	StopOrder				[]string
+	RestartOrder			[]string
 }
 
 // TriedToRemoveImage is a test helper function to check whether RemoveImageByID has been called
@@ -49,11 +51,13 @@ func (client MockClient) StopContainer(c container.Container, d time.Duration) e
 	if c.Name() == client.TestData.NameOfContainerToKeep {
 		return errors.New("tried to stop the instance we want to keep")
 	}
+	client.TestData.StopOrder = append(client.TestData.StopOrder, c.Name())
 	return nil
 }
 
 // StartContainer is a mock method
 func (client MockClient) StartContainer(c container.Container) (string, error) {
+	client.TestData.RestartOrder = append(client.TestData.RestartOrder, c.Name())
 	return "", nil
 }
 

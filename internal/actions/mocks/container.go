@@ -8,7 +8,7 @@ import (
 )
 
 // CreateMockContainer creates a container substitute valid for testing
-func CreateMockContainer(id string, name string, image string, created time.Time) container.Container {
+func CreateMockContainer(id string, name string, image string, created time.Time, depends []string) container.Container {
 	content := types.ContainerJSON{
 		ContainerJSONBase: &types.ContainerJSONBase{
 			ID:      id,
@@ -20,6 +20,15 @@ func CreateMockContainer(id string, name string, image string, created time.Time
 			Labels: make(map[string]string),
 		},
 	}
+	dependency_string := ""
+	for ind, i := range depends {
+		if ind == 0 {
+			dependency_string += i;
+		}else{
+			dependency_string += "," + i;
+		}
+	}
+	content.Config.Labels["com.centurylinklabs.watchtower.depends-on"] = dependency_string
 	return *container.NewContainer(
 		&content,
 		&types.ImageInspect{

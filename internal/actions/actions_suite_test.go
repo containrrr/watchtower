@@ -57,7 +57,8 @@ var _ = Describe("the actions package", func() {
 						"test-container",
 						"test-container",
 						"watchtower",
-						time.Now()),
+						time.Now(),
+						make([]string,0)),
 				}
 				err := actions.CheckForMultipleWatchtowerInstances(client, false)
 				Expect(err).NotTo(HaveOccurred())
@@ -75,12 +76,14 @@ var _ = Describe("the actions package", func() {
 								"test-container-01",
 								"test-container-01",
 								"watchtower",
-								time.Now().AddDate(0, 0, -1)),
+								time.Now().AddDate(0, 0, -1),
+								make([]string,0),),
 							CreateMockContainer(
 								"test-container-02",
 								"test-container-02",
 								"watchtower",
-								time.Now()),
+								time.Now(),
+								make([]string,0)),
 						},
 					},
 					dockerClient,
@@ -106,12 +109,14 @@ var _ = Describe("the actions package", func() {
 								"test-container-01",
 								"test-container-01",
 								"watchtower",
-								time.Now().AddDate(0, 0, -1)),
+								time.Now().AddDate(0, 0, -1),
+								make([]string,0),),
 							CreateMockContainer(
 								"test-container-02",
 								"test-container-02",
 								"watchtower",
-								time.Now()),
+								time.Now(),
+								make([]string,0),),
 						},
 					},
 					dockerClient,
