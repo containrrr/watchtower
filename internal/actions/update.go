@@ -9,20 +9,36 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// Update looks at the running Docker containers to see if any of the images
-// used to start those containers have been updated. If a change is detected in
-// any of the images, the associated containers are stopped and restarted with
-// the new image.
-func Update(client container.Client, params types.UpdateParams) error {
-	log.Debug("Checking containers for updated images")
+// CreateUndirectedLinks creates a map of undirected links
+// Key: Name of a container
+// Value: List of containers that are linked to the container
+// i.e if Container A depends on B, undirectedNodes['A'] will initially contain B.
+// This function adds 'A' into undirectedNodes['B'] to make the link undirected.
+func CreateUndirectedLinks(containers []container.Container) map[string][]string {
 
-	if params.LifecycleHooks {
-		lifecycle.ExecutePreChecks(client, params)
+	undirectedNodes := make(map[string][]string)
+	for i:= 0; i < len(containers); i++ {
+		undirectedNodes[containers[i].Name()] = containers[i].Links()
 	}
+
+	for i:= 0; i< len(containers); i++ {
+		for j:=0; j < len(containers[i].Links()); j++ {
+			undirectedNodes[containers[i].Links()[j]] = append(undirectedNodes[containers[i].Links()[j]], containers[i].Name())
+		}
+	}
+
+	return undirectedNodes;
+}
+
+// PrepareContainerList prepares a dependency sorted list of list of containers
+// Each list inside the outer list contains containers that are related by links
+// This method checks for staleness, checks dependencies, sorts the containers and returns the final
+// [][]container.Container
+func PrepareContainerList(client container.Client, params types.UpdateParams) ([][]container.Container, error) {
 
 	containers, err := client.ListContainers(params.Filter)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	for i, container := range containers {
@@ -39,21 +55,25 @@ func Update(client container.Client, params types.UpdateParams) error {
 
 	var dependencySortedGraphs [][]container.Container
 
-	undirectedNodes := make(map[string][]string)
-	for i:= 0; i < len(containers); i++ {
-		undirectedNodes[containers[i].Name()] = containers[i].Links()
-	}
-
-	for i:= 0; i< len(containers); i++ {
-		for j:=0; j < len(containers[i].Links()); j++ {
-			undirectedNodes[containers[i].Links()[j]] = append(undirectedNodes[containers[i].Links()[j]], containers[i].Name())
-		}
-	}
-
+	undirectedNodes := CreateUndirectedLinks(containers)
 	dependencySortedGraphs, err = sorter.SortByDependencies(containers,undirectedNodes)
 
 	if err != nil {
-		return err
+		return nil, err
+	}
+
+	return dependencySortedGraphs, nil
+}
+
+// Update looks at the running Docker containers to see if any of the images
+// used to start those containers have been updated. If a change is detected in
+// any of the images, the associated containers are stopped and restarted with
+// the new image.
+func Update(client container.Client, params types.UpdateParams) error {
+	log.Debug("Checking containers for updated images")
+
+	if params.LifecycleHooks {
+		lifecycle.ExecutePreChecks(client, params)
 	}
 
 	if params.MonitorOnly {
@@ -62,8 +82,14 @@ func Update(client container.Client, params types.UpdateParams) error {
 		}
 		return nil
 	}
+
 	//shared map for independent and linked update
 	imageIDs := make(map[string]bool)
+
+	dependencySortedGraphs, err := PrepareContainerList(client, params)
+	if err != nil {
+		return err
+	}
 
 	//Use ordered start and stop for each independent set of containers
 	for _, dependencyGraph:= range dependencySortedGraphs {
@@ -83,6 +109,7 @@ func Update(client container.Client, params types.UpdateParams) error {
 	if params.LifecycleHooks {
 		lifecycle.ExecutePostChecks(client, params)
 	}
+
 	return nil
 }
 
