@@ -58,7 +58,7 @@ var _ = Describe("the update action", func() {
 		When("there are multiple containers using the same image", func() {
 			It("should only try to remove the image once", func() {
 
-				err := actions.Update(client, types.UpdateParams{Cleanup: true})
+				_, err := actions.Update(client, types.UpdateParams{Cleanup: true})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(client.TestData.TriedToRemoveImageCount).To(Equal(1))
 			})
@@ -74,7 +74,7 @@ var _ = Describe("the update action", func() {
 						time.Now(),
 					),
 				)
-				err := actions.Update(client, types.UpdateParams{Cleanup: true})
+				_, err := actions.Update(client, types.UpdateParams{Cleanup: true})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(client.TestData.TriedToRemoveImageCount).To(Equal(2))
 			})
