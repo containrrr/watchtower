@@ -1,0 +1,11 @@
+version: '3.7'
+
+services:
+  parent:
+    image: nginx
+    container_name: parent
+  child:
+    image: nginx:alpine
+    labels:
+      com.centurylinklabs.watchtower.depends-on: parent
+    container_name: child

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	metrics2 "github.com/containrrr/watchtower/pkg/metrics"
 	"os"
 	"os/signal"
 	"strconv"
@@ -173,8 +174,11 @@ func runUpgradesOnSchedule(c *cobra.Command, filter t.Filter) error {
 			select {
 			case v := <-tryLockSem:
 				defer func() { tryLockSem <- v }()
-				runUpdatesWithNotifications(filter)
+				metric := runUpdatesWithNotifications(filter)
+				metrics2.RegisterScan(metric)
 			default:
+				// Update was skipped
+				metrics2.RegisterScan(nil)
 				log.Debug("Skipped another update already running.")
 			}
 
@@ -206,7 +210,8 @@ func runUpgradesOnSchedule(c *cobra.Command, filter t.Filter) error {
 	return nil
 }
 
-func runUpdatesWithNotifications(filter t.Filter) {
+func runUpdatesWithNotifications(filter t.Filter) *metrics2.Metric {
+
 	notifier.StartNotification()
 	updateParams := t.UpdateParams{
 		Filter:         filter,
@@ -216,9 +221,10 @@ func runUpdatesWithNotifications(filter t.Filter) {
 		MonitorOnly:    monitorOnly,
 		LifecycleHooks: lifecycleHooks,
 	}
-	err := actions.Update(client, updateParams)
+	metrics, err := actions.Update(client, updateParams)
 	if err != nil {
 		log.Println(err)
 	}
 	notifier.SendNotification()
+	return metrics
 }

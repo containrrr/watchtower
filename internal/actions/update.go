@@ -4,6 +4,7 @@ import (
 	"github.com/containrrr/watchtower/internal/util"
 	"github.com/containrrr/watchtower/pkg/container"
 	"github.com/containrrr/watchtower/pkg/lifecycle"
+	metrics2 "github.com/containrrr/watchtower/pkg/metrics"
 	"github.com/containrrr/watchtower/pkg/sorter"
 	"github.com/containrrr/watchtower/pkg/types"
 	log "github.com/sirupsen/logrus"
@@ -13,8 +14,10 @@ import (
 // used to start those containers have been updated. If a change is detected in
 // any of the images, the associated containers are stopped and restarted with
 // the new image.
-func Update(client container.Client, params types.UpdateParams) error {
+func Update(client container.Client, params types.UpdateParams) (*metrics2.Metric, error) {
 	log.Debug("Checking containers for updated images")
+	metric := &metrics2.Metric{}
+	staleCount := 0
 
 	if params.LifecycleHooks {
 		lifecycle.ExecutePreChecks(client, params)
@@ -22,7 +25,7 @@ func Update(client container.Client, params types.UpdateParams) error {
 
 	containers, err := client.ListContainers(params.Filter)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	for i, container := range containers {
@@ -31,13 +34,17 @@ func Update(client container.Client, params types.UpdateParams) error {
 			log.Infof("Unable to update container %s. Proceeding to next.", containers[i].Name())
 			log.Debug(err)
 			stale = false
+
+			metric.Failed++
 		}
 		containers[i].Stale = stale
+		staleCount++
 	}
 
 	containers, err = sorter.SortByDependencies(containers)
+	metric.Scanned = len(containers)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	checkDependencies(containers)
@@ -46,54 +53,65 @@ func Update(client container.Client, params types.UpdateParams) error {
 		if params.LifecycleHooks {
 			lifecycle.ExecutePostChecks(client, params)
 		}
-		return nil
+		return nil, nil
 	}
 
-	stopContainersInReversedOrder(containers, client, params)
-	restartContainersInSortedOrder(containers, client, params)
+	metric.Failed += stopContainersInReversedOrder(containers, client, params)
+	metric.Failed += restartContainersInSortedOrder(containers, client, params)
+	metric.Updated = staleCount - metric.Failed
 
 	if params.LifecycleHooks {
 		lifecycle.ExecutePostChecks(client, params)
 	}
-	return nil
+	return metric, nil
 }
 
-func stopContainersInReversedOrder(containers []container.Container, client container.Client, params types.UpdateParams) {
+func stopContainersInReversedOrder(containers []container.Container, client container.Client, params types.UpdateParams) int {
+	failed := 0
 	for i := len(containers) - 1; i >= 0; i-- {
-		stopStaleContainer(containers[i], client, params)
+		if err := stopStaleContainer(containers[i], client, params); err != nil {
+			failed++
+		}
 	}
+	return failed
 }
 
-func stopStaleContainer(container container.Container, client container.Client, params types.UpdateParams) {
+func stopStaleContainer(container container.Container, client container.Client, params types.UpdateParams) error {
 	if container.IsWatchtower() {
 		log.Debugf("This is the watchtower container %s", container.Name())
-		return
+		return nil
 	}
 
 	if !container.Stale {
-		return
+		return nil
 	}
 	if params.LifecycleHooks {
 		if err := lifecycle.ExecutePreUpdateCommand(client, container); err != nil {
 			log.Error(err)
 			log.Info("Skipping container as the pre-update command failed")
-			return
+			return err
 		}
 	}
 
 	if err := client.StopContainer(container, params.Timeout); err != nil {
 		log.Error(err)
+		return err
 	}
+	return nil
 }
 
-func restartContainersInSortedOrder(containers []container.Container, client container.Client, params types.UpdateParams) {
+func restartContainersInSortedOrder(containers []container.Container, client container.Client, params types.UpdateParams) int {
 	imageIDs := make(map[string]bool)
+
+	failed := 0
 
 	for _, container := range containers {
 		if !container.Stale {
 			continue
 		}
-		restartStaleContainer(container, client, params)
+		if err := restartStaleContainer(container, client, params); err != nil {
+			failed++
+		}
 		imageIDs[container.ImageID()] = true
 	}
 	if params.Cleanup {
@@ -103,9 +121,11 @@ func restartContainersInSortedOrder(containers []container.Container, client con
 			}
 		}
 	}
+
+	return failed
 }
 
-func restartStaleContainer(container container.Container, client container.Client, params types.UpdateParams) {
+func restartStaleContainer(container container.Container, client container.Client, params types.UpdateParams) error {
 	// Since we can't shutdown a watchtower container immediately, we need to
 	// start the new one while the old one is still running. This prevents us
 	// from re-using the same container name so we first rename the current
@@ -113,17 +133,19 @@ func restartStaleContainer(container container.Container, client container.Clien
 	if container.IsWatchtower() {
 		if err := client.RenameContainer(container, util.RandName()); err != nil {
 			log.Error(err)
-			return
+			return nil
 		}
 	}
 
 	if !params.NoRestart {
 		if newContainerID, err := client.StartContainer(container); err != nil {
 			log.Error(err)
+			return err
 		} else if container.Stale && params.LifecycleHooks {
 			lifecycle.ExecutePostUpdateCommand(client, newContainerID)
 		}
 	}
+	return nil
 }
 
 func checkDependencies(containers []container.Container) {
