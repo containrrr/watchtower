@@ -45,18 +45,20 @@ func Update(client container.Client, params types.UpdateParams) error {
 
 	checkDependencies(containers)
 
-	if params.MonitorOnly {
-		if params.LifecycleHooks {
-			lifecycle.ExecutePostChecks(client, params)
+	containersToUpdate := []container.Container{}
+	if !params.MonitorOnly {
+		for i := len(containers) - 1; i >= 0; i-- {
+			if val, ok := containers[i].IsMonitorOnly(); !ok || !val {
+				containersToUpdate = append(containersToUpdate, containers[i])
+			}
 		}
-		return nil
 	}
 
 	if params.RollingRestart {
-		performRollingRestart(containers, client, params)
+		performRollingRestart(containersToUpdate, client, params)
 	} else {
-		stopContainersInReversedOrder(containers, client, params)
-		restartContainersInSortedOrder(containers, client, params)
+		stopContainersInReversedOrder(containersToUpdate, client, params)
+		restartContainersInSortedOrder(containersToUpdate, client, params)
 	}
 	if params.LifecycleHooks {
 		lifecycle.ExecutePostChecks(client, params)

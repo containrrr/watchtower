@@ -4,6 +4,7 @@ const (
 	watchtowerLabel       = "com.centurylinklabs.watchtower"
 	signalLabel           = "com.centurylinklabs.watchtower.stop-signal"
 	enableLabel           = "com.centurylinklabs.watchtower.enable"
+	monitorOnlyLabel      = "com.centurylinklabs.watchtower.monitor-only"
 	dependsOnLabel        = "com.centurylinklabs.watchtower.depends-on"
 	zodiacLabel           = "com.centurylinklabs.zodiac.original-image"
 	scope                 = "com.centurylinklabs.watchtower.scope"
