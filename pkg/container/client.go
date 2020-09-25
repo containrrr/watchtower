@@ -393,7 +393,8 @@ func (client dockerClient) waitForExecOrTimeout(bg context.Context, ID string, e
 			log.Infof("Command output:\n%v", execOutput)
 		}
 		if execInspect.ExitCode > 0 {
-			return fmt.Errorf("Command exited with code %v  %s", execInspect.ExitCode, execOutput)
+			log.Errorf("Command exited with code %v.", execInspect.ExitCode)
+			log.Error(execOutput)
 		}
 		break
 	}
