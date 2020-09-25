@@ -65,6 +65,11 @@ func ExecutePreUpdateCommand(client container.Client, container container.Contai
 		return nil
 	}
 
+	if !container.IsRunning() {
+		log.Debug("Container is not running. Skipping pre-update command.")
+		return nil
+	}
+
 	log.Debug("Executing pre-update command.")
 	return client.ExecuteCommand(container.ID(), command, timeout)
 }
