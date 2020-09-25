@@ -31,7 +31,7 @@ var (
 	timeout        time.Duration
 	lifecycleHooks bool
 	rollingRestart bool
-	scope	         string
+	scope          string
 )
 
 var rootCmd = &cobra.Command{
@@ -116,6 +116,7 @@ func PreRun(cmd *cobra.Command, args []string) {
 
 	noPull, _ := f.GetBool("no-pull")
 	includeStopped, _ := f.GetBool("include-stopped")
+	includeRestarting, _ := f.GetBool("includeRestarting")
 	reviveStopped, _ := f.GetBool("revive-stopped")
 	removeVolumes, _ := f.GetBool("remove-volumes")
 
@@ -128,6 +129,7 @@ func PreRun(cmd *cobra.Command, args []string) {
 		includeStopped,
 		reviveStopped,
 		removeVolumes,
+		includeRestarting,
 	)
 
 	notifier = notifications.NewNotifier(cmd)

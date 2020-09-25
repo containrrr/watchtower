@@ -2,12 +2,13 @@ package mocks
 
 import (
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
 	"strings"
+
+	"github.com/sirupsen/logrus"
 )
 
 // NewMockAPIServer returns a mocked docker api server that responds to some fixed requests
@@ -21,6 +22,8 @@ func NewMockAPIServer() *httptest.Server {
 			if isRequestFor("filters=%7B%22status%22%3A%7B%22running%22%3Atrue%7D%7D&limit=0", r) {
 				response = getMockJSONFromDisk("./mocks/data/containers.json")
 			} else if isRequestFor("filters=%7B%22status%22%3A%7B%22created%22%3Atrue%2C%22exited%22%3Atrue%2C%22running%22%3Atrue%7D%7D&limit=0", r) {
+				response = getMockJSONFromDisk("./mocks/data/containers.json")
+			} else if isRequestFor("filters=%7B%22status%22%3A%7B%22restarting%22%3Atrue%2C%22running%22%3Atrue%7D%7D&limit=0", r) {
 				response = getMockJSONFromDisk("./mocks/data/containers.json")
 			} else if isRequestFor("containers/json?limit=0", r) {
 				response = getMockJSONFromDisk("./mocks/data/containers.json")
