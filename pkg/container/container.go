@@ -90,20 +90,20 @@ func (c Container) Enabled() (bool, bool) {
 	return parsedBool, true
 }
 
-// MonitorOnly returns the value of the monitor-only label and if the label
-// was set.
-func (c Container) IsMonitorOnly() (bool, bool) {
+// IsMonitorOnly returns the value of the monitor-only label. If the label
+// is not set then false is returned.
+func (c Container) IsMonitorOnly() bool {
 	rawBool, ok := c.getLabelValue(monitorOnlyLabel)
 	if !ok {
-		return false, false
+		return false
 	}
 
 	parsedBool, err := strconv.ParseBool(rawBool)
 	if err != nil {
-		return false, false
+		return false
 	}
 
-	return parsedBool, true
+	return parsedBool
 }
 
 // Scope returns the value of the scope UID label and if the label

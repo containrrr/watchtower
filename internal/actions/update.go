@@ -28,7 +28,7 @@ func Update(client container.Client, params types.UpdateParams) error {
 
 	for i, targetContainer := range containers {
 		stale, err := client.IsContainerStale(targetContainer)
-		if stale && !params.NoRestart && !params.MonitorOnly && !targetContainer.HasImageInfo() {
+		if stale && !params.NoRestart && !params.MonitorOnly && !targetContainer.IsMonitorOnly() && !targetContainer.HasImageInfo() {
 			err = errors.New("no available image info")
 		}
 		if err != nil {
@@ -48,7 +48,7 @@ func Update(client container.Client, params types.UpdateParams) error {
 	containersToUpdate := []container.Container{}
 	if !params.MonitorOnly {
 		for i := len(containers) - 1; i >= 0; i-- {
-			if val, ok := containers[i].IsMonitorOnly(); !ok || !val {
+			if containers[i].IsMonitorOnly() {
 				containersToUpdate = append(containersToUpdate, containers[i])
 			}
 		}
