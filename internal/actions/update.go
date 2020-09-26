@@ -48,7 +48,7 @@ func Update(client container.Client, params types.UpdateParams) error {
 	containersToUpdate := []container.Container{}
 	if !params.MonitorOnly {
 		for i := len(containers) - 1; i >= 0; i-- {
-			if containers[i].IsMonitorOnly() {
+			if !containers[i].IsMonitorOnly() {
 				containersToUpdate = append(containersToUpdate, containers[i])
 			}
 		}
