@@ -28,6 +28,7 @@ func CreateMockContainer(id string, name string, image string, created time.Time
 	)
 }
 
+// CreateMockContainerWithConfig creates a container substitute valid for testing
 func CreateMockContainerWithConfig(id string, name string, image string, created time.Time, config *container2.Config) container.Container {
 	content := types.ContainerJSON{
 		ContainerJSONBase: &types.ContainerJSONBase{
