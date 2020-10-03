@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/containrrr/shoutrrr/pkg/types"
+	"strings"
 	"text/template"
-    "strings"
 
 	"github.com/containrrr/shoutrrr"
 	t "github.com/containrrr/watchtower/pkg/types"
@@ -136,7 +136,7 @@ func getShoutrrrTemplate(c *cobra.Command) *template.Template {
 	funcs := template.FuncMap{
 		"ToUpper": strings.ToUpper,
 		"ToLower": strings.ToLower,
-		"Title": strings.Title,
+		"Title":   strings.Title,
 	}
 
 	// If we succeed in getting a non-empty template configuration

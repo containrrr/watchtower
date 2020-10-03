@@ -31,7 +31,7 @@ var (
 	timeout        time.Duration
 	lifecycleHooks bool
 	rollingRestart bool
-	scope	         string
+	scope          string
 )
 
 var rootCmd = &cobra.Command{

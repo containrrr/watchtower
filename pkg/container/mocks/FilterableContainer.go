@@ -78,4 +78,3 @@ func (_m *FilterableContainer) Scope() (string, bool) {
 
 	return r0, r1
 }
-

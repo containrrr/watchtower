@@ -75,7 +75,6 @@ func TestShoutrrrStringFunctions(t *testing.T) {
 	require.Equal(t, "INFO: foo bar Foo Bar\n", s)
 }
 
-
 func TestShoutrrrInvalidTemplateUsesTemplate(t *testing.T) {
 	cmd := new(cobra.Command)
 
