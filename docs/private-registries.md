@@ -59,14 +59,14 @@ docker run [...] -v <PATH_TO_HOME_DIR>/.docker/config.json:/config.json containr
 When creating the watchtower container via docker-compose, use the following lines:
 
 ```yaml
-version: "3"
-[...]
-watchtower:
-  image: index.docker.io/containrrr/watchtower:latest
-  volumes:
+version: "3.4"
+services:
+  watchtower:
+    image: index.docker.io/containrrr/watchtower:latest
+    volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - <PATH_TO_HOME_DIR>/.docker/config.json:/config.json
-[...]
+  ...
 ```
 
 #### Docker Config path
@@ -74,10 +74,13 @@ By default, watchtower will look for the `config.json` file in `/`, but this can
 Example usage:
 
 ```yaml
-watchtower:
-  image: containrrr/watchtower
-  environment:
-      DOCKER_CONFIG: /config
+version: "3.4"
+
+services: 
+  watchtower:
+    image: containrrr/watchtower
+    environment:
+        DOCKER_CONFIG: /config
     volumes:
       - /etc/watchtower/config/:/config/
       - /var/run/docker.sock:/var/run/docker.sock
@@ -153,8 +156,6 @@ docker run  -d --rm --name aws-cred-helper --volume helper:/go/bin aws-ecr-dock-
 
 and the docker-compose definition:
 ```yaml
-version: "3"
-
 version: "3.4"
 services:
   # Check for new images and restart things if a new image exists
@@ -178,9 +179,9 @@ A few additional notes:
 
 1.  With docker-compose the volume (helper, in this case) MUST be set to `external: true`, otherwise docker-compose 
     will preface it with the directory name.
-1.  Note that "credsStore" : "ecr-login" is needed - and in theory if you have that you can remove the 
+2.  Note that "credsStore" : "ecr-login" is needed - and in theory if you have that you can remove the 
     credHelpers section 
-1.  I have this running on an EC2 instance that has credentials assigned to it - so no keys are needed; however, 
+3.  I have this running on an EC2 instance that has credentials assigned to it - so no keys are needed; however, 
     you may need to include the `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` environment variables as well.
-1.  An alternative to adding the various variables is to create a ~/.aws/config and ~/.aws/credentials files and 
+4.  An alternative to adding the various variables is to create a ~/.aws/config and ~/.aws/credentials files and 
     place the settings there, then mount the ~/.aws directory to / in the container.
