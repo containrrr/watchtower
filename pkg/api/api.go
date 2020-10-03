@@ -1,10 +1,8 @@
 package api
 
 import (
-	"net/http"
-	"os"
-
 	log "github.com/sirupsen/logrus"
+	"net/http"
 )
 
 const tokenMissingMsg = "api token is empty or has not been set. exiting"
@@ -26,8 +24,9 @@ func New(token string) *API {
 // RequireToken is wrapper around http.HandleFunc that checks token validity
 func (api *API) RequireToken(fn http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Header.Get("Token") != api.Token {
-			log.Error("Invalid token.")
+		if r.Header.Get("Authorization") != api.Token {
+			log.Errorf("Invalid token \"%s\"", r.Header.Get("Authorization"))
+			log.Debugf("Expected token to be \"%s\"", api.Token)
 			return
 		}
 		log.Println("Valid token found.")
@@ -73,5 +72,4 @@ func (api *API) Start(block bool) error {
 func runHTTPServer() {
 	log.Info("Serving HTTP")
 	log.Fatal(http.ListenAndServe(":8080", nil))
-	os.Exit(0)
 }

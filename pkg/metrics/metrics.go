@@ -77,6 +77,9 @@ func (metrics *Metrics) HandleUpdate(channel <-chan *Metric) {
 			// Update was skipped and rescheduled
 			metrics.total.Inc()
 			metrics.skipped.Inc()
+			metrics.scanned.Set(0)
+			metrics.updated.Set(0)
+			metrics.failed.Set(0)
 			continue
 		}
 		// Update metrics with the new values
