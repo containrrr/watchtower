@@ -1,6 +1,4 @@
 
-
-
 <!doctype html>
 <html lang="en" class="no-js">
   <head>
@@ -13,7 +11,7 @@
       
       
       <link rel="shortcut icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.1.2, mkdocs-material-5.2.2">
+      <meta name="generator" content="mkdocs-1.1.2, mkdocs-material-6.0.1">
     
     
       
@@ -21,13 +19,17 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.a2408e81.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.38780c08.min.css">
       
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.3f72e892.min.css">
+        
       
     
     
     
       
+        
         <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
         <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700%7CRoboto+Mono&display=fallback">
         <style>body,input{font-family:"Roboto",-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif}code,kbd,pre{font-family:"Roboto Mono",SFMono-Regular,Consolas,Menlo,monospace}</style>
@@ -42,7 +44,13 @@
   </head>
   
   
-    <body dir="ltr">
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="" data-md-color-primary="none" data-md-color-accent="none">
+      
   
     <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
     <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
@@ -133,8 +141,6 @@
 </header>
     
     <div class="md-container" data-md-component="container">
-      
-        
       
       
         
@@ -236,9 +242,7 @@
     
       <label class="md-nav__link md-nav__link--active" for="__toc">
         Notifications
-        <span class="md-nav__icon md-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 9h14V7H3v2m0 4h14v-2H3v2m0 4h14v-2H3v2m16 0h2v-2h-2v2m0-10v2h2V7h-2m0 6h2v-2h-2v2z"/></svg>
-        </span>
+        <span class="md-nav__icon md-icon"></span>
       </label>
     
     <a href="./" title="Notifications" class="md-nav__link md-nav__link--active">
@@ -253,9 +257,7 @@
   
   
     <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
-      </span>
+      <span class="md-nav__icon md-icon"></span>
       Table of contents
     </label>
     <ul class="md-nav__list" data-md-scrollfix>
@@ -406,6 +408,18 @@
   </li>
 
     
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../running-multiple-instances/" title="Running multiple instances" class="md-nav__link">
+      Running multiple instances
+    </a>
+  </li>
+
+    
   </ul>
 </nav>
                   </div>
@@ -424,9 +438,7 @@
   
   
     <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
-      </span>
+      <span class="md-nav__icon md-icon"></span>
       Table of contents
     </label>
     <ul class="md-nav__list" data-md-scrollfix>
@@ -503,9 +515,6 @@
                   </a>
                 
                 
-                  
-                
-                
                 <h1 id="notifications">Notifications<a class="headerlink" href="#notifications" title="Permanent link">&para;</a></h1>
 <p>Watchtower can send notifications when containers are updated. Notifications are sent via hooks in the logging system, <a href="http://github.com/sirupsen/logrus">logrus</a>.
 The types of notifications to send are set by passing a comma-separated list of values to the <code>--notifications</code> option (or corresponding environment variable <code>WATCHTOWER_NOTIFICATIONS</code>), which has the following valid values:</p>
@@ -536,7 +545,7 @@ The types of notifications to send are set by passing a comma-separated list of 
 <li><code>--notification-email-server-tls-skip-verify</code> (env. <code>WATCHTOWER_NOTIFICATION_EMAIL_SERVER_TLS_SKIP_VERIFY</code>): Do not verify the TLS certificate of the mail server. This should be used only for testing.</li>
 <li><code>--notification-email-server-port</code> (env. <code>WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PORT</code>): The port used to connect to the SMTP server to send e-mails through. Defaults to <code>25</code>.</li>
 <li><code>--notification-email-server-user</code> (env. <code>WATCHTOWER_NOTIFICATION_EMAIL_SERVER_USER</code>): The username to authenticate with the SMTP server with.</li>
-<li><code>--notification-email-server-password</code> (env. <code>WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PASSWORD</code>): The password to authenticate with the SMTP server with.</li>
+<li><code>--notification-email-server-password</code> (env. <code>WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PASSWORD</code>): The password to authenticate with the SMTP server with. Can also reference a file, in which case the contents of the file are used.</li>
 <li><code>--notification-email-delay</code> (env. <code>WATCHTOWER_NOTIFICATION_EMAIL_DELAY</code>): Delay before sending notifications expressed in seconds.</li>
 <li><code>--notification-email-subjecttag</code> (env. <code>WATCHTOWER_NOTIFICATION_EMAIL_SUBJECTTAG</code>): Prefix to include in the subject tag. Useful when running multiple watchtowers.</li>
 </ul>
@@ -548,6 +557,7 @@ The types of notifications to send are set by passing a comma-separated list of 
   -e WATCHTOWER_NOTIFICATION_EMAIL_FROM=fromaddress@gmail.com \
   -e WATCHTOWER_NOTIFICATION_EMAIL_TO=toaddress@gmail.com \
   -e WATCHTOWER_NOTIFICATION_EMAIL_SERVER=smtp.gmail.com \
+  -e WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PORT=587 \  
   -e WATCHTOWER_NOTIFICATION_EMAIL_SERVER_USER=fromaddress@gmail.com \
   -e WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PASSWORD=app_password \
   -e WATCHTOWER_NOTIFICATION_EMAIL_DELAY=2 \
@@ -604,7 +614,7 @@ networks:
 <h3 id="slack">Slack<a class="headerlink" href="#slack" title="Permanent link">&para;</a></h3>
 <p>If watchtower is monitoring the same Docker daemon under which the watchtower container itself is running (i.e. if you volume-mounted <em>/var/run/docker.sock</em> into the watchtower container) then it has the ability to update itself. If a new version of the <em>containrrr/watchtower</em> image is pushed to the Docker Hub, your watchtower will pull down the new image and restart itself automatically.</p>
 <p>To receive notifications in Slack, add <code>slack</code> to the <code>--notifications</code> option or the <code>WATCHTOWER_NOTIFICATIONS</code> environment variable.</p>
-<p>Additionally, you should set the Slack webhook URL using the <code>--notification-slack-hook-url</code> option or the <code>WATCHTOWER_NOTIFICATION_SLACK_HOOK_URL</code> environment variable.</p>
+<p>Additionally, you should set the Slack webhook URL using the <code>--notification-slack-hook-url</code> option or the <code>WATCHTOWER_NOTIFICATION_SLACK_HOOK_URL</code> environment variable. This option can also reference a file, in which case the contents of the file are used.</p>
 <p>By default, watchtower will send messages under the name <code>watchtower</code>, you can customize this string through the <code>--notification-slack-identifier</code> option or the <code>WATCHTOWER_NOTIFICATION_SLACK_IDENTIFIER</code> environment variable.</p>
 <p>Other, optional, variables include:</p>
 <ul>
@@ -627,7 +637,7 @@ networks:
 
 <h3 id="microsoft_teams">Microsoft Teams<a class="headerlink" href="#microsoft_teams" title="Permanent link">&para;</a></h3>
 <p>To receive notifications in MSTeams channel, add <code>msteams</code> to the <code>--notifications</code> option or the <code>WATCHTOWER_NOTIFICATIONS</code> environment variable.</p>
-<p>Additionally, you should set the MSTeams webhook URL using the <code>--notification-msteams-hook</code> option or the <code>WATCHTOWER_NOTIFICATION_MSTEAMS_HOOK_URL</code> environment variable.</p>
+<p>Additionally, you should set the MSTeams webhook URL using the <code>--notification-msteams-hook</code> option or the <code>WATCHTOWER_NOTIFICATION_MSTEAMS_HOOK_URL</code> environment variable. This option can also reference a file, in which case the contents of the file are used.</p>
 <p>MSTeams notifier could send keys/values filled by <code>log.WithField</code> or <code>log.WithFields</code> as MSTeams message facts. To enable this feature add <code>--notification-msteams-data</code> flag or set <code>WATCHTOWER_NOTIFICATION_MSTEAMS_USE_LOG_DATA=true</code> environment variable.</p>
 <p>Example:</p>
 <pre><code class="bash">docker run -d \
@@ -650,6 +660,7 @@ networks:
   containrrr/watchtower
 </code></pre>
 
+<p><code>-e WATCHTOWER_NOTIFICATION_GOTIFY_TOKEN</code> or <code>--notification-gotify-token</code> can also reference a file, in which case the contents of the file are used.</p>
 <p>If you want to disable TLS verification for the Gotify instance, you can use either <code>-e WATCHTOWER_NOTIFICATION_GOTIFY_TLS_SKIP_VERIFY=true</code> or <code>--notification-gotify-tls-skip-verify</code>. </p>
 <h3 id="containrrrshoutrrr"><a href="https://github.com/containrrr/shoutrrr">containrrr/shoutrrr</a><a class="headerlink" href="#containrrrshoutrrr" title="Permanent link">&para;</a></h3>
 <p>To send notifications via shoutrrr, the following command-line options, or their corresponding environment variables, can be set:</p>
@@ -739,15 +750,15 @@ You can define multiple services by space separating the URLs. (See example belo
       
     </div>
     
-      <script src="../assets/javascripts/vendor.d710d30a.min.js"></script>
-      <script src="../assets/javascripts/bundle.5f27aba8.min.js"></script><script id="__lang" type="application/json">{"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents"}</script>
+      <script src="../assets/javascripts/vendor.77e55a48.min.js"></script>
+      <script src="../assets/javascripts/bundle.aa3f9871.min.js"></script><script id="__lang" type="application/json">{"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.term.missing": "Missing"}</script>
       
       <script>
         app = initialize({
           base: "..",
           features: [],
           search: Object.assign({
-            worker: "../assets/javascripts/worker/search.27c6a5e6.min.js"
+            worker: "../assets/javascripts/worker/search.4ac00218.min.js"
           }, typeof search !== "undefined" && search)
         })
       </script>

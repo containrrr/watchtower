@@ -1,6 +1,4 @@
 
-
-
 <!doctype html>
 <html lang="en" class="no-js">
   <head>
@@ -13,7 +11,7 @@
       
       
       <link rel="shortcut icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.1.2, mkdocs-material-5.2.2">
+      <meta name="generator" content="mkdocs-1.1.2, mkdocs-material-6.0.1">
     
     
       
@@ -21,13 +19,17 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.a2408e81.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.38780c08.min.css">
       
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.3f72e892.min.css">
+        
       
     
     
     
       
+        
         <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
         <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700%7CRoboto+Mono&display=fallback">
         <style>body,input{font-family:"Roboto",-apple-system,BlinkMacSystemFont,Helvetica,Arial,sans-serif}code,kbd,pre{font-family:"Roboto Mono",SFMono-Regular,Consolas,Menlo,monospace}</style>
@@ -42,7 +44,13 @@
   </head>
   
   
-    <body dir="ltr">
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="" data-md-color-primary="none" data-md-color-accent="none">
+      
   
     <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
     <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
@@ -134,8 +142,6 @@
     
     <div class="md-container" data-md-component="container">
       
-        
-      
       
         
       
@@ -222,9 +228,7 @@
     
       <label class="md-nav__link md-nav__link--active" for="__toc">
         Arguments
-        <span class="md-nav__icon md-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 9h14V7H3v2m0 4h14v-2H3v2m0 4h14v-2H3v2m16 0h2v-2h-2v2m0-10v2h2V7h-2m0 6h2v-2h-2v2z"/></svg>
-        </span>
+        <span class="md-nav__icon md-icon"></span>
       </label>
     
     <a href="./" title="Arguments" class="md-nav__link md-nav__link--active">
@@ -237,9 +241,7 @@
   
   
     <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
-      </span>
+      <span class="md-nav__icon md-icon"></span>
       Table of contents
     </label>
     <ul class="md-nav__list" data-md-scrollfix>
@@ -282,6 +284,13 @@
         <li class="md-nav__item">
   <a href="#trace" class="md-nav__link">
     Trace
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ansi_colors" class="md-nav__link">
+    ANSI colors
   </a>
   
 </li>
@@ -398,8 +407,22 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#filter_by_scope" class="md-nav__link">
+    Filter by scope
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#scheduling" class="md-nav__link">
     Scheduling
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rolling_restart" class="md-nav__link">
+    Rolling restart
   </a>
   
 </li>
@@ -521,6 +544,18 @@
   </li>
 
     
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../running-multiple-instances/" title="Running multiple instances" class="md-nav__link">
+      Running multiple instances
+    </a>
+  </li>
+
+    
   </ul>
 </nav>
                   </div>
@@ -537,9 +572,7 @@
   
   
     <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
-      </span>
+      <span class="md-nav__icon md-icon"></span>
       Table of contents
     </label>
     <ul class="md-nav__list" data-md-scrollfix>
@@ -582,6 +615,13 @@
         <li class="md-nav__item">
   <a href="#trace" class="md-nav__link">
     Trace
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ansi_colors" class="md-nav__link">
+    ANSI colors
   </a>
   
 </li>
@@ -698,8 +738,22 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#filter_by_scope" class="md-nav__link">
+    Filter by scope
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#scheduling" class="md-nav__link">
     Scheduling
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rolling_restart" class="md-nav__link">
+    Rolling restart
   </a>
   
 </li>
@@ -733,9 +787,6 @@
                   <a href="https://github.com/containrrr/watchtower/edit/master/docs/arguments.md" title="Edit this page" class="md-content__button md-icon">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25z"/></svg>
                   </a>
-                
-                
-                  
                 
                 
                   <h1>Arguments</h1>
@@ -812,6 +863,14 @@ Environment Variable: WATCHTOWER_TRACE
              Default: false
 </code></pre>
 
+<h2 id="ansi_colors">ANSI colors<a class="headerlink" href="#ansi_colors" title="Permanent link">&para;</a></h2>
+<p>Disable ANSI color escape codes in log output.</p>
+<pre><code>            Argument: --no-color
+Environment Variable: NO_COLOR
+                Type: Boolean
+             Default: false
+</code></pre>
+
 <h2 id="docker_host">Docker host<a class="headerlink" href="#docker_host" title="Permanent link">&para;</a></h2>
 <p>Docker daemon socket to connect to. Can be pointed at a remote Docker host by specifying a TCP endpoint as "tcp://hostname:port".</p>
 <pre><code>            Argument: --host, -h
@@ -863,7 +922,7 @@ Environment Variable: WATCHTOWER_LABEL_ENABLE
 <h2 id="filter_by_disable_label">Filter by disable label<a class="headerlink" href="#filter_by_disable_label" title="Permanent link">&para;</a></h2>
 <p><strong>Do not</strong> update containers that have <code>com.centurylinklabs.watchtower.enable</code> label set to false and no <code>--label-enable</code> argument is passed. Note that only one or the other (targeting by enable label) can be used at the same time to target containers.</p>
 <h2 id="without_updating_containers">Without updating containers<a class="headerlink" href="#without_updating_containers" title="Permanent link">&para;</a></h2>
-<p>Will only monitor for new images, not update the containers. </p>
+<p>Will only monitor for new images, send notifications and invoke the <a href="https://containrrr.dev/watchtower/lifecycle-hooks/">pre-check/post-check hooks</a>, but will <strong>not</strong> update the containers.</p>
 <blockquote>
 <h3 id="please_note">⚠️ Please note<a class="headerlink" href="#please_note" title="Permanent link">&para;</a></h3>
 <p>Due to Docker API limitations the latest image will still be pulled from the registry.</p>
@@ -874,6 +933,7 @@ Environment Variable: WATCHTOWER_MONITOR_ONLY
              Default: false
 </code></pre>
 
+<p>Note that monitor-only can also be specified on a per-container basis with the <code>com.centurylinklabs.watchtower.monitor-only</code> label set on those containers.</p>
 <h2 id="without_restarting_containers">Without restarting containers<a class="headerlink" href="#without_restarting_containers" title="Permanent link">&para;</a></h2>
 <p>Do not restart containers after updating. This option can be useful when the start of the containers
 is managed by an external system such as systemd.</p>
@@ -895,7 +955,7 @@ Environment Variable: WATCHTOWER_NO_PULL
 </code></pre>
 
 <h2 id="without_sending_a_startup_message">Without sending a startup message<a class="headerlink" href="#without_sending_a_startup_message" title="Permanent link">&para;</a></h2>
-<p>Do not send a message after watchtower started. Otherwise there will be an info-level notification. </p>
+<p>Do not send a message after watchtower started. Otherwise there will be an info-level notification.</p>
 <pre><code>            Argument: --no-startup-message
 Environment Variable: WATCHTOWER_NO_STARTUP_MESSAGE
                 Type: Boolean
@@ -926,13 +986,30 @@ Environment Variable: WATCHTOWER_HTTP_API_TOKEN
              Default: -
 </code></pre>
 
+<h2 id="filter_by_scope">Filter by scope<a class="headerlink" href="#filter_by_scope" title="Permanent link">&para;</a></h2>
+<p>Update containers that have a <code>com.centurylinklabs.watchtower.scope</code> label set with the same value as the given argument. This enables <a href="https://containrrr.github.io/watchtower/running-multiple-instances">running multiple instances</a>.</p>
+<pre><code>            Argument: --scope
+Environment Variable: WATCHTOWER_SCOPE
+                Type: String
+             Default: -
+</code></pre>
+
 <h2 id="scheduling">Scheduling<a class="headerlink" href="#scheduling" title="Permanent link">&para;</a></h2>
-<p><a href="https://pkg.go.dev/github.com/robfig/cron@v1.2.0?tab=doc#hdr-CRON_Expression_Format">Cron expression</a> in 6 fields (rather than the traditional 5) which defines when and how often to check for new images. Either <code>--interval</code> or the schedule expression 
+<p><a href="https://pkg.go.dev/github.com/robfig/cron@v1.2.0?tab=doc#hdr-CRON_Expression_Format">Cron expression</a> in 6 fields (rather than the traditional 5) which defines when and how often to check for new images. Either <code>--interval</code> or the schedule expression
 can be defined, but not both. An example: <code>--schedule "0 0 4 * * *"</code></p>
 <pre><code>            Argument: --schedule, -s
 Environment Variable: WATCHTOWER_SCHEDULE
                 Type: String
              Default: -
+</code></pre>
+
+<h2 id="rolling_restart">Rolling restart<a class="headerlink" href="#rolling_restart" title="Permanent link">&para;</a></h2>
+<p>Restart one image at time instead of stopping and starting all at once.  Useful in conjunction with lifecycle hooks
+to implement zero-downtime deploy.</p>
+<pre><code>            Argument: --rolling-restart
+Environment Variable: WATCHTOWER_ROLLING_RESTART
+                Type: Boolean
+             Default: false
 </code></pre>
 
 <h2 id="wait_until_timeout">Wait until timeout<a class="headerlink" href="#wait_until_timeout" title="Permanent link">&para;</a></h2>
@@ -1016,15 +1093,15 @@ Environment Variable: DOCKER_TLS_VERIFY
       
     </div>
     
-      <script src="../assets/javascripts/vendor.d710d30a.min.js"></script>
-      <script src="../assets/javascripts/bundle.5f27aba8.min.js"></script><script id="__lang" type="application/json">{"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents"}</script>
+      <script src="../assets/javascripts/vendor.77e55a48.min.js"></script>
+      <script src="../assets/javascripts/bundle.aa3f9871.min.js"></script><script id="__lang" type="application/json">{"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.term.missing": "Missing"}</script>
       
       <script>
         app = initialize({
           base: "..",
           features: [],
           search: Object.assign({
-            worker: "../assets/javascripts/worker/search.27c6a5e6.min.js"
+            worker: "../assets/javascripts/worker/search.4ac00218.min.js"
           }, typeof search !== "undefined" && search)
         })
       </script>

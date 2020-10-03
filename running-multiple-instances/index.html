@@ -7,7 +7,7 @@
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
       
-        <link rel="canonical" href="http://containrrr.github.io/watchtower/container-selection/">
+        <link rel="canonical" href="http://containrrr.github.io/watchtower/running-multiple-instances/">
       
       
       <link rel="shortcut icon" href="../assets/images/favicon.png">
@@ -15,7 +15,7 @@
     
     
       
-        <title>Container selection - Watchtower</title>
+        <title>Running multiple instances - Watchtower</title>
       
     
     
@@ -57,11 +57,6 @@
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
       
-        
-        <a href="#full_exclude" class="md-skip">
-          Skip to content
-        </a>
-      
     </div>
     <div data-md-component="announce">
       
@@ -86,7 +81,7 @@
           </span>
           <span class="md-header-nav__topic md-ellipsis">
             
-              Container selection
+              Running multiple instances
             
           </span>
         </div>
@@ -242,52 +237,11 @@
       
       
 
-  
 
-
-  <li class="md-nav__item md-nav__item--active">
-    
-    <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
-    
-    
-      <label class="md-nav__link md-nav__link--active" for="__toc">
-        Container selection
-        <span class="md-nav__icon md-icon"></span>
-      </label>
-    
-    <a href="./" title="Container selection" class="md-nav__link md-nav__link--active">
+  <li class="md-nav__item">
+    <a href="../container-selection/" title="Container selection" class="md-nav__link">
       Container selection
     </a>
-    
-      
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#full_exclude" class="md-nav__link">
-    Full Exclude
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#monitor_only" class="md-nav__link">
-    Monitor Only
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-    
   </li>
 
     
@@ -367,11 +321,18 @@
       
       
 
+  
 
-  <li class="md-nav__item">
-    <a href="../running-multiple-instances/" title="Running multiple instances" class="md-nav__link">
+
+  <li class="md-nav__item md-nav__item--active">
+    
+    <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+    
+    
+    <a href="./" title="Running multiple instances" class="md-nav__link md-nav__link--active">
       Running multiple instances
     </a>
+    
   </li>
 
     
@@ -382,91 +343,40 @@
               </div>
             
             
-              <div class="md-sidebar md-sidebar--secondary" data-md-component="toc">
-                <div class="md-sidebar__scrollwrap">
-                  <div class="md-sidebar__inner">
-                    
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#full_exclude" class="md-nav__link">
-    Full Exclude
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#monitor_only" class="md-nav__link">
-    Monitor Only
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-                  </div>
-                </div>
-              </div>
-            
           
           <div class="md-content">
             <article class="md-content__inner md-typeset">
               
                 
-                  <a href="https://github.com/containrrr/watchtower/edit/master/docs/container-selection.md" title="Edit this page" class="md-content__button md-icon">
+                  <a href="https://github.com/containrrr/watchtower/edit/master/docs/running-multiple-instances.md" title="Edit this page" class="md-content__button md-icon">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25z"/></svg>
                   </a>
                 
                 
-                  <h1>Container selection</h1>
+                  <h1>Running multiple instances</h1>
                 
-                <p>By default, watchtower will watch all containers. However, sometimes only some containers should be updated.</p>
-<p>There are two options:</p>
-<ul>
-<li><strong>Fully exclude</strong>: You can choose to exclude containers entirely from being watched by watchtower.</li>
-<li><strong>Monitor only</strong>: In this mode, watchtower checks for container updates, sends notifications and invokes the <a href="https://containrrr.dev/watchtower/lifecycle-hooks/">pre-check/post-check hooks</a> on the containers but does <strong>not</strong> perform the update.</li>
-</ul>
-<h2 id="full_exclude">Full Exclude<a class="headerlink" href="#full_exclude" title="Permanent link">&para;</a></h2>
-<p>If you need to exclude some containers, set the <em>com.centurylinklabs.watchtower.enable</em> label to <code>false</code>.</p>
-<pre><code class="docker">LABEL com.centurylinklabs.watchtower.enable=&quot;false&quot;
-</code></pre>
+                <p>By default, Watchtower will clean up other instances and won't allow multiple instances running on the same Docker host or swarm. It is possible to override this behavior by defining a <a href="https://containrrr.github.io/watchtower/arguments/#filter_by_scope">scope</a> to each running instance. </p>
+<p>Notice that:
+- Multiple instances can't run with the same scope;
+- An instance without a scope will clean up other running instances, even if they have a defined scope;</p>
+<p>To define an instance monitoring scope, use the <code>--scope</code> argument or the <code>WATCHTOWER_SCOPE</code> environment variable on startup and set the <em>com.centurylinklabs.watchtower.scope</em> label with the same value for the containers you want to include in this instance's scope (including the instance itself).</p>
+<p>For example, in a Docker Compose config file:</p>
+<pre><code class="json">version: '3'
 
-<p>Or, it can be specified as part of the <code>docker run</code> command line:</p>
-<pre><code class="bash">docker run -d --label=com.centurylinklabs.watchtower.enable=false someimage
-</code></pre>
+services:
+  app-monitored-by-watchtower:
+    image: myapps/monitored-by-watchtower
+    labels:
+      - &quot;com.centurylinklabs.watchtower.scope=myscope&quot;
 
-<p>If you need to <a href="https://containrrr.github.io/watchtower/arguments/#filter_by_enable_label">include only containers with the enable label</a>, pass the <code>--label-enable</code> flag or the <code>WATCHTOWER_LABEL_ENABLE</code> environment variable on startup and set the <em>com.centurylinklabs.watchtower.enable</em> label with a value of <code>true</code> for the containers you want to watch.</p>
-<pre><code class="docker">LABEL com.centurylinklabs.watchtower.enable=&quot;true&quot;
+  watchtower:
+    image: containrrr/watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --interval 30 --scope myscope
+    labels:
+      - &quot;com.centurylinklabs.watchtower.scope=myscope&quot;
 </code></pre>
-
-<p>Or, it can be specified as part of the <code>docker run</code> command line:</p>
-<pre><code class="bash">docker run -d --label=com.centurylinklabs.watchtower.enable=true someimage
-</code></pre>
-
-<p>If you wish to create a monitoring scope, you will need to <a href="https://containrrr.github.io/watchtower/running-multiple-instances">run multiple instances and set a scope for each of them</a>.</p>
-<p>Watchtower filters running containers by testing them against each configured criteria. A container is monitored if all criteria are met. For example:
-- If a container's name is on the monitoring name list (not empty <code>--name</code> argument) but it is not enabled (<em>centurylinklabs.watchtower.enable=false</em>), it won't be monitored;
-- If a container's name is not on the monitoring name list (not empty <code>--name</code> argument), even if it is enabled (<em>centurylinklabs.watchtower.enable=true</em> and <code>--label-enable</code> flag is set), it won't be monitored;</p>
-<h2 id="monitor_only">Monitor Only<a class="headerlink" href="#monitor_only" title="Permanent link">&para;</a></h2>
-<p>Individual containers can be marked to only be monitored (without being updated).</p>
-<p>To do so, set the <em>com.centurylinklabs.watchtower.monitor-only</em> label to <code>true</code> on that container.</p>
-<pre><code class="docker">LABEL com.centurylinklabs.watchtower.monitor-only=&quot;true&quot;
-</code></pre>
-
-<p>Or, it can be specified as part of the <code>docker run</code> command line:</p>
-<pre><code class="bash">docker run -d --label=com.centurylinklabs.watchtower.monitor-only=true someimage
-</code></pre>
-
-<p>When the label is specified on a container, watchtower treats that container exactly as if <a href="https://containrrr.dev/watchtower/arguments/#without_updating_containers"><code>WATCHTOWER_MONITOR_ONLY</code></a> was set, but the effect is limited to the individual container. </p>
                 
               
               
@@ -485,7 +395,7 @@
     <div class="md-footer-nav">
       <nav class="md-footer-nav__inner md-grid" aria-label="Footer">
         
-          <a href="../notifications/" title="Notifications" class="md-footer-nav__link md-footer-nav__link--prev" rel="prev">
+          <a href="../lifecycle-hooks/" title="Lifecycle hooks" class="md-footer-nav__link md-footer-nav__link--prev" rel="prev">
             <div class="md-footer-nav__button md-icon">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
             </div>
@@ -494,25 +404,11 @@
                 <span class="md-footer-nav__direction">
                   Previous
                 </span>
-                Notifications
+                Lifecycle hooks
               </div>
             </div>
           </a>
         
-        
-          <a href="../private-registries/" title="Private registries" class="md-footer-nav__link md-footer-nav__link--next" rel="next">
-            <div class="md-footer-nav__title">
-              <div class="md-ellipsis">
-                <span class="md-footer-nav__direction">
-                  Next
-                </span>
-                Private registries
-              </div>
-            </div>
-            <div class="md-footer-nav__button md-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11H4z"/></svg>
-            </div>
-          </a>
         
       </nav>
     </div>
