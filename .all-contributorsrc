@@ -666,6 +666,15 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "chander",
+      "name": "Chander Ganesan",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/671887?v=4",
+      "profile": "http://www.gridgeo.com",
+      "contributions": [
+        "doc"
+      ]
     }
   ],
   "contributorsPerLine": 7,
