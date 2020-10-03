@@ -28,7 +28,7 @@ func Update(client container.Client, params types.UpdateParams) error {
 
 	for i, targetContainer := range containers {
 		stale, err := client.IsContainerStale(targetContainer)
-		if stale && !params.NoRestart && !params.MonitorOnly && !targetContainer.HasImageInfo() {
+		if stale && !params.NoRestart && !params.MonitorOnly && !targetContainer.IsMonitorOnly() && !targetContainer.HasImageInfo() {
 			err = errors.New("no available image info")
 		}
 		if err != nil {
@@ -45,18 +45,20 @@ func Update(client container.Client, params types.UpdateParams) error {
 
 	checkDependencies(containers)
 
-	if params.MonitorOnly {
-		if params.LifecycleHooks {
-			lifecycle.ExecutePostChecks(client, params)
+	containersToUpdate := []container.Container{}
+	if !params.MonitorOnly {
+		for i := len(containers) - 1; i >= 0; i-- {
+			if !containers[i].IsMonitorOnly() {
+				containersToUpdate = append(containersToUpdate, containers[i])
+			}
 		}
-		return nil
 	}
 
 	if params.RollingRestart {
-		performRollingRestart(containers, client, params)
+		performRollingRestart(containersToUpdate, client, params)
 	} else {
-		stopContainersInReversedOrder(containers, client, params)
-		restartContainersInSortedOrder(containers, client, params)
+		stopContainersInReversedOrder(containersToUpdate, client, params)
+		restartContainersInSortedOrder(containersToUpdate, client, params)
 	}
 	if params.LifecycleHooks {
 		lifecycle.ExecutePostChecks(client, params)

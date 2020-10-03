@@ -162,7 +162,7 @@ Environment Variable: WATCHTOWER_LABEL_ENABLE
 **Do not** update containers that have `com.centurylinklabs.watchtower.enable` label set to false and no `--label-enable` argument is passed. Note that only one or the other (targeting by enable label) can be used at the same time to target containers.
 
 ## Without updating containers
-Will only monitor for new images, not update the containers.
+Will only monitor for new images, send notifications and invoke the [pre-check/post-check hooks](https://containrrr.dev/watchtower/lifecycle-hooks/), but will **not** update the containers.
 
 > ### ⚠️ Please note
 >
@@ -174,6 +174,8 @@ Environment Variable: WATCHTOWER_MONITOR_ONLY
                 Type: Boolean
              Default: false
 ```
+
+Note that monitor-only can also be specified on a per-container basis with the `com.centurylinklabs.watchtower.monitor-only` label set on those containers.
 
 ## Without restarting containers
 Do not restart containers after updating. This option can be useful when the start of the containers
