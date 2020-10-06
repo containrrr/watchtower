@@ -78,7 +78,33 @@ var _ = Describe("the container", func() {
 				}
 				containers, err := client.ListContainers(filters.NoFilter)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(len(containers) > 0).To(BeTrue())
+				RestartingContainerFound := false
+				for _, ContainerRunning := range containers {
+					if ContainerRunning.containerInfo.State.Restarting {
+						RestartingContainerFound = true
+					}
+				}
+				Expect(RestartingContainerFound).To(BeTrue())
+				Expect(RestartingContainerFound).NotTo(BeFalse())
+			})
+		})
+		When(`listing containers without restarting ones`, func() {
+			It("should not return restarting containers", func() {
+				client = dockerClient{
+					api:               docker,
+					pullImages:        false,
+					includeRestarting: false,
+				}
+				containers, err := client.ListContainers(filters.NoFilter)
+				Expect(err).NotTo(HaveOccurred())
+				RestartingContainerFound := false
+				for _, ContainerRunning := range containers {
+					if ContainerRunning.containerInfo.State.Restarting {
+						RestartingContainerFound = true
+					}
+				}
+				Expect(RestartingContainerFound).To(BeFalse())
+				Expect(RestartingContainerFound).NotTo(BeTrue())
 			})
 		})
 	})
