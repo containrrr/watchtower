@@ -42,7 +42,7 @@
 
 > ### ⚠️ Help needed
 >
-> We're finding it a bit hard to keep up with all issues and pull requests. Interested in helping out with triage, troubleshooting and issue handling? Let us know in the ["Discussions" tab](https://github.com/containrrr/watchtower/discussions)!
+> We're finding it a bit hard to keep up with all issues and pull requests. Interested in helping out with triage, troubleshooting and issue handling? Let us know in the ["Discussions"](https://github.com/containrrr/watchtower/discussions) tab!
 
 
 ## Quick Start
