@@ -226,7 +226,17 @@ Sets an authentication token to HTTP API requests.
 Environment Variable: WATCHTOWER_HTTP_API_TOKEN
                 Type: String
              Default: -
-``` 
+```
+
+## HTTP API Metrics
+Enables a metrics endpoint, exposing prometheus metrics via HTTP. See [Metrics](metrics.md) for details.  
+
+```
+            Argument: --http-api-metrics
+Environment Variable: WATCHTOWER_HTTP_API_METRICS
+                Type: Boolean
+             Default: false
+```
 
 ## Scheduling
 [Cron expression](https://pkg.go.dev/github.com/robfig/cron@v1.2.0?tab=doc#hdr-CRON_Expression_Format) in 6 fields (rather than the traditional 5) which defines when and how often to check for new images. Either `--interval` or the schedule expression 
