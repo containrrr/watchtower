@@ -29,8 +29,8 @@ func (metrics *Metrics) Register(metric *Metric) {
 	metrics.channel <- metric
 }
 
-// New creates a new metrics handler if none exists, otherwise returns the existing one
-func New() *Metrics {
+// Default creates a new metrics handler if none exists, otherwise returns the existing one
+func Default() *Metrics {
 	if metrics != nil {
 		return metrics
 	}
@@ -66,11 +66,11 @@ func New() *Metrics {
 
 // RegisterScan fetches a metric handler and enqueues a metric
 func RegisterScan(metric *Metric) {
-	metrics := New()
+	metrics := Default()
 	metrics.Register(metric)
 }
 
-// HandleUpdate dequeues the metric channel and processes it
+// HandleUpdate dequeue the metric channel and processes it
 func (metrics *Metrics) HandleUpdate(channel <-chan *Metric) {
 	for change := range channel {
 		if change == nil {

@@ -1,15 +1,14 @@
 package metrics_test
-/*
 
 import (
 	"fmt"
-	metrics2 "github.com/containrrr/watchtower/pkg/metrics"
+	"github.com/containrrr/watchtower/pkg/metrics"
 	"io/ioutil"
 	"net/http"
 	"testing"
 
 	"github.com/containrrr/watchtower/pkg/api"
-	"github.com/containrrr/watchtower/pkg/api/metrics"
+	metricsAPI "github.com/containrrr/watchtower/pkg/api/metrics"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -22,7 +21,7 @@ func TestContainer(t *testing.T) {
 	RunSpecs(t, "Metrics Suite")
 }
 
-func runTestServer(m *metrics.Handler) {
+func runTestServer(m *metricsAPI.Handler) {
 	http.Handle(m.Path, m.Handle)
 	go func() {
 		http.ListenAndServe(":8080", nil)
@@ -31,13 +30,13 @@ func runTestServer(m *metrics.Handler) {
 
 func getWithToken(c http.Client, url string) (*http.Response, error) {
 	req, _ := http.NewRequest("GET", url, nil)
-	req.Header.Add("Token", Token)
+	req.Header.Add("Authorization", Token)
 	return c.Do(req)
 }
 
 var _ = Describe("the metrics", func() {
 	httpAPI := api.New(Token)
-	m := metrics.New()
+	m := metricsAPI.New()
 	httpAPI.RegisterHandler(m.Path, m.Handle)
 	httpAPI.Start(false)
 
@@ -45,12 +44,12 @@ var _ = Describe("the metrics", func() {
 	// to reset the metrics and gauges, we'll just do it all at once.
 
 	It("should serve metrics", func() {
-		metric := &metrics2.Metric{
+		metric := &metrics.Metric{
 			Scanned: 4,
 			Updated: 3,
 			Failed:  1,
 		}
-		metrics2.RegisterScan(metric)
+		metrics.RegisterScan(metric)
 		c := http.Client{}
 		res, err := getWithToken(c, "http://localhost:8080/v1/metrics")
 
@@ -64,7 +63,7 @@ var _ = Describe("the metrics", func() {
 		Expect(string(contents)).To(ContainSubstring("watchtower_scans_skipped 0"))
 
 		for i := 0; i < 3; i++ {
-			metrics2.RegisterScan(nil)
+			metrics.RegisterScan(nil)
 		}
 
 		res, err = getWithToken(c, "http://localhost:8080/v1/metrics")
@@ -76,4 +75,3 @@ var _ = Describe("the metrics", func() {
 		Expect(string(contents)).To(ContainSubstring("watchtower_scans_skipped 3"))
 	})
 })
-*/
