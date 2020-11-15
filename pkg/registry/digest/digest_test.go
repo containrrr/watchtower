@@ -1,64 +1,95 @@
 package digest
 
 import (
+	"context"
+	"fmt"
+	"github.com/containrrr/watchtower/pkg/logger"
+	"github.com/containrrr/watchtower/pkg/registry/auth"
+	wtTypes "github.com/containrrr/watchtower/pkg/types"
 	"github.com/docker/docker/api/types"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	log "github.com/sirupsen/logrus"
 	"os"
 	"testing"
 )
 
 func TestDigest(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Digest Suite")
 }
 
-var image = types.ImageInspect{
+var ghImage = types.ImageInspect{
 	ID: "sha256:6972c414f322dfa40324df3c503d4b217ccdec6d576e408ed10437f508f4181b",
-	RepoTags: []string {
+	RepoTags: []string{
 		"ghcr.io/k6io/operator:latest",
 	},
-	RepoDigests: []string {
+	RepoDigests: []string{
 		"ghcr.io/k6io/operator@sha256:d68e1e532088964195ad3a0a71526bc2f11a78de0def85629beb75e2265f0547",
 	},
 }
 
-var (
-	DH_USERNAME = os.Getenv("CI_INTEGRATION_TEST_REGISTRY_DH_USERNAME")
-	DH_PASSWORD = os.Getenv("CI_INTEGRATION_TEST_REGISTRY_DH_PASSWORD")
-	GH_USERNAME = os.Getenv("CI_INTEGRATION_TEST_REGISTRY_DH_USERNAME")
-	GH_PASSWORD = os.Getenv("CI_INTEGRATION_TEST_REGISTRY_DH_PASSWORD")
-)
+var DockerHubCredentials = &wtTypes.RegistryCredentials{
+	Username: os.Getenv("CI_INTEGRATION_TEST_REGISTRY_DH_USERNAME"),
+	Password: os.Getenv("CI_INTEGRATION_TEST_REGISTRY_DH_PASSWORD"),
+}
+var GHCRCredentials = &wtTypes.RegistryCredentials{
+	Username: os.Getenv("CI_INTEGRATION_TEST_REGISTRY_GH_USERNAME"),
+	Password: os.Getenv("CI_INTEGRATION_TEST_REGISTRY_GH_PASSWORD"),
+}
+
+func SkipIfCredentialsEmpty(credentials *wtTypes.RegistryCredentials, fn func()) func() {
+	if credentials.Username == "" {
+		return func() {
+			Skip("Username missing. Skipping integration test")
+		}
+	} else if credentials.Password == "" {
+		return func() {
+			Skip("Password missing. Skipping integration test")
+		}
+	} else {
+		return fn
+	}
+}
 
 var _ = Describe("Digests", func() {
-	When("fetching a bearer token", func() {
-		It("should parse the token from the response", func() {
-			token, err := GetToken(image, DH_USERNAME, DH_PASSWORD)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(token).NotTo(Equal(""))
-		})
-	})
-	When("a digest comparison is done", func() {
-		It("should return true if digests match", func() {
-			matches, err := CompareDigest(image, DH_USERNAME, DH_PASSWORD)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(matches).To(Equal(true))
-		})
-		It("should return false if digests differ", func() {
+		When("fetching a bearer token", func() {
 
+			It("should parse the token from the response",
+				SkipIfCredentialsEmpty(GHCRCredentials, func() {
+					ctx := context.Background()
+					logger.AddDebugLogger(ctx)
+					token, err := auth.GetToken(ctx, ghImage, GHCRCredentials)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(token).NotTo(Equal(""))
+				}),
+			)
 		})
-		It("should return an error if the registry isn't available", func() {
+		When("a digest comparison is done", func() {
+			It("should return true if digests match",
+				SkipIfCredentialsEmpty(GHCRCredentials, func() {
+					ctx := context.Background()
+					logger.AddDebugLogger(ctx)
+					matches, err := CompareDigest(ctx, ghImage, GHCRCredentials)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(matches).To(Equal(true))
+				}),
+			)
 
-		})
-	})
-	When("using different registries", func() {
-		It("should work with DockerHub", func() {
+			It("should return false if digests differ", func() {
 
-		})
-		It("should work with GitHub Container Registry", func() {
+			})
+			It("should return an error if the registry isn't available", func() {
 
+			})
 		})
-	})
+		When("using different registries", func() {
+			It("should work with DockerHub", func() {
+
+			})
+			It("should work with GitHub Container Registry",
+				SkipIfCredentialsEmpty(GHCRCredentials, func() {
+					fmt.Println(GHCRCredentials != nil) // to avoid crying linters
+				}),
+			)
+		})
 })
