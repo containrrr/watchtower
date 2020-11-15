@@ -14,8 +14,10 @@ import (
 )
 
 const (
+	// ManifestListV2ContentType is the Content-Type used for fetching manifest lists
 	ManifestListV2ContentType = "application/vnd.docker.distribution.manifest.list.v2+json"
-	ContentDigestHeader       = "Docker-Content-Digest"
+	// ContentDigestHeader is the key for the key-value pair containing the digest header
+	ContentDigestHeader = "Docker-Content-Digest"
 )
 
 // CompareDigest ...
@@ -54,6 +56,7 @@ func CompareDigest(ctx context.Context, image apiTypes.ImageInspect, credentials
 	return false, nil
 }
 
+// GetDigest from registry using a HEAD request to prevent rate limiting
 func GetDigest(ctx context.Context, url string, token string) (string, error) {
 	client := &http.Client{}
 	log := logger.GetLogger(ctx).WithField("fun", "GetDigest")
@@ -73,10 +76,7 @@ func GetDigest(ctx context.Context, url string, token string) (string, error) {
 		return "", err
 	}
 	if res.StatusCode != 200 {
-		return "", errors.New(
-			fmt.Sprintf("registry responded to head request with %d", res.StatusCode),
-		)
+		return "", fmt.Errorf("registry responded to head request with %d", res.StatusCode)
 	}
 	return res.Header.Get(ContentDigestHeader), nil
 }
-

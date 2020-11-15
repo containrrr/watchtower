@@ -52,44 +52,42 @@ func SkipIfCredentialsEmpty(credentials *wtTypes.RegistryCredentials, fn func())
 }
 
 var _ = Describe("Digests", func() {
-		When("fetching a bearer token", func() {
+	var ctx = logger.AddDebugLogger(context.Background())
 
-			It("should parse the token from the response",
-				SkipIfCredentialsEmpty(GHCRCredentials, func() {
-					ctx := context.Background()
-					logger.AddDebugLogger(ctx)
-					token, err := auth.GetToken(ctx, ghImage, GHCRCredentials)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(token).NotTo(Equal(""))
-				}),
-			)
+	When("fetching a bearer token", func() {
+
+		It("should parse the token from the response",
+			SkipIfCredentialsEmpty(GHCRCredentials, func() {
+				token, err := auth.GetToken(ctx, ghImage, GHCRCredentials)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(token).NotTo(Equal(""))
+			}),
+		)
+	})
+	When("a digest comparison is done", func() {
+		It("should return true if digests match",
+			SkipIfCredentialsEmpty(GHCRCredentials, func() {
+				matches, err := CompareDigest(ctx, ghImage, GHCRCredentials)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(matches).To(Equal(true))
+			}),
+		)
+
+		It("should return false if digests differ", func() {
+
 		})
-		When("a digest comparison is done", func() {
-			It("should return true if digests match",
-				SkipIfCredentialsEmpty(GHCRCredentials, func() {
-					ctx := context.Background()
-					logger.AddDebugLogger(ctx)
-					matches, err := CompareDigest(ctx, ghImage, GHCRCredentials)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(matches).To(Equal(true))
-				}),
-			)
+		It("should return an error if the registry isn't available", func() {
 
-			It("should return false if digests differ", func() {
-
-			})
-			It("should return an error if the registry isn't available", func() {
-
-			})
 		})
-		When("using different registries", func() {
-			It("should work with DockerHub", func() {
+	})
+	When("using different registries", func() {
+		It("should work with DockerHub", func() {
 
-			})
-			It("should work with GitHub Container Registry",
-				SkipIfCredentialsEmpty(GHCRCredentials, func() {
-					fmt.Println(GHCRCredentials != nil) // to avoid crying linters
-				}),
-			)
 		})
+		It("should work with GitHub Container Registry",
+			SkipIfCredentialsEmpty(GHCRCredentials, func() {
+				fmt.Println(GHCRCredentials != nil) // to avoid crying linters
+			}),
+		)
+	})
 })

@@ -21,7 +21,6 @@ func BuildManifestURL(image apiTypes.ImageInspect) (string, error) {
 		return "", err
 	}
 
-
 	host, err := helpers.NormalizeRegistry(hostName.Name())
 	if err != nil {
 		return "", err
@@ -34,4 +33,3 @@ func BuildManifestURL(image apiTypes.ImageInspect) (string, error) {
 	}
 	return url.String(), nil
 }
-

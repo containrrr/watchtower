@@ -17,11 +17,10 @@ import (
 	"strings"
 )
 
-const 	ChallengeHeader           = "WWW-Authenticate"
+// ChallengeHeader is the HTTP Header containing challenge instructions
+const ChallengeHeader = "WWW-Authenticate"
 
-
-
-
+// GetToken fetches a token for the registry hosting the provided image
 func GetToken(ctx context.Context, image apiTypes.ImageInspect, credentials *types.RegistryCredentials) (string, error) {
 	var err error
 	log := logger.GetLogger(ctx)
@@ -61,6 +60,7 @@ func GetToken(ctx context.Context, image apiTypes.ImageInspect, credentials *typ
 	return "", errors.New("unsupported challenge type from registry")
 }
 
+// GetChallengeRequest creates a request for getting challenge instructions
 func GetChallengeRequest(url url2.URL) (*http.Request, error) {
 
 	req, err := http.NewRequest("GET", url.String(), nil)
@@ -72,6 +72,7 @@ func GetChallengeRequest(url url2.URL) (*http.Request, error) {
 	return req, nil
 }
 
+// GetBearerToken tries to fetch a bearer token from the registry based on the challenge instructions
 func GetBearerToken(ctx context.Context, challenge string, img string, err error, credentials *types.RegistryCredentials) (string, error) {
 	log := logger.GetLogger(ctx)
 	client := http.Client{}
@@ -105,6 +106,7 @@ func GetBearerToken(ctx context.Context, challenge string, img string, err error
 	return tokenResponse.Token, nil
 }
 
+// GetAuthURL from the instructions in the challenge
 func GetAuthURL(challenge string, img string) *url2.URL {
 	raw := strings.TrimPrefix(challenge, "bearer")
 	pairs := strings.Split(raw, ",")
@@ -128,6 +130,7 @@ func GetAuthURL(challenge string, img string) *url2.URL {
 	return authURL
 }
 
+// GetChallengeURL creates a URL object based on the image info
 func GetChallengeURL(img string) (url2.URL, error) {
 	normalizedNamed, _ := ref.ParseNormalizedNamed(img)
 	host, err := helpers.NormalizeRegistry(normalizedNamed.Name())
@@ -137,7 +140,7 @@ func GetChallengeURL(img string) (url2.URL, error) {
 
 	url := url2.URL{
 		Scheme: "https",
-		Host:   host ,
+		Host:   host,
 		Path:   "/v2/",
 	}
 	return url, nil

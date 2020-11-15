@@ -5,29 +5,32 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const ContextKey = "LogrusLoggerContext"
+type contextKeyType string
+
+const contextKey = contextKeyType("LogrusLoggerContext")
 
 // GetLogger returns a logger from the context if one is available, otherwise a default logger
 func GetLogger(ctx context.Context) *logrus.Logger {
-	if logger, ok := ctx.Value(ContextKey).(logrus.Logger); ok {
+	if logger, ok := ctx.Value(contextKey).(logrus.Logger); ok {
 		return &logger
-	} else {
-		return newLogger(&logrus.JSONFormatter{}, logrus.InfoLevel)
 	}
+	return newLogger(&logrus.JSONFormatter{}, logrus.InfoLevel)
 }
 
-func AddLogger(ctx context.Context) {
-	setLogger(ctx, &logrus.JSONFormatter{}, logrus.InfoLevel)
+// AddLogger adds a logger to the passed context
+func AddLogger(ctx context.Context) context.Context {
+	return setLogger(ctx, &logrus.JSONFormatter{}, logrus.InfoLevel)
 }
 
-func AddDebugLogger(ctx context.Context) {
-	setLogger(ctx, &logrus.TextFormatter{}, logrus.DebugLevel)
+// AddDebugLogger adds a text-formatted debug logger to the passed context
+func AddDebugLogger(ctx context.Context) context.Context {
+	return setLogger(ctx, &logrus.TextFormatter{}, logrus.DebugLevel)
 }
 
 // SetLogger adds a logger to the supplied context
-func setLogger(ctx context.Context, fmt logrus.Formatter, level logrus.Level) {
+func setLogger(ctx context.Context, fmt logrus.Formatter, level logrus.Level) context.Context {
 	log := newLogger(fmt, level)
-	context.WithValue(ctx, ContextKey, log)
+	return context.WithValue(ctx, contextKey, log)
 }
 
 func newLogger(fmt logrus.Formatter, level logrus.Level) *logrus.Logger {
