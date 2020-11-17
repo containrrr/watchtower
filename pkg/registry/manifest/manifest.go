@@ -2,8 +2,8 @@ package manifest
 
 import (
 	"fmt"
-	ref "github.com/containers/image/v5/docker/reference"
 	"github.com/containrrr/watchtower/pkg/registry/helpers"
+	ref "github.com/docker/distribution/reference"
 	apiTypes "github.com/docker/docker/api/types"
 	url2 "net/url"
 	"strings"

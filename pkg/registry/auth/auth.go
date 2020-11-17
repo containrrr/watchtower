@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	ref "github.com/containers/image/v5/docker/reference"
 	"github.com/containrrr/watchtower/pkg/logger"
 	"github.com/containrrr/watchtower/pkg/registry/helpers"
 	"github.com/containrrr/watchtower/pkg/types"
+	"github.com/docker/distribution/reference"
 	apiTypes "github.com/docker/docker/api/types"
 	"github.com/sirupsen/logrus"
 	"io/ioutil"
@@ -132,7 +132,7 @@ func GetAuthURL(challenge string, img string) *url2.URL {
 
 // GetChallengeURL creates a URL object based on the image info
 func GetChallengeURL(img string) (url2.URL, error) {
-	normalizedNamed, _ := ref.ParseNormalizedNamed(img)
+	normalizedNamed, _ := reference.ParseNormalizedNamed(img)
 	host, err := helpers.NormalizeRegistry(normalizedNamed.Name())
 	if err != nil {
 		return url2.URL{}, err
