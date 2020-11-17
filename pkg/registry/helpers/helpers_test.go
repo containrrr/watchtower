@@ -3,14 +3,12 @@ package helpers
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	log "github.com/sirupsen/logrus"
 	"testing"
 )
 
-func TestDigest(t *testing.T) {
-	log.SetLevel(log.DebugLevel)
+func TestHelpers(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Digest Suite")
+	RunSpecs(t, "Helper Suite")
 }
 
 var _ = Describe("the helpers", func() {

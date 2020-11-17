@@ -39,8 +39,9 @@ require (
 	github.com/lib/pq v1.2.0 // indirect
 	github.com/miekg/pkcs11 v0.0.0-20190401114359-553cfdd26aaa // indirect
 	github.com/morikuni/aec v0.0.0-20170113033406-39771216ff4c // indirect
-	github.com/onsi/ginkgo v1.8.0
-	github.com/onsi/gomega v1.5.0
+	github.com/nxadm/tail v1.4.5 // indirect
+	github.com/onsi/ginkgo v1.14.2
+	github.com/onsi/gomega v1.10.1
 	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
 	github.com/opencontainers/image-spec v1.0.1 // indirect
 	github.com/opencontainers/runc v0.1.1
@@ -53,7 +54,8 @@ require (
 	github.com/stretchr/testify v1.3.0
 	github.com/theupdateframework/notary v0.6.1 // indirect
 	github.com/zmap/zlint v1.0.2 // indirect
-	golang.org/x/net v0.0.0-20190522155817-f3200d17e092
+	golang.org/x/net v0.0.0-20200520004742-59133d7f0dd7
+	golang.org/x/sys v0.0.0-20201117170446-d9b008d0a637 // indirect
 	gopkg.in/dancannon/gorethink.v3 v3.0.5 // indirect
 	gopkg.in/fatih/pool.v2 v2.0.0 // indirect
 	gopkg.in/gorethink/gorethink.v3 v3.0.5 // indirect

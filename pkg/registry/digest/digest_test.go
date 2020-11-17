@@ -10,13 +10,15 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"os"
-	"testing"
 )
 
-func TestDigest(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Digest Suite")
-}
+var _ = Describe("Testing with Ginkgo", func() {
+	It("digest", func() {
+
+		RegisterFailHandler(Fail)
+		RunSpecs(GinkgoT(), "Digest Suite")
+	})
+})
 
 var ghImage = types.ImageInspect{
 	ID: "sha256:6972c414f322dfa40324df3c503d4b217ccdec6d576e408ed10437f508f4181b",
