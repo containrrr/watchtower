@@ -160,6 +160,7 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
   <tr>
     <td align="center"><a href="https://github.com/dhet"><img src="https://avatars3.githubusercontent.com/u/2668621?v=4" width="100px;" alt=""/><br /><sub><b>David H.</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=dhet" title="Code">💻</a></td>
     <td align="center"><a href="http://www.gridgeo.com"><img src="https://avatars1.githubusercontent.com/u/671887?v=4" width="100px;" alt=""/><br /><sub><b>Chander Ganesan</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=chander" title="Documentation">📖</a></td>
+    <td align="center"><a href="https://github.com/yrien30"><img src="https://avatars1.githubusercontent.com/u/26816162?v=4" width="100px;" alt=""/><br /><sub><b>yrien30</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=yrien30" title="Code">💻</a></td>
   </tr>
 </table>
 
