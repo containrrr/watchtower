@@ -1,6 +1,8 @@
 package container
 
 import (
+	"testing"
+
 	"github.com/containrrr/watchtower/pkg/container/mocks"
 	"github.com/containrrr/watchtower/pkg/filters"
 	"github.com/docker/docker/api/types"
@@ -8,7 +10,6 @@ import (
 	cli "github.com/docker/docker/client"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"testing"
 )
 
 func TestContainer(t *testing.T) {
@@ -66,6 +67,44 @@ var _ = Describe("the container", func() {
 				containers, err := client.ListContainers(filters.NoFilter)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(len(containers) > 0).To(BeTrue())
+			})
+		})
+		When(`listing containers with the "include restart" option`, func() {
+			It("should return both stopped, restarting and running containers", func() {
+				client = dockerClient{
+					api:               docker,
+					pullImages:        false,
+					includeRestarting: true,
+				}
+				containers, err := client.ListContainers(filters.NoFilter)
+				Expect(err).NotTo(HaveOccurred())
+				RestartingContainerFound := false
+				for _, ContainerRunning := range containers {
+					if ContainerRunning.containerInfo.State.Restarting {
+						RestartingContainerFound = true
+					}
+				}
+				Expect(RestartingContainerFound).To(BeTrue())
+				Expect(RestartingContainerFound).NotTo(BeFalse())
+			})
+		})
+		When(`listing containers without restarting ones`, func() {
+			It("should not return restarting containers", func() {
+				client = dockerClient{
+					api:               docker,
+					pullImages:        false,
+					includeRestarting: false,
+				}
+				containers, err := client.ListContainers(filters.NoFilter)
+				Expect(err).NotTo(HaveOccurred())
+				RestartingContainerFound := false
+				for _, ContainerRunning := range containers {
+					if ContainerRunning.containerInfo.State.Restarting {
+						RestartingContainerFound = true
+					}
+				}
+				Expect(RestartingContainerFound).To(BeFalse())
+				Expect(RestartingContainerFound).NotTo(BeTrue())
 			})
 		})
 	})
