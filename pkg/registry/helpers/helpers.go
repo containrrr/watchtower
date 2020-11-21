@@ -12,7 +12,6 @@ func ConvertToHostname(url string) (string, string, error) {
 	if err != nil {
 		return "", "", err
 	}
-	fmt.Println(url, err)
 	hostName := u.Hostname()
 	port := u.Port()
 

@@ -87,7 +87,7 @@ func GetBearerToken(ctx context.Context, challenge string, img string, err error
 		return "", err
 	}
 
-	if credentials.Username != "" && credentials.Password != "" {
+	if credentials != nil && credentials.Username != "" && credentials.Password != "" {
 		log.WithField("credentials", credentials).Debug("Found credentials. Adding basic auth.")
 		r.SetBasicAuth(credentials.Username, credentials.Password)
 	} else {
@@ -124,15 +124,21 @@ func GetAuthURL(challenge string, img string) (*url2.URL, error) {
 		val := strings.Trim(kv[1], "\"")
 		values[key] = val
 	}
-
-	if values["realm"] == "" || values["service"] == "" || values["scope"] == "" {
-		return nil, fmt.Errorf("challenge header did not include all values needed to construct an auth url")
+	if values["realm"] == "" || values["service"] == "" {
+		logrus.WithFields(logrus.Fields{
+			"realm": values["realm"],
+			"service": values["service"],
+		}).Debug("Checking challenge header content")
+		return nil, fmt.Errorf("challenge header did not include all values needed to construct an auth url", )
 	}
 
 	authURL, _ := url2.Parse(fmt.Sprintf("%s", values["realm"]))
 	q := authURL.Query()
 	q.Add("service", values["service"])
 	scopeImage := strings.TrimPrefix(img, values["service"])
+	if !strings.Contains(scopeImage, "/") {
+		scopeImage = "library/" + scopeImage
+	}
 	scope := fmt.Sprintf("repository:%s:pull", scopeImage)
 	q.Add("scope", scope)
 

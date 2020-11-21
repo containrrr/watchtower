@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/containrrr/watchtower/pkg/registry"
+	"github.com/containrrr/watchtower/pkg/registry/digest"
 
 	t "github.com/containrrr/watchtower/pkg/types"
 	"github.com/docker/docker/api/types"
@@ -275,13 +276,35 @@ func (client dockerClient) HasNewImage(ctx context.Context, container Container)
 func (client dockerClient) PullImage(ctx context.Context, container Container) error {
 	containerName := container.Name()
 	imageName := container.ImageName()
-	log.Debugf("Pulling %s for %s", imageName, containerName)
 
+	fields := log.Fields{
+		"image":     imageName,
+		"container": containerName,
+	}
+
+	log.WithFields(fields).Debugf("Trying to load authentication credentials.")
 	opts, err := registry.GetPullOptions(imageName)
+	if opts.RegistryAuth != "" {
+		log.Debug("Credentials loaded")
+	}
 	if err != nil {
 		log.Debugf("Error loading authentication credentials %s", err)
 		return err
 	}
+
+	log.WithFields(fields).Debugf("Checking if pull is needed")
+
+	if match, err := digest.CompareDigest(ctx, *container.ImageInfo(), nil); err != nil {
+		log.Info("Could not do a head request, falling back to regulara pull.")
+		log.Debugf("Reason: %s", err.Error())
+	} else if match {
+		log.Debug("No pull needed. Skipping image.")
+		return nil
+	} else {
+		log.Debug("Digests did not match, doing a pull.")
+	}
+
+	log.WithFields(fields).Debugf("Pulling image")
 
 	response, err := client.api.ImagePull(ctx, imageName, opts)
 	if err != nil {

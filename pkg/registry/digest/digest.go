@@ -9,21 +9,17 @@ import (
 	"github.com/containrrr/watchtower/pkg/registry/manifest"
 	"github.com/containrrr/watchtower/pkg/types"
 	apiTypes "github.com/docker/docker/api/types"
+	"github.com/sirupsen/logrus"
 	"net/http"
 	"strings"
 )
 
-const (
-	// ManifestListV2ContentType is the Content-Type used for fetching manifest lists
-	ManifestListV2ContentType = "application/vnd.docker.distribution.manifest.list.v2+json"
-	// ContentDigestHeader is the key for the key-value pair containing the digest header
-	ContentDigestHeader = "Docker-Content-Digest"
-)
+// ContentDigestHeader is the key for the key-value pair containing the digest header
+const ContentDigestHeader = "Docker-Content-Digest"
 
 // CompareDigest ...
 func CompareDigest(ctx context.Context, image apiTypes.ImageInspect, credentials *types.RegistryCredentials) (bool, error) {
 	var digest string
-	log := logger.GetLogger(ctx).WithField("fun", "CompareDigest")
 	token, err := auth.GetToken(ctx, image, credentials)
 	if err != nil {
 		return false, err
@@ -38,8 +34,7 @@ func CompareDigest(ctx context.Context, image apiTypes.ImageInspect, credentials
 		return false, err
 	}
 
-	log.WithField("Remote Digest", digest).Debug()
-	log.WithField("Local Image ID", image.ID).Debug()
+	logrus.WithField("remote", digest).Debug("Found a remote digest to compare with")
 
 	if image.ID == digest {
 		return true, nil
@@ -47,8 +42,12 @@ func CompareDigest(ctx context.Context, image apiTypes.ImageInspect, credentials
 
 	for _, dig := range image.RepoDigests {
 		localDigest := strings.Split(dig, "@")[1]
-		log.WithField("Local Digest", localDigest).Debug("Comparing with local digest")
+		logrus.WithFields(logrus.Fields{
+			"local": localDigest,
+			"remote": digest,
+		}).Debug("Comparing")
 		if localDigest == digest {
+			logrus.Debug("Found a match")
 			return true, nil
 		}
 	}
@@ -68,9 +67,10 @@ func GetDigest(ctx context.Context, url string, token string) (string, error) {
 
 	req, _ := http.NewRequest("HEAD", url, nil)
 	req.Header.Add("Authorization", "Bearer "+token)
-	req.Header.Add("Accept", "*")
+	req.Header.Add("Accept", "*/*")
 
-	log.WithField("url", url).Debug("Doing a HEAD request to fetch a digest")
+	logrus.WithField("url", url).Debug("Doing a HEAD request to fetch a digest")
+
 	res, err := client.Do(req)
 	if err != nil {
 		return "", err

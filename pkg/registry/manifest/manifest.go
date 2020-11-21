@@ -12,7 +12,6 @@ import (
 // BuildManifestURL from raw image data
 func BuildManifestURL(image apiTypes.ImageInspect) (string, error) {
 	img, tag := extractImageAndTag(image)
-
 	hostName, err := ref.ParseNormalizedNamed(img)
 	if err != nil {
 		return "", err
@@ -23,6 +22,9 @@ func BuildManifestURL(image apiTypes.ImageInspect) (string, error) {
 		return "", err
 	}
 	img = strings.TrimPrefix(img, fmt.Sprintf("%s/", host))
+	if !strings.Contains(img, "/") {
+		img = "library/" + img
+	}
 	url := url2.URL{
 		Scheme: "https",
 		Host:   host,

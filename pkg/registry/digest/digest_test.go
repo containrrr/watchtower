@@ -4,21 +4,21 @@ import (
 	"context"
 	"fmt"
 	"github.com/containrrr/watchtower/pkg/logger"
-	"github.com/containrrr/watchtower/pkg/registry/auth"
 	wtTypes "github.com/containrrr/watchtower/pkg/types"
 	"github.com/docker/docker/api/types"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"os"
+	"testing"
 )
 
-var _ = Describe("Testing with Ginkgo", func() {
-	It("digest", func() {
 
-		RegisterFailHandler(Fail)
-		RunSpecs(GinkgoT(), "Digest Suite")
-	})
-})
+
+func TestDigest(t *testing.T) {
+
+	RegisterFailHandler(Fail)
+	RunSpecs(GinkgoT(), "Digest Suite")
+}
 
 var ghImage = types.ImageInspect{
 	ID: "sha256:6972c414f322dfa40324df3c503d4b217ccdec6d576e408ed10437f508f4181b",
@@ -56,16 +56,6 @@ func SkipIfCredentialsEmpty(credentials *wtTypes.RegistryCredentials, fn func())
 var _ = Describe("Digests", func() {
 	var ctx = logger.AddDebugLogger(context.Background())
 
-	When("fetching a bearer token", func() {
-
-		It("should parse the token from the response",
-			SkipIfCredentialsEmpty(GHCRCredentials, func() {
-				token, err := auth.GetToken(ctx, ghImage, GHCRCredentials)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(token).NotTo(Equal(""))
-			}),
-		)
-	})
 	When("a digest comparison is done", func() {
 		It("should return true if digests match",
 			SkipIfCredentialsEmpty(GHCRCredentials, func() {
@@ -83,9 +73,11 @@ var _ = Describe("Digests", func() {
 		})
 	})
 	When("using different registries", func() {
-		It("should work with DockerHub", func() {
-
-		})
+		It("should work with DockerHub",
+			SkipIfCredentialsEmpty(DockerHubCredentials, func() {
+				fmt.Println(DockerHubCredentials != nil) // to avoid crying linters
+			}),
+		)
 		It("should work with GitHub Container Registry",
 			SkipIfCredentialsEmpty(GHCRCredentials, func() {
 				fmt.Println(GHCRCredentials != nil) // to avoid crying linters
