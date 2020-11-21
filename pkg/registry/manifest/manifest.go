@@ -11,12 +11,9 @@ import (
 
 // BuildManifestURL from raw image data
 func BuildManifestURL(image apiTypes.ImageInspect) (string, error) {
-	parts := strings.Split(image.RepoTags[0], ":")
-	img := parts[0]
-	tag := parts[1]
+	img, tag := extractImageAndTag(image)
 
 	hostName, err := ref.ParseNormalizedNamed(img)
-	fmt.Println(hostName)
 	if err != nil {
 		return "", err
 	}
@@ -25,11 +22,25 @@ func BuildManifestURL(image apiTypes.ImageInspect) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	img = strings.TrimPrefix(img, host)
+	img = strings.TrimPrefix(img, fmt.Sprintf("%s/", host))
 	url := url2.URL{
 		Scheme: "https",
 		Host:   host,
 		Path:   fmt.Sprintf("/v2/%s/manifests/%s", img, tag),
 	}
 	return url.String(), nil
+}
+
+func extractImageAndTag(image apiTypes.ImageInspect) (string, string) {
+	var img string
+	var tag string
+	if strings.Contains(image.RepoTags[0], ":") {
+		parts := strings.Split(image.RepoTags[0], ":")
+		img = parts[0]
+		tag = parts[1]
+	} else {
+		img = image.RepoTags[0]
+		tag = "latest"
+	}
+	return img, tag
 }

@@ -76,7 +76,11 @@ func GetChallengeRequest(url url2.URL) (*http.Request, error) {
 func GetBearerToken(ctx context.Context, challenge string, img string, err error, credentials *types.RegistryCredentials) (string, error) {
 	log := logger.GetLogger(ctx)
 	client := http.Client{}
-	authURL := GetAuthURL(challenge, img)
+
+	authURL, err := GetAuthURL(challenge, img)
+	if err != nil {
+		return "", err
+	}
 
 	var r *http.Request
 	if r, err = http.NewRequest("GET", authURL.String(), nil); err != nil {
@@ -107,8 +111,10 @@ func GetBearerToken(ctx context.Context, challenge string, img string, err error
 }
 
 // GetAuthURL from the instructions in the challenge
-func GetAuthURL(challenge string, img string) *url2.URL {
-	raw := strings.TrimPrefix(challenge, "bearer")
+func GetAuthURL(challenge string, img string) (*url2.URL, error) {
+	loweredChallenge := strings.ToLower(challenge)
+	raw := strings.TrimPrefix(loweredChallenge, "bearer")
+
 	pairs := strings.Split(raw, ",")
 	values := make(map[string]string, 0)
 	for _, pair := range pairs {
@@ -119,6 +125,10 @@ func GetAuthURL(challenge string, img string) *url2.URL {
 		values[key] = val
 	}
 
+	if values["realm"] == "" || values["service"] == "" || values["scope"] == "" {
+		return nil, fmt.Errorf("challenge header did not include all values needed to construct an auth url")
+	}
+
 	authURL, _ := url2.Parse(fmt.Sprintf("%s", values["realm"]))
 	q := authURL.Query()
 	q.Add("service", values["service"])
@@ -127,7 +137,7 @@ func GetAuthURL(challenge string, img string) *url2.URL {
 	q.Add("scope", scope)
 
 	authURL.RawQuery = q.Encode()
-	return authURL
+	return authURL, nil
 }
 
 // GetChallengeURL creates a URL object based on the image info
