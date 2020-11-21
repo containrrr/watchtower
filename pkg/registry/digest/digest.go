@@ -43,7 +43,7 @@ func CompareDigest(ctx context.Context, image apiTypes.ImageInspect, credentials
 	for _, dig := range image.RepoDigests {
 		localDigest := strings.Split(dig, "@")[1]
 		logrus.WithFields(logrus.Fields{
-			"local": localDigest,
+			"local":  localDigest,
 			"remote": digest,
 		}).Debug("Comparing")
 		if localDigest == digest {

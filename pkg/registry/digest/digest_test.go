@@ -12,8 +12,6 @@ import (
 	"testing"
 )
 
-
-
 func TestDigest(t *testing.T) {
 
 	RegisterFailHandler(Fail)

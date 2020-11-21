@@ -126,10 +126,10 @@ func GetAuthURL(challenge string, img string) (*url2.URL, error) {
 	}
 	if values["realm"] == "" || values["service"] == "" {
 		logrus.WithFields(logrus.Fields{
-			"realm": values["realm"],
+			"realm":   values["realm"],
 			"service": values["service"],
 		}).Debug("Checking challenge header content")
-		return nil, fmt.Errorf("challenge header did not include all values needed to construct an auth url", )
+		return nil, fmt.Errorf("challenge header did not include all values needed to construct an auth url")
 	}
 
 	authURL, _ := url2.Parse(fmt.Sprintf("%s", values["realm"]))

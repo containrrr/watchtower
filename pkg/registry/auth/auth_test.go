@@ -2,14 +2,15 @@ package auth
 
 import (
 	"context"
-	"github.com/containrrr/watchtower/pkg/logger"
-	wtTypes "github.com/containrrr/watchtower/pkg/types"
-	"github.com/docker/docker/api/types"
 	"net/url"
 	"os"
 	"testing"
-	. "github.com/onsi/gomega"
+
+	"github.com/containrrr/watchtower/pkg/logger"
+	wtTypes "github.com/containrrr/watchtower/pkg/types"
+	"github.com/docker/docker/api/types"
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 func TestAuth(t *testing.T) {
@@ -59,9 +60,9 @@ var _ = Describe("the auth module", func() {
 		It("should create a valid auth url object based on the challenge header supplied", func() {
 			input := `bearer realm="https://ghcr.io/token",service="ghcr.io",scope="repository:user/image:pull"`
 			expected := &url.URL{
-				Host: "ghcr.io",
-				Scheme: "https",
-				Path: "/token",
+				Host:     "ghcr.io",
+				Scheme:   "https",
+				Path:     "/token",
 				RawQuery: "scope=repository%3Acontainrrr%2Fwatchtower%3Apull&service=ghcr.io",
 			}
 			res, err := GetAuthURL(input, "containrrr/watchtower")
@@ -69,7 +70,7 @@ var _ = Describe("the auth module", func() {
 			Expect(res).To(Equal(expected))
 		})
 		It("should create a valid auth url object based on the challenge header supplied", func() {
-			input := `bearer realm="https://ghcr.io/token",service="ghcr.io"`
+			input := `bearer realm="https://ghcr.io/token"`
 			res, err := GetAuthURL(input, "containrrr/watchtower")
 			Expect(err).To(HaveOccurred())
 			Expect(res).To(BeNil())
@@ -77,18 +78,17 @@ var _ = Describe("the auth module", func() {
 	})
 	When("getting a challenge url", func() {
 		It("should create a valid challenge url object based on the image ref supplied", func() {
-			expected := url.URL{ Host: "ghcr.io", Scheme: "https", Path: "/v2/"}
+			expected := url.URL{Host: "ghcr.io", Scheme: "https", Path: "/v2/"}
 			Expect(GetChallengeURL("ghcr.io/containrrr/watchtower:latest")).To(Equal(expected))
 		})
 		It("should assume dockerhub if the image ref is not fully qualified", func() {
-			expected := url.URL{ Host: "index.docker.io", Scheme: "https", Path: "/v2/"}
+			expected := url.URL{Host: "index.docker.io", Scheme: "https", Path: "/v2/"}
 			Expect(GetChallengeURL("containrrr/watchtower:latest")).To(Equal(expected))
 		})
 		It("should convert legacy dockerhub hostnames to index.docker.io", func() {
-			expected := url.URL{ Host: "index.docker.io", Scheme: "https", Path: "/v2/"}
+			expected := url.URL{Host: "index.docker.io", Scheme: "https", Path: "/v2/"}
 			Expect(GetChallengeURL("docker.io/containrrr/watchtower:latest")).To(Equal(expected))
 			Expect(GetChallengeURL("registry-1.docker.io/containrrr/watchtower:latest")).To(Equal(expected))
 		})
 	})
 })
-
