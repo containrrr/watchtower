@@ -10,6 +10,7 @@ import (
 	"github.com/containrrr/watchtower/pkg/registry"
 	"github.com/containrrr/watchtower/pkg/registry/digest"
 
+	"github.com/containrrr/watchtower/internal/flags"
 	t "github.com/containrrr/watchtower/pkg/types"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -42,7 +43,7 @@ type Client interface {
 //  * DOCKER_HOST			the docker-engine host to send api requests to
 //  * DOCKER_TLS_VERIFY		whether to verify tls certificates
 //  * DOCKER_API_VERSION	the minimum docker api version to work with
-func NewClient(pullImages, includeStopped, reviveStopped, removeVolumes, includeRestarting bool, warnOnHeadFailed string) Client {
+func NewClient(config *flags.WatchConfig) Client {
 	cli, err := sdkClient.NewClientWithOpts(sdkClient.FromEnv)
 
 	if err != nil {
@@ -51,12 +52,12 @@ func NewClient(pullImages, includeStopped, reviveStopped, removeVolumes, include
 
 	return dockerClient{
 		api:               cli,
-		pullImages:        pullImages,
-		removeVolumes:     removeVolumes,
-		includeStopped:    includeStopped,
-		reviveStopped:     reviveStopped,
-		includeRestarting: includeRestarting,
-		warnOnHeadFailed:  warnOnHeadFailed,
+		pullImages:        !config.NoPull,
+		removeVolumes:     config.RemoveVolumes,
+		includeStopped:    config.IncludeStopped,
+		reviveStopped:     config.ReviveStopped,
+		includeRestarting: config.IncludeRestarting,
+		warnOnHeadFailed:  config.WarnOnHeadFailed,
 	}
 }
 

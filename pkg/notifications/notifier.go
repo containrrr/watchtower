@@ -4,7 +4,7 @@ import (
 	ty "github.com/containrrr/watchtower/pkg/types"
 	"github.com/johntdyer/slackrus"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"os"
 	"strings"
 )
@@ -15,12 +15,10 @@ type Notifier struct {
 }
 
 // NewNotifier creates and returns a new Notifier, using global configuration.
-func NewNotifier(c *cobra.Command) *Notifier {
+func NewNotifier() *Notifier {
 	n := &Notifier{}
 
-	f := c.PersistentFlags()
-
-	level, _ := f.GetString("notifications-level")
+	level := viper.GetString("notifications-level")
 	logLevel, err := log.ParseLevel(level)
 	if err != nil {
 		log.Fatalf("Notifications invalid log level: %s", err.Error())
@@ -33,12 +31,12 @@ func NewNotifier(c *cobra.Command) *Notifier {
 	}
 
 	// Parse types and create notifiers.
-	types, err := f.GetStringSlice("notifications")
+	types := viper.GetStringSlice("notifications")
 	if err != nil {
 		log.WithField("could not read notifications argument", log.Fields{"Error": err}).Fatal()
 	}
 
-	n.types = n.getNotificationTypes(c, acceptedLogLevels, types)
+	n.types = n.getNotificationTypes(acceptedLogLevels, types)
 
 	return n
 }
@@ -70,13 +68,13 @@ func (n *Notifier) String() string {
 }
 
 // getNotificationTypes produces an array of notifiers from a list of types
-func (n *Notifier) getNotificationTypes(cmd *cobra.Command, levels []log.Level, types []string) []ty.Notifier {
+func (n *Notifier) getNotificationTypes(levels []log.Level, types []string) []ty.Notifier {
 	output := make([]ty.Notifier, 0)
 
 	for _, t := range types {
 
 		if t == shoutrrrType {
-			output = append(output, newShoutrrrNotifier(cmd, levels))
+			output = append(output, newShoutrrrNotifier(levels))
 			continue
 		}
 
@@ -85,20 +83,20 @@ func (n *Notifier) getNotificationTypes(cmd *cobra.Command, levels []log.Level, 
 
 		switch t {
 		case emailType:
-			legacyNotifier = newEmailNotifier(cmd, []log.Level{})
+			legacyNotifier = newEmailNotifier()
 		case slackType:
-			legacyNotifier = newSlackNotifier(cmd, []log.Level{})
+			legacyNotifier = newSlackNotifier()
 		case msTeamsType:
-			legacyNotifier = newMsTeamsNotifier(cmd, levels)
+			legacyNotifier = newMsTeamsNotifier()
 		case gotifyType:
-			legacyNotifier = newGotifyNotifier(cmd, []log.Level{})
+			legacyNotifier = newGotifyNotifier()
 		default:
 			log.Fatalf("Unknown notification type %q", t)
 			// Not really needed, used for nil checking static analysis
 			continue
 		}
 
-		shoutrrrURL, err := legacyNotifier.GetURL(cmd)
+		shoutrrrURL, err := legacyNotifier.GetURL()
 		if err != nil {
 			log.Fatal("failed to create notification config:", err)
 		}
@@ -106,7 +104,6 @@ func (n *Notifier) getNotificationTypes(cmd *cobra.Command, levels []log.Level, 
 		log.WithField("URL", shoutrrrURL).Trace("created Shoutrrr URL from legacy notifier")
 
 		notifier := newShoutrrrNotifierFromURL(
-			cmd,
 			shoutrrrURL,
 			levels,
 		)
@@ -139,12 +136,10 @@ func (n *Notifier) Close() {
 }
 
 // GetTitle returns a common notification title with hostname appended
-func GetTitle(c *cobra.Command) (title string) {
+func GetTitle() (title string) {
 	title = "Watchtower updates"
 
-	f := c.PersistentFlags()
-
-	hostname, _ := f.GetString("notifications-hostname")
+	hostname := viper.GetString("notifications-hostname")
 
 	if hostname != "" {
 		title += " on " + hostname

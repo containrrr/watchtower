@@ -32,6 +32,7 @@ func TestShoutrrrDefaultTemplate(t *testing.T) {
 func TestShoutrrrTemplate(t *testing.T) {
 	cmd := new(cobra.Command)
 	flags.RegisterNotificationFlags(cmd)
+	flags.BindViperFlags(cmd)
 	err := cmd.ParseFlags([]string{"--notification-template={{range .}}{{.Level}}: {{.Message}}{{println}}{{end}}"})
 
 	require.NoError(t, err)
@@ -55,6 +56,7 @@ func TestShoutrrrTemplate(t *testing.T) {
 func TestShoutrrrStringFunctions(t *testing.T) {
 	cmd := new(cobra.Command)
 	flags.RegisterNotificationFlags(cmd)
+	flags.BindViperFlags(cmd)
 	err := cmd.ParseFlags([]string{"--notification-template={{range .}}{{.Level | printf \"%v\" | ToUpper }}: {{.Message | ToLower }} {{.Message | Title }}{{println}}{{end}}"})
 
 	require.NoError(t, err)
@@ -77,8 +79,8 @@ func TestShoutrrrStringFunctions(t *testing.T) {
 
 func TestShoutrrrInvalidTemplateUsesTemplate(t *testing.T) {
 	cmd := new(cobra.Command)
-
 	flags.RegisterNotificationFlags(cmd)
+	flags.BindViperFlags(cmd)
 	err := cmd.ParseFlags([]string{"--notification-template={{"})
 
 	require.NoError(t, err)
@@ -108,7 +110,7 @@ type blockingRouter struct {
 	sent   chan bool
 }
 
-func (b blockingRouter) Send(message string, params *types.Params) []error {
+func (b blockingRouter) Send(_ string, _ *types.Params) []error {
 	_ = <-b.unlock
 	b.sent <- true
 	return nil

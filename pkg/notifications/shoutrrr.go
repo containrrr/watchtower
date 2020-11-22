@@ -3,6 +3,7 @@ package notifications
 import (
 	"bytes"
 	"fmt"
+	"github.com/spf13/viper"
 	stdlog "log"
 	"strings"
 	"text/template"
@@ -11,7 +12,6 @@ import (
 	"github.com/containrrr/shoutrrr/pkg/types"
 	t "github.com/containrrr/watchtower/pkg/types"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
 )
 
 const (
@@ -47,15 +47,14 @@ func (n *shoutrrrTypeNotifier) GetNames() []string {
 	return names
 }
 
-func newShoutrrrNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.Notifier {
-	flags := c.PersistentFlags()
-	urls, _ := flags.GetStringArray("notification-url")
-	tpl := getShoutrrrTemplate(c)
+func newShoutrrrNotifier(acceptedLogLevels []log.Level) t.Notifier {
+	urls := viper.GetStringSlice("notification-url")
+	tpl := getShoutrrrTemplate()
 	return createSender(urls, acceptedLogLevels, tpl)
 }
 
-func newShoutrrrNotifierFromURL(c *cobra.Command, url string, levels []log.Level) t.Notifier {
-	tpl := getShoutrrrTemplate(c)
+func newShoutrrrNotifierFromURL(url string, levels []log.Level) t.Notifier {
+	tpl := getShoutrrrTemplate()
 	return createSender([]string{url}, levels, tpl)
 }
 
@@ -151,12 +150,11 @@ func (n *shoutrrrTypeNotifier) Fire(entry *log.Entry) error {
 	return nil
 }
 
-func getShoutrrrTemplate(c *cobra.Command) *template.Template {
+func getShoutrrrTemplate() *template.Template {
 	var tpl *template.Template
+	var err error
 
-	flags := c.PersistentFlags()
-
-	tplString, err := flags.GetString("notification-template")
+	tplString := viper.GetString("notification-template")
 
 	funcs := template.FuncMap{
 		"ToUpper": strings.ToUpper,
@@ -166,7 +164,7 @@ func getShoutrrrTemplate(c *cobra.Command) *template.Template {
 
 	// If we succeed in getting a non-empty template configuration
 	// try to parse the template string.
-	if tplString != "" && err == nil {
+	if tplString != "" {
 		tpl, err = template.New("").Funcs(funcs).Parse(tplString)
 	}
 

@@ -1,6 +1,7 @@
 package flags
 
 import (
+	"github.com/spf13/viper"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -12,10 +13,11 @@ import (
 
 func TestEnvConfig_Defaults(t *testing.T) {
 	cmd := new(cobra.Command)
-	SetDefaults()
 	RegisterDockerFlags(cmd)
+	SetEnvBindings()
+	BindViperFlags(cmd)
 
-	err := EnvConfig(cmd)
+	err := EnvConfig()
 	require.NoError(t, err)
 
 	assert.Equal(t, "unix:///var/run/docker.sock", os.Getenv("DOCKER_HOST"))
@@ -26,13 +28,14 @@ func TestEnvConfig_Defaults(t *testing.T) {
 
 func TestEnvConfig_Custom(t *testing.T) {
 	cmd := new(cobra.Command)
-	SetDefaults()
 	RegisterDockerFlags(cmd)
+	SetEnvBindings()
+	BindViperFlags(cmd)
 
 	err := cmd.ParseFlags([]string{"--host", "some-custom-docker-host", "--tlsverify", "--api-version", "1.99"})
 	require.NoError(t, err)
 
-	err = EnvConfig(cmd)
+	err = EnvConfig()
 	require.NoError(t, err)
 
 	assert.Equal(t, "some-custom-docker-host", os.Getenv("DOCKER_HOST"))
@@ -71,11 +74,11 @@ func TestGetSecretsFromFilesWithFile(t *testing.T) {
 
 func testGetSecretsFromFiles(t *testing.T, flagName string, expected string) {
 	cmd := new(cobra.Command)
-	SetDefaults()
 	RegisterNotificationFlags(cmd)
-	GetSecretsFromFiles(cmd)
-	value, err := cmd.PersistentFlags().GetString(flagName)
-	require.NoError(t, err)
+	SetEnvBindings()
+	BindViperFlags(cmd)
+	GetSecretsFromFiles()
+	value := viper.GetString(flagName)
 
 	assert.Equal(t, expected, value)
 }

@@ -4,7 +4,7 @@ import (
 	shoutrrrTeams "github.com/containrrr/shoutrrr/pkg/services/teams"
 	t "github.com/containrrr/watchtower/pkg/types"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"net/url"
 )
 
@@ -19,22 +19,19 @@ type msTeamsTypeNotifier struct {
 }
 
 // NewMsTeamsNotifier is a factory method creating a new teams notifier instance
-func NewMsTeamsNotifier(cmd *cobra.Command, acceptedLogLevels []log.Level) t.ConvertibleNotifier {
-	return newMsTeamsNotifier(cmd, acceptedLogLevels)
+func NewMsTeamsNotifier() t.ConvertibleNotifier {
+	return newMsTeamsNotifier()
 }
 
-func newMsTeamsNotifier(cmd *cobra.Command, acceptedLogLevels []log.Level) t.ConvertibleNotifier {
+func newMsTeamsNotifier() t.ConvertibleNotifier {
 
-	flags := cmd.PersistentFlags()
-
-	webHookURL, _ := flags.GetString("notification-msteams-hook")
+	webHookURL := viper.GetString("notification-msteams-hook")
 	if len(webHookURL) <= 0 {
 		log.Fatal("Required argument --notification-msteams-hook(cli) or WATCHTOWER_NOTIFICATION_MSTEAMS_HOOK_URL(env) is empty.")
 	}
 
-	withData, _ := flags.GetBool("notification-msteams-data")
+	withData := viper.GetBool("notification-msteams-data")
 	n := &msTeamsTypeNotifier{
-		levels:     acceptedLogLevels,
 		webHookURL: webHookURL,
 		data:       withData,
 	}
@@ -42,7 +39,7 @@ func newMsTeamsNotifier(cmd *cobra.Command, acceptedLogLevels []log.Level) t.Con
 	return n
 }
 
-func (n *msTeamsTypeNotifier) GetURL(c *cobra.Command) (string, error) {
+func (n *msTeamsTypeNotifier) GetURL() (string, error) {
 	webhookURL, err := url.Parse(n.webHookURL)
 	if err != nil {
 		return "", err
@@ -54,7 +51,7 @@ func (n *msTeamsTypeNotifier) GetURL(c *cobra.Command) (string, error) {
 	}
 
 	config.Color = ColorHex
-	config.Title = GetTitle(c)
+	config.Title = GetTitle()
 
 	return config.GetURL().String(), nil
 }

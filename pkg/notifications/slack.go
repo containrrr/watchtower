@@ -8,7 +8,7 @@ import (
 	t "github.com/containrrr/watchtower/pkg/types"
 	"github.com/johntdyer/slackrus"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 const (
@@ -20,18 +20,17 @@ type slackTypeNotifier struct {
 }
 
 // NewSlackNotifier is a factory function used to generate new instance of the slack notifier type
-func NewSlackNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.ConvertibleNotifier {
-	return newSlackNotifier(c, acceptedLogLevels)
+func NewSlackNotifier() t.ConvertibleNotifier {
+	return newSlackNotifier()
 }
 
-func newSlackNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.ConvertibleNotifier {
-	flags := c.PersistentFlags()
+func newSlackNotifier() t.ConvertibleNotifier {
 
-	hookURL, _ := flags.GetString("notification-slack-hook-url")
-	userName, _ := flags.GetString("notification-slack-identifier")
-	channel, _ := flags.GetString("notification-slack-channel")
-	emoji, _ := flags.GetString("notification-slack-icon-emoji")
-	iconURL, _ := flags.GetString("notification-slack-icon-url")
+	hookURL := viper.GetString("notification-slack-hook-url")
+	userName := viper.GetString("notification-slack-identifier")
+	channel := viper.GetString("notification-slack-channel")
+	emoji := viper.GetString("notification-slack-icon-emoji")
+	iconURL := viper.GetString("notification-slack-icon-url")
 
 	n := &slackTypeNotifier{
 		SlackrusHook: slackrus.SlackrusHook{
@@ -40,13 +39,12 @@ func newSlackNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.Convert
 			Channel:        channel,
 			IconEmoji:      emoji,
 			IconURL:        iconURL,
-			AcceptedLevels: acceptedLogLevels,
 		},
 	}
 	return n
 }
 
-func (s *slackTypeNotifier) GetURL(c *cobra.Command) (string, error) {
+func (s *slackTypeNotifier) GetURL() (string, error) {
 	trimmedURL := strings.TrimRight(s.HookURL, "/")
 	trimmedURL = strings.TrimLeft(trimmedURL, "https://")
 	parts := strings.Split(trimmedURL, "/")
@@ -57,7 +55,7 @@ func (s *slackTypeNotifier) GetURL(c *cobra.Command) (string, error) {
 			Channel:    parts[len(parts)-3],
 			Token:      parts[len(parts)-2],
 			Color:      ColorInt,
-			Title:      GetTitle(c),
+			Title:      GetTitle(),
 			SplitLines: true,
 			Username:   s.Username,
 		}
@@ -71,7 +69,7 @@ func (s *slackTypeNotifier) GetURL(c *cobra.Command) (string, error) {
 		BotName: s.Username,
 		Token:   tokens,
 		Color:   ColorHex,
-		Title:   GetTitle(c),
+		Title:   GetTitle(),
 	}
 
 	return conf.GetURL().String(), nil
