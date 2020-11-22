@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/containrrr/shoutrrr/pkg/types"
+	"github.com/spf13/viper"
 	"strings"
 	"text/template"
 
@@ -34,9 +35,8 @@ type shoutrrrTypeNotifier struct {
 }
 
 func newShoutrrrNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.Notifier {
-	flags := c.PersistentFlags()
 
-	urls, _ := flags.GetStringArray("notification-url")
+	urls := viper.GetStringSlice("notification-url")
 	r, err := shoutrrr.CreateSender(urls...)
 	if err != nil {
 		log.Fatalf("Failed to initialize Shoutrrr notifications: %s\n", err.Error())
@@ -126,12 +126,11 @@ func (e *shoutrrrTypeNotifier) Fire(entry *log.Entry) error {
 	return nil
 }
 
-func getShoutrrrTemplate(c *cobra.Command) *template.Template {
+func getShoutrrrTemplate(_ *cobra.Command) *template.Template {
 	var tpl *template.Template
+	var err error
 
-	flags := c.PersistentFlags()
-
-	tplString, err := flags.GetString("notification-template")
+	tplString := viper.GetString("notification-template")
 
 	funcs := template.FuncMap{
 		"ToUpper": strings.ToUpper,
@@ -141,7 +140,7 @@ func getShoutrrrTemplate(c *cobra.Command) *template.Template {
 
 	// If we succeed in getting a non-empty template configuration
 	// try to parse the template string.
-	if tplString != "" && err == nil {
+	if tplString != "" {
 		tpl, err = template.New("").Funcs(funcs).Parse(tplString)
 	}
 
