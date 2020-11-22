@@ -102,7 +102,7 @@ Environment Variable: NO_COLOR
 Docker daemon socket to connect to. Can be pointed at a remote Docker host by specifying a TCP endpoint as "tcp://hostname:port".
 
 ```
-            Argument: --host, -h
+            Argument: --host, -H
 Environment Variable: DOCKER_HOST
                 Type: String
              Default: "unix:///var/run/docker.sock"
