@@ -79,6 +79,11 @@ func Update(client container.Client, params types.UpdateParams) error {
 		lifecycle.ExecutePreChecks(client, params)
 	}
 
+	containers, err := client.ListContainers(params.Filter)
+	if err != nil {
+		return err
+	}
+
 	containersToUpdate := []container.Container{}
 	if !params.MonitorOnly {
 		for i := len(containers) - 1; i >= 0; i-- {
@@ -91,22 +96,22 @@ func Update(client container.Client, params types.UpdateParams) error {
 	//shared map for independent and linked update
 	imageIDs := make(map[string]bool)
 
-	dependencySortedGraphs, err := PrepareContainerList(client, params)
-	if err != nil {
-		return err
-	}
+	if params.RollingRestart {
+		performRollingRestart(containersToUpdate, client, params)
+	} else {
+		dependencySortedGraphs, err := PrepareContainerList(client, params)
+		if err != nil {
+			return err
+		}
 
-	//Use ordered start and stop for each independent set of containers
-	for _, dependencyGraph:= range dependencySortedGraphs {
-		stopContainersInReversedOrder(dependencyGraph, client, params)
-		restartContainersInSortedOrder(dependencyGraph, client, params, imageIDs)
-	}
+		//Use ordered start and stop for each independent set of containers
+		for _, dependencyGraph:= range dependencySortedGraphs {
+			stopContainersInReversedOrder(dependencyGraph, client, params)
+			restartContainersInSortedOrder(dependencyGraph, client, params, imageIDs)
 
-	//clean up outside after containers updated
-	if params.Cleanup {
-		for imageID := range imageIDs {
-			if err := client.RemoveImageByID(imageID); err != nil {
-				log.Error(err)
+			//clean up after containers updated
+			if params.Cleanup {
+				cleanupImages(client,imageIDs)
 			}
 		}
 	}
@@ -166,8 +171,16 @@ func restartContainersInSortedOrder(containers []container.Container, client con
 		if !container.Stale {
 			continue
 		}
-		restartStaleContainer(staleContainer, client, params)
-		imageIDs[staleContainer.ImageID()] = true
+		restartStaleContainer(container, client, params)
+		imageIDs[container.ImageID()] = true
+	}
+}
+
+func cleanupImages(client container.Client, imageIDs map[string]bool) {
+	for imageID := range imageIDs {
+		if err := client.RemoveImageByID(imageID); err != nil {
+			log.Error(err)
+		}
 	}
 }
 
