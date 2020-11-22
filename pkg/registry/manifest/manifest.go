@@ -3,21 +3,31 @@ package manifest
 import (
 	"fmt"
 	"github.com/containrrr/watchtower/pkg/registry/helpers"
+	"github.com/containrrr/watchtower/pkg/types"
 	ref "github.com/docker/distribution/reference"
-	apiTypes "github.com/docker/docker/api/types"
+	"github.com/sirupsen/logrus"
 	url2 "net/url"
 	"strings"
 )
 
 // BuildManifestURL from raw image data
-func BuildManifestURL(image apiTypes.ImageInspect) (string, error) {
-	img, tag := extractImageAndTag(image)
-	hostName, err := ref.ParseNormalizedNamed(img)
+func BuildManifestURL(container types.Container) (string, error) {
+
+	normalizedName, err := ref.ParseNormalizedNamed(container.ImageName())
 	if err != nil {
 		return "", err
 	}
 
-	host, err := helpers.NormalizeRegistry(hostName.Name())
+	host, err := helpers.NormalizeRegistry(normalizedName.String())
+	img, tag := extractImageAndTag(strings.TrimPrefix(container.ImageName(), host+"/"))
+
+	logrus.WithFields(logrus.Fields{
+		"image":      img,
+		"tag":        tag,
+		"normalized": normalizedName,
+		"host":       host,
+	}).Debug("Parsing image ref")
+
 	if err != nil {
 		return "", err
 	}
@@ -33,15 +43,21 @@ func BuildManifestURL(image apiTypes.ImageInspect) (string, error) {
 	return url.String(), nil
 }
 
-func extractImageAndTag(image apiTypes.ImageInspect) (string, string) {
+func extractImageAndTag(imageName string) (string, string) {
 	var img string
 	var tag string
-	if strings.Contains(image.RepoTags[0], ":") {
-		parts := strings.Split(image.RepoTags[0], ":")
-		img = parts[0]
-		tag = parts[1]
+
+	if strings.Contains(imageName, ":") {
+		parts := strings.Split(imageName, ":")
+		if len(parts) > 2 {
+			img = fmt.Sprintf("%s%s", parts[0], parts[1])
+			tag = parts[3]
+		} else {
+			img = parts[0]
+			tag = parts[1]
+		}
 	} else {
-		img = image.RepoTags[0]
+		img = imageName
 		tag = "latest"
 	}
 	return img, tag

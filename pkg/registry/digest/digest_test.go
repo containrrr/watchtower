@@ -1,31 +1,22 @@
-package digest
+package digest_test
 
 import (
 	"context"
 	"fmt"
-	"github.com/containrrr/watchtower/pkg/logger"
+	"github.com/containrrr/watchtower/internal/actions/mocks"
+	"github.com/containrrr/watchtower/pkg/registry/digest"
 	wtTypes "github.com/containrrr/watchtower/pkg/types"
-	"github.com/docker/docker/api/types"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"os"
 	"testing"
+	"time"
 )
 
 func TestDigest(t *testing.T) {
 
 	RegisterFailHandler(Fail)
 	RunSpecs(GinkgoT(), "Digest Suite")
-}
-
-var ghImage = types.ImageInspect{
-	ID: "sha256:6972c414f322dfa40324df3c503d4b217ccdec6d576e408ed10437f508f4181b",
-	RepoTags: []string{
-		"ghcr.io/k6io/operator:latest",
-	},
-	RepoDigests: []string{
-		"ghcr.io/k6io/operator@sha256:d68e1e532088964195ad3a0a71526bc2f11a78de0def85629beb75e2265f0547",
-	},
 }
 
 var DockerHubCredentials = &wtTypes.RegistryCredentials{
@@ -52,12 +43,24 @@ func SkipIfCredentialsEmpty(credentials *wtTypes.RegistryCredentials, fn func())
 }
 
 var _ = Describe("Digests", func() {
-	var ctx = logger.AddDebugLogger(context.Background())
+	mockId := "mock-id"
+	mockName := "mock-container"
+	mockImage := "ghcr.io/k6io/operator:latest"
+	mockCreated := time.Now()
+	mockDigest := "ghcr.io/k6io/operator@sha256:d68e1e532088964195ad3a0a71526bc2f11a78de0def85629beb75e2265f0547"
+
+	mockContainer := mocks.CreateMockContainerWithDigest(
+		mockId,
+		mockName,
+		mockImage,
+		mockCreated,
+		mockDigest)
 
 	When("a digest comparison is done", func() {
 		It("should return true if digests match",
 			SkipIfCredentialsEmpty(GHCRCredentials, func() {
-				matches, err := CompareDigest(ctx, ghImage, GHCRCredentials)
+				creds := fmt.Sprintf("%s:%s", GHCRCredentials.Username, GHCRCredentials.Password)
+				matches, err := digest.CompareDigest(context.Background(), mockContainer, creds)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(matches).To(Equal(true))
 			}),

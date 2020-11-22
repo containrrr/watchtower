@@ -1,14 +1,16 @@
-package auth
+package auth_test
 
 import (
 	"context"
+	"fmt"
+	"github.com/containrrr/watchtower/internal/actions/mocks"
+	"github.com/containrrr/watchtower/pkg/registry/auth"
 	"net/url"
 	"os"
 	"testing"
+	"time"
 
-	"github.com/containrrr/watchtower/pkg/logger"
 	wtTypes "github.com/containrrr/watchtower/pkg/types"
-	"github.com/docker/docker/api/types"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -37,21 +39,24 @@ var GHCRCredentials = &wtTypes.RegistryCredentials{
 }
 
 var _ = Describe("the auth module", func() {
-	var ctx = logger.AddDebugLogger(context.Background())
-	var ghImage = types.ImageInspect{
-		ID: "sha256:6972c414f322dfa40324df3c503d4b217ccdec6d576e408ed10437f508f4181b",
-		RepoTags: []string{
-			"ghcr.io/k6io/operator:latest",
-		},
-		RepoDigests: []string{
-			"ghcr.io/k6io/operator@sha256:d68e1e532088964195ad3a0a71526bc2f11a78de0def85629beb75e2265f0547",
-		},
-	}
+	mockId := "mock-id"
+	mockName := "mock-container"
+	mockImage := "ghcr.io/k6io/operator:latest"
+	mockCreated := time.Now()
+	mockDigest := "ghcr.io/k6io/operator@sha256:d68e1e532088964195ad3a0a71526bc2f11a78de0def85629beb75e2265f0547"
+
+	mockContainer := mocks.CreateMockContainerWithDigest(
+		mockId,
+		mockName,
+		mockImage,
+		mockCreated,
+		mockDigest)
 
 	When("getting an auth url", func() {
 		It("should parse the token from the response",
 			SkipIfCredentialsEmpty(GHCRCredentials, func() {
-				token, err := GetToken(ctx, ghImage, GHCRCredentials)
+				creds := fmt.Sprintf("%s:%s", GHCRCredentials.Username, GHCRCredentials.Password)
+				token, err := auth.GetToken(context.Background(), mockContainer, creds)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(token).NotTo(Equal(""))
 			}),
@@ -65,13 +70,13 @@ var _ = Describe("the auth module", func() {
 				Path:     "/token",
 				RawQuery: "scope=repository%3Acontainrrr%2Fwatchtower%3Apull&service=ghcr.io",
 			}
-			res, err := GetAuthURL(input, "containrrr/watchtower")
+			res, err := auth.GetAuthURL(input, "containrrr/watchtower")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(res).To(Equal(expected))
 		})
 		It("should create a valid auth url object based on the challenge header supplied", func() {
 			input := `bearer realm="https://ghcr.io/token"`
-			res, err := GetAuthURL(input, "containrrr/watchtower")
+			res, err := auth.GetAuthURL(input, "containrrr/watchtower")
 			Expect(err).To(HaveOccurred())
 			Expect(res).To(BeNil())
 		})
@@ -79,16 +84,16 @@ var _ = Describe("the auth module", func() {
 	When("getting a challenge url", func() {
 		It("should create a valid challenge url object based on the image ref supplied", func() {
 			expected := url.URL{Host: "ghcr.io", Scheme: "https", Path: "/v2/"}
-			Expect(GetChallengeURL("ghcr.io/containrrr/watchtower:latest")).To(Equal(expected))
+			Expect(auth.GetChallengeURL("ghcr.io/containrrr/watchtower:latest")).To(Equal(expected))
 		})
 		It("should assume dockerhub if the image ref is not fully qualified", func() {
 			expected := url.URL{Host: "index.docker.io", Scheme: "https", Path: "/v2/"}
-			Expect(GetChallengeURL("containrrr/watchtower:latest")).To(Equal(expected))
+			Expect(auth.GetChallengeURL("containrrr/watchtower:latest")).To(Equal(expected))
 		})
 		It("should convert legacy dockerhub hostnames to index.docker.io", func() {
 			expected := url.URL{Host: "index.docker.io", Scheme: "https", Path: "/v2/"}
-			Expect(GetChallengeURL("docker.io/containrrr/watchtower:latest")).To(Equal(expected))
-			Expect(GetChallengeURL("registry-1.docker.io/containrrr/watchtower:latest")).To(Equal(expected))
+			Expect(auth.GetChallengeURL("docker.io/containrrr/watchtower:latest")).To(Equal(expected))
+			Expect(auth.GetChallengeURL("registry-1.docker.io/containrrr/watchtower:latest")).To(Equal(expected))
 		})
 	})
 })

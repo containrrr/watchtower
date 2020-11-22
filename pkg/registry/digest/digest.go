@@ -2,13 +2,14 @@ package digest
 
 import (
 	"context"
+	"crypto/tls"
+	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/containrrr/watchtower/pkg/logger"
 	"github.com/containrrr/watchtower/pkg/registry/auth"
 	"github.com/containrrr/watchtower/pkg/registry/manifest"
 	"github.com/containrrr/watchtower/pkg/types"
-	apiTypes "github.com/docker/docker/api/types"
 	"github.com/sirupsen/logrus"
 	"net/http"
 	"strings"
@@ -18,34 +19,31 @@ import (
 const ContentDigestHeader = "Docker-Content-Digest"
 
 // CompareDigest ...
-func CompareDigest(ctx context.Context, image apiTypes.ImageInspect, credentials *types.RegistryCredentials) (bool, error) {
+func CompareDigest(ctx context.Context, container types.Container, registryAuth string) (bool, error) {
 	var digest string
-	token, err := auth.GetToken(ctx, image, credentials)
+
+	registryAuth = TransformAuth(registryAuth)
+	token, err := auth.GetToken(ctx, container, registryAuth)
 	if err != nil {
 		return false, err
 	}
 
-	digestURL, err := manifest.BuildManifestURL(image)
+	digestURL, err := manifest.BuildManifestURL(container)
 	if err != nil {
 		return false, err
 	}
 
-	if digest, err = GetDigest(ctx, digestURL, token); err != nil {
+	if digest, err = GetDigest(digestURL, token); err != nil {
 		return false, err
 	}
 
 	logrus.WithField("remote", digest).Debug("Found a remote digest to compare with")
 
-	if image.ID == digest {
-		return true, nil
-	}
-
-	for _, dig := range image.RepoDigests {
+	for _, dig := range container.ImageInfo().RepoDigests {
 		localDigest := strings.Split(dig, "@")[1]
-		logrus.WithFields(logrus.Fields{
-			"local":  localDigest,
-			"remote": digest,
-		}).Debug("Comparing")
+		fields := logrus.Fields{"local": localDigest, "remote": digest}
+		logrus.WithFields(fields).Debug("Comparing")
+
 		if localDigest == digest {
 			logrus.Debug("Found a match")
 			return true, nil
@@ -55,18 +53,36 @@ func CompareDigest(ctx context.Context, image apiTypes.ImageInspect, credentials
 	return false, nil
 }
 
+// TransformAuth from a base64 encoded json object to base64 encoded string
+func TransformAuth(registryAuth string) string {
+	b, _ := base64.StdEncoding.DecodeString(registryAuth)
+	credentials := &types.RegistryCredentials{}
+	_ = json.Unmarshal(b, credentials)
+
+	if credentials.Username != "" && credentials.Password != "" {
+		ba := []byte(fmt.Sprintf("%s:%s", credentials.Username, credentials.Password))
+		registryAuth = base64.StdEncoding.EncodeToString(ba)
+	}
+
+	return registryAuth
+}
+
 // GetDigest from registry using a HEAD request to prevent rate limiting
-func GetDigest(ctx context.Context, url string, token string) (string, error) {
-	client := &http.Client{}
-	log := logger.GetLogger(ctx).WithField("fun", "GetDigest")
+func GetDigest(url string, token string) (string, error) {
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := &http.Client{Transport: tr}
+
 	if token != "" {
-		log.WithField("token", token).Debug("Setting request bearer token")
+		logrus.WithField("token", token).Trace("Setting request token")
 	} else {
 		return "", errors.New("could not fetch token")
 	}
 
 	req, _ := http.NewRequest("HEAD", url, nil)
-	req.Header.Add("Authorization", "Bearer "+token)
+	req.Header.Add("Authorization", token)
+	req.Header.Add("Accept", "application/vnd.docker.distribution.manifest.v2+json")
 	req.Header.Add("Accept", "*/*")
 
 	logrus.WithField("url", url).Debug("Doing a HEAD request to fetch a digest")

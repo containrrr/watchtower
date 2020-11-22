@@ -5,11 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/containrrr/watchtower/pkg/logger"
 	"github.com/containrrr/watchtower/pkg/registry/helpers"
 	"github.com/containrrr/watchtower/pkg/types"
 	"github.com/docker/distribution/reference"
-	apiTypes "github.com/docker/docker/api/types"
 	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"net/http"
@@ -21,22 +19,21 @@ import (
 const ChallengeHeader = "WWW-Authenticate"
 
 // GetToken fetches a token for the registry hosting the provided image
-func GetToken(ctx context.Context, image apiTypes.ImageInspect, credentials *types.RegistryCredentials) (string, error) {
+func GetToken(ctx context.Context, container types.Container, registryAuth string) (string, error) {
 	var err error
-	log := logger.GetLogger(ctx)
 
-	img := strings.Split(image.RepoTags[0], ":")[0]
 	var url url2.URL
-	if url, err = GetChallengeURL(img); err != nil {
+	if url, err = GetChallengeURL(container.ImageName()); err != nil {
 		return "", err
 	}
+	logrus.WithField("url", url.String()).Debug("Building challenge URL")
 
 	var req *http.Request
 	if req, err = GetChallengeRequest(url); err != nil {
 		return "", err
 	}
 
-	var client = http.Client{}
+	client := &http.Client{}
 	var res *http.Response
 	if res, err = client.Do(req); err != nil {
 		return "", err
@@ -44,17 +41,21 @@ func GetToken(ctx context.Context, image apiTypes.ImageInspect, credentials *typ
 
 	v := res.Header.Get(ChallengeHeader)
 
-	log.WithFields(logrus.Fields{
+	logrus.WithFields(logrus.Fields{
 		"status": res.Status,
 		"header": v,
 	}).Debug("Got response to challenge request")
+
 	challenge := strings.ToLower(v)
 	if strings.HasPrefix(challenge, "basic") {
-		return "", errors.New("basic auth not implemented yet")
+		if registryAuth == "" {
+			return "", fmt.Errorf("no credentials available")
+		}
+
+		return fmt.Sprintf("Basic %s", registryAuth), nil
 	}
 	if strings.HasPrefix(challenge, "bearer") {
-		log.Debug("Fetching bearer token")
-		return GetBearerToken(ctx, challenge, img, err, credentials)
+		return GetBearerHeader(ctx, challenge, container.ImageName(), err, registryAuth)
 	}
 
 	return "", errors.New("unsupported challenge type from registry")
@@ -62,7 +63,6 @@ func GetToken(ctx context.Context, image apiTypes.ImageInspect, credentials *typ
 
 // GetChallengeRequest creates a request for getting challenge instructions
 func GetChallengeRequest(url url2.URL) (*http.Request, error) {
-
 	req, err := http.NewRequest("GET", url.String(), nil)
 	if err != nil {
 		return nil, err
@@ -72,12 +72,14 @@ func GetChallengeRequest(url url2.URL) (*http.Request, error) {
 	return req, nil
 }
 
-// GetBearerToken tries to fetch a bearer token from the registry based on the challenge instructions
-func GetBearerToken(ctx context.Context, challenge string, img string, err error, credentials *types.RegistryCredentials) (string, error) {
-	log := logger.GetLogger(ctx)
+// GetBearerHeader tries to fetch a bearer token from the registry based on the challenge instructions
+func GetBearerHeader(ctx context.Context, challenge string, img string, err error, registryAuth string) (string, error) {
 	client := http.Client{}
-
+	if strings.Contains(img, ":") {
+		img = strings.Split(img, ":")[0]
+	}
 	authURL, err := GetAuthURL(challenge, img)
+
 	if err != nil {
 		return "", err
 	}
@@ -87,11 +89,11 @@ func GetBearerToken(ctx context.Context, challenge string, img string, err error
 		return "", err
 	}
 
-	if credentials != nil && credentials.Username != "" && credentials.Password != "" {
-		log.WithField("credentials", credentials).Debug("Found credentials. Adding basic auth.")
-		r.SetBasicAuth(credentials.Username, credentials.Password)
+	if registryAuth != "" {
+		logrus.WithField("credentials", registryAuth).Debug("Credentials found.")
+		r.Header.Add("Authorization", fmt.Sprintf("Basic %s", registryAuth))
 	} else {
-		log.Debug("No credentials found. Doing an anonymous request.")
+		logrus.Debug("No credentials found.")
 	}
 
 	var authResponse *http.Response
@@ -107,7 +109,7 @@ func GetBearerToken(ctx context.Context, challenge string, img string, err error
 		return "", err
 	}
 
-	return tokenResponse.Token, nil
+	return fmt.Sprintf("Bearer %s", tokenResponse.Token), nil
 }
 
 // GetAuthURL from the instructions in the challenge
@@ -124,11 +126,12 @@ func GetAuthURL(challenge string, img string) (*url2.URL, error) {
 		val := strings.Trim(kv[1], "\"")
 		values[key] = val
 	}
+	logrus.WithFields(logrus.Fields{
+		"realm":   values["realm"],
+		"service": values["service"],
+	}).Debug("Checking challenge header content")
 	if values["realm"] == "" || values["service"] == "" {
-		logrus.WithFields(logrus.Fields{
-			"realm":   values["realm"],
-			"service": values["service"],
-		}).Debug("Checking challenge header content")
+
 		return nil, fmt.Errorf("challenge header did not include all values needed to construct an auth url")
 	}
 
@@ -140,6 +143,7 @@ func GetAuthURL(challenge string, img string) (*url2.URL, error) {
 		scopeImage = "library/" + scopeImage
 	}
 	scope := fmt.Sprintf("repository:%s:pull", scopeImage)
+	logrus.WithFields(logrus.Fields{"scope": scope, "image": img}).Debug("Setting scope for auth token")
 	q.Add("scope", scope)
 
 	authURL.RawQuery = q.Encode()
@@ -148,8 +152,9 @@ func GetAuthURL(challenge string, img string) (*url2.URL, error) {
 
 // GetChallengeURL creates a URL object based on the image info
 func GetChallengeURL(img string) (url2.URL, error) {
+
 	normalizedNamed, _ := reference.ParseNormalizedNamed(img)
-	host, err := helpers.NormalizeRegistry(normalizedNamed.Name())
+	host, err := helpers.NormalizeRegistry(normalizedNamed.String())
 	if err != nil {
 		return url2.URL{}, err
 	}

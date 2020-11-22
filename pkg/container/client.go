@@ -294,7 +294,7 @@ func (client dockerClient) PullImage(ctx context.Context, container Container) e
 
 	log.WithFields(fields).Debugf("Checking if pull is needed")
 
-	if match, err := digest.CompareDigest(ctx, *container.ImageInfo(), nil); err != nil {
+	if match, err := digest.CompareDigest(ctx, container, opts.RegistryAuth); err != nil {
 		log.Info("Could not do a head request, falling back to regulara pull.")
 		log.Debugf("Reason: %s", err.Error())
 	} else if match {
