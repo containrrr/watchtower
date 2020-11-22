@@ -153,3 +153,5 @@ func (e *emailTypeNotifier) Fire(entry *log.Entry) error {
 	}
 	return nil
 }
+
+func (e *emailTypeNotifier) Close() {}

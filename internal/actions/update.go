@@ -1,6 +1,7 @@
 package actions
 
 import (
+	"errors"
 	"github.com/containrrr/watchtower/internal/util"
 	"github.com/containrrr/watchtower/pkg/container"
 	"github.com/containrrr/watchtower/pkg/lifecycle"
@@ -41,11 +42,13 @@ func PrepareContainerList(client container.Client, params types.UpdateParams) ([
 		return nil, err
 	}
 
-	for i, container := range containers {
-		stale, err := client.IsContainerStale(container)
+	for i, targetContainer := range containers {
+		stale, err := client.IsContainerStale(targetContainer)
+		if stale && !params.NoRestart && !params.MonitorOnly && !targetContainer.IsMonitorOnly() && !targetContainer.HasImageInfo() {
+			err = errors.New("no available image info")
+		}
 		if err != nil {
-			log.Infof("Unable to update container %s. Proceeding to next.", containers[i].Name())
-			log.Debug(err)
+			log.Infof("Unable to update container %q: %v. Proceeding to next.", containers[i].Name(), err)
 			stale = false
 		}
 		containers[i].Stale = stale
@@ -76,11 +79,13 @@ func Update(client container.Client, params types.UpdateParams) error {
 		lifecycle.ExecutePreChecks(client, params)
 	}
 
-	if params.MonitorOnly {
-		if params.LifecycleHooks {
-			lifecycle.ExecutePostChecks(client, params)
+	containersToUpdate := []container.Container{}
+	if !params.MonitorOnly {
+		for i := len(containers) - 1; i >= 0; i-- {
+			if !containers[i].IsMonitorOnly() {
+				containersToUpdate = append(containersToUpdate, containers[i])
+			}
 		}
-		return nil
 	}
 
 	//shared map for independent and linked update
@@ -111,6 +116,21 @@ func Update(client container.Client, params types.UpdateParams) error {
 	}
 
 	return nil
+}
+
+func performRollingRestart(containers []container.Container, client container.Client, params types.UpdateParams) {
+	cleanupImageIDs := make(map[string]bool)
+
+	for i := len(containers) - 1; i >= 0; i-- {
+		if containers[i].Stale {
+			stopStaleContainer(containers[i], client, params)
+			restartStaleContainer(containers[i], client, params)
+		}
+	}
+
+	if params.Cleanup {
+		cleanupImages(client, cleanupImageIDs)
+	}
 }
 
 func stopContainersInReversedOrder(containers []container.Container, client container.Client, params types.UpdateParams) {
@@ -146,8 +166,8 @@ func restartContainersInSortedOrder(containers []container.Container, client con
 		if !container.Stale {
 			continue
 		}
-		restartStaleContainer(container, client, params)
-		imageIDs[container.ImageID()] = true
+		restartStaleContainer(staleContainer, client, params)
+		imageIDs[staleContainer.ImageID()] = true
 	}
 }
 

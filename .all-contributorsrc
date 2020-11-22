@@ -627,7 +627,62 @@
       "avatar_url": "https://avatars1.githubusercontent.com/u/2992895?v=4",
       "profile": "https://github.com/bugficks",
       "contributions": [
+        "code",
         "doc"
+      ]
+    },
+    {
+      "login": "MichaelSp",
+      "name": "Michael",
+      "avatar_url": "https://avatars0.githubusercontent.com/u/448282?v=4",
+      "profile": "https://github.com/MichaelSp",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "x-jokay",
+      "name": "D. Domig",
+      "avatar_url": "https://avatars0.githubusercontent.com/u/18613935?v=4",
+      "profile": "https://github.com/x-jokay",
+      "contributions": [
+        "doc"
+      ]
+    },
+    {
+      "login": "osheroff",
+      "name": "Ben Osheroff",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/260084?v=4",
+      "profile": "https://maxwells-daemon.io",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "dhet",
+      "name": "David H.",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/2668621?v=4",
+      "profile": "https://github.com/dhet",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "chander",
+      "name": "Chander Ganesan",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/671887?v=4",
+      "profile": "http://www.gridgeo.com",
+      "contributions": [
+        "doc"
+      ]
+    },
+    {
+      "login": "yrien30",
+      "name": "yrien30",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/26816162?v=4",
+      "profile": "https://github.com/yrien30",
+      "contributions": [
+        "code"
       ]
     }
   ],

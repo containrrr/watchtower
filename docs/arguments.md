@@ -88,6 +88,16 @@ Environment Variable: WATCHTOWER_TRACE
              Default: false
 ```
 
+## ANSI colors
+Disable ANSI color escape codes in log output.
+
+```
+            Argument: --no-color
+Environment Variable: NO_COLOR
+                Type: Boolean
+             Default: false
+```
+
 ## Docker host
 Docker daemon socket to connect to. Can be pointed at a remote Docker host by specifying a TCP endpoint as "tcp://hostname:port".
 
@@ -116,7 +126,7 @@ Will also include created and exited containers.
 Environment Variable: WATCHTOWER_INCLUDE_STOPPED
                 Type: Boolean
              Default: false
-```   
+```
 
 ## Revive stopped
 Start any stopped containers that have had their image updated. This argument is only usable with the `--include-stopped` argument.
@@ -126,7 +136,7 @@ Start any stopped containers that have had their image updated. This argument is
 Environment Variable: WATCHTOWER_REVIVE_STOPPED
                 Type: Boolean
              Default: false
-```   
+```
 
 ## Poll interval
 Poll interval (in seconds). This value controls how frequently watchtower will poll for new images. Either `--schedule` or a poll interval can be defined, but not both.
@@ -136,7 +146,7 @@ Poll interval (in seconds). This value controls how frequently watchtower will p
 Environment Variable: WATCHTOWER_POLL_INTERVAL
                 Type: Integer
              Default: 300
-```   
+```
 
 ## Filter by enable label
 Update containers that have a `com.centurylinklabs.watchtower.enable` label set to true.
@@ -146,13 +156,13 @@ Update containers that have a `com.centurylinklabs.watchtower.enable` label set 
 Environment Variable: WATCHTOWER_LABEL_ENABLE
                 Type: Boolean
              Default: false
-```   
+```
 
 ## Filter by disable label
 **Do not** update containers that have `com.centurylinklabs.watchtower.enable` label set to false and no `--label-enable` argument is passed. Note that only one or the other (targeting by enable label) can be used at the same time to target containers.
 
 ## Without updating containers
-Will only monitor for new images, not update the containers. 
+Will only monitor for new images, send notifications and invoke the [pre-check/post-check hooks](https://containrrr.dev/watchtower/lifecycle-hooks/), but will **not** update the containers.
 
 > ### ⚠️ Please note
 >
@@ -163,7 +173,9 @@ Will only monitor for new images, not update the containers.
 Environment Variable: WATCHTOWER_MONITOR_ONLY
                 Type: Boolean
              Default: false
-``` 
+```
+
+Note that monitor-only can also be specified on a per-container basis with the `com.centurylinklabs.watchtower.monitor-only` label set on those containers.
 
 ## Without restarting containers
 Do not restart containers after updating. This option can be useful when the start of the containers
@@ -186,10 +198,10 @@ them to a registry.
 Environment Variable: WATCHTOWER_NO_PULL
                 Type: Boolean
              Default: false
-``` 
+```
 
 ## Without sending a startup message
-Do not send a message after watchtower started. Otherwise there will be an info-level notification. 
+Do not send a message after watchtower started. Otherwise there will be an info-level notification.
 
 ```
             Argument: --no-startup-message
@@ -216,7 +228,7 @@ Runs Watchtower in HTTP API mode, only allowing image updates to be triggered by
 Environment Variable: WATCHTOWER_HTTP_API
                 Type: Boolean
              Default: false
-``` 
+```
 
 ## HTTP API Token
 Sets an authentication token to HTTP API requests.
@@ -226,10 +238,20 @@ Sets an authentication token to HTTP API requests.
 Environment Variable: WATCHTOWER_HTTP_API_TOKEN
                 Type: String
              Default: -
+```
+
+## Filter by scope
+Update containers that have a `com.centurylinklabs.watchtower.scope` label set with the same value as the given argument. This enables [running multiple instances](https://containrrr.github.io/watchtower/running-multiple-instances).
+
+```
+            Argument: --scope
+Environment Variable: WATCHTOWER_SCOPE
+                Type: String
+             Default: -
 ``` 
 
 ## Scheduling
-[Cron expression](https://pkg.go.dev/github.com/robfig/cron@v1.2.0?tab=doc#hdr-CRON_Expression_Format) in 6 fields (rather than the traditional 5) which defines when and how often to check for new images. Either `--interval` or the schedule expression 
+[Cron expression](https://pkg.go.dev/github.com/robfig/cron@v1.2.0?tab=doc#hdr-CRON_Expression_Format) in 6 fields (rather than the traditional 5) which defines when and how often to check for new images. Either `--interval` or the schedule expression
 can be defined, but not both. An example: `--schedule "0 0 4 * * *"`
 
 ```
@@ -237,7 +259,18 @@ can be defined, but not both. An example: `--schedule "0 0 4 * * *"`
 Environment Variable: WATCHTOWER_SCHEDULE
                 Type: String
              Default: -
-``` 
+```
+
+## Rolling restart
+Restart one image at time instead of stopping and starting all at once.  Useful in conjunction with lifecycle hooks
+to implement zero-downtime deploy.
+
+```
+            Argument: --rolling-restart
+Environment Variable: WATCHTOWER_ROLLING_RESTART
+                Type: Boolean
+             Default: false
+```
 
 ## Wait until timeout
 Timeout before the container is forcefully stopped. When set, this option will change the default (`10s`) wait time to the given value. An example: `--stop-timeout 30s` will set the timeout to 30 seconds.
@@ -247,7 +280,7 @@ Timeout before the container is forcefully stopped. When set, this option will c
 Environment Variable: WATCHTOWER_TIMEOUT
                 Type: Duration
              Default: 10s
-``` 
+```
 
 ## TLS Verification
 Use TLS when connecting to the Docker socket and verify the server's certificate. See below for options used to configure notifications.

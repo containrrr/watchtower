@@ -3,10 +3,11 @@ package container
 import (
 	"bytes"
 	"fmt"
-	"github.com/containrrr/watchtower/pkg/registry"
 	"io/ioutil"
 	"strings"
 	"time"
+
+	"github.com/containrrr/watchtower/pkg/registry"
 
 	t "github.com/containrrr/watchtower/pkg/types"
 	"github.com/docker/docker/api/types"
@@ -39,7 +40,7 @@ type Client interface {
 //  * DOCKER_HOST			the docker-engine host to send api requests to
 //  * DOCKER_TLS_VERIFY		whether to verify tls certificates
 //  * DOCKER_API_VERSION	the minimum docker api version to work with
-func NewClient(pullImages bool, includeStopped bool, reviveStopped bool, removeVolumes bool) Client {
+func NewClient(pullImages bool, includeStopped bool, reviveStopped bool, removeVolumes bool, includeRestarting bool) Client {
 	cli, err := sdkClient.NewClientWithOpts(sdkClient.FromEnv)
 
 	if err != nil {
@@ -47,28 +48,34 @@ func NewClient(pullImages bool, includeStopped bool, reviveStopped bool, removeV
 	}
 
 	return dockerClient{
-		api:            cli,
-		pullImages:     pullImages,
-		removeVolumes:  removeVolumes,
-		includeStopped: includeStopped,
-		reviveStopped:  reviveStopped,
+		api:               cli,
+		pullImages:        pullImages,
+		removeVolumes:     removeVolumes,
+		includeStopped:    includeStopped,
+		reviveStopped:     reviveStopped,
+		includeRestarting: includeRestarting,
 	}
 }
 
 type dockerClient struct {
-	api            sdkClient.CommonAPIClient
-	pullImages     bool
-	removeVolumes  bool
-	includeStopped bool
-	reviveStopped  bool
+	api               sdkClient.CommonAPIClient
+	pullImages        bool
+	removeVolumes     bool
+	includeStopped    bool
+	reviveStopped     bool
+	includeRestarting bool
 }
 
 func (client dockerClient) ListContainers(fn t.Filter) ([]Container, error) {
 	cs := []Container{}
 	bg := context.Background()
 
-	if client.includeStopped {
-		log.Debug("Retrieving containers including stopped and exited")
+	if client.includeStopped && client.includeRestarting {
+		log.Debug("Retrieving running, stopped, restarting and exited containers")
+	} else if client.includeStopped {
+		log.Debug("Retrieving running, stopped and exited containers")
+	} else if client.includeRestarting {
+		log.Debug("Retrieving running and restarting containers")
 	} else {
 		log.Debug("Retrieving running containers")
 	}
@@ -108,6 +115,10 @@ func (client dockerClient) createListFilter() filters.Args {
 		filterArgs.Add("status", "exited")
 	}
 
+	if client.includeRestarting {
+		filterArgs.Add("status", "restarting")
+	}
+
 	return filterArgs
 }
 
@@ -121,11 +132,11 @@ func (client dockerClient) GetContainer(containerID string) (Container, error) {
 
 	imageInfo, _, err := client.api.ImageInspectWithRaw(bg, containerInfo.Image)
 	if err != nil {
-		return Container{}, err
+		log.Warnf("Failed to retrieve container image info: %v", err)
+		return Container{containerInfo: &containerInfo, imageInfo: nil}, nil
 	}
 
-	container := Container{containerInfo: &containerInfo, imageInfo: &imageInfo}
-	return container, nil
+	return Container{containerInfo: &containerInfo, imageInfo: &imageInfo}, nil
 }
 
 func (client dockerClient) StopContainer(c Container, timeout time.Duration) error {
