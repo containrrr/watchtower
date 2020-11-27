@@ -8,7 +8,7 @@ import (
 	container2 "github.com/docker/docker/api/types/container"
 	cli "github.com/docker/docker/client"
 	"time"
-
+	"github.com/containrrr/watchtower/pkg/sorter"
 	. "github.com/containrrr/watchtower/internal/actions/mocks"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -38,19 +38,19 @@ var _ = Describe("the update action", func() {
 							"test-container-01",
 							"fake-image:latest",
 							time.Now().AddDate(0, 0, -1),
-							make([]string, 0)),
+							nil),
 						CreateMockContainer(
 							"test-container-02",
 							"test-container-02",
 							"fake-image:latest",
 							time.Now(),
-							make([]string, 0)),
+							nil),
 						CreateMockContainer(
 							"test-container-02",
 							"test-container-02",
 							"fake-image:latest",
 							time.Now(),
-							make([]string, 0)),
+							nil),
 					},
 				},
 				dockerClient,
@@ -77,7 +77,7 @@ var _ = Describe("the update action", func() {
 						"unique-test-container",
 						"unique-fake-image:latest",
 						time.Now(),
-						make([]string, 0),
+						nil,
 					),
 				)
 				err := actions.Update(client, types.UpdateParams{Cleanup: true})
@@ -109,57 +109,57 @@ var _ = Describe("the update action", func() {
 							"k-container-03",
 							"fake-image:latest",
 							time.Now().Add(time.Second * 4),
-							links[2],),
+							links[2]),
 						CreateMockContainer(
 							"k-container-02",
 							"k-container-02",
 							"fake-image:latest",
 							time.Now().Add(time.Second * 2),
-							links[1],),
+							links[1]),
 						CreateMockContainer(
 							"k-container-01",
 							"k-container-01",
 							"fake-image:latest",
 							time.Now(),
-							links[0],),
+							links[0]),
 
 						CreateMockContainer(
 							"t-container-03",
 							"t-container-03",
 							"fake-image-2:latest",
 							time.Now().Add(time.Second * 4),
-							links[5],),
+							links[5]),
 						CreateMockContainer(
 							"t-container-02",
 							"t-container-02",
 							"fake-image-2:latest",
 							time.Now().Add(time.Second * 2),
-							links[4],),
+							links[4]),
 						CreateMockContainer(
 							"t-container-01",
 							"t-container-01",
 							"fake-image-2:latest",
 							time.Now(),
-							links[3],),
+							links[3]),
 
 						CreateMockContainer(
 							"x-container-01",
 							"x-container-01",
 							"fake-image-1:latest",
 							time.Now(),
-							links[6],),
+							links[6]),
 						CreateMockContainer(
 							"x-container-02",
 							"x-container-02",
 							"fake-image-1:latest",
 							time.Now().Add(time.Second * 2),
-							links[6],),
+							links[6]),
 						CreateMockContainer(
 							"x-container-03",
 							"x-container-03",
 							"fake-image-1:latest",
 							time.Now().Add(time.Second * 4),
-							links[6],),
+							links[6]),
 					},
 				},
 				dockerClient,
@@ -170,7 +170,9 @@ var _ = Describe("the update action", func() {
 
 		When("there are multiple containers with links", func() {
 			It("should create appropriate dependency sorted lists", func() {
-				dependencySortedGraphs, err := actions.PrepareContainerList(client, types.UpdateParams{Cleanup: true})
+				containers, err := actions.PrepareContainerList(client, types.UpdateParams{Cleanup: true})
+				undirectedNodes := actions.CreateUndirectedLinks(containers)
+				dependencySortedGraphs, err := sorter.SortByDependencies(containers,undirectedNodes)
 				Expect(err).NotTo(HaveOccurred())
 
 				var output [][]string
@@ -241,7 +243,8 @@ var _ = Describe("the update action", func() {
 								"test-container-01",
 								"test-container-01",
 								"fake-image1:latest",
-								time.Now()),
+								time.Now(),
+								nil),
 							CreateMockContainerWithConfig(
 								"test-container-02",
 								"test-container-02",
@@ -276,12 +279,14 @@ var _ = Describe("the update action", func() {
 								"test-container-01",
 								"test-container-01",
 								"fake-image:latest",
-								time.Now()),
+								time.Now(),
+								nil),
 							CreateMockContainer(
 								"test-container-02",
 								"test-container-02",
 								"fake-image:latest",
-								time.Now()),
+								time.Now(),
+								nil),
 						},
 					},
 					dockerClient,

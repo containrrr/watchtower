@@ -35,7 +35,7 @@ func CreateUndirectedLinks(containers []container.Container) map[string][]string
 // Each list inside the outer list contains containers that are related by links
 // This method checks for staleness, checks dependencies, sorts the containers and returns the final
 // [][]container.Container
-func PrepareContainerList(client container.Client, params types.UpdateParams) ([][]container.Container, error) {
+func PrepareContainerList(client container.Client, params types.UpdateParams) ([]container.Container, error) {
 
 	containers, err := client.ListContainers(params.Filter)
 	if err != nil {
@@ -56,16 +56,7 @@ func PrepareContainerList(client container.Client, params types.UpdateParams) ([
 
 	checkDependencies(containers)
 
-	var dependencySortedGraphs [][]container.Container
-
-	undirectedNodes := CreateUndirectedLinks(containers)
-	dependencySortedGraphs, err = sorter.SortByDependencies(containers,undirectedNodes)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return dependencySortedGraphs, nil
+	return containers, nil
 }
 
 // Update looks at the running Docker containers to see if any of the images
@@ -79,14 +70,14 @@ func Update(client container.Client, params types.UpdateParams) error {
 		lifecycle.ExecutePreChecks(client, params)
 	}
 
-	containers, err := client.ListContainers(params.Filter)
+	containers, err := PrepareContainerList(client, params)
 	if err != nil {
 		return err
 	}
 
 	containersToUpdate := []container.Container{}
 	if !params.MonitorOnly {
-		for i := len(containers) - 1; i >= 0; i-- {
+		for i := 0; i < len(containers); i++ {
 			if !containers[i].IsMonitorOnly() {
 				containersToUpdate = append(containersToUpdate, containers[i])
 			}
@@ -99,7 +90,11 @@ func Update(client container.Client, params types.UpdateParams) error {
 	if params.RollingRestart {
 		performRollingRestart(containersToUpdate, client, params)
 	} else {
-		dependencySortedGraphs, err := PrepareContainerList(client, params)
+		var dependencySortedGraphs [][]container.Container
+
+		undirectedNodes := CreateUndirectedLinks(containersToUpdate)
+		dependencySortedGraphs, err := sorter.SortByDependencies(containersToUpdate,undirectedNodes)
+
 		if err != nil {
 			return err
 		}
@@ -108,11 +103,11 @@ func Update(client container.Client, params types.UpdateParams) error {
 		for _, dependencyGraph:= range dependencySortedGraphs {
 			stopContainersInReversedOrder(dependencyGraph, client, params)
 			restartContainersInSortedOrder(dependencyGraph, client, params, imageIDs)
+		}
 
-			//clean up after containers updated
-			if params.Cleanup {
-				cleanupImages(client,imageIDs)
-			}
+		//clean up after containers updated
+		if params.Cleanup {
+			cleanupImages(client,imageIDs)
 		}
 	}
 
