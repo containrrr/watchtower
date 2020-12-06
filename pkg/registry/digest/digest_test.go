@@ -1,7 +1,6 @@
 package digest_test
 
 import (
-	"context"
 	"fmt"
 	"github.com/containrrr/watchtower/internal/actions/mocks"
 	"github.com/containrrr/watchtower/pkg/registry/digest"
@@ -60,7 +59,7 @@ var _ = Describe("Digests", func() {
 		It("should return true if digests match",
 			SkipIfCredentialsEmpty(GHCRCredentials, func() {
 				creds := fmt.Sprintf("%s:%s", GHCRCredentials.Username, GHCRCredentials.Password)
-				matches, err := digest.CompareDigest(context.Background(), mockContainer, creds)
+				matches, err := digest.CompareDigest(mockContainer, creds)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(matches).To(Equal(true))
 			}),

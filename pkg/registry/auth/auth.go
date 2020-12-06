@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,7 +10,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"net/http"
-	url2 "net/url"
+	"net/url"
 	"strings"
 )
 
@@ -19,17 +18,17 @@ import (
 const ChallengeHeader = "WWW-Authenticate"
 
 // GetToken fetches a token for the registry hosting the provided image
-func GetToken(ctx context.Context, container types.Container, registryAuth string) (string, error) {
+func GetToken(container types.Container, registryAuth string) (string, error) {
 	var err error
+	var URL url.URL
 
-	var url url2.URL
-	if url, err = GetChallengeURL(container.ImageName()); err != nil {
+	if URL, err = GetChallengeURL(container.ImageName()); err != nil {
 		return "", err
 	}
-	logrus.WithField("url", url.String()).Debug("Building challenge URL")
+	logrus.WithField("URL", URL.String()).Debug("Building challenge URL")
 
 	var req *http.Request
-	if req, err = GetChallengeRequest(url); err != nil {
+	if req, err = GetChallengeRequest(URL); err != nil {
 		return "", err
 	}
 
@@ -55,15 +54,15 @@ func GetToken(ctx context.Context, container types.Container, registryAuth strin
 		return fmt.Sprintf("Basic %s", registryAuth), nil
 	}
 	if strings.HasPrefix(challenge, "bearer") {
-		return GetBearerHeader(ctx, challenge, container.ImageName(), err, registryAuth)
+		return GetBearerHeader(challenge, container.ImageName(), err, registryAuth)
 	}
 
 	return "", errors.New("unsupported challenge type from registry")
 }
 
 // GetChallengeRequest creates a request for getting challenge instructions
-func GetChallengeRequest(url url2.URL) (*http.Request, error) {
-	req, err := http.NewRequest("GET", url.String(), nil)
+func GetChallengeRequest(URL url.URL) (*http.Request, error) {
+	req, err := http.NewRequest("GET", URL.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +72,7 @@ func GetChallengeRequest(url url2.URL) (*http.Request, error) {
 }
 
 // GetBearerHeader tries to fetch a bearer token from the registry based on the challenge instructions
-func GetBearerHeader(ctx context.Context, challenge string, img string, err error, registryAuth string) (string, error) {
+func GetBearerHeader(challenge string, img string, err error, registryAuth string) (string, error) {
 	client := http.Client{}
 	if strings.Contains(img, ":") {
 		img = strings.Split(img, ":")[0]
@@ -113,7 +112,7 @@ func GetBearerHeader(ctx context.Context, challenge string, img string, err erro
 }
 
 // GetAuthURL from the instructions in the challenge
-func GetAuthURL(challenge string, img string) (*url2.URL, error) {
+func GetAuthURL(challenge string, img string) (*url.URL, error) {
 	loweredChallenge := strings.ToLower(challenge)
 	raw := strings.TrimPrefix(loweredChallenge, "bearer")
 
@@ -136,7 +135,7 @@ func GetAuthURL(challenge string, img string) (*url2.URL, error) {
 		return nil, fmt.Errorf("challenge header did not include all values needed to construct an auth url")
 	}
 
-	authURL, _ := url2.Parse(fmt.Sprintf("%s", values["realm"]))
+	authURL, _ := url.Parse(fmt.Sprintf("%s", values["realm"]))
 	q := authURL.Query()
 	q.Add("service", values["service"])
 	scopeImage := strings.TrimPrefix(img, values["service"])
@@ -152,18 +151,18 @@ func GetAuthURL(challenge string, img string) (*url2.URL, error) {
 }
 
 // GetChallengeURL creates a URL object based on the image info
-func GetChallengeURL(img string) (url2.URL, error) {
+func GetChallengeURL(img string) (url.URL, error) {
 
 	normalizedNamed, _ := reference.ParseNormalizedNamed(img)
 	host, err := helpers.NormalizeRegistry(normalizedNamed.String())
 	if err != nil {
-		return url2.URL{}, err
+		return url.URL{}, err
 	}
 
-	url := url2.URL{
+	URL := url.URL{
 		Scheme: "https",
 		Host:   host,
 		Path:   "/v2/",
 	}
-	return url, nil
+	return URL, nil
 }

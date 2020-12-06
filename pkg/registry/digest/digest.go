@@ -1,7 +1,6 @@
 package digest
 
 import (
-	"context"
 	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
@@ -19,11 +18,11 @@ import (
 const ContentDigestHeader = "Docker-Content-Digest"
 
 // CompareDigest ...
-func CompareDigest(ctx context.Context, container types.Container, registryAuth string) (bool, error) {
+func CompareDigest(container types.Container, registryAuth string) (bool, error) {
 	var digest string
 
 	registryAuth = TransformAuth(registryAuth)
-	token, err := auth.GetToken(ctx, container, registryAuth)
+	token, err := auth.GetToken(container, registryAuth)
 	if err != nil {
 		return false, err
 	}

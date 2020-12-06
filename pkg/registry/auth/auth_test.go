@@ -1,7 +1,6 @@
 package auth_test
 
 import (
-	"context"
 	"fmt"
 	"github.com/containrrr/watchtower/internal/actions/mocks"
 	"github.com/containrrr/watchtower/pkg/registry/auth"
@@ -56,7 +55,7 @@ var _ = Describe("the auth module", func() {
 		It("should parse the token from the response",
 			SkipIfCredentialsEmpty(GHCRCredentials, func() {
 				creds := fmt.Sprintf("%s:%s", GHCRCredentials.Username, GHCRCredentials.Password)
-				token, err := auth.GetToken(context.Background(), mockContainer, creds)
+				token, err := auth.GetToken(mockContainer, creds)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(token).NotTo(Equal(""))
 			}),

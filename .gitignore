@@ -5,3 +5,4 @@ dist
 .idea
 .DS_Store
 /site
+coverage.out
