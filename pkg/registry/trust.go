@@ -66,7 +66,7 @@ func EncodedConfigAuth(ref string) (string, error) {
 	auth, _ := credStore.Get(server) // returns (types.AuthConfig{}) if server not in credStore
 
 	if auth == (types.AuthConfig{}) {
-		log.Debugf("No credentials for %s in %s", server, configFile.Filename)
+		log.WithField("config_file", configFile.Filename).Debugf("No credentials for %s found", server)
 		return "", nil
 	}
 	log.Debugf("Loaded auth credentials for user %s, on registry %s, from file %s", auth.Username, ref, configFile.Filename)

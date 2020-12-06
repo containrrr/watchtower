@@ -253,3 +253,8 @@ func (c Container) hostConfig() *dockercontainer.HostConfig {
 func (c Container) HasImageInfo() bool {
 	return c.imageInfo != nil
 }
+
+// ImageInfo fetches the ImageInspect data of the current container
+func (c Container) ImageInfo() *types.ImageInspect {
+	return c.imageInfo
+}

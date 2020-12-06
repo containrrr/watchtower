@@ -10,7 +10,7 @@ import (
 	"github.com/containrrr/watchtower/pkg/filters"
 	"github.com/containrrr/watchtower/pkg/sorter"
 
-	"github.com/opencontainers/runc/Godeps/_workspace/src/github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 
 	log "github.com/sirupsen/logrus"
 

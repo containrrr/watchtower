@@ -145,7 +145,7 @@ Poll interval (in seconds). This value controls how frequently watchtower will p
             Argument: --interval, -i
 Environment Variable: WATCHTOWER_POLL_INTERVAL
                 Type: Integer
-             Default: 300
+             Default: 86400 (24 hours)
 ```
 
 ## Filter by enable label
