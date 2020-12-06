@@ -118,7 +118,8 @@ func GetAuthURL(challenge string, img string) (*url2.URL, error) {
 	raw := strings.TrimPrefix(loweredChallenge, "bearer")
 
 	pairs := strings.Split(raw, ",")
-	values := make(map[string]string, 0)
+	values := make(map[string]string, len(pairs))
+
 	for _, pair := range pairs {
 		trimmed := strings.Trim(pair, " ")
 		kv := strings.Split(trimmed, "=")
