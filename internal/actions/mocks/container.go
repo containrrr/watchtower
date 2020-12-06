@@ -31,6 +31,7 @@ func CreateMockContainer(id string, name string, image string, created time.Time
 		},
 	)
 }
+
 // CreateMockContainerWithImageInfo should only be used for testing
 func CreateMockContainerWithImageInfo(id string, name string, image string, created time.Time, imageInfo types.ImageInspect) container.Container {
 	content := types.ContainerJSON{
