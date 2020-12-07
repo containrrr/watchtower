@@ -300,7 +300,7 @@ Should only be used for testing.`)
 
 // SetDefaults provides default values for environment variables
 func SetDefaults() {
-	day := time.Hour * 24 / time.Second
+	day := time.Hour * 24
 	viper.AutomaticEnv()
 	viper.SetDefault("DOCKER_HOST", "unix:///var/run/docker.sock")
 	viper.SetDefault("DOCKER_API_VERSION", DockerAPIMinVersion)
