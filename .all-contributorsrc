@@ -693,6 +693,15 @@
       "contributions": [
         "doc"
       ]
+    },
+    {
+      "login": "rg9400",
+      "name": "rg9400",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/39887349?v=4",
+      "profile": "https://github.com/rg9400",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
