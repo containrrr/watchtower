@@ -87,13 +87,13 @@ func PreRun(cmd *cobra.Command, _ []string) {
 		log.SetLevel(log.TraceLevel)
 	}
 
-	// Update schedule if interval helper is set
-	if viper.IsSet("interval") {
-		if viper.IsSet("schedule") {
-			log.Fatal("only schedule or interval can be defined, not both")
-		}
-		interval := viper.GetInt("interval")
+	interval := viper.GetInt("interval")
+
+	// If empty, set schedule using interval helper value
+	if viper.GetString("schedule") == "" {
 		viper.Set("schedule", fmt.Sprintf("@every %ds", interval))
+	} else if interval != flags.DefaultInterval {
+		log.Fatal("only schedule or interval can be defined, not both")
 	}
 
 	// Then load the rest of the settings
