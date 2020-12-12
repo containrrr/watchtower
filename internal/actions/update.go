@@ -73,6 +73,7 @@ func performRollingRestart(containers []container.Container, client container.Cl
 		if containers[i].Stale {
 			stopStaleContainer(containers[i], client, params)
 			restartStaleContainer(containers[i], client, params)
+			cleanupImageIDs[containers[i].ImageID()] = true
 		}
 	}
 

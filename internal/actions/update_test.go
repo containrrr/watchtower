@@ -80,6 +80,14 @@ var _ = Describe("the update action", func() {
 				Expect(client.TestData.TriedToRemoveImageCount).To(Equal(2))
 			})
 		})
+		When("performing a rolling restart update", func() {
+			It("should try to remove the image once", func() {
+
+				err := actions.Update(client, types.UpdateParams{Cleanup: true, RollingRestart: true})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(client.TestData.TriedToRemoveImageCount).To(Equal(1))
+			})
+		})
 	})
 
 	When("watchtower has been instructed to monitor only", func() {
