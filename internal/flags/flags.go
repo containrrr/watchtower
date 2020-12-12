@@ -14,6 +14,7 @@ import (
 // DockerAPIMinVersion is the minimum version of the docker api required to
 // use watchtower
 const DockerAPIMinVersion string = "1.25"
+const DefaultInterval = int(time.Hour * 24 / time.Second)
 
 // RegisterDockerFlags that are used directly by the docker api client
 func RegisterDockerFlags(rootCmd *cobra.Command) {
@@ -29,7 +30,7 @@ func RegisterSystemFlags(rootCmd *cobra.Command) {
 	flags.IntP(
 		"interval",
 		"i",
-		300,
+		DefaultInterval,
 		"poll interval (in seconds)")
 
 	flags.StringP(
