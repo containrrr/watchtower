@@ -6,7 +6,7 @@ Watchtower provides an HTTP API mode that enables an HTTP endpoint that can be r
 
 To enable this mode, use the flag `--http-api`. For example, in a Docker Compose config file:
 
-```json
+```yaml
 version: '3'
 
 services:
