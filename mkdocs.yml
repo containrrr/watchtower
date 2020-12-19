@@ -3,10 +3,17 @@ site_url: http://containrrr.github.io/watchtower/
 repo_url: https://github.com/containrrr/watchtower/
 theme:
   name: 'material'
+  palette:
+    scheme: containrrr
+  logo: images/logo-450px.png
+  favicon: images/favicon.ico
+extra_css:
+  - stylesheets/theme.css
 markdown_extensions:
     - toc:
         permalink: True
         separator: "_"
+    - codehilite
 nav:
    - 'Home': 'index.md'
    - 'Introduction': 'introduction.md'
