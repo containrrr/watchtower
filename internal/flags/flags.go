@@ -15,6 +15,8 @@ import (
 // DockerAPIMinVersion is the minimum version of the docker api required to
 // use watchtower
 const DockerAPIMinVersion string = "1.25"
+
+// DefaultInterval is the default time between the start of update checks
 const DefaultInterval = int(time.Hour * 24 / time.Second)
 
 // RegisterDockerFlags that are used directly by the docker api client
