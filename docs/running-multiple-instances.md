@@ -8,7 +8,7 @@ To define an instance monitoring scope, use the `--scope` argument or the `WATCH
 
 For example, in a Docker Compose config file:
 
-```json
+```yaml
 version: '3'
 
 services:
