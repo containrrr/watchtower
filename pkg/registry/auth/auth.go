@@ -153,26 +153,25 @@ func GetAuthURL(challenge string, img string) (*url.URL, error) {
 // GetScopeFromImageName normalizes an image name for use as scope during auth and head requests
 func GetScopeFromImageName(img, svc string) string {
 	parts := strings.Split(img, "/")
-	scopeImage := ""
+
 	if len(parts) > 2 {
 		if strings.Contains(svc, "docker.io") {
-			fmt.Printf("Identified dockerhub image")
-			scopeImage = fmt.Sprintf("%s/%s", parts[1], strings.Join(parts[2:], "/"))
-		} else {
-			scopeImage = strings.Join(parts, "/")
+			return fmt.Sprintf("%s/%s", parts[1], strings.Join(parts[2:], "/"))
 		}
-	} else if len(parts) == 2 {
-		if strings.Contains(parts[0], "docker.io") {
-			scopeImage = fmt.Sprintf("library/%s", parts[1])
-		} else {
-			scopeImage = strings.Replace(img, svc+"/", "", 1)
-		}
-	} else if strings.Contains(svc, "docker.io") {
-		scopeImage = fmt.Sprintf("library/%s", parts[0])
-	} else {
-		scopeImage = img
+		return strings.Join(parts, "/")
 	}
-	return scopeImage
+
+	if len(parts) == 2 {
+		if strings.Contains(parts[0], "docker.io") {
+			return fmt.Sprintf("library/%s", parts[1])
+		}
+		return strings.Replace(img, svc+"/", "", 1)
+	}
+
+	if strings.Contains(svc, "docker.io") {
+		return fmt.Sprintf("library/%s", parts[0])
+	}
+	return img
 }
 
 // GetChallengeURL creates a URL object based on the image info
