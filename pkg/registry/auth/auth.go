@@ -150,6 +150,7 @@ func GetAuthURL(challenge string, img string) (*url.URL, error) {
 	return authURL, nil
 }
 
+// GetScopeFromImageName normalizes an image name for use as scope during auth and head requests
 func GetScopeFromImageName(img, svc string) string {
 	parts := strings.Split(img, "/")
 	scopeImage := ""
@@ -164,7 +165,7 @@ func GetScopeFromImageName(img, svc string) string {
 		if strings.Contains(parts[0], "docker.io") {
 			scopeImage = fmt.Sprintf("library/%s", parts[1])
 		} else {
-			scopeImage = strings.Replace(img, svc + "/", "", 1)
+			scopeImage = strings.Replace(img, svc+"/", "", 1)
 		}
 	} else if strings.Contains(svc, "docker.io") {
 		scopeImage = fmt.Sprintf("library/%s", parts[0])
