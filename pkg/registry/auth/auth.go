@@ -139,16 +139,39 @@ func GetAuthURL(challenge string, img string) (*url.URL, error) {
 	authURL, _ := url.Parse(fmt.Sprintf("%s", values["realm"]))
 	q := authURL.Query()
 	q.Add("service", values["service"])
-	scopeImage := strings.TrimPrefix(img, values["service"])
-	if !strings.Contains(scopeImage, "/") {
-		scopeImage = "library/" + scopeImage
-	}
+
+	scopeImage := GetScopeFromImageName(img, values["service"])
+
 	scope := fmt.Sprintf("repository:%s:pull", scopeImage)
 	logrus.WithFields(logrus.Fields{"scope": scope, "image": img}).Debug("Setting scope for auth token")
 	q.Add("scope", scope)
 
 	authURL.RawQuery = q.Encode()
 	return authURL, nil
+}
+
+func GetScopeFromImageName(img, svc string) string {
+	parts := strings.Split(img, "/")
+	scopeImage := ""
+	if len(parts) > 2 {
+		if strings.Contains(svc, "docker.io") {
+			fmt.Printf("Identified dockerhub image")
+			scopeImage = fmt.Sprintf("%s/%s", parts[1], strings.Join(parts[2:], "/"))
+		} else {
+			scopeImage = strings.Join(parts, "/")
+		}
+	} else if len(parts) == 2 {
+		if strings.Contains(parts[0], "docker.io") {
+			scopeImage = fmt.Sprintf("library/%s", parts[1])
+		} else {
+			scopeImage = strings.Replace(img, svc + "/", "", 1)
+		}
+	} else if strings.Contains(svc, "docker.io") {
+		scopeImage = fmt.Sprintf("library/%s", parts[0])
+	} else {
+		scopeImage = img
+	}
+	return scopeImage
 }
 
 // GetChallengeURL creates a URL object based on the image info

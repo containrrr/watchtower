@@ -2,6 +2,7 @@ package manifest
 
 import (
 	"fmt"
+	"github.com/containrrr/watchtower/pkg/registry/auth"
 	"github.com/containrrr/watchtower/pkg/registry/helpers"
 	"github.com/containrrr/watchtower/pkg/types"
 	ref "github.com/docker/distribution/reference"
@@ -31,7 +32,8 @@ func BuildManifestURL(container types.Container) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	img = strings.TrimPrefix(img, fmt.Sprintf("%s/", host))
+	img = auth.GetScopeFromImageName(img, host)
+
 	if !strings.Contains(img, "/") {
 		img = "library/" + img
 	}

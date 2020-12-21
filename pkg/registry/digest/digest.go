@@ -73,13 +73,14 @@ func GetDigest(url string, token string) (string, error) {
 	}
 	client := &http.Client{Transport: tr}
 
+	req, _ := http.NewRequest("HEAD", url, nil)
+
 	if token != "" {
 		logrus.WithField("token", token).Trace("Setting request token")
 	} else {
 		return "", errors.New("could not fetch token")
 	}
 
-	req, _ := http.NewRequest("HEAD", url, nil)
 	req.Header.Add("Authorization", token)
 	req.Header.Add("Accept", "application/vnd.docker.distribution.manifest.v2+json")
 	req.Header.Add("Accept", "application/vnd.docker.distribution.manifest.list.v2+json")
@@ -94,7 +95,7 @@ func GetDigest(url string, token string) (string, error) {
 	defer res.Body.Close()
 
 	if res.StatusCode != 200 {
-		return "", fmt.Errorf("registry responded to head request with %d", res.StatusCode)
+		return "", fmt.Errorf("registry responded to head request with %v", res)
 	}
 	return res.Header.Get(ContentDigestHeader), nil
 }

@@ -95,4 +95,26 @@ var _ = Describe("the auth module", func() {
 			Expect(auth.GetChallengeURL("registry-1.docker.io/containrrr/watchtower:latest")).To(Equal(expected))
 		})
 	})
+	When("getting the auth scope from an image name", func() {
+		It("should prepend official dockerhub images with \"library/\"", func() {
+			Expect(auth.GetScopeFromImageName("docker.io/registry", "index.docker.io")).To(Equal("library/registry"))
+			Expect(auth.GetScopeFromImageName("docker.io/registry", "docker.io")).To(Equal("library/registry"))
+
+			Expect(auth.GetScopeFromImageName("registry", "index.docker.io")).To(Equal("library/registry"))
+			Expect(auth.GetScopeFromImageName("watchtower", "registry-1.docker.io")).To(Equal("library/watchtower"))
+
+		})
+		It("should not include vanity hosts\"", func() {
+			Expect(auth.GetScopeFromImageName("docker.io/containrrr/watchtower", "index.docker.io")).To(Equal("containrrr/watchtower"))
+			Expect(auth.GetScopeFromImageName("index.docker.io/containrrr/watchtower", "index.docker.io")).To(Equal("containrrr/watchtower"))
+		})
+		It("should not destroy three segment image names\"", func() {
+			Expect(auth.GetScopeFromImageName("piksel/containrrr/watchtower", "index.docker.io")).To(Equal("containrrr/watchtower"))
+			Expect(auth.GetScopeFromImageName("piksel/containrrr/watchtower", "ghcr.io")).To(Equal("piksel/containrrr/watchtower"))
+		})
+		It("should not add \"library/\" for one segment image names if they're not on dockerhub", func() {
+			Expect(auth.GetScopeFromImageName("ghcr.io/watchtower", "ghcr.io")).To(Equal("watchtower"))
+			Expect(auth.GetScopeFromImageName("watchtower", "ghcr.io")).To(Equal("watchtower"))
+		})
+	})
 })
