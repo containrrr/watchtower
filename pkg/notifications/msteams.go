@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"net/http"
 
 	t "github.com/containrrr/watchtower/pkg/types"
@@ -22,16 +23,14 @@ type msTeamsTypeNotifier struct {
 	data       bool
 }
 
-func newMsTeamsNotifier(cmd *cobra.Command, acceptedLogLevels []log.Level) t.Notifier {
+func newMsTeamsNotifier(_ *cobra.Command, acceptedLogLevels []log.Level) t.Notifier {
 
-	flags := cmd.PersistentFlags()
-
-	webHookURL, _ := flags.GetString("notification-msteams-hook")
+	webHookURL := viper.GetString("notification-msteams-hook")
 	if len(webHookURL) <= 0 {
 		log.Fatal("Required argument --notification-msteams-hook(cli) or WATCHTOWER_NOTIFICATION_MSTEAMS_HOOK_URL(env) is empty.")
 	}
 
-	withData, _ := flags.GetBool("notification-msteams-data")
+	withData := viper.GetBool("notification-msteams-data")
 	n := &msTeamsTypeNotifier{
 		levels:     acceptedLogLevels,
 		webHookURL: webHookURL,
@@ -85,19 +84,19 @@ func (n *msTeamsTypeNotifier) Fire(entry *log.Entry) error {
 
 		jsonBody, err := json.Marshal(webHookBody)
 		if err != nil {
-			fmt.Println("Failed to build JSON body for MSTeams notificattion: ", err)
+			fmt.Println("Failed to build JSON body for MSTeams notification: ", err)
 			return
 		}
 
-		resp, err := http.Post(n.webHookURL, "application/json", bytes.NewBuffer([]byte(jsonBody)))
+		resp, err := http.Post(n.webHookURL, "application/json", bytes.NewBuffer(jsonBody))
 		if err != nil {
-			fmt.Println("Failed to send MSTeams notificattion: ", err)
+			fmt.Println("Failed to send MSTeams notification: ", err)
 		}
 
 		defer resp.Body.Close()
 
 		if resp.StatusCode < 200 || resp.StatusCode > 299 {
-			fmt.Println("Failed to send MSTeams notificattion. HTTP RESPONSE STATUS: ", resp.StatusCode)
+			fmt.Println("Failed to send MSTeams notification. HTTP RESPONSE STATUS: ", resp.StatusCode)
 			if resp.Body != nil {
 				bodyBytes, err := ioutil.ReadAll(resp.Body)
 				if err == nil {

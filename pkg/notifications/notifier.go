@@ -5,6 +5,7 @@ import (
 	"github.com/johntdyer/slackrus"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // Notifier can send log output as notification to admins, with optional batching.
@@ -16,9 +17,7 @@ type Notifier struct {
 func NewNotifier(c *cobra.Command) *Notifier {
 	n := &Notifier{}
 
-	f := c.PersistentFlags()
-
-	level, _ := f.GetString("notifications-level")
+	level := viper.GetString("notifications-level")
 	logLevel, err := log.ParseLevel(level)
 	if err != nil {
 		log.Fatalf("Notifications invalid log level: %s", err.Error())
@@ -27,7 +26,7 @@ func NewNotifier(c *cobra.Command) *Notifier {
 	acceptedLogLevels := slackrus.LevelThreshold(logLevel)
 
 	// Parse types and create notifiers.
-	types, err := f.GetStringSlice("notifications")
+	types := viper.GetStringSlice("notifications")
 	if err != nil {
 		log.WithField("could not read notifications argument", log.Fields{"Error": err}).Fatal()
 	}

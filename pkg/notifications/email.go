@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"net/smtp"
 	"os"
 	"strings"
@@ -33,18 +34,17 @@ type emailTypeNotifier struct {
 	delay                              time.Duration
 }
 
-func newEmailNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.Notifier {
-	flags := c.PersistentFlags()
+func newEmailNotifier(_ *cobra.Command, acceptedLogLevels []log.Level) t.Notifier {
 
-	from, _ := flags.GetString("notification-email-from")
-	to, _ := flags.GetString("notification-email-to")
-	server, _ := flags.GetString("notification-email-server")
-	user, _ := flags.GetString("notification-email-server-user")
-	password, _ := flags.GetString("notification-email-server-password")
-	port, _ := flags.GetInt("notification-email-server-port")
-	tlsSkipVerify, _ := flags.GetBool("notification-email-server-tls-skip-verify")
-	delay, _ := flags.GetInt("notification-email-delay")
-	subjecttag, _ := flags.GetString("notification-email-subjecttag")
+	from := viper.GetString("notification-email-from")
+	to := viper.GetString("notification-email-to")
+	server := viper.GetString("notification-email-server")
+	user := viper.GetString("notification-email-server-user")
+	password := viper.GetString("notification-email-server-password")
+	port := viper.GetInt("notification-email-server-port")
+	tlsSkipVerify := viper.GetBool("notification-email-server-tls-skip-verify")
+	delay := viper.GetInt("notification-email-delay")
+	subjecttag := viper.GetString("notification-email-subjecttag")
 
 	n := &emailTypeNotifier{
 		From:          from,
@@ -81,13 +81,13 @@ func (e *emailTypeNotifier) buildMessage(entries []*log.Entry) []byte {
 		// We don't use fields in watchtower, so don't bother sending them.
 	}
 
-	t := time.Now()
+	now := time.Now()
 
 	header := make(map[string]string)
 	header["From"] = e.From
 	header["To"] = e.To
 	header["Subject"] = emailSubject
-	header["Date"] = t.Format(time.RFC1123Z)
+	header["Date"] = now.Format(time.RFC1123Z)
 	header["MIME-Version"] = "1.0"
 	header["Content-Type"] = "text/plain; charset=\"utf-8\""
 	header["Content-Transfer-Encoding"] = "base64"
