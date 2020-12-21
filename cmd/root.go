@@ -1,10 +1,9 @@
 package cmd
 
 import (
-	"fmt"
-	"github.com/spf13/viper"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -22,9 +21,17 @@ import (
 )
 
 var (
-	client   container.Client
-	notifier *notifications.Notifier
-	c        flags.WatchConfig
+	client         container.Client
+	scheduleSpec   string
+	cleanup        bool
+	noRestart      bool
+	monitorOnly    bool
+	enableLabel    bool
+	notifier       *notifications.Notifier
+	timeout        time.Duration
+	lifecycleHooks bool
+	rollingRestart bool
+	scope          string
 )
 
 var rootCmd = &cobra.Command{
@@ -39,11 +46,10 @@ More information available at https://github.com/containrrr/watchtower/.
 }
 
 func init() {
+	flags.SetDefaults()
 	flags.RegisterDockerFlags(rootCmd)
 	flags.RegisterSystemFlags(rootCmd)
 	flags.RegisterNotificationFlags(rootCmd)
-	flags.SetEnvBindings()
-	flags.BindViperFlags(rootCmd)
 }
 
 // Execute the root func and exit in case of errors
@@ -54,10 +60,10 @@ func Execute() {
 }
 
 // PreRun is a lifecycle hook that runs before the command is executed.
-func PreRun(cmd *cobra.Command, _ []string) {
+func PreRun(cmd *cobra.Command, args []string) {
+	f := cmd.PersistentFlags()
 
-	// First apply all the settings that affect the output
-	if viper.GetBool("no-color") {
+	if enabled, _ := f.GetBool("no-color"); enabled {
 		log.SetFormatter(&log.TextFormatter{
 			DisableColors: true,
 		})
@@ -68,55 +74,75 @@ func PreRun(cmd *cobra.Command, _ []string) {
 		})
 	}
 
-	if viper.GetBool("debug") {
+	if enabled, _ := f.GetBool("debug"); enabled {
 		log.SetLevel(log.DebugLevel)
 	}
-	if viper.GetBool("trace") {
+	if enabled, _ := f.GetBool("trace"); enabled {
 		log.SetLevel(log.TraceLevel)
 	}
 
-	interval := viper.GetInt("interval")
+	pollingSet := f.Changed("interval")
+	schedule, _ := f.GetString("schedule")
+	cronLen := len(schedule)
 
-	// If empty, set schedule using interval helper value
-	if viper.GetString("schedule") == "" {
-		viper.Set("schedule", fmt.Sprintf("@every %ds", interval))
-	} else if interval != flags.DefaultInterval {
-		log.Fatal("only schedule or interval can be defined, not both")
+	if pollingSet && cronLen > 0 {
+		log.Fatal("Only schedule or interval can be defined, not both.")
+	} else if cronLen > 0 {
+		scheduleSpec, _ = f.GetString("schedule")
+	} else {
+		interval, _ := f.GetInt("interval")
+		scheduleSpec = "@every " + strconv.Itoa(interval) + "s"
 	}
 
-	// Then load the rest of the settings
-	err := viper.Unmarshal(&c)
-	if err != nil {
-		log.Fatalf("unable to decode into struct, %v", err)
-	}
+	flags.GetSecretsFromFiles(cmd)
+	cleanup, noRestart, monitorOnly, timeout = flags.ReadFlags(cmd)
 
-	flags.GetSecretsFromFiles()
-
-	if c.Timeout <= 0 {
+	if timeout < 0 {
 		log.Fatal("Please specify a positive value for timeout value.")
 	}
 
-	log.Debugf("Using scope %v", c.Scope)
+	enableLabel, _ = f.GetBool("label-enable")
+	lifecycleHooks, _ = f.GetBool("enable-lifecycle-hooks")
+	rollingRestart, _ = f.GetBool("rolling-restart")
+	scope, _ = f.GetString("scope")
 
-	if err = flags.EnvConfig(); err != nil {
-		log.Fatalf("failed to setup environment variables: %v", err)
+	log.Debug(scope)
+
+	// configure environment vars for client
+	err := flags.EnvConfig(cmd)
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	if c.MonitorOnly && c.NoPull {
+	noPull, _ := f.GetBool("no-pull")
+	includeStopped, _ := f.GetBool("include-stopped")
+	includeRestarting, _ := f.GetBool("include-restarting")
+	reviveStopped, _ := f.GetBool("revive-stopped")
+	removeVolumes, _ := f.GetBool("remove-volumes")
+
+	if monitorOnly && noPull {
 		log.Warn("Using `WATCHTOWER_NO_PULL` and `WATCHTOWER_MONITOR_ONLY` simultaneously might lead to no action being taken at all. If this is intentional, you may safely ignore this message.")
 	}
 
-	client = container.NewClient(&c)
+	client = container.NewClient(
+		!noPull,
+		includeStopped,
+		reviveStopped,
+		removeVolumes,
+		includeRestarting,
+	)
 
 	notifier = notifications.NewNotifier(cmd)
 }
 
 // Run is the main execution flow of the command
-func Run(_ *cobra.Command, names []string) {
-	filter := filters.BuildFilter(names, c.EnableLabel, c.Scope)
+func Run(c *cobra.Command, names []string) {
+	filter := filters.BuildFilter(names, enableLabel, scope)
+	runOnce, _ := c.PersistentFlags().GetBool("run-once")
+	httpAPI, _ := c.PersistentFlags().GetBool("http-api")
 
-	if c.RunOnce {
-		if !c.NoStartupMessage {
+	if runOnce {
+		if noStartupMessage, _ := c.PersistentFlags().GetBool("no-startup-message"); !noStartupMessage {
 			log.Info("Running a one time update.")
 		}
 		runUpdatesWithNotifications(filter)
@@ -125,12 +151,14 @@ func Run(_ *cobra.Command, names []string) {
 		return
 	}
 
-	if err := actions.CheckForMultipleWatchtowerInstances(client, c.Cleanup, c.Scope); err != nil {
+	if err := actions.CheckForMultipleWatchtowerInstances(client, cleanup, scope); err != nil {
 		log.Fatal(err)
 	}
 
-	if c.HTTPAPI {
-		if err := api.SetupHTTPUpdates(c.HTTPAPIToken, func() { runUpdatesWithNotifications(filter) }); err != nil {
+	if httpAPI {
+		apiToken, _ := c.PersistentFlags().GetString("http-api-token")
+
+		if err := api.SetupHTTPUpdates(apiToken, func() { runUpdatesWithNotifications(filter) }); err != nil {
 			log.Fatal(err)
 			os.Exit(1)
 		}
@@ -138,20 +166,20 @@ func Run(_ *cobra.Command, names []string) {
 		api.WaitForHTTPUpdates()
 	}
 
-	if err := runUpgradesOnSchedule(filter); err != nil {
+	if err := runUpgradesOnSchedule(c, filter); err != nil {
 		log.Error(err)
 	}
 
 	os.Exit(1)
 }
 
-func runUpgradesOnSchedule(filter t.Filter) error {
+func runUpgradesOnSchedule(c *cobra.Command, filter t.Filter) error {
 	tryLockSem := make(chan bool, 1)
 	tryLockSem <- true
 
-	runner := cron.New()
-	err := runner.AddFunc(
-		viper.GetString("schedule"),
+	cron := cron.New()
+	err := cron.AddFunc(
+		scheduleSpec,
 		func() {
 			select {
 			case v := <-tryLockSem:
@@ -161,7 +189,7 @@ func runUpgradesOnSchedule(filter t.Filter) error {
 				log.Debug("Skipped another update already running.")
 			}
 
-			nextRuns := runner.Entries()
+			nextRuns := cron.Entries()
 			if len(nextRuns) > 0 {
 				log.Debug("Scheduled next run: " + nextRuns[0].Next.String())
 			}
@@ -171,11 +199,11 @@ func runUpgradesOnSchedule(filter t.Filter) error {
 		return err
 	}
 
-	if !viper.GetBool("no-startup-message") {
-		log.Info("Starting Watchtower and scheduling first run: " + runner.Entries()[0].Schedule.Next(time.Now()).String())
+	if noStartupMessage, _ := c.PersistentFlags().GetBool("no-startup-message"); !noStartupMessage {
+		log.Info("Starting Watchtower and scheduling first run: " + cron.Entries()[0].Schedule.Next(time.Now()).String())
 	}
 
-	runner.Start()
+	cron.Start()
 
 	// Graceful shut-down on SIGINT/SIGTERM
 	interrupt := make(chan os.Signal, 1)
@@ -183,7 +211,7 @@ func runUpgradesOnSchedule(filter t.Filter) error {
 	signal.Notify(interrupt, syscall.SIGTERM)
 
 	<-interrupt
-	runner.Stop()
+	cron.Stop()
 	log.Info("Waiting for running update to be finished...")
 	<-tryLockSem
 	return nil
@@ -193,12 +221,12 @@ func runUpdatesWithNotifications(filter t.Filter) {
 	notifier.StartNotification()
 	updateParams := t.UpdateParams{
 		Filter:         filter,
-		Cleanup:        c.Cleanup,
-		NoRestart:      c.NoRestart,
-		Timeout:        c.Timeout,
-		MonitorOnly:    c.MonitorOnly,
-		LifecycleHooks: c.LifecycleHooks,
-		RollingRestart: c.RollingRestart,
+		Cleanup:        cleanup,
+		NoRestart:      noRestart,
+		Timeout:        timeout,
+		MonitorOnly:    monitorOnly,
+		LifecycleHooks: lifecycleHooks,
+		RollingRestart: rollingRestart,
 	}
 	err := actions.Update(client, updateParams)
 	if err != nil {

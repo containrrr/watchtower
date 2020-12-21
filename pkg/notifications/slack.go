@@ -5,7 +5,6 @@ import (
 	"github.com/johntdyer/slackrus"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 const (
@@ -16,13 +15,14 @@ type slackTypeNotifier struct {
 	slackrus.SlackrusHook
 }
 
-func newSlackNotifier(_ *cobra.Command, acceptedLogLevels []log.Level) t.Notifier {
+func newSlackNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.Notifier {
+	flags := c.PersistentFlags()
 
-	hookURL := viper.GetString("notification-slack-hook-url")
-	userName := viper.GetString("notification-slack-identifier")
-	channel := viper.GetString("notification-slack-channel")
-	emoji := viper.GetString("notification-slack-icon-emoji")
-	iconURL := viper.GetString("notification-slack-icon-url")
+	hookURL, _ := flags.GetString("notification-slack-hook-url")
+	userName, _ := flags.GetString("notification-slack-identifier")
+	channel, _ := flags.GetString("notification-slack-channel")
+	emoji, _ := flags.GetString("notification-slack-icon-emoji")
+	iconURL, _ := flags.GetString("notification-slack-icon-url")
 
 	n := &slackTypeNotifier{
 		SlackrusHook: slackrus.SlackrusHook{

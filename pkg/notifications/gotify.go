@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"github.com/spf13/viper"
 	"net/http"
 	"strings"
 
@@ -25,10 +24,10 @@ type gotifyTypeNotifier struct {
 	logLevels                []log.Level
 }
 
-func newGotifyNotifier(_ *cobra.Command, acceptedLogLevels []log.Level) t.Notifier {
-	flags := viper.Sub(".")
+func newGotifyNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.Notifier {
+	flags := c.PersistentFlags()
 
-	gotifyURL := flags.GetString("notification-gotify-url")
+	gotifyURL, _ := flags.GetString("notification-gotify-url")
 	if len(gotifyURL) < 1 {
 		log.Fatal("Required argument --notification-gotify-url(cli) or WATCHTOWER_NOTIFICATION_GOTIFY_URL(env) is empty.")
 	} else if !(strings.HasPrefix(gotifyURL, "http://") || strings.HasPrefix(gotifyURL, "https://")) {
@@ -37,12 +36,12 @@ func newGotifyNotifier(_ *cobra.Command, acceptedLogLevels []log.Level) t.Notifi
 		log.Warn("Using an HTTP url for Gotify is insecure")
 	}
 
-	gotifyToken := flags.GetString("notification-gotify-token")
+	gotifyToken, _ := flags.GetString("notification-gotify-token")
 	if len(gotifyToken) < 1 {
 		log.Fatal("Required argument --notification-gotify-token(cli) or WATCHTOWER_NOTIFICATION_GOTIFY_TOKEN(env) is empty.")
 	}
 
-	gotifyInsecureSkipVerify := flags.GetBool("notification-gotify-tls-skip-verify")
+	gotifyInsecureSkipVerify, _ := flags.GetBool("notification-gotify-tls-skip-verify")
 
 	n := &gotifyTypeNotifier{
 		gotifyURL:                gotifyURL,

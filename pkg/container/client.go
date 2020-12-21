@@ -10,7 +10,6 @@ import (
 	"github.com/containrrr/watchtower/pkg/registry"
 	"github.com/containrrr/watchtower/pkg/registry/digest"
 
-	"github.com/containrrr/watchtower/internal/flags"
 	t "github.com/containrrr/watchtower/pkg/types"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -42,7 +41,7 @@ type Client interface {
 //  * DOCKER_HOST			the docker-engine host to send api requests to
 //  * DOCKER_TLS_VERIFY		whether to verify tls certificates
 //  * DOCKER_API_VERSION	the minimum docker api version to work with
-func NewClient(config *flags.WatchConfig) Client {
+func NewClient(pullImages bool, includeStopped bool, reviveStopped bool, removeVolumes bool, includeRestarting bool) Client {
 	cli, err := sdkClient.NewClientWithOpts(sdkClient.FromEnv)
 
 	if err != nil {
@@ -51,11 +50,11 @@ func NewClient(config *flags.WatchConfig) Client {
 
 	return dockerClient{
 		api:               cli,
-		pullImages:        !config.NoPull,
-		removeVolumes:     config.RemoveVolumes,
-		includeStopped:    config.IncludeStopped,
-		reviveStopped:     config.ReviveStopped,
-		includeRestarting: config.IncludeRestarting,
+		pullImages:        pullImages,
+		removeVolumes:     removeVolumes,
+		includeStopped:    includeStopped,
+		reviveStopped:     reviveStopped,
+		includeRestarting: includeRestarting,
 	}
 }
 
