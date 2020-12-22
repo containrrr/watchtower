@@ -106,6 +106,12 @@ func RegisterSystemFlags(rootCmd *cobra.Command) {
 		"Run once now and exit")
 
 	flags.BoolP(
+		"include-restarting",
+		"",
+		viper.GetBool("WATCHTOWER_INCLUDE_RESTARTING"),
+		"Will also include restarting containers")
+
+	flags.BoolP(
 		"include-stopped",
 		"S",
 		viper.GetBool("WATCHTOWER_INCLUDE_STOPPED"),
