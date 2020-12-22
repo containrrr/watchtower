@@ -295,7 +295,11 @@ func (client dockerClient) PullImage(ctx context.Context, container Container) e
 	log.WithFields(fields).Debugf("Checking if pull is needed")
 
 	if match, err := digest.CompareDigest(container, opts.RegistryAuth); err != nil {
-		log.Info("Could not do a head request, falling back to regular pull.")
+		if registry.WarnOnAPIConsumption(container) {
+			log.WithFields(fields).Warning("Could not do a head request, falling back to regular pull.")
+		} else {
+			log.Debug("Could not do a head request, falling back to regular pull.")
+		}
 		log.Debugf("Reason: %s", err.Error())
 	} else if match {
 		log.Debug("No pull needed. Skipping image.")
