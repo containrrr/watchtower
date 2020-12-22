@@ -163,6 +163,7 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
     <td align="center"><a href="https://github.com/yrien30"><img src="https://avatars1.githubusercontent.com/u/26816162?v=4" width="100px;" alt=""/><br /><sub><b>yrien30</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=yrien30" title="Code">💻</a></td>
     <td align="center"><a href="https://github.com/ksurl"><img src="https://avatars1.githubusercontent.com/u/1371562?v=4" width="100px;" alt=""/><br /><sub><b>ksurl</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=ksurl" title="Documentation">📖</a></td>
     <td align="center"><a href="https://github.com/rg9400"><img src="https://avatars2.githubusercontent.com/u/39887349?v=4" width="100px;" alt=""/><br /><sub><b>rg9400</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=rg9400" title="Code">💻</a></td>
+    <td align="center"><a href="https://github.com/tkalus"><img src="https://avatars2.githubusercontent.com/u/287181?v=4" width="100px;" alt=""/><br /><sub><b>Turtle Kalus</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=tkalus" title="Code">💻</a></td>
   </tr>
 </table>
 
