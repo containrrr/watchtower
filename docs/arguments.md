@@ -118,6 +118,16 @@ Environment Variable: DOCKER_API_VERSION
              Default: "1.24"
 ```
 
+## Include restarting
+Will also include created and exited containers.
+
+```
+            Argument: --include-restarting
+Environment Variable: WATCHTOWER_INCLUDE_RESTARTING
+                Type: Boolean
+             Default: false
+```
+
 ## Include stopped
 Will also include created and exited containers.
 
