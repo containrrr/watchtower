@@ -28,7 +28,14 @@ If applicable, add screenshots to help explain your problem.
  - Architecture
  - Docker version 
 
-**Logs from running watchtower with the `--debug` option**
+<details>
+ <summary><b> Logs from running watchtower with the <code>--debug</code> option </b></summary>
+
+```
+
+```
+
+</details>
 
 **Additional context**
 Add any other context about the problem here.
