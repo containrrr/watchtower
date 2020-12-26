@@ -53,7 +53,7 @@ func extractImageAndTag(imageName string) (string, string) {
 		parts := strings.Split(imageName, ":")
 		if len(parts) > 2 {
 			img = fmt.Sprintf("%s%s", parts[0], parts[1])
-			tag = parts[3]
+			tag = parts[2]
 		} else {
 			img = parts[0]
 			tag = parts[1]
