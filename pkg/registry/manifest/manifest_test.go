@@ -61,6 +61,15 @@ var _ = Describe("the manifest module", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(res).To(Equal(expected))
 		})
+		It("should combine the tag name and digest pinning into one digest, given multiple colons", func() {
+			in := "containrrr/watchtower:latest@sha256:daf7034c5c89775afe3008393ae033529913548243b84926931d7c84398ecda7"
+			image, tag := "containrrr/watchtower", "latest@sha256:daf7034c5c89775afe3008393ae033529913548243b84926931d7c84398ecda7"
+
+			imageOut, tagOut := manifest.ExtractImageAndTag(in)
+
+			Expect(imageOut).To(Equal(image))
+			Expect(tagOut).To(Equal(tag))
+		})
 	})
 
 })
