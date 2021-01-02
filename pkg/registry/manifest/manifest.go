@@ -20,7 +20,7 @@ func BuildManifestURL(container types.Container) (string, error) {
 	}
 
 	host, err := helpers.NormalizeRegistry(normalizedName.String())
-	img, tag := extractImageAndTag(strings.TrimPrefix(container.ImageName(), host+"/"))
+	img, tag := ExtractImageAndTag(strings.TrimPrefix(container.ImageName(), host+"/"))
 
 	logrus.WithFields(logrus.Fields{
 		"image":      img,
@@ -45,15 +45,16 @@ func BuildManifestURL(container types.Container) (string, error) {
 	return url.String(), nil
 }
 
-func extractImageAndTag(imageName string) (string, string) {
+// ExtractImageAndTag from a concatenated string
+func ExtractImageAndTag(imageName string) (string, string) {
 	var img string
 	var tag string
 
 	if strings.Contains(imageName, ":") {
 		parts := strings.Split(imageName, ":")
 		if len(parts) > 2 {
-			img = fmt.Sprintf("%s%s", parts[0], parts[1])
-			tag = parts[3]
+			img = parts[0]
+			tag = strings.Join(parts[1:], ":")
 		} else {
 			img = parts[0]
 			tag = parts[1]
