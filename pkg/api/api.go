@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	log "github.com/sirupsen/logrus"
 	"net/http"
 )
@@ -24,7 +25,7 @@ func New(token string) *API {
 // RequireToken is wrapper around http.HandleFunc that checks token validity
 func (api *API) RequireToken(fn http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Header.Get("Authorization") != api.Token {
+		if r.Header.Get("Authorization") != fmt.Sprintf("Bearer %s", api.Token) {
 			log.Errorf("Invalid token \"%s\"", r.Header.Get("Authorization"))
 			log.Debugf("Expected token to be \"%s\"", api.Token)
 			return

@@ -29,6 +29,8 @@ func Update(client container.Client, params types.UpdateParams) (*metrics2.Metri
 		return nil, err
 	}
 
+	staleCheckFailed := 0
+
 	for i, targetContainer := range containers {
 		stale, err := client.IsContainerStale(targetContainer)
 		if stale && !params.NoRestart && !params.MonitorOnly && !targetContainer.IsMonitorOnly() && !targetContainer.HasImageInfo() {
@@ -37,11 +39,14 @@ func Update(client container.Client, params types.UpdateParams) (*metrics2.Metri
 		if err != nil {
 			log.Infof("Unable to update container %q: %v. Proceeding to next.", containers[i].Name(), err)
 			stale = false
-
+			staleCheckFailed++
 			metric.Failed++
 		}
 		containers[i].Stale = stale
-		staleCount++
+
+		if stale {
+			staleCount++
+		}
 	}
 
 	containers, err = sorter.SortByDependencies(containers)
@@ -68,7 +73,7 @@ func Update(client container.Client, params types.UpdateParams) (*metrics2.Metri
 		metric.Failed += restartContainersInSortedOrder(containersToUpdate, client, params)
 	}
 
-	metric.Updated = staleCount - metric.Failed
+	metric.Updated = staleCount - (metric.Failed - staleCheckFailed)
 
 	if params.LifecycleHooks {
 		lifecycle.ExecutePostChecks(client, params)

@@ -30,7 +30,7 @@ func runTestServer(m *metricsAPI.Handler) {
 
 func getWithToken(c http.Client, url string) (*http.Response, error) {
 	req, _ := http.NewRequest("GET", url, nil)
-	req.Header.Add("Authorization", Token)
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", Token))
 	return c.Do(req)
 }
 
