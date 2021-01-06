@@ -341,6 +341,7 @@ func SetEnvBindings() {
 	}
 	viper.SetEnvPrefix("WATCHTOWER")
 	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
+	_ = viper.BindEnv("interval", "WATCHTOWER_POLL_INTERVAL")
 	viper.AutomaticEnv()
 }
 
