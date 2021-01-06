@@ -1,4 +1,3 @@
-
 # Notifications
 
 Watchtower can send notifications when containers are updated. Notifications are sent via hooks in the logging system, [logrus](http://github.com/sirupsen/logrus).
@@ -12,14 +11,14 @@ The types of notifications to send are set by passing a comma-separated list of 
 
 > There is currently a [bug](https://github.com/spf13/viper/issues/380) in Viper, which prevents comma-separated slices to be used when using the environment variable. A workaround is available where we instead put quotes around the environment variable value and replace the commas with spaces, as `WATCHTOWER_NOTIFICATIONS="slack msteams"`
 
-> If you're a `docker-compose` user, make sure to specify environment variables' values in your `.yml` file without double quotes (`"`). 
+> If you're a `docker-compose` user, make sure to specify environment variables' values in your `.yml` file without double quotes (`"`).
 >
 > This prevents unexpected errors when watchtower starts.
 
 ## Settings
 
 - `--notifications-level` (env. `WATCHTOWER_NOTIFICATIONS_LEVEL`): Controls the log level which is used for the notifications. If omitted, the default log level is `info`. Possible values are: `panic`, `fatal`, `error`, `warn`, `info`, `debug` or `trace`.
-- Watchtower will post a notification every time it is started. This behavior [can be changed](https://containrrr.github.io/watchtower/arguments/#without_sending_a_startup_message) with an argument. 
+- Watchtower will post a notification every time it is started. This behavior [can be changed](https://containrrr.github.io/watchtower/arguments/#without_sending_a_startup_message) with an argument.
 
 ## Available services
 
@@ -47,7 +46,7 @@ docker run -d \
   -e WATCHTOWER_NOTIFICATION_EMAIL_FROM=fromaddress@gmail.com \
   -e WATCHTOWER_NOTIFICATION_EMAIL_TO=toaddress@gmail.com \
   -e WATCHTOWER_NOTIFICATION_EMAIL_SERVER=smtp.gmail.com \
-  -e WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PORT=587 \  
+  -e WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PORT=587 \
   -e WATCHTOWER_NOTIFICATION_EMAIL_SERVER_USER=fromaddress@gmail.com \
   -e WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PASSWORD=app_password \
   -e WATCHTOWER_NOTIFICATION_EMAIL_DELAY=2 \
@@ -56,19 +55,19 @@ docker run -d \
 
 The previous example assumes, that you already have an SMTP server up and running you can connect to. If you don't or you want to bring up watchtower with your own simple SMTP relay the following `docker-compose.yml` might be a good start for you.
 
-The following example assumes, that your domain is called `your-domain.com` and that you are going to use a certificate valid for `smtp.your-domain.com`. This hostname has to be used as `WATCHTOWER_NOTIFICATION_EMAIL_SERVER` otherwise the TLS connection is going to fail with  `Failed to send notification email` or `connect: connection refused`. We also have to add a network for this setup in order to add an alias to it. If you also want to enable DKIM or other features on the SMTP server, you will find more information at [freinet/postfix-relay](https://hub.docker.com/r/freinet/postfix-relay).
+The following example assumes, that your domain is called `your-domain.com` and that you are going to use a certificate valid for `smtp.your-domain.com`. This hostname has to be used as `WATCHTOWER_NOTIFICATION_EMAIL_SERVER` otherwise the TLS connection is going to fail with `Failed to send notification email` or `connect: connection refused`. We also have to add a network for this setup in order to add an alias to it. If you also want to enable DKIM or other features on the SMTP server, you will find more information at [freinet/postfix-relay](https://hub.docker.com/r/freinet/postfix-relay).
 
 Example including an SMTP relay:
 
 ```yaml
 ---
-version: "3.8"
+version: '3.8'
 services:
   watchtower:
     image: containrrr/watchtower:latest
     container_name: watchtower
     environment:
-      WATCHTOWER_MONITOR_ONLY: "true"
+      WATCHTOWER_MONITOR_ONLY: 'true'
       WATCHTOWER_NOTIFICATIONS: email
       WATCHTOWER_NOTIFICATION_EMAIL_FROM: from-address@your-domain.com
       WATCHTOWER_NOTIFICATION_EMAIL_TO: to-address@your-domain.com
@@ -90,9 +89,9 @@ services:
       - 25
     environment:
       MAILNAME: somename.your-domain.com
-      TLS_KEY: "/etc/ssl/domains/your-domain.com/your-domain.com.key"
-      TLS_CRT: "/etc/ssl/domains/your-domain.com/your-domain.com.crt"
-      TLS_CA: "/etc/ssl/domains/your-domain.com/intermediate.crt"
+      TLS_KEY: '/etc/ssl/domains/your-domain.com/your-domain.com.key'
+      TLS_CRT: '/etc/ssl/domains/your-domain.com/your-domain.com.crt'
+      TLS_CA: '/etc/ssl/domains/your-domain.com/intermediate.crt'
     volumes:
       - /etc/ssl/domains/your-domain.com/:/etc/ssl/domains/your-domain.com/:ro
     networks:
@@ -172,7 +171,7 @@ docker run -d \
 
 `-e WATCHTOWER_NOTIFICATION_GOTIFY_TOKEN` or `--notification-gotify-token` can also reference a file, in which case the contents of the file are used.
 
-If you want to disable TLS verification for the Gotify instance, you can use either `-e WATCHTOWER_NOTIFICATION_GOTIFY_TLS_SKIP_VERIFY=true` or `--notification-gotify-tls-skip-verify`. 
+If you want to disable TLS verification for the Gotify instance, you can use either `-e WATCHTOWER_NOTIFICATION_GOTIFY_TLS_SKIP_VERIFY=true` or `--notification-gotify-tls-skip-verify`.
 
 ### [containrrr/shoutrrr](https://github.com/containrrr/shoutrrr)
 

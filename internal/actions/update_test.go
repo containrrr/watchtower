@@ -59,7 +59,7 @@ var _ = Describe("the update action", func() {
 		When("there are multiple containers using the same image", func() {
 			It("should only try to remove the image once", func() {
 
-				err := actions.Update(client, types.UpdateParams{Cleanup: true})
+				_, err := actions.Update(client, types.UpdateParams{Cleanup: true})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(client.TestData.TriedToRemoveImageCount).To(Equal(1))
 			})
@@ -75,7 +75,7 @@ var _ = Describe("the update action", func() {
 						time.Now(),
 					),
 				)
-				err := actions.Update(client, types.UpdateParams{Cleanup: true})
+				_, err := actions.Update(client, types.UpdateParams{Cleanup: true})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(client.TestData.TriedToRemoveImageCount).To(Equal(2))
 			})
@@ -83,7 +83,7 @@ var _ = Describe("the update action", func() {
 		When("performing a rolling restart update", func() {
 			It("should try to remove the image once", func() {
 
-				err := actions.Update(client, types.UpdateParams{Cleanup: true, RollingRestart: true})
+				_, err := actions.Update(client, types.UpdateParams{Cleanup: true, RollingRestart: true})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(client.TestData.TriedToRemoveImageCount).To(Equal(1))
 			})
@@ -121,7 +121,7 @@ var _ = Describe("the update action", func() {
 			})
 
 			It("should not update those containers", func() {
-				err := actions.Update(client, types.UpdateParams{Cleanup: true})
+				_, err := actions.Update(client, types.UpdateParams{Cleanup: true})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(client.TestData.TriedToRemoveImageCount).To(Equal(1))
 			})
@@ -151,7 +151,7 @@ var _ = Describe("the update action", func() {
 			})
 
 			It("should not update any containers", func() {
-				err := actions.Update(client, types.UpdateParams{MonitorOnly: true})
+				_, err := actions.Update(client, types.UpdateParams{MonitorOnly: true})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(client.TestData.TriedToRemoveImageCount).To(Equal(0))
 			})

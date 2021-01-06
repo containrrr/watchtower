@@ -87,5 +87,5 @@ func (n *gotifyTypeNotifier) GetURL() string {
 
 func (n *gotifyTypeNotifier) StartNotification()  {}
 func (n *gotifyTypeNotifier) SendNotification()   {}
-func (n *gotifyTypeNotifier) Close()              {}
+func (n *gotifyTypeNotifier) Close() {}
 func (n *gotifyTypeNotifier) Levels() []log.Level { return nil }

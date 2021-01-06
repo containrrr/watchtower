@@ -130,10 +130,15 @@ func RegisterSystemFlags(rootCmd *cobra.Command) {
 		"Restart containers one at a time")
 
 	flags.BoolP(
-		"http-api",
+		"http-api-update",
 		"",
-		viper.GetBool("WATCHTOWER_HTTP_API"),
+		viper.GetBool("WATCHTOWER_HTTP_API_UPDATE"),
 		"Runs Watchtower in HTTP API mode, so that image updates must to be triggered by a request")
+	flags.BoolP(
+		"http-api-metrics",
+		"",
+		viper.GetBool("WATCHTOWER_HTTP_API_METRICS"),
+		"Runs Watchtower with the Prometheus metrics API enabled")
 
 	flags.StringP(
 		"http-api-token",

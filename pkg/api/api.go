@@ -1,63 +1,76 @@
 package api
 
 import (
-	"errors"
-	"io"
-	"net/http"
-	"os"
-
+	"fmt"
 	log "github.com/sirupsen/logrus"
+	"net/http"
 )
 
-var (
-	lock chan bool
-)
+const tokenMissingMsg = "api token is empty or has not been set. exiting"
 
-func init() {
-	lock = make(chan bool, 1)
-	lock <- true
+// API is the http server responsible for serving the HTTP API endpoints
+type API struct {
+	Token       string
+	hasHandlers bool
 }
 
-// SetupHTTPUpdates configures the endpoint needed for triggering updates via http
-func SetupHTTPUpdates(apiToken string, updateFunction func()) error {
-	if apiToken == "" {
-		return errors.New("api token is empty or has not been set. not starting api")
+// New is a factory function creating a new API instance
+func New(token string) *API {
+	return &API{
+		Token:       token,
+		hasHandlers: false,
+	}
+}
+
+// RequireToken is wrapper around http.HandleFunc that checks token validity
+func (api *API) RequireToken(fn http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != fmt.Sprintf("Bearer %s", api.Token) {
+			log.Errorf("Invalid token \"%s\"", r.Header.Get("Authorization"))
+			log.Debugf("Expected token to be \"%s\"", api.Token)
+			return
+		}
+		log.Println("Valid token found.")
+		fn(w, r)
+	}
+}
+
+// RegisterFunc is a wrapper around http.HandleFunc that also sets the flag used to determine whether to launch the API
+func (api *API) RegisterFunc(path string, fn http.HandlerFunc) {
+	api.hasHandlers = true
+	http.HandleFunc(path, api.RequireToken(fn))
+}
+
+// RegisterHandler is a wrapper around http.Handler that also sets the flag used to determine whether to launch the API
+func (api *API) RegisterHandler(path string, handler http.Handler) {
+	api.hasHandlers = true
+	http.Handle(path, api.RequireToken(handler.ServeHTTP))
+}
+
+// Start the API and serve over HTTP. Requires an API Token to be set.
+func (api *API) Start(block bool) error {
+
+	if !api.hasHandlers {
+		log.Debug("Watchtower HTTP API skipped.")
+		return nil
 	}
 
-	log.Println("Watchtower HTTP API started.")
+	if api.Token == "" {
+		log.Fatal(tokenMissingMsg)
+	}
 
-	http.HandleFunc("/v1/update", func(w http.ResponseWriter, r *http.Request) {
-		log.Info("Updates triggered by HTTP API request.")
-
-		_, err := io.Copy(os.Stdout, r.Body)
-		if err != nil {
-			log.Println(err)
-			return
-		}
-
-		if r.Header.Get("Token") != apiToken {
-			log.Println("Invalid token. Not updating.")
-			return
-		}
-
-		log.Println("Valid token found. Attempting to update.")
-
-		select {
-		case chanValue := <-lock:
-			defer func() { lock <- chanValue }()
-			updateFunction()
-		default:
-			log.Debug("Skipped. Another update already running.")
-		}
-
-	})
-
+	log.Info("Watchtower HTTP API started.")
+	if block {
+		runHTTPServer()
+	} else {
+		go func() {
+			runHTTPServer()
+		}()
+	}
 	return nil
 }
 
-// WaitForHTTPUpdates starts the http server and listens for requests.
-func WaitForHTTPUpdates() error {
+func runHTTPServer() {
+	log.Info("Serving HTTP")
 	log.Fatal(http.ListenAndServe(":8080", nil))
-	os.Exit(0)
-	return nil
 }

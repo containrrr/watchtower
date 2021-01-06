@@ -1,11 +1,15 @@
 package cmd
 
 import (
+	metrics2 "github.com/containrrr/watchtower/pkg/metrics"
 	"os"
 	"os/signal"
 	"strconv"
 	"syscall"
 	"time"
+
+	"github.com/containrrr/watchtower/pkg/api/metrics"
+	"github.com/containrrr/watchtower/pkg/api/update"
 
 	"github.com/containrrr/watchtower/internal/actions"
 	"github.com/containrrr/watchtower/internal/flags"
@@ -144,7 +148,10 @@ func PreRun(cmd *cobra.Command, args []string) {
 func Run(c *cobra.Command, names []string) {
 	filter := filters.BuildFilter(names, enableLabel, scope)
 	runOnce, _ := c.PersistentFlags().GetBool("run-once")
-	httpAPI, _ := c.PersistentFlags().GetBool("http-api")
+	enableUpdateAPI, _ := c.PersistentFlags().GetBool("http-api-update")
+	enableMetricsAPI, _ := c.PersistentFlags().GetBool("http-api-metrics")
+
+	apiToken, _ := c.PersistentFlags().GetString("http-api-token")
 
 	if runOnce {
 		if noStartupMessage, _ := c.PersistentFlags().GetBool("no-startup-message"); !noStartupMessage {
@@ -160,16 +167,19 @@ func Run(c *cobra.Command, names []string) {
 		log.Fatal(err)
 	}
 
-	if httpAPI {
-		apiToken, _ := c.PersistentFlags().GetString("http-api-token")
+	httpAPI := api.New(apiToken)
 
-		if err := api.SetupHTTPUpdates(apiToken, func() { runUpdatesWithNotifications(filter) }); err != nil {
-			log.Fatal(err)
-			os.Exit(1)
-		}
-
-		api.WaitForHTTPUpdates()
+	if enableUpdateAPI {
+		updateHandler := update.New(func() { runUpdatesWithNotifications(filter) })
+		httpAPI.RegisterFunc(updateHandler.Path, updateHandler.Handle)
 	}
+
+	if enableMetricsAPI {
+		metricsHandler := metrics.New()
+		httpAPI.RegisterHandler(metricsHandler.Path, metricsHandler.Handle)
+	}
+
+	httpAPI.Start(enableUpdateAPI)
 
 	if err := runUpgradesOnSchedule(c, filter); err != nil {
 		log.Error(err)
@@ -189,8 +199,11 @@ func runUpgradesOnSchedule(c *cobra.Command, filter t.Filter) error {
 			select {
 			case v := <-tryLockSem:
 				defer func() { tryLockSem <- v }()
-				runUpdatesWithNotifications(filter)
+				metric := runUpdatesWithNotifications(filter)
+				metrics2.RegisterScan(metric)
 			default:
+				// Update was skipped
+				metrics2.RegisterScan(nil)
 				log.Debug("Skipped another update already running.")
 			}
 
@@ -222,7 +235,8 @@ func runUpgradesOnSchedule(c *cobra.Command, filter t.Filter) error {
 	return nil
 }
 
-func runUpdatesWithNotifications(filter t.Filter) {
+func runUpdatesWithNotifications(filter t.Filter) *metrics2.Metric {
+
 	notifier.StartNotification()
 	updateParams := t.UpdateParams{
 		Filter:         filter,
@@ -233,9 +247,10 @@ func runUpdatesWithNotifications(filter t.Filter) {
 		LifecycleHooks: lifecycleHooks,
 		RollingRestart: rollingRestart,
 	}
-	err := actions.Update(client, updateParams)
+	metrics, err := actions.Update(client, updateParams)
 	if err != nil {
 		log.Println(err)
 	}
 	notifier.SendNotification()
+	return metrics
 }

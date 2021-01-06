@@ -63,6 +63,6 @@ func (n *msTeamsTypeNotifier) GetURL() string {
 
 func (n *msTeamsTypeNotifier) StartNotification()          {}
 func (n *msTeamsTypeNotifier) SendNotification()           {}
-func (n *msTeamsTypeNotifier) Close()                      {}
+func (n *msTeamsTypeNotifier) Close() {}
 func (n *msTeamsTypeNotifier) Levels() []log.Level         { return nil }
 func (n *msTeamsTypeNotifier) Fire(entry *log.Entry) error { return nil }
