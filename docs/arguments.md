@@ -164,7 +164,7 @@ Environment Variable: WATCHTOWER_LABEL_ENABLE
 ## Without updating containers
 Will only monitor for new images, send notifications and invoke the [pre-check/post-check hooks](https://containrrr.dev/watchtower/lifecycle-hooks/), but will **not** update the containers.
 
-> ### ⚠️ Please note
+> **⚠️ Please note**
 >
 > Due to Docker API limitations the latest image will still be pulled from the registry.
 
