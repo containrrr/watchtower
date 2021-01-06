@@ -35,8 +35,17 @@ type shoutrrrTypeNotifier struct {
 
 func newShoutrrrNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.Notifier {
 	flags := c.PersistentFlags()
-
 	urls, _ := flags.GetStringArray("notification-url")
+	template := getShoutrrrTemplate(c)
+	return createSender(urls, acceptedLogLevels, template)
+}
+
+func newShoutrrrNotifierFromURL(c *cobra.Command, url string, levels []log.Level) t.Notifier {
+	template := getShoutrrrTemplate(c)
+	return createSender([]string{url}, levels, template)
+}
+
+func createSender(urls []string, levels []log.Level, template *template.Template) t.Notifier {
 	r, err := shoutrrr.CreateSender(urls...)
 	if err != nil {
 		log.Fatalf("Failed to initialize Shoutrrr notifications: %s\n", err.Error())
@@ -45,10 +54,10 @@ func newShoutrrrNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.Noti
 	n := &shoutrrrTypeNotifier{
 		Urls:      urls,
 		Router:    r,
-		logLevels: acceptedLogLevels,
-		template:  getShoutrrrTemplate(c),
 		messages:  make(chan string, 1),
 		done:      make(chan bool),
+		logLevels: levels,
+		template:  template,
 	}
 
 	log.AddHook(n)
