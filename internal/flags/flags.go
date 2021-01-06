@@ -330,10 +330,29 @@ Should only be used for testing.`)
 
 }
 
-// SetDefaults provides default values for environment variables
-func SetDefaults() {
-	day := (time.Hour * 24).Seconds()
+func mustBindEnv(flag string, env string) {
+	if err := viper.BindEnv(flag, env); err != nil {
+		log.Fatalf("failed to bind env %q to flag %q: %v", env, flag, err)
+	}
+}
+
+// SetEnvBindings binds environment variables to their corresponding config keys
+func SetEnvBindings() {
+
+	// Using WATCHTOWER as a prefix...
+	viper.SetEnvPrefix("WATCHTOWER")
+	// ...and replacing dashes with undescores
+	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
+	// ...map all environment variables to corresponding flags in upper case
 	viper.AutomaticEnv()
+
+	// Aliases for non-matching ENV keys (backwards compability)
+	mustBindEnv("interval", "WATCHTOWER_POLL_INTERVAL")
+
+	// Aliases for DOCKER_-prefixed env variables (matching those used for docker cli)
+	mustBindEnv("host", "DOCKER_HOST")
+	mustBindEnv("tlsverify", "DOCKER_TLS_VERIFY")
+	mustBindEnv("api-version", "DOCKER_API_VERSION")
 }
 
 // BindViperFlags binds the cmd PFlags to the viper configuration
