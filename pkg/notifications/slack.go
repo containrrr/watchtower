@@ -64,3 +64,5 @@ func (s *slackTypeNotifier) StartNotification() {
 }
 
 func (s *slackTypeNotifier) SendNotification() {}
+
+func (s *slackTypeNotifier) Close() {}

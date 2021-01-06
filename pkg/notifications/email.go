@@ -103,3 +103,5 @@ func (e *emailTypeNotifier) StartNotification()          {}
 func (e *emailTypeNotifier) SendNotification()           {}
 func (e *emailTypeNotifier) Levels() []log.Level         { return nil }
 func (e *emailTypeNotifier) Fire(entry *log.Entry) error { return nil }
+
+func (e *emailTypeNotifier) Close() {}

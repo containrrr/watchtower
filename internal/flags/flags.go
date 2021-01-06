@@ -124,6 +124,12 @@ func RegisterSystemFlags(rootCmd *cobra.Command) {
 		"Enable the execution of commands triggered by pre- and post-update lifecycle hooks")
 
 	flags.BoolP(
+		"rolling-restart",
+		"",
+		viper.GetBool("WATCHTOWER_ROLLING_RESTART"),
+		"Restart containers one at a time")
+
+	flags.BoolP(
 		"http-api-update",
 		"",
 		viper.GetBool("WATCHTOWER_HTTP_API_UPDATE"),
@@ -139,6 +145,17 @@ func RegisterSystemFlags(rootCmd *cobra.Command) {
 		"",
 		viper.GetString("WATCHTOWER_HTTP_API_TOKEN"),
 		"Sets an authentication token to HTTP API requests.")
+	// https://no-color.org/
+	flags.BoolP(
+		"no-color",
+		"",
+		viper.IsSet("NO_COLOR"),
+		"Disable ANSI color escape codes in log output")
+	flags.StringP(
+		"scope",
+		"",
+		viper.GetString("WATCHTOWER_SCOPE"),
+		"Defines a monitoring scope for the Watchtower instance.")
 }
 
 // RegisterNotificationFlags that are used by watchtower to send notifications
@@ -288,10 +305,11 @@ Should only be used for testing.`)
 
 // SetDefaults provides default values for environment variables
 func SetDefaults() {
+	day := (time.Hour * 24).Seconds()
 	viper.AutomaticEnv()
 	viper.SetDefault("DOCKER_HOST", "unix:///var/run/docker.sock")
 	viper.SetDefault("DOCKER_API_VERSION", DockerAPIMinVersion)
-	viper.SetDefault("WATCHTOWER_POLL_INTERVAL", 300)
+	viper.SetDefault("WATCHTOWER_POLL_INTERVAL", day)
 	viper.SetDefault("WATCHTOWER_TIMEOUT", time.Second*10)
 	viper.SetDefault("WATCHTOWER_NOTIFICATIONS", []string{})
 	viper.SetDefault("WATCHTOWER_NOTIFICATIONS_LEVEL", "info")

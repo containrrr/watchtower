@@ -1,3 +1,6 @@
+<p style="text-align: center; margin-left: 1.6rem;">
+  <img src="./images/logo-450px.png" width="450" />
+</p>
 <h1 align="center">
   Watchtower
 </h1>
@@ -29,11 +32,11 @@
   <a href="https://www.codacy.com/app/simskij/watchtower?utm_source=github.com&utm_medium=referral&utm_content=containrrr/watchtower&utm_campaign=Badge_Coverage">
     <img alt="Codacy Badge" src="https://api.codacy.com/project/badge/Coverage/3a4d0fcfd26d45b09b1d7ea3c8c13744" />
   </a>
-  <a href="https://gitter.im/containrrr/watchtower?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge">
-    <img alt="Join the chat at https://gitter.im/containrrr/watchtower" src="https://badges.gitter.im/containrrr/watchtower.svg" />
-  </a>
   <a href="#contributors">
     <img alt="All Contributors" src="https://img.shields.io/badge/all_contributors-30-orange.svg?style=flat-square" />
+  </a>
+  <a href="https://hub.docker.com/r/containrrr/watchtower">
+    <img alt="Pulls from DockerHub" src="https://img.shields.io/docker/pulls/containrrr/watchtower.svg?style=flat-square" />
   </a>
 </p>
 

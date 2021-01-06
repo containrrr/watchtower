@@ -3,10 +3,12 @@ package container
 import (
 	"bytes"
 	"fmt"
-	"github.com/containrrr/watchtower/pkg/registry"
 	"io/ioutil"
 	"strings"
 	"time"
+
+	"github.com/containrrr/watchtower/pkg/registry"
+	"github.com/containrrr/watchtower/pkg/registry/digest"
 
 	t "github.com/containrrr/watchtower/pkg/types"
 	"github.com/docker/docker/api/types"
@@ -39,7 +41,7 @@ type Client interface {
 //  * DOCKER_HOST			the docker-engine host to send api requests to
 //  * DOCKER_TLS_VERIFY		whether to verify tls certificates
 //  * DOCKER_API_VERSION	the minimum docker api version to work with
-func NewClient(pullImages bool, includeStopped bool, reviveStopped bool, removeVolumes bool) Client {
+func NewClient(pullImages bool, includeStopped bool, reviveStopped bool, removeVolumes bool, includeRestarting bool) Client {
 	cli, err := sdkClient.NewClientWithOpts(sdkClient.FromEnv)
 
 	if err != nil {
@@ -47,28 +49,34 @@ func NewClient(pullImages bool, includeStopped bool, reviveStopped bool, removeV
 	}
 
 	return dockerClient{
-		api:            cli,
-		pullImages:     pullImages,
-		removeVolumes:  removeVolumes,
-		includeStopped: includeStopped,
-		reviveStopped:  reviveStopped,
+		api:               cli,
+		pullImages:        pullImages,
+		removeVolumes:     removeVolumes,
+		includeStopped:    includeStopped,
+		reviveStopped:     reviveStopped,
+		includeRestarting: includeRestarting,
 	}
 }
 
 type dockerClient struct {
-	api            sdkClient.CommonAPIClient
-	pullImages     bool
-	removeVolumes  bool
-	includeStopped bool
-	reviveStopped  bool
+	api               sdkClient.CommonAPIClient
+	pullImages        bool
+	removeVolumes     bool
+	includeStopped    bool
+	reviveStopped     bool
+	includeRestarting bool
 }
 
 func (client dockerClient) ListContainers(fn t.Filter) ([]Container, error) {
 	cs := []Container{}
 	bg := context.Background()
 
-	if client.includeStopped {
-		log.Debug("Retrieving containers including stopped and exited")
+	if client.includeStopped && client.includeRestarting {
+		log.Debug("Retrieving running, stopped, restarting and exited containers")
+	} else if client.includeStopped {
+		log.Debug("Retrieving running, stopped and exited containers")
+	} else if client.includeRestarting {
+		log.Debug("Retrieving running and restarting containers")
 	} else {
 		log.Debug("Retrieving running containers")
 	}
@@ -108,6 +116,10 @@ func (client dockerClient) createListFilter() filters.Args {
 		filterArgs.Add("status", "exited")
 	}
 
+	if client.includeRestarting {
+		filterArgs.Add("status", "restarting")
+	}
+
 	return filterArgs
 }
 
@@ -119,8 +131,13 @@ func (client dockerClient) GetContainer(containerID string) (Container, error) {
 		return Container{}, err
 	}
 
-	container := Container{containerInfo: &containerInfo}
-	return container, nil
+	imageInfo, _, err := client.api.ImageInspectWithRaw(bg, containerInfo.Image)
+	if err != nil {
+		log.Warnf("Failed to retrieve container image info: %v", err)
+		return Container{containerInfo: &containerInfo, imageInfo: nil}, nil
+	}
+
+	return Container{containerInfo: &containerInfo, imageInfo: &imageInfo}, nil
 }
 
 func (client dockerClient) StopContainer(c Container, timeout time.Duration) error {
@@ -259,13 +276,39 @@ func (client dockerClient) HasNewImage(ctx context.Context, container Container)
 func (client dockerClient) PullImage(ctx context.Context, container Container) error {
 	containerName := container.Name()
 	imageName := container.ImageName()
-	log.Debugf("Pulling %s for %s", imageName, containerName)
 
+	fields := log.Fields{
+		"image":     imageName,
+		"container": containerName,
+	}
+
+	log.WithFields(fields).Debugf("Trying to load authentication credentials.")
 	opts, err := registry.GetPullOptions(imageName)
+	if opts.RegistryAuth != "" {
+		log.Debug("Credentials loaded")
+	}
 	if err != nil {
 		log.Debugf("Error loading authentication credentials %s", err)
 		return err
 	}
+
+	log.WithFields(fields).Debugf("Checking if pull is needed")
+
+	if match, err := digest.CompareDigest(container, opts.RegistryAuth); err != nil {
+		if registry.WarnOnAPIConsumption(container) {
+			log.WithFields(fields).Warning("Could not do a head request, falling back to regular pull.")
+		} else {
+			log.Debug("Could not do a head request, falling back to regular pull.")
+		}
+		log.Debugf("Reason: %s", err.Error())
+	} else if match {
+		log.Debug("No pull needed. Skipping image.")
+		return nil
+	} else {
+		log.Debug("Digests did not match, doing a pull.")
+	}
+
+	log.WithFields(fields).Debugf("Pulling image")
 
 	response, err := client.api.ImagePull(ctx, imageName, opts)
 	if err != nil {

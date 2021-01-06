@@ -1,6 +1,7 @@
 package actions
 
 import (
+	"errors"
 	"github.com/containrrr/watchtower/internal/util"
 	"github.com/containrrr/watchtower/pkg/container"
 	"github.com/containrrr/watchtower/pkg/lifecycle"
@@ -28,11 +29,13 @@ func Update(client container.Client, params types.UpdateParams) (*metrics2.Metri
 		return nil, err
 	}
 
-	for i, container := range containers {
-		stale, err := client.IsContainerStale(container)
+	for i, targetContainer := range containers {
+		stale, err := client.IsContainerStale(targetContainer)
+		if stale && !params.NoRestart && !params.MonitorOnly && !targetContainer.IsMonitorOnly() && !targetContainer.HasImageInfo() {
+			err = errors.New("no available image info")
+		}
 		if err != nil {
-			log.Infof("Unable to update container %s. Proceeding to next.", containers[i].Name())
-			log.Debug(err)
+			log.Infof("Unable to update container %q: %v. Proceeding to next.", containers[i].Name(), err)
 			stale = false
 
 			metric.Failed++
@@ -49,21 +52,50 @@ func Update(client container.Client, params types.UpdateParams) (*metrics2.Metri
 
 	checkDependencies(containers)
 
-	if params.MonitorOnly {
-		if params.LifecycleHooks {
-			lifecycle.ExecutePostChecks(client, params)
+	containersToUpdate := []container.Container{}
+	if !params.MonitorOnly {
+		for i := len(containers) - 1; i >= 0; i-- {
+			if !containers[i].IsMonitorOnly() {
+				containersToUpdate = append(containersToUpdate, containers[i])
+			}
 		}
-		return nil, nil
 	}
 
-	metric.Failed += stopContainersInReversedOrder(containers, client, params)
-	metric.Failed += restartContainersInSortedOrder(containers, client, params)
+	if params.RollingRestart {
+		metric.Failed += performRollingRestart(containersToUpdate, client, params)
+	} else {
+		metric.Failed += stopContainersInReversedOrder(containersToUpdate, client, params)
+		metric.Failed += restartContainersInSortedOrder(containersToUpdate, client, params)
+	}
+
 	metric.Updated = staleCount - metric.Failed
 
 	if params.LifecycleHooks {
 		lifecycle.ExecutePostChecks(client, params)
 	}
 	return metric, nil
+}
+
+func performRollingRestart(containers []container.Container, client container.Client, params types.UpdateParams) int {
+	cleanupImageIDs := make(map[string]bool)
+	failed := 0
+
+	for i := len(containers) - 1; i >= 0; i-- {
+		if containers[i].Stale {
+			if err := stopStaleContainer(containers[i], client, params); err != nil {
+				failed++
+			}
+			if err := restartStaleContainer(containers[i], client, params); err != nil {
+				failed++
+			}
+			cleanupImageIDs[containers[i].ImageID()] = true
+		}
+	}
+
+	if params.Cleanup {
+		cleanupImages(client, cleanupImageIDs)
+	}
+	return failed
 }
 
 func stopContainersInReversedOrder(containers []container.Container, client container.Client, params types.UpdateParams) int {
@@ -105,24 +137,29 @@ func restartContainersInSortedOrder(containers []container.Container, client con
 
 	failed := 0
 
-	for _, container := range containers {
-		if !container.Stale {
+	for _, c := range containers {
+		if !c.Stale {
 			continue
 		}
-		if err := restartStaleContainer(container, client, params); err != nil {
+		if err := restartStaleContainer(c, client, params); err != nil {
 			failed++
 		}
-		imageIDs[container.ImageID()] = true
+		imageIDs[c.ImageID()] = true
 	}
+
 	if params.Cleanup {
-		for imageID := range imageIDs {
-			if err := client.RemoveImageByID(imageID); err != nil {
-				log.Error(err)
-			}
-		}
+		cleanupImages(client, imageIDs)
 	}
 
 	return failed
+}
+
+func cleanupImages(client container.Client, imageIDs map[string]bool) {
+	for imageID := range imageIDs {
+		if err := client.RemoveImageByID(imageID); err != nil {
+			log.Error(err)
+		}
+	}
 }
 
 func restartStaleContainer(container container.Container, client container.Client, params types.UpdateParams) error {

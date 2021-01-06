@@ -88,3 +88,10 @@ func (n *Notifier) SendNotification() {
 		t.SendNotification()
 	}
 }
+
+// Close closes all notifiers.
+func (n *Notifier) Close() {
+	for _, t := range n.types {
+		t.Close()
+	}
+}

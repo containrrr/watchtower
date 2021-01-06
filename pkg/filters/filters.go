@@ -51,14 +51,35 @@ func FilterByDisabledLabel(baseFilter t.Filter) t.Filter {
 	}
 }
 
+// FilterByScope returns all containers that belongs to a specific scope
+func FilterByScope(scope string, baseFilter t.Filter) t.Filter {
+	if scope == "" {
+		return baseFilter
+	}
+
+	return func(c t.FilterableContainer) bool {
+		containerScope, ok := c.Scope()
+		if ok && containerScope == scope {
+			return baseFilter(c)
+		}
+
+		return false
+	}
+}
+
 // BuildFilter creates the needed filter of containers
-func BuildFilter(names []string, enableLabel bool) t.Filter {
+func BuildFilter(names []string, enableLabel bool, scope string) t.Filter {
 	filter := NoFilter
 	filter = FilterByNames(names, filter)
 	if enableLabel {
 		// If label filtering is enabled, containers should only be considered
 		// if the label is specifically set.
 		filter = FilterByEnableLabel(filter)
+	}
+	if scope != "" {
+		// If a scope has been defined, containers should only be considered
+		// if the scope is specifically set.
+		filter = FilterByScope(scope, filter)
 	}
 	filter = FilterByDisabledLabel(filter)
 	return filter

@@ -34,6 +34,8 @@ var (
 	notifier       *notifications.Notifier
 	timeout        time.Duration
 	lifecycleHooks bool
+	rollingRestart bool
+	scope          string
 )
 
 var rootCmd = NewRootCommand()
@@ -70,6 +72,17 @@ func Execute() {
 func PreRun(cmd *cobra.Command, args []string) {
 	f := cmd.PersistentFlags()
 
+	if enabled, _ := f.GetBool("no-color"); enabled {
+		log.SetFormatter(&log.TextFormatter{
+			DisableColors: true,
+		})
+	} else {
+		// enable logrus built-in support for https://bixense.com/clicolors/
+		log.SetFormatter(&log.TextFormatter{
+			EnvironmentOverrideColors: true,
+		})
+	}
+
 	if enabled, _ := f.GetBool("debug"); enabled {
 		log.SetLevel(log.DebugLevel)
 	}
@@ -99,6 +112,10 @@ func PreRun(cmd *cobra.Command, args []string) {
 
 	enableLabel, _ = f.GetBool("label-enable")
 	lifecycleHooks, _ = f.GetBool("enable-lifecycle-hooks")
+	rollingRestart, _ = f.GetBool("rolling-restart")
+	scope, _ = f.GetString("scope")
+
+	log.Debug(scope)
 
 	// configure environment vars for client
 	err := flags.EnvConfig(cmd)
@@ -108,14 +125,20 @@ func PreRun(cmd *cobra.Command, args []string) {
 
 	noPull, _ := f.GetBool("no-pull")
 	includeStopped, _ := f.GetBool("include-stopped")
+	includeRestarting, _ := f.GetBool("include-restarting")
 	reviveStopped, _ := f.GetBool("revive-stopped")
 	removeVolumes, _ := f.GetBool("remove-volumes")
+
+	if monitorOnly && noPull {
+		log.Warn("Using `WATCHTOWER_NO_PULL` and `WATCHTOWER_MONITOR_ONLY` simultaneously might lead to no action being taken at all. If this is intentional, you may safely ignore this message.")
+	}
 
 	client = container.NewClient(
 		!noPull,
 		includeStopped,
 		reviveStopped,
 		removeVolumes,
+		includeRestarting,
 	)
 
 	notifier = notifications.NewNotifier(cmd)
@@ -123,12 +146,27 @@ func PreRun(cmd *cobra.Command, args []string) {
 
 // Run is the main execution flow of the command
 func Run(c *cobra.Command, names []string) {
-	filter := filters.BuildFilter(names, enableLabel)
+	filter := filters.BuildFilter(names, enableLabel, scope)
 	runOnce, _ := c.PersistentFlags().GetBool("run-once")
 	enableUpdateAPI, _ := c.PersistentFlags().GetBool("http-api-update")
 	enableMetricsAPI, _ := c.PersistentFlags().GetBool("http-api-metrics")
 
 	apiToken, _ := c.PersistentFlags().GetString("http-api-token")
+
+	if runOnce {
+		if noStartupMessage, _ := c.PersistentFlags().GetBool("no-startup-message"); !noStartupMessage {
+			log.Info("Running a one time update.")
+		}
+		runUpdatesWithNotifications(filter)
+		notifier.Close()
+		os.Exit(0)
+		return
+	}
+
+	if err := actions.CheckForMultipleWatchtowerInstances(client, cleanup, scope); err != nil {
+		log.Fatal(err)
+	}
+
 	httpAPI := api.New(apiToken)
 
 	if enableUpdateAPI {
@@ -142,19 +180,6 @@ func Run(c *cobra.Command, names []string) {
 	}
 
 	httpAPI.Start(enableUpdateAPI)
-
-	if runOnce {
-		if noStartupMessage, _ := c.PersistentFlags().GetBool("no-startup-message"); !noStartupMessage {
-			log.Info("Running a one time update.")
-		}
-		runUpdatesWithNotifications(filter)
-		os.Exit(0)
-		return
-	}
-
-	if err := actions.CheckForMultipleWatchtowerInstances(client, cleanup); err != nil {
-		log.Fatal(err)
-	}
 
 	if err := runUpgradesOnSchedule(c, filter); err != nil {
 		log.Error(err)
@@ -220,6 +245,7 @@ func runUpdatesWithNotifications(filter t.Filter) *metrics2.Metric {
 		Timeout:        timeout,
 		MonitorOnly:    monitorOnly,
 		LifecycleHooks: lifecycleHooks,
+		RollingRestart: rollingRestart,
 	}
 	metrics, err := actions.Update(client, updateParams)
 	if err != nil {
