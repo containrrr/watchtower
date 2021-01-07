@@ -119,7 +119,7 @@ Environment Variable: DOCKER_API_VERSION
 ```
 
 ## Include restarting
-Will also include created and exited containers.
+Will also include restarting containers.
 
 ```
             Argument: --include-restarting
