@@ -43,9 +43,8 @@ var _ = Describe("notifications", func() {
 				tokenB := "bbb"
 				tokenC := "ccc"
 
-				password := fmt.Sprintf("%s-%s-%s", tokenA, tokenB, tokenC)
 				hookURL := fmt.Sprintf("https://hooks.slack.com/services/%s/%s/%s", tokenA, tokenB, tokenC)
-				expectedOutput := fmt.Sprintf("slack://%s:%s@%s/%s/%s", username, password, tokenA, tokenB, tokenC)
+				expectedOutput := fmt.Sprintf("slack://%s@%s/%s/%s", username, tokenA, tokenB, tokenC)
 
 				args := []string{
 					"--notification-slack-hook-url",
