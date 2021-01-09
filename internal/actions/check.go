@@ -1,10 +1,8 @@
 package actions
 
 import (
-	"errors"
 	"fmt"
 	"sort"
-	"strings"
 	"time"
 
 	"github.com/containrrr/watchtower/pkg/filters"
@@ -64,22 +62,6 @@ func cleanupExcessWatchtowers(containers []container.Container, client container
 	}
 
 	return createErrorIfAnyHaveOccurred(stopErrors, cleanupErrors)
-}
-
-func createErrorIfAnyHaveOccurred(c int, i int) error {
-	if c == 0 && i == 0 {
-		return nil
-	}
-
-	var output strings.Builder
-
-	if c > 0 {
-		output.WriteString(fmt.Sprintf("%d errors while stopping containers", c))
-	}
-	if i > 0 {
-		output.WriteString(fmt.Sprintf("%d errors while cleaning up images", c))
-	}
-	return errors.New(output.String())
 }
 
 func awaitDockerClient() {
