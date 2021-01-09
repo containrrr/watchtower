@@ -85,6 +85,10 @@ func (e *emailTypeNotifier) GetURL() string {
 		err = pkr.Set("auth", "None")
 	}
 
+	if err != nil {
+		fmt.Printf("Could not set auth type for email notifier: %v", err)
+	}
+
 	return conf.GetURL().String()
 }
 

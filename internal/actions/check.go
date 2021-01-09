@@ -7,7 +7,6 @@ import (
 
 	"github.com/containrrr/watchtower/pkg/filters"
 	"github.com/containrrr/watchtower/pkg/sorter"
-
 	"github.com/sirupsen/logrus"
 
 	log "github.com/sirupsen/logrus"
@@ -38,7 +37,6 @@ func CheckForMultipleWatchtowerInstances(client container.Client, cleanup bool, 
 }
 
 func cleanupExcessWatchtowers(containers []container.Container, client container.Client, cleanup bool) error {
-	var cleanupErrors int
 	var stopErrors int
 
 	sort.Sort(sorter.ByCreated(containers))
@@ -47,21 +45,23 @@ func cleanupExcessWatchtowers(containers []container.Container, client container
 	for _, c := range allContainersExceptLast {
 		if err := client.StopContainer(c, 10*time.Minute); err != nil {
 			// logging the original here as we're just returning a count
-			logrus.Error(err)
+			logrus.WithError(err).Error("Could not stop a previous watchtower instance.")
 			stopErrors++
 			continue
 		}
 
 		if cleanup {
 			if err := client.RemoveImageByID(c.ImageID()); err != nil {
-				// logging the original here as we're just returning a count
-				logrus.Error(err)
-				cleanupErrors++
+				logrus.WithError(err).Warning("Could not cleanup watchtower, possibly because of other watchtowers instances in other scopes.")
 			}
 		}
 	}
 
-	return createErrorIfAnyHaveOccurred(stopErrors, cleanupErrors)
+	if stopErrors > 0 {
+		return fmt.Errorf("%d errors while stopping watchtower containers", stopErrors)
+	}
+
+	return nil
 }
 
 func awaitDockerClient() {

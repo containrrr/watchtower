@@ -32,6 +32,7 @@ func newSlackNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.Convert
 	channel, _ := flags.GetString("notification-slack-channel")
 	emoji, _ := flags.GetString("notification-slack-icon-emoji")
 	iconURL, _ := flags.GetString("notification-slack-icon-url")
+
 	n := &slackTypeNotifier{
 		SlackrusHook: slackrus.SlackrusHook{
 			HookURL:        hookURL,
