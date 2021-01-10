@@ -12,7 +12,7 @@
         <link rel="canonical" href="http://containrrr.github.io/watchtower/arguments/">
       
       <link rel="shortcut icon" href="../images/favicon.ico">
-      <meta name="generator" content="mkdocs-1.1.2, mkdocs-material-6.2.3">
+      <meta name="generator" content="mkdocs-1.1.2, mkdocs-material-6.2.4">
     
     
       
@@ -20,10 +20,10 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.3b61ea93.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.15aa0b43.min.css">
       
         
-        <link rel="stylesheet" href="../assets/stylesheets/palette.39b8e14a.min.css">
+        <link rel="stylesheet" href="../assets/stylesheets/palette.75751829.min.css">
         
       
     
@@ -326,6 +326,13 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#include_restarting" class="md-nav__link">
+    Include restarting
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#include_stopped" class="md-nav__link">
     Include stopped
   </a>
@@ -364,19 +371,6 @@
   <a href="#without_updating_containers" class="md-nav__link">
     Without updating containers
   </a>
-  
-    <nav class="md-nav" aria-label="Without updating containers">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#please_note" class="md-nav__link">
-    ⚠️ Please note
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -418,41 +412,6 @@
         <li class="md-nav__item">
   <a href="#http_api_token" class="md-nav__link">
     HTTP API Token
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#filter_by_scope" class="md-nav__link">
-    Filter by scope
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#scheduling" class="md-nav__link">
-    Scheduling
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#rolling_restart" class="md-nav__link">
-    Rolling restart
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#wait_until_timeout" class="md-nav__link">
-    Wait until timeout
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#tls_verification" class="md-nav__link">
-    TLS Verification
   </a>
   
 </li>
@@ -581,6 +540,19 @@
   </li>
 
     
+      
+      
+      
+
+
+
+  <li class="md-nav__item">
+    <a href="../metrics/" class="md-nav__link">
+      Metrics
+    </a>
+  </li>
+
+    
   </ul>
 </nav>
                   </div>
@@ -667,6 +639,13 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#include_restarting" class="md-nav__link">
+    Include restarting
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#include_stopped" class="md-nav__link">
     Include stopped
   </a>
@@ -705,19 +684,6 @@
   <a href="#without_updating_containers" class="md-nav__link">
     Without updating containers
   </a>
-  
-    <nav class="md-nav" aria-label="Without updating containers">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#please_note" class="md-nav__link">
-    ⚠️ Please note
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -759,41 +725,6 @@
         <li class="md-nav__item">
   <a href="#http_api_token" class="md-nav__link">
     HTTP API Token
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#filter_by_scope" class="md-nav__link">
-    Filter by scope
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#scheduling" class="md-nav__link">
-    Scheduling
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#rolling_restart" class="md-nav__link">
-    Rolling restart
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#wait_until_timeout" class="md-nav__link">
-    Wait until timeout
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#tls_verification" class="md-nav__link">
-    TLS Verification
   </a>
   
 </li>
@@ -913,6 +844,14 @@ To find out the right value, see <a href="https://en.wikipedia.org/wiki/List_of_
 <span class="err">             Default: &quot;1.24&quot;</span>
 </code></pre></div>
 
+<h2 id="include_restarting">Include restarting<a class="headerlink" href="#include_restarting" title="Permanent link">&para;</a></h2>
+<p>Will also include restarting containers.</p>
+<div class="codehilite"><pre><span></span><code><span class="err">            Argument: --include-restarting</span>
+<span class="err">Environment Variable: WATCHTOWER_INCLUDE_RESTARTING</span>
+<span class="err">                Type: Boolean</span>
+<span class="err">             Default: false</span>
+</code></pre></div>
+
 <h2 id="include_stopped">Include stopped<a class="headerlink" href="#include_stopped" title="Permanent link">&para;</a></h2>
 <p>Will also include created and exited containers.</p>
 <div class="codehilite"><pre><span></span><code><span class="err">            Argument: --include-stopped</span>
@@ -950,7 +889,7 @@ To find out the right value, see <a href="https://en.wikipedia.org/wiki/List_of_
 <h2 id="without_updating_containers">Without updating containers<a class="headerlink" href="#without_updating_containers" title="Permanent link">&para;</a></h2>
 <p>Will only monitor for new images, send notifications and invoke the <a href="https://containrrr.dev/watchtower/lifecycle-hooks/">pre-check/post-check hooks</a>, but will <strong>not</strong> update the containers.</p>
 <blockquote>
-<h3 id="please_note">⚠️ Please note<a class="headerlink" href="#please_note" title="Permanent link">&para;</a></h3>
+<p><strong>⚠️ Please note</strong></p>
 <p>Due to Docker API limitations the latest image will still be pulled from the registry.</p>
 </blockquote>
 <div class="codehilite"><pre><span></span><code><span class="err">            Argument: --monitor-only</span>
@@ -997,7 +936,7 @@ them to a registry.</p>
 </code></pre></div>
 
 <h2 id="http_api_mode">HTTP API Mode<a class="headerlink" href="#http_api_mode" title="Permanent link">&para;</a></h2>
-<p>Runs Watchtower in HTTP API mode, only allowing image updates to be triggered by an HTTP request.</p>
+<p>Runs Watchtower in HTTP API mode, only allowing image updates to be triggered by an HTTP request. For details see <a href="https://containrrr.github.io/watchtower/http-api-mode">HTTP API</a>.</p>
 <div class="codehilite"><pre><span></span><code><span class="err">            Argument: --http-api</span>
 <span class="err">Environment Variable: WATCHTOWER_HTTP_API</span>
 <span class="err">                Type: Boolean</span>
@@ -1010,49 +949,69 @@ them to a registry.</p>
 <span class="err">Environment Variable: WATCHTOWER_HTTP_API_TOKEN</span>
 <span class="err">                Type: String</span>
 <span class="err">             Default: -</span>
+<span class="err">```## Filter by scope</span>
+<span class="err">Update containers that have a `com.centurylinklabs.watchtower.scope` label set with the same value as the given argument. This enables [running multiple instances](https://containrrr.github.io/watchtower/running-multiple-instances).</span>
 </code></pre></div>
 
-<h2 id="filter_by_scope">Filter by scope<a class="headerlink" href="#filter_by_scope" title="Permanent link">&para;</a></h2>
-<p>Update containers that have a <code>com.centurylinklabs.watchtower.scope</code> label set with the same value as the given argument. This enables <a href="https://containrrr.github.io/watchtower/running-multiple-instances">running multiple instances</a>.</p>
-<div class="codehilite"><pre><span></span><code><span class="err">            Argument: --scope</span>
-<span class="err">Environment Variable: WATCHTOWER_SCOPE</span>
-<span class="err">                Type: String</span>
-<span class="err">             Default: -</span>
+<div class="codehilite"><pre><span></span><code><span class="err">        Argument: --scope</span>
 </code></pre></div>
 
-<h2 id="scheduling">Scheduling<a class="headerlink" href="#scheduling" title="Permanent link">&para;</a></h2>
-<p><a href="https://pkg.go.dev/github.com/robfig/cron@v1.2.0?tab=doc#hdr-CRON_Expression_Format">Cron expression</a> in 6 fields (rather than the traditional 5) which defines when and how often to check for new images. Either <code>--interval</code> or the schedule expression
-can be defined, but not both. An example: <code>--schedule "0 0 4 * * *"</code></p>
-<div class="codehilite"><pre><span></span><code><span class="err">            Argument: --schedule, -s</span>
-<span class="err">Environment Variable: WATCHTOWER_SCHEDULE</span>
-<span class="err">                Type: String</span>
-<span class="err">             Default: -</span>
+<p>Environment Variable: WATCHTOWER_SCOPE
+                Type: String
+             Default: -</p>
+<div class="codehilite"><pre><span></span><code><span class="err">##</span><span class="w"> </span><span class="n">HTTP</span><span class="w"> </span><span class="n">API</span><span class="w"> </span><span class="n">Metrics</span><span class="w"></span>
+<span class="n">Enables</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="n">metrics</span><span class="w"> </span><span class="n">endpoint</span><span class="p">,</span><span class="w"> </span><span class="n">exposing</span><span class="w"> </span><span class="n">prometheus</span><span class="w"> </span><span class="n">metrics</span><span class="w"> </span><span class="n">via</span><span class="w"> </span><span class="n">HTTP</span><span class="p">.</span><span class="w"> </span><span class="n">See</span><span class="w"> </span><span class="o">[</span><span class="n">Metrics</span><span class="o">]</span><span class="p">(</span><span class="n">metrics</span><span class="p">.</span><span class="n">md</span><span class="p">)</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">details</span><span class="p">.</span><span class="w">  </span>
 </code></pre></div>
 
-<h2 id="rolling_restart">Rolling restart<a class="headerlink" href="#rolling_restart" title="Permanent link">&para;</a></h2>
-<p>Restart one image at time instead of stopping and starting all at once.  Useful in conjunction with lifecycle hooks
-to implement zero-downtime deploy.</p>
-<div class="codehilite"><pre><span></span><code><span class="err">            Argument: --rolling-restart</span>
-<span class="err">Environment Variable: WATCHTOWER_ROLLING_RESTART</span>
-<span class="err">                Type: Boolean</span>
-<span class="err">             Default: false</span>
+<div class="codehilite"><pre><span></span><code><span class="err">        Argument: --http-api-metrics</span>
 </code></pre></div>
 
-<h2 id="wait_until_timeout">Wait until timeout<a class="headerlink" href="#wait_until_timeout" title="Permanent link">&para;</a></h2>
-<p>Timeout before the container is forcefully stopped. When set, this option will change the default (<code>10s</code>) wait time to the given value. An example: <code>--stop-timeout 30s</code> will set the timeout to 30 seconds.</p>
-<div class="codehilite"><pre><span></span><code><span class="err">            Argument: --stop-timeout</span>
-<span class="err">Environment Variable: WATCHTOWER_TIMEOUT</span>
-<span class="err">                Type: Duration</span>
-<span class="err">             Default: 10s</span>
+<p>Environment Variable: WATCHTOWER_HTTP_API_METRICS
+                Type: Boolean
+             Default: false</p>
+<div class="codehilite"><pre><span></span><code><span class="cp">## Scheduling</span>
+<span class="p">[</span><span class="n">Cron</span> <span class="n">expression</span><span class="p">](</span><span class="nl">https</span><span class="p">:</span><span class="c1">//pkg.go.dev/github.com/robfig/cron@v1.2.0?tab=doc#hdr-CRON_Expression_Format) in 6 fields (rather than the traditional 5) which defines when and how often to check for new images. Either `--interval` or the schedule expression</span>
+<span class="n">can</span> <span class="n">be</span> <span class="n">defined</span><span class="p">,</span> <span class="n">but</span> <span class="n">not</span> <span class="n">both</span><span class="p">.</span> <span class="n">An</span> <span class="nl">example</span><span class="p">:</span> <span class="err">`</span><span class="o">--</span><span class="n">schedule</span> <span class="s">&quot;0 0 4 * * *&quot;</span><span class="err">`</span>
 </code></pre></div>
 
-<h2 id="tls_verification">TLS Verification<a class="headerlink" href="#tls_verification" title="Permanent link">&para;</a></h2>
-<p>Use TLS when connecting to the Docker socket and verify the server's certificate. See below for options used to configure notifications.</p>
-<div class="codehilite"><pre><span></span><code><span class="err">            Argument: --tlsverify</span>
-<span class="err">Environment Variable: DOCKER_TLS_VERIFY</span>
-<span class="err">                Type: Boolean</span>
-<span class="err">             Default: false</span>
+<div class="codehilite"><pre><span></span><code><span class="err">        Argument: --schedule, -s</span>
 </code></pre></div>
+
+<p>Environment Variable: WATCHTOWER_SCHEDULE
+                Type: String
+             Default: -</p>
+<div class="codehilite"><pre><span></span><code><span class="err">## Rolling restart</span>
+<span class="err">Restart one image at time instead of stopping and starting all at once.  Useful in conjunction with lifecycle hooks</span>
+<span class="err">to implement zero-downtime deploy.</span>
+</code></pre></div>
+
+<div class="codehilite"><pre><span></span><code><span class="err">        Argument: --rolling-restart</span>
+</code></pre></div>
+
+<p>Environment Variable: WATCHTOWER_ROLLING_RESTART
+                Type: Boolean
+             Default: false</p>
+<div class="codehilite"><pre><span></span><code><span class="err">## Wait until timeout</span>
+<span class="err">Timeout before the container is forcefully stopped. When set, this option will change the default (`10s`) wait time to the given value. An example: `--stop-timeout 30s` will set the timeout to 30 seconds.</span>
+</code></pre></div>
+
+<div class="codehilite"><pre><span></span><code><span class="err">        Argument: --stop-timeout</span>
+</code></pre></div>
+
+<p>Environment Variable: WATCHTOWER_TIMEOUT
+                Type: Duration
+             Default: 10s</p>
+<div class="codehilite"><pre><span></span><code><span class="err">## TLS Verification</span>
+<span class="err">Use TLS when connecting to the Docker socket and verify the server&#39;s certificate. See below for options used to configure notifications.</span>
+</code></pre></div>
+
+<div class="codehilite"><pre><span></span><code><span class="err">        Argument: --tlsverify</span>
+</code></pre></div>
+
+<p>Environment Variable: DOCKER_TLS_VERIFY
+                Type: Boolean
+             Default: false
+```</p>
                 
               
               
@@ -1119,8 +1078,8 @@ to implement zero-downtime deploy.</p>
       
     </div>
     
-      <script src="../assets/javascripts/vendor.08c56446.min.js"></script>
-      <script src="../assets/javascripts/bundle.6ced434e.min.js"></script><script id="__lang" type="application/json">{"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.term.missing": "Missing"}</script>
+      <script src="../assets/javascripts/vendor.93c04032.min.js"></script>
+      <script src="../assets/javascripts/bundle.83e5331e.min.js"></script><script id="__lang" type="application/json">{"clipboard.copy": "Copy to clipboard", "clipboard.copied": "Copied to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.placeholder": "Type to start searching", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.term.missing": "Missing"}</script>
       
       <script>
         app = initialize({
