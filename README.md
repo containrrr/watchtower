@@ -1,4 +1,4 @@
-<p align="center">
+<div align="center">
   <img src="./logo.png" width="450" />
   
   # Watchtower
@@ -16,7 +16,7 @@
   [![All Contributors](https://img.shields.io/badge/all_contributors-30-orange.svg?style=flat-square)](#contributors)
   [![Pulls from DockerHub](https://img.shields.io/docker/pulls/containrrr/watchtower.svg?style=flat-square)](https://hub.docker.com/r/containrrr/watchtower)
 
-</p>
+</div>
 
 ## Quick Start
 
