@@ -1,49 +1,22 @@
 <p align="center">
   <img src="./logo.png" width="450" />
-</p>
-<h1 align="center">
-  Watchtower
-</h1>
-
-<p align="center">
+  
+  # Watchtower
+  
   A process for automating Docker container base image updates.
   <br/><br/>
-  <a href="https://circleci.com/gh/containrrr/watchtower">
-    <img alt="Circle CI" src="https://circleci.com/gh/containrrr/watchtower.svg?style=shield" />
-  </a>
-  <a href="https://godoc.org/github.com/containrrr/watchtower">
-    <img alt="GoDoc" src="https://godoc.org/github.com/containrrr/watchtower?status.svg" />
-  </a>
-  <a href="https://microbadger.com/images/containrrr/watchtower">
-    <img alt="Microbadger" src="https://images.microbadger.com/badges/image/containrrr/watchtower.svg" />
-  </a>
-  <a href="https://goreportcard.com/report/github.com/containrrr/watchtower">
-    <img alt="Go Report Card" src="https://goreportcard.com/badge/github.com/containrrr/watchtower" />
-  </a>
-  <a href="https://github.com/containrrr/watchtower/releases">
-    <img alt="latest version" src="https://img.shields.io/github/tag/containrrr/watchtower.svg" />
-  </a>
-  <a href="https://www.apache.org/licenses/LICENSE-2.0">
-    <img alt="Apache-2.0 License" src="https://img.shields.io/github/license/containrrr/watchtower.svg" />
-  </a>
-  <a href="https://www.codacy.com/app/simskij/watchtower">
-    <img alt="Codacy Badge" src="https://api.codacy.com/project/badge/Grade/3a4d0fcfd26d45b09b1d7ea3c8c13744"/>
-  </a>
-  <a href="https://www.codacy.com/app/simskij/watchtower?utm_source=github.com&utm_medium=referral&utm_content=containrrr/watchtower&utm_campaign=Badge_Coverage">
-    <img alt="Codacy Badge" src="https://api.codacy.com/project/badge/Coverage/3a4d0fcfd26d45b09b1d7ea3c8c13744" />
-  </a>
-  <a href="#contributors">
-    <img alt="All Contributors" src="https://img.shields.io/badge/all_contributors-30-orange.svg?style=flat-square" />
-  </a>
-  <a href="https://hub.docker.com/r/containrrr/watchtower">
-    <img alt="Pulls from DockerHub" src="https://img.shields.io/docker/pulls/containrrr/watchtower.svg?style=flat-square" />
-  </a>
+  
+  [![Circle CI](https://circleci.com/gh/containrrr/watchtower.svg?style=shield)](https://circleci.com/gh/containrrr/watchtower)
+  [![GoDoc](https://godoc.org/github.com/containrrr/watchtower?status.svg)](https://godoc.org/github.com/containrrr/watchtower)
+  [![Microbadger](https://images.microbadger.com/badges/image/containrrr/watchtower.svg)](https://microbadger.com/images/containrrr/watchtower)
+  [![Go Report Card](https://goreportcard.com/badge/github.com/containrrr/watchtower)](https://goreportcard.com/report/github.com/containrrr/watchtower)
+  [![latest version](https://img.shields.io/github/tag/containrrr/watchtower.svg)](https://github.com/containrrr/watchtower/releases)
+  [![Apache-2.0 License](https://img.shields.io/github/license/containrrr/watchtower.svg)](https://www.apache.org/licenses/LICENSE-2.0)
+  [![Codacy Badge](https://app.codacy.com/project/badge/Grade/1c48cfb7646d4009aa8c6f71287670b8)](https://www.codacy.com/gh/containrrr/watchtower/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=containrrr/watchtower&amp;utm_campaign=Badge_Grade)
+  [![All Contributors](https://img.shields.io/badge/all_contributors-30-orange.svg?style=flat-square)](#contributors)
+  [![Pulls from DockerHub](https://img.shields.io/docker/pulls/containrrr/watchtower.svg?style=flat-square)](https://hub.docker.com/r/containrrr/watchtower)
+
 </p>
-
-> ### ⚠️ Help needed
->
-> We're finding it a bit hard to keep up with all issues and pull requests. Interested in helping out with triage, troubleshooting and issue handling? Let us know in the ["Discussions"](https://github.com/containrrr/watchtower/discussions) tab!
-
 
 ## Quick Start
 
