@@ -20,7 +20,7 @@ jobs:
           go-version: 1.15.x
       - name: Lint
         run: |
-          go get -u golang.org/lint/golint
+          go get -u golang.org/x/lint/golint
           golint -set_exit_status ./...
   test:
     strategy:
