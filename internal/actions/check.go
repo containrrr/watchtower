@@ -52,7 +52,7 @@ func cleanupExcessWatchtowers(containers []container.Container, client container
 
 		if cleanup {
 			if err := client.RemoveImageByID(c.ImageID()); err != nil {
-				logrus.WithError(err).Warning("Could not cleanup watchtower, possibly because of other watchtowers instances in other scopes.")
+				logrus.WithError(err).Warning("Could not cleanup watchtower images, possibly because of other watchtowers instances in other scopes.")
 			}
 		}
 	}
