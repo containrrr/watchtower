@@ -1,9 +1,11 @@
 package notifications
 
 import (
+	"fmt"
 	"os"
 	"time"
 
+	"github.com/containrrr/shoutrrr/pkg/format"
 	"github.com/spf13/cobra"
 
 	shoutrrrSmtp "github.com/containrrr/shoutrrr/pkg/services/smtp"
@@ -75,10 +77,16 @@ func (e *emailTypeNotifier) GetURL() string {
 		UseHTML:     false,
 	}
 
+	pkr := format.NewPropKeyResolver(conf)
+	var err error
 	if len(e.User) > 0 {
-		conf.Set("auth", "Plain")
+		err = pkr.Set("auth", "Plain")
 	} else {
-		conf.Set("auth", "None")
+		err = pkr.Set("auth", "None")
+	}
+
+	if err != nil {
+		fmt.Printf("Could not set auth type for email notifier: %v", err)
 	}
 
 	return conf.GetURL().String()

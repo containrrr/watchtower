@@ -3,6 +3,7 @@ package notifications
 import (
 	"strings"
 
+	shoutrrrDisco "github.com/containrrr/shoutrrr/pkg/services/discord"
 	shoutrrrSlack "github.com/containrrr/shoutrrr/pkg/services/slack"
 	t "github.com/containrrr/watchtower/pkg/types"
 	"github.com/johntdyer/slackrus"
@@ -31,6 +32,7 @@ func newSlackNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.Convert
 	channel, _ := flags.GetString("notification-slack-channel")
 	emoji, _ := flags.GetString("notification-slack-icon-emoji")
 	iconURL, _ := flags.GetString("notification-slack-icon-url")
+
 	n := &slackTypeNotifier{
 		SlackrusHook: slackrus.SlackrusHook{
 			HookURL:        hookURL,
@@ -45,16 +47,25 @@ func newSlackNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.Convert
 }
 
 func (s *slackTypeNotifier) GetURL() string {
+	trimmedURL := strings.TrimRight(s.HookURL, "/")
+	trimmedURL = strings.TrimLeft(trimmedURL, "https://")
+	parts := strings.Split(trimmedURL, "/")
+
+	if parts[0] == "discord.com" || parts[0] == "discordapp.com" {
+		log.Debug("Detected a discord slack wrapper URL, using shoutrrr discord service")
+		conf := &shoutrrrDisco.Config{
+			Channel: parts[len(parts)-3],
+			Token:   parts[len(parts)-2],
+		}
+		return conf.GetURL().String()
+	}
+
 	rawTokens := strings.Replace(s.HookURL, "https://hooks.slack.com/services/", "", 1)
 	tokens := strings.Split(rawTokens, "/")
 
 	conf := &shoutrrrSlack.Config{
 		BotName: s.Username,
-		Token: shoutrrrSlack.Token{
-			A: tokens[0],
-			B: tokens[1],
-			C: tokens[2],
-		},
+		Token:   tokens,
 	}
 
 	return conf.GetURL().String()

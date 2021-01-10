@@ -2,6 +2,8 @@ module github.com/containrrr/watchtower
 
 go 1.12
 
+replace golang.org/x/sys => golang.org/x/sys v0.0.0-20190813064441-fde4db37ae7a
+
 require (
 	github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78 // indirect
 	github.com/Microsoft/go-winio v0.4.12 // indirect
@@ -15,7 +17,7 @@ require (
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
 	github.com/cloudflare/cfssl v0.0.0-20190911221928-1a911ca1b1d6 // indirect
 	github.com/containerd/continuity v0.0.0-20181203112020-004b46473808 // indirect
-	github.com/containrrr/shoutrrr v0.0.0-20200601144753-78bb9685bc2f
+	github.com/containrrr/shoutrrr v0.3.0
 	github.com/docker/cli v0.0.0-20190327152802-57b27434ea29
 	github.com/docker/distribution v2.7.1+incompatible
 	github.com/docker/docker v0.0.0-20190404075923-dbe4a30928d4
@@ -49,15 +51,14 @@ require (
 	github.com/prometheus/client_golang v0.9.3
 	github.com/robfig/cron v0.0.0-20180505203441-b41be1df6967
 	github.com/sirupsen/logrus v1.4.1
-	github.com/spf13/cobra v0.0.3
-	github.com/spf13/pflag v1.0.3
-	github.com/spf13/viper v1.4.0
+	github.com/spf13/cobra v0.0.7
+	github.com/spf13/pflag v1.0.5
+	github.com/spf13/viper v1.6.3
 	github.com/stretchr/testify v1.3.0
 	github.com/theupdateframework/notary v0.6.1 // indirect
 	github.com/zmap/zlint v1.0.2 // indirect
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9 // indirect
 	golang.org/x/net v0.0.0-20191004110552-13f9640d40b9
-	golang.org/x/sys v0.0.0-20190830141801-acfa387b8d69 // indirect
 	golang.org/x/text v0.3.4 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	gopkg.in/dancannon/gorethink.v3 v3.0.5 // indirect

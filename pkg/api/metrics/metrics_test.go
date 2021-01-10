@@ -55,7 +55,7 @@ var _ = Describe("the metrics", func() {
 
 		Expect(err).NotTo(HaveOccurred())
 		contents, err := ioutil.ReadAll(res.Body)
-		fmt.Printf("%s\n", string(contents))
+
 		Expect(string(contents)).To(ContainSubstring("watchtower_containers_updated 3"))
 		Expect(string(contents)).To(ContainSubstring("watchtower_containers_failed 1"))
 		Expect(string(contents)).To(ContainSubstring("watchtower_containers_scanned 4"))
@@ -69,7 +69,6 @@ var _ = Describe("the metrics", func() {
 		res, err = getWithToken(c, "http://localhost:8080/v1/metrics")
 		Expect(err).NotTo(HaveOccurred())
 		contents, err = ioutil.ReadAll(res.Body)
-		fmt.Printf("%s\n", string(contents))
 
 		Expect(string(contents)).To(ContainSubstring("watchtower_scans_total 4"))
 		Expect(string(contents)).To(ContainSubstring("watchtower_scans_skipped 3"))

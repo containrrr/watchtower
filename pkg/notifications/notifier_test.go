@@ -22,19 +22,32 @@ func TestActions(t *testing.T) {
 }
 
 var _ = Describe("notifications", func() {
-	// TODO: Either, we delete this test or we need to pass it valid URLs in the cobra command.
-	// ---
-	// When("getting notifiers from a types array", func() {
-	// 	It("should return the same amount of notifiers a string entries", func() {
-
-	// 		notifier := &notifications.Notifier{}
-	// 		notifiers := notifier.GetNotificationTypes(&cobra.Command{}, []log.Level{}, []string{"slack", "email"})
-	// 		Expect(len(notifiers)).To(Equal(2))
-	// 	})
-	// })
 	Describe("the slack notifier", func() {
+		builderFn := notifications.NewSlackNotifier
+
+		When("passing a discord url to the slack notifier", func() {
+			channel := "123456789"
+			token := "abvsihdbau"
+			expected := fmt.Sprintf("discord://%s@%s", token, channel)
+			buildArgs := func(url string) []string {
+				return []string{
+					"--notifications",
+					"slack",
+					"--notification-slack-hook-url",
+					url,
+				}
+			}
+
+			It("should return a discord url when using a hook url with the domain discord.com", func() {
+				hookURL := fmt.Sprintf("https://%s/api/webhooks/%s/%s/slack", "discord.com", channel, token)
+				testURL(builderFn, buildArgs(hookURL), expected)
+			})
+			It("should return a discord url when using a hook url with the domain discordapp.com", func() {
+				hookURL := fmt.Sprintf("https://%s/api/webhooks/%s/%s/slack", "discordapp.com", channel, token)
+				testURL(builderFn, buildArgs(hookURL), expected)
+			})
+		})
 		When("converting a slack service config into a shoutrrr url", func() {
-			builderFn := notifications.NewSlackNotifier
 
 			It("should return the expected URL", func() {
 
@@ -43,9 +56,8 @@ var _ = Describe("notifications", func() {
 				tokenB := "bbb"
 				tokenC := "ccc"
 
-				password := fmt.Sprintf("%s-%s-%s", tokenA, tokenB, tokenC)
 				hookURL := fmt.Sprintf("https://hooks.slack.com/services/%s/%s/%s", tokenA, tokenB, tokenC)
-				expectedOutput := fmt.Sprintf("slack://%s:%s@%s/%s/%s", username, password, tokenA, tokenB, tokenC)
+				expectedOutput := fmt.Sprintf("slack://%s@%s/%s/%s", username, tokenA, tokenB, tokenC)
 
 				args := []string{
 					"--notification-slack-hook-url",
@@ -144,8 +156,8 @@ func buildExpectedURL(username string, password string, host string, port int, f
 
 	subject := fmt.Sprintf("Watchtower updates on %s", hostname)
 
-	var template = "smtp://%s:%s@%s:%d/?fromAddress=%s&fromName=Watchtower&toAddresses=%s&auth=%s&subject=%s&startTls=Yes&useHTML=No"
-	return fmt.Sprintf(template, username, password, host, port, from, to, auth, subject)
+	var template = "smtp://%s:%s@%s:%d/?auth=%s&encryption=None&fromaddress=%s&fromname=Watchtower&starttls=Yes&subject=%s&toaddresses=%s&usehtml=No"
+	return fmt.Sprintf(template, username, password, host, port, auth, from, subject, to)
 }
 
 type builderFn = func(c *cobra.Command, acceptedLogLevels []log.Level) types.ConvertableNotifier
