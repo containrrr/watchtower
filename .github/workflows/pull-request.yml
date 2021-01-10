@@ -8,6 +8,7 @@ on:
 
 jobs:
   lint:
+    name: Lint
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -18,11 +19,14 @@ jobs:
         uses: actions/setup-go@v2
         with:
           go-version: 1.15.x
-      - name: Lint
+      - name: Install linter
         run: |
           go get -u golang.org/x/lint/golint
+      - name: Lint files
+        run: |
           golint -set_exit_status ./...
   test:
+    name: Test
     strategy:
       matrix:
         go-version:
@@ -45,6 +49,7 @@ jobs:
           go test ./... -coverprofile coverage.out
 
   build:
+    name: Build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
