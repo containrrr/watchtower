@@ -30,7 +30,7 @@ func (api *API) RequireToken(fn http.HandlerFunc) http.HandlerFunc {
 			log.Debugf("Expected token to be \"%s\"", api.Token)
 			return
 		}
-		log.Println("Valid token found.")
+		log.Debug("Valid token found.")
 		fn(w, r)
 	}
 }
