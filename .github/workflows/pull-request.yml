@@ -28,6 +28,7 @@ jobs:
   test:
     name: Test
     strategy:
+      fail-fast: false
       matrix:
         go-version:
           - 1.15.x
