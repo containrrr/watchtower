@@ -711,6 +711,15 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "SrihariThalla",
+      "name": "Srihari Thalla",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/7479937?v=4",
+      "profile": "https://github.com/SrihariThalla",
+      "contributions": [
+        "doc"
+      ]
     }
   ],
   "contributorsPerLine": 7,
