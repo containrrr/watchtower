@@ -25,6 +25,10 @@ func NewNotifier(c *cobra.Command) *Notifier {
 	}
 
 	acceptedLogLevels := slackrus.LevelThreshold(logLevel)
+	// slackrus does not allow log level TRACE, even though it's an accepted log level for logrus
+	if len(acceptedLogLevels) == 0 {
+		log.Fatalf("Unsupported notification log level provided: %s", level)
+	}
 
 	// Parse types and create notifiers.
 	types, err := f.GetStringSlice("notifications")
