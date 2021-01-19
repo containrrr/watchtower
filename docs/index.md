@@ -33,10 +33,10 @@
     <img alt="Codacy Badge" src="https://app.codacy.com/project/badge/Grade/1c48cfb7646d4009aa8c6f71287670b8"/>
   </a>
   <a href="https://github.com/containrrr/watchtower/#contributors">
-    <img alt="All Contributors" src="https://img.shields.io/badge/all_contributors-30-orange.svg?style=flat-square" />
+    <img alt="All Contributors" src="https://img.shields.io/github/all-contributors/containrrr/watchtower" />
   </a>
   <a href="https://hub.docker.com/r/containrrr/watchtower">
-    <img alt="Pulls from DockerHub" src="https://img.shields.io/docker/pulls/containrrr/watchtower.svg?style=flat-square" />
+    <img alt="Pulls from DockerHub" src="https://img.shields.io/docker/pulls/containrrr/watchtower.svg" />
   </a>
 </p>
 
