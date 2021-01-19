@@ -140,6 +140,9 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
     <td align="center"><a href="https://github.com/tkalus"><img src="https://avatars2.githubusercontent.com/u/287181?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Turtle Kalus</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=tkalus" title="Code">💻</a></td>
     <td align="center"><a href="https://github.com/SrihariThalla"><img src="https://avatars1.githubusercontent.com/u/7479937?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Srihari Thalla</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=SrihariThalla" title="Documentation">📖</a></td>
   </tr>
+  <tr>
+    <td align="center"><a href="https://nymous.io"><img src="https://avatars1.githubusercontent.com/u/4216559?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Thomas Gaudin</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=nymous" title="Documentation">📖</a></td>
+  </tr>
 </table>
 
 <!-- markdownlint-restore -->
