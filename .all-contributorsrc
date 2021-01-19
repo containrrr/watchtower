@@ -721,6 +721,15 @@
       "contributions": [
         "doc"
       ]
+    },
+    {
+      "login": "nymous",
+      "name": "Thomas Gaudin",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/4216559?v=4",
+      "profile": "https://nymous.io",
+      "contributions": [
+        "doc"
+      ]
     }
   ],
   "contributorsPerLine": 7,
