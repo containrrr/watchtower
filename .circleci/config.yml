@@ -123,6 +123,10 @@ jobs:
           command: |
             echo "$DOCKER_PASS" | docker login -u $DOCKER_USER --password-stdin
       - run:
+          name: Login to github container registry
+          command: |
+            echo "$GITHUB_PASS" | docker login ghcr.io -u $DOCKER_USER --password-stdin
+      - run:
           name: Execute goreleaser
           command: CGO_ENABLED=${CGO_ENABLED:-0} ../goreleaser --debug
       - run:
@@ -139,12 +143,21 @@ jobs:
               containrrr/watchtower:i386-$(echo $CIRCLE_TAG | sed 's/^v*//') \
               containrrr/watchtower:armhf-$(echo $CIRCLE_TAG | sed 's/^v*//') \
               containrrr/watchtower:arm64v8-$(echo $CIRCLE_TAG | sed 's/^v*//')
+              ghcr.io/containrrr/watchtower:$(echo $CIRCLE_TAG | sed 's/^v*//') \
+              ghcr.io/containrrr/watchtower:amd64-$(echo $CIRCLE_TAG | sed 's/^v*//') \
+              ghcr.io/containrrr/watchtower:i386-$(echo $CIRCLE_TAG | sed 's/^v*//') \
+              ghcr.io/containrrr/watchtower:armhf-$(echo $CIRCLE_TAG | sed 's/^v*//') \
+              ghcr.io/containrrr/watchtower:arm64v8-$(echo $CIRCLE_TAG | sed 's/^v*//')
       - run:
           name: Annotate i386 version
           command: |
             docker manifest annotate \
               containrrr/watchtower:$(echo $CIRCLE_TAG | sed 's/^v*//') \
               containrrr/watchtower:i386-$(echo $CIRCLE_TAG | sed 's/^v*//') \
+              --os linux \
+              --arch 386 \
+              ghcr.io/containrrr/watchtower:$(echo $CIRCLE_TAG | sed 's/^v*//') \
+              ghcr.io/containrrr/watchtower:i386-$(echo $CIRCLE_TAG | sed 's/^v*//') \
               --os linux \
               --arch 386
       - run:
@@ -154,6 +167,10 @@ jobs:
               containrrr/watchtower:$(echo $CIRCLE_TAG | sed 's/^v*//') \
               containrrr/watchtower:armhf-$(echo $CIRCLE_TAG | sed 's/^v*//') \
               --os linux \
+              --arch arm \
+              ghcr.io/containrrr/watchtower:$(echo $CIRCLE_TAG | sed 's/^v*//') \
+              ghcr.io/containrrr/watchtower:armhf-$(echo $CIRCLE_TAG | sed 's/^v*//') \
+              --os linux \
               --arch arm
       - run:
           name: Annotate ARM64 version
@@ -161,6 +178,11 @@ jobs:
             docker manifest annotate \
               containrrr/watchtower:$(echo $CIRCLE_TAG | sed 's/^v*//') \
               containrrr/watchtower:arm64v8-$(echo $CIRCLE_TAG | sed 's/^v*//') \
+              --os linux \
+              --arch arm64 \
+              --variant v8 \
+              ghcr.io/containrrr/watchtower:$(echo $CIRCLE_TAG | sed 's/^v*//') \
+              ghcr.io/containrrr/watchtower:arm64v8-$(echo $CIRCLE_TAG | sed 's/^v*//') \
               --os linux \
               --arch arm64 \
               --variant v8
@@ -172,13 +194,22 @@ jobs:
               containrrr/watchtower:amd64-latest \
               containrrr/watchtower:i386-latest \
               containrrr/watchtower:armhf-latest \
-              containrrr/watchtower:arm64v8-latest
+              containrrr/watchtower:arm64v8-latest \
+              ghcr.io/containrrr/watchtower:latest \
+              ghcr.io/containrrr/watchtower:amd64-latest \
+              ghcr.io/containrrr/watchtower:i386-latest \
+              ghcr.io/containrrr/watchtower:armhf-latest \
+              ghcr.io/containrrr/watchtower:arm64v8-latest
       - run:
           name: Annotate i386 latest
           command: |
             docker manifest annotate \
               containrrr/watchtower:latest \
               containrrr/watchtower:i386-latest \
+              --os linux \
+              --arch 386 \
+              ghcr.io/containrrr/watchtower:latest \
+              ghcr.io/containrrr/watchtower:i386-latest \
               --os linux \
               --arch 386
       - run:
@@ -187,6 +218,10 @@ jobs:
             docker manifest annotate \
               containrrr/watchtower:latest \
               containrrr/watchtower:armhf-latest \
+              --os linux \
+              --arch arm \
+              ghcr.io/containrrr/watchtower:latest \
+              ghcr.io/containrrr/watchtower:armhf-latest \
               --os linux \
               --arch arm
       - run:
@@ -197,6 +232,11 @@ jobs:
               containrrr/watchtower:arm64v8-latest \
               --os linux \
               --arch arm64 \
+              --variant v8 \
+              ghcr.io/containrrr/watchtower:latest \
+              ghcr.io/containrrr/watchtower:arm64v8-latest \
+              --os linux \
+              --arch arm64 \
               --variant v8
       - run:
           name: Push manifests to Dockerhub
@@ -204,6 +244,9 @@ jobs:
             echo "$DOCKER_PASS" | docker login -u $DOCKER_USER --password-stdin &&
             docker manifest push containrrr/watchtower:$(echo $CIRCLE_TAG | sed 's/^v*//') && \
             docker manifest push containrrr/watchtower:latest
+            echo "$GITHUB_PASS" | docker login ghcr.io -u $DOCKER_USER --password-stdin &&
+            docker manifest push ghcr.io/containrrr/watchtower:$(echo $CIRCLE_TAG | sed 's/^v*//') && \
+            docker manifest push ghcr.io/containrrr/watchtower:latest
   publish-docs:
     executor: py
     steps:

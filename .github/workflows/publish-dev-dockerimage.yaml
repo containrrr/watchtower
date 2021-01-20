@@ -21,3 +21,12 @@ jobs:
         file: dockerfiles/Dockerfile.self-contained
         repository: containrrr/watchtower
         tags: latest-dev
+
+    - uses: jerray/publish-docker-action@master
+      with:
+        username: ${{ secrets.GITHUB_USERNAME }}
+        password: ${{ secrets.GITHUB_PASSWORD }}
+        file: dockerfiles/Dockerfile.self-contained
+        registry: ghcr.io
+        repository: containrrr/watchtower
+        tags: latest-dev
