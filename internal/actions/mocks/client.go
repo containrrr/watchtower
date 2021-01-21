@@ -74,8 +74,8 @@ func (client MockClient) GetContainer(containerID string) (container.Container, 
 }
 
 // ExecuteCommand is a mock method
-func (client MockClient) ExecuteCommand(containerID string, command string, timeout int) error {
-	return nil
+func (client MockClient) ExecuteCommand(containerID string, command string, timeout int) (error,bool) {
+	return nil, false
 }
 
 // IsContainerStale is always true for the mock client

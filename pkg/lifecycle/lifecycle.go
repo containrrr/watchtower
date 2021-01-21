@@ -37,7 +37,8 @@ func ExecutePreCheckCommand(client container.Client, container container.Contain
 	}
 
 	log.Debug("Executing pre-check command.")
-	if err := client.ExecuteCommand(container.ID(), command, 1); err != nil {
+	err,SkipUpdate := client.ExecuteCommand(container.ID(), command, 1);
+	if  err != nil {
 		log.Error(err)
 	}
 }
@@ -51,7 +52,8 @@ func ExecutePostCheckCommand(client container.Client, container container.Contai
 	}
 
 	log.Debug("Executing post-check command.")
-	if err := client.ExecuteCommand(container.ID(), command, 1); err != nil {
+	err,SkipUpdate := client.ExecuteCommand(container.ID(), command, 1);
+	if err != nil {
 		log.Error(err)
 	}
 }
@@ -62,6 +64,11 @@ func ExecutePreUpdateCommand(client container.Client, container container.Contai
 	command := container.GetLifecyclePreUpdateCommand()
 	if len(command) == 0 {
 		log.Debug("No pre-update command supplied. Skipping")
+		return nil
+	}
+	
+	if !container.IsRunning() {
+		log.Debug("Container is not running. Skipping pre-update command.")
 		return nil
 	}
 
@@ -84,7 +91,8 @@ func ExecutePostUpdateCommand(client container.Client, newContainerID string) {
 	}
 
 	log.Debug("Executing post-update command.")
-	if err := client.ExecuteCommand(newContainerID, command, 1); err != nil {
+	err,SkipUpdate := client.ExecuteCommand(newContainerID, command, 1);
+	if  err != nil {
 		log.Error(err)
 	}
 }
