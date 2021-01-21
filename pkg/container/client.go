@@ -382,7 +382,7 @@ func (client dockerClient) ExecuteCommand(containerID string, command string, ti
 
 	// Inspect the exec to get the exit code and print a message if the
 	// exit code is not success.
-	skipUpdate,err  = client.waitForExecOrTimeout(bg, exec.ID, output, timeout)
+	skipUpdate, err  := client.waitForExecOrTimeout(bg, exec.ID, output, timeout)
 	if err != nil {
 		return true,err 
 	}
