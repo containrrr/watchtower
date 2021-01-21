@@ -59,17 +59,17 @@ func ExecutePostCheckCommand(client container.Client, container container.Contai
 }
 
 // ExecutePreUpdateCommand tries to run the pre-update lifecycle hook for a single container.
-func ExecutePreUpdateCommand(client container.Client, container container.Container) (error,bool) {
+func ExecutePreUpdateCommand(client container.Client, container container.Container) (bool,error) {
 	timeout := container.PreUpdateTimeout()
 	command := container.GetLifecyclePreUpdateCommand()
 	if len(command) == 0 {
 		log.Debug("No pre-update command supplied. Skipping")
-		return nil
+		return false,nil
 	}
 	
 	if !container.IsRunning() {
 		log.Debug("Container is not running. Skipping pre-update command.")
-		return nil
+		return false,nil
 	}
 
 	log.Debug("Executing pre-update command.")
