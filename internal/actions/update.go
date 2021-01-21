@@ -123,7 +123,7 @@ func stopStaleContainer(container container.Container, client container.Client, 
 		return nil
 	}
 	if params.LifecycleHooks {
-		err,SkipUpdate := lifecycle.ExecutePreUpdateCommand(client, container);
+		SkipUpdate,err := lifecycle.ExecutePreUpdateCommand(client, container);
 		if  err != nil {
 			log.Error(err)
 			log.Info("Skipping container as the pre-update command failed")
