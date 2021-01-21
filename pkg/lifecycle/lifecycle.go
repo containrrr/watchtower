@@ -37,7 +37,7 @@ func ExecutePreCheckCommand(client container.Client, container container.Contain
 	}
 
 	log.Debug("Executing pre-check command.")
-	err,SkipUpdate := client.ExecuteCommand(container.ID(), command, 1);
+	SkipUpdate,err := client.ExecuteCommand(container.ID(), command, 1);
 	if  err != nil {
 		log.Error(err)
 	}
@@ -52,14 +52,14 @@ func ExecutePostCheckCommand(client container.Client, container container.Contai
 	}
 
 	log.Debug("Executing post-check command.")
-	err,SkipUpdate := client.ExecuteCommand(container.ID(), command, 1);
+	SkipUpdate,err := client.ExecuteCommand(container.ID(), command, 1);
 	if err != nil {
 		log.Error(err)
 	}
 }
 
 // ExecutePreUpdateCommand tries to run the pre-update lifecycle hook for a single container.
-func ExecutePreUpdateCommand(client container.Client, container container.Container) error {
+func ExecutePreUpdateCommand(client container.Client, container container.Container) (error,bool) {
 	timeout := container.PreUpdateTimeout()
 	command := container.GetLifecyclePreUpdateCommand()
 	if len(command) == 0 {
@@ -91,7 +91,7 @@ func ExecutePostUpdateCommand(client container.Client, newContainerID string) {
 	}
 
 	log.Debug("Executing post-update command.")
-	err,SkipUpdate := client.ExecuteCommand(newContainerID, command, 1);
+	SkipUpdate,err := client.ExecuteCommand(newContainerID, command, 1);
 	if  err != nil {
 		log.Error(err)
 	}
