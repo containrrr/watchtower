@@ -209,7 +209,7 @@ func runUpgradesOnSchedule(c *cobra.Command, filter t.Filter) error {
 
 			nextRuns := cron.Entries()
 			if len(nextRuns) > 0 {
-				log.Debug("Scheduled next run: " + nextRuns[0].Next.String())
+				log.Info("Scheduled next run: " + nextRuns[0].Next.String())
 			}
 		})
 
