@@ -154,8 +154,6 @@ jobs:
             docker manifest annotate \
               containrrr/watchtower:$(echo $CIRCLE_TAG | sed 's/^v*//') \
               containrrr/watchtower:i386-$(echo $CIRCLE_TAG | sed 's/^v*//') \
-              --os linux \
-              --arch 386 \
               ghcr.io/containrrr/watchtower:$(echo $CIRCLE_TAG | sed 's/^v*//') \
               ghcr.io/containrrr/watchtower:i386-$(echo $CIRCLE_TAG | sed 's/^v*//') \
               --os linux \
@@ -178,9 +176,6 @@ jobs:
             docker manifest annotate \
               containrrr/watchtower:$(echo $CIRCLE_TAG | sed 's/^v*//') \
               containrrr/watchtower:arm64v8-$(echo $CIRCLE_TAG | sed 's/^v*//') \
-              --os linux \
-              --arch arm64 \
-              --variant v8 \
               ghcr.io/containrrr/watchtower:$(echo $CIRCLE_TAG | sed 's/^v*//') \
               ghcr.io/containrrr/watchtower:arm64v8-$(echo $CIRCLE_TAG | sed 's/^v*//') \
               --os linux \
@@ -206,8 +201,6 @@ jobs:
             docker manifest annotate \
               containrrr/watchtower:latest \
               containrrr/watchtower:i386-latest \
-              --os linux \
-              --arch 386 \
               ghcr.io/containrrr/watchtower:latest \
               ghcr.io/containrrr/watchtower:i386-latest \
               --os linux \
@@ -218,8 +211,6 @@ jobs:
             docker manifest annotate \
               containrrr/watchtower:latest \
               containrrr/watchtower:armhf-latest \
-              --os linux \
-              --arch arm \
               ghcr.io/containrrr/watchtower:latest \
               ghcr.io/containrrr/watchtower:armhf-latest \
               --os linux \
@@ -230,9 +221,6 @@ jobs:
             docker manifest annotate \
               containrrr/watchtower:latest \
               containrrr/watchtower:arm64v8-latest \
-              --os linux \
-              --arch arm64 \
-              --variant v8 \
               ghcr.io/containrrr/watchtower:latest \
               ghcr.io/containrrr/watchtower:arm64v8-latest \
               --os linux \
