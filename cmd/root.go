@@ -38,7 +38,8 @@ var (
 	lifecycleHooks bool
 	rollingRestart bool
 	scope          string
-	version        string = "v0.0.0-unknown"
+	// Set on build using ldflags
+	version = "v0.0.0-unknown"
 )
 
 var rootCmd = NewRootCommand()
