@@ -33,6 +33,19 @@ type shoutrrrTypeNotifier struct {
 	done      chan bool
 }
 
+func (n *shoutrrrTypeNotifier) GetNames() []string {
+	names := make([]string, len(n.Urls))
+	for i, u := range n.Urls {
+		schemeEnd := strings.Index(u, ":")
+		if schemeEnd <= 0 {
+			names[i] = "invalid"
+			continue
+		}
+		names[i] = u[:schemeEnd]
+	}
+	return names
+}
+
 func newShoutrrrNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.Notifier {
 	flags := c.PersistentFlags()
 	urls, _ := flags.GetStringArray("notification-url")

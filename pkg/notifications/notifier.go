@@ -6,6 +6,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"os"
+	"strings"
 )
 
 // Notifier can send log output as notification to admins, with optional batching.
@@ -40,6 +41,26 @@ func NewNotifier(c *cobra.Command) *Notifier {
 	n.types = n.getNotificationTypes(c, acceptedLogLevels, types)
 
 	return n
+}
+
+func (n *Notifier) String() string {
+	if len(n.types) < 1 {
+		return ""
+	}
+
+	sb := strings.Builder{}
+	for _, notif := range n.types {
+		for _, name := range notif.GetNames() {
+			sb.WriteString(name)
+			sb.WriteString(", ")
+		}
+	}
+	names := sb.String()
+
+	// remove the last separator
+	names = names[:len(names)-2]
+
+	return names
 }
 
 // getNotificationTypes produces an array of notifiers from a list of types

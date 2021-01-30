@@ -2,9 +2,11 @@ package cmd
 
 import (
 	metrics2 "github.com/containrrr/watchtower/pkg/metrics"
+	"math"
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -36,6 +38,7 @@ var (
 	lifecycleHooks bool
 	rollingRestart bool
 	scope          string
+	version        string = "v0.0.0-unknown"
 )
 
 var rootCmd = NewRootCommand()
@@ -146,7 +149,7 @@ func PreRun(cmd *cobra.Command, args []string) {
 
 // Run is the main execution flow of the command
 func Run(c *cobra.Command, names []string) {
-	filter := filters.BuildFilter(names, enableLabel, scope)
+	filter, filterDesc := filters.BuildFilter(names, enableLabel, scope)
 	runOnce, _ := c.PersistentFlags().GetBool("run-once")
 	enableUpdateAPI, _ := c.PersistentFlags().GetBool("http-api-update")
 	enableMetricsAPI, _ := c.PersistentFlags().GetBool("http-api-metrics")
@@ -154,9 +157,7 @@ func Run(c *cobra.Command, names []string) {
 	apiToken, _ := c.PersistentFlags().GetString("http-api-token")
 
 	if runOnce {
-		if noStartupMessage, _ := c.PersistentFlags().GetBool("no-startup-message"); !noStartupMessage {
-			log.Info("Running a one time update.")
-		}
+		writeStartupMessage(c, time.Time{}, filterDesc)
 		runUpdatesWithNotifications(filter)
 		notifier.Close()
 		os.Exit(0)
@@ -181,14 +182,72 @@ func Run(c *cobra.Command, names []string) {
 
 	httpAPI.Start(enableUpdateAPI)
 
-	if err := runUpgradesOnSchedule(c, filter); err != nil {
+	if err := runUpgradesOnSchedule(c, filter, filterDesc); err != nil {
 		log.Error(err)
 	}
 
 	os.Exit(1)
 }
 
-func runUpgradesOnSchedule(c *cobra.Command, filter t.Filter) error {
+func formatDuration(d time.Duration) string {
+	sb := strings.Builder{}
+
+	hours := int64(d.Hours())
+	minutes := int64(math.Mod(d.Minutes(), 60))
+	seconds := int64(math.Mod(d.Seconds(), 60))
+
+	if hours == 1 {
+		sb.WriteString("1 hour")
+	} else if hours != 0 {
+		sb.WriteString(strconv.FormatInt(hours, 10))
+		sb.WriteString(" hours")
+	}
+
+	if hours != 0 && (seconds != 0 || minutes != 0) {
+		sb.WriteString(", ")
+	}
+
+	if minutes == 1 {
+		sb.WriteString("1 minute")
+	} else if minutes != 0 {
+		sb.WriteString(strconv.FormatInt(minutes, 10))
+		sb.WriteString(" minutes")
+	}
+
+	if minutes != 0 && (seconds != 0) {
+		sb.WriteString(", ")
+	}
+
+	if seconds == 1 {
+		sb.WriteString("1 second")
+	} else if seconds != 0 || (hours == 0 && minutes == 0) {
+		sb.WriteString(strconv.FormatInt(seconds, 10))
+		sb.WriteString(" seconds")
+	}
+
+	return sb.String()
+}
+
+func writeStartupMessage(c *cobra.Command, sched time.Time, filtering string) {
+	if noStartupMessage, _ := c.PersistentFlags().GetBool("no-startup-message"); !noStartupMessage {
+		schedMessage := "Running a one time update."
+		if !sched.IsZero() {
+			until := formatDuration(time.Until(sched))
+			schedMessage = "Scheduling first run: " + sched.Format("2006-01-02 15:04:05 -0700 MST") +
+				"\nNote that the first check will be performed in " + until
+		}
+
+		notifs := "Using no notifications"
+		notifList := notifier.String()
+		if len(notifList) > 0 {
+			notifs = "Using notifications: " + notifList
+		}
+
+		log.Info("Watchtower ", version, "\n", notifs, "\n", filtering, "\n", schedMessage)
+	}
+}
+
+func runUpgradesOnSchedule(c *cobra.Command, filter t.Filter, filtering string) error {
 	tryLockSem := make(chan bool, 1)
 	tryLockSem <- true
 
@@ -217,9 +276,7 @@ func runUpgradesOnSchedule(c *cobra.Command, filter t.Filter) error {
 		return err
 	}
 
-	if noStartupMessage, _ := c.PersistentFlags().GetBool("no-startup-message"); !noStartupMessage {
-		log.Info("Starting Watchtower and scheduling first run: " + cron.Entries()[0].Schedule.Next(time.Now()).String())
-	}
+	writeStartupMessage(c, cron.Entries()[0].Schedule.Next(time.Now()), filtering)
 
 	cron.Start()
 
@@ -236,6 +293,7 @@ func runUpgradesOnSchedule(c *cobra.Command, filter t.Filter) error {
 }
 
 func runUpdatesWithNotifications(filter t.Filter) *metrics2.Metric {
+	// return &metrics2.Metric{}
 
 	notifier.StartNotification()
 	updateParams := t.UpdateParams{
