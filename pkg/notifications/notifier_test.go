@@ -99,12 +99,12 @@ var _ = Describe("notifications", func() {
 
 			It("should return the expected URL", func() {
 
-				tokenA := "aaa"
-				tokenB := "bbb"
-				tokenC := "ccc"
+				tokenA := "11111111-4444-4444-8444-cccccccccccc@22222222-4444-4444-8444-cccccccccccc"
+				tokenB := "33333333012222222222333333333344"
+				tokenC := "44444444-4444-4444-8444-cccccccccccc"
 
 				hookURL := fmt.Sprintf("https://outlook.office.com/webhook/%s/IncomingWebhook/%s/%s", tokenA, tokenB, tokenC)
-				expectedOutput := fmt.Sprintf("teams://%s:%s@%s", tokenA, tokenB, tokenC)
+				expectedOutput := fmt.Sprintf("teams://%s/%s/%s?color=&host=&title=", tokenA, tokenB, tokenC)
 
 				args := []string{
 					"--notification-msteams-hook",

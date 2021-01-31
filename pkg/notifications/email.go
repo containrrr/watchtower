@@ -1,11 +1,8 @@
 package notifications
 
 import (
-	"fmt"
-	"os"
 	"time"
 
-	"github.com/containrrr/shoutrrr/pkg/format"
 	"github.com/spf13/cobra"
 
 	shoutrrrSmtp "github.com/containrrr/shoutrrr/pkg/services/smtp"
@@ -73,37 +70,33 @@ func (e *emailTypeNotifier) GetURL() string {
 		Subject:     e.getSubject(),
 		Username:    e.User,
 		Password:    e.Password,
-		UseStartTLS: true,
+		UseStartTLS: !e.tlsSkipVerify,
 		UseHTML:     false,
+		Encryption:  shoutrrrSmtp.EncMethods.Auto,
+		Auth:        shoutrrrSmtp.AuthTypes.None,
 	}
 
 	pkr := format.NewPropKeyResolver(conf)
 	var err error
 	if len(e.User) > 0 {
-		err = pkr.Set("auth", "Plain")
-	} else {
-		err = pkr.Set("auth", "None")
+		conf.Auth = shoutrrrSmtp.AuthTypes.Plain
 	}
 
-	if err != nil {
-		fmt.Printf("Could not set auth type for email notifier: %v", err)
+	if e.tlsSkipVerify {
+		conf.Encryption = shoutrrrSmtp.EncMethods.None
 	}
 
 	return conf.GetURL().String()
 }
 
 func (e *emailTypeNotifier) getSubject() string {
-	var emailSubject string
+	subject := GetTitle()
 
-	if e.SubjectTag == "" {
-		emailSubject = "Watchtower updates"
-	} else {
-		emailSubject = e.SubjectTag + " Watchtower updates"
+	if e.SubjectTag != "" {
+		subject = e.SubjectTag + " " + subject
 	}
-	if hostname, err := os.Hostname(); err == nil {
-		emailSubject += " on " + hostname
-	}
-	return emailSubject
+
+	return subject
 }
 
 // TODO: Delete these once all notifiers have been converted to shoutrrr

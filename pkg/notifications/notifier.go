@@ -5,6 +5,7 @@ import (
 	"github.com/johntdyer/slackrus"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"os"
 )
 
 // Notifier can send log output as notification to admins, with optional batching.
@@ -36,13 +37,13 @@ func NewNotifier(c *cobra.Command) *Notifier {
 		log.WithField("could not read notifications argument", log.Fields{"Error": err}).Fatal()
 	}
 
-	n.types = n.GetNotificationTypes(c, acceptedLogLevels, types)
+	n.types = n.getNotificationTypes(c, acceptedLogLevels, types)
 
 	return n
 }
 
-// GetNotificationTypes produces an array of notifiers from a list of types
-func (n *Notifier) GetNotificationTypes(cmd *cobra.Command, levels []log.Level, types []string) []ty.Notifier {
+// getNotificationTypes produces an array of notifiers from a list of types
+func (n *Notifier) getNotificationTypes(cmd *cobra.Command, levels []log.Level, types []string) []ty.Notifier {
 	output := make([]ty.Notifier, 0)
 
 	for _, t := range types {
@@ -65,6 +66,8 @@ func (n *Notifier) GetNotificationTypes(cmd *cobra.Command, levels []log.Level, 
 			legacyNotifier = newGotifyNotifier(cmd, []log.Level{})
 		default:
 			log.Fatalf("Unknown notification type %q", t)
+			// Not really needed, used for nil checking static analysis
+			continue
 		}
 
 		notifier := newShoutrrrNotifierFromURL(
@@ -98,4 +101,14 @@ func (n *Notifier) Close() {
 	for _, t := range n.types {
 		t.Close()
 	}
+}
+
+func GetTitle() (title string) {
+	title = "Watchtower updates"
+
+	if hostname, err := os.Hostname(); err == nil {
+		title += " on " + hostname
+	}
+
+	return
 }

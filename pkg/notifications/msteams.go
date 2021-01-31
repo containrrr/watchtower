@@ -45,17 +45,20 @@ func newMsTeamsNotifier(cmd *cobra.Command, acceptedLogLevels []log.Level) t.Con
 
 func (n *msTeamsTypeNotifier) GetURL() string {
 
-	baseURL := "https://outlook.office.com/webhook/"
+	webhookURL := n.webHookURL
+	if webhookURL[len(webhookURL)-1] != '/' {
+		webhookURL += "/"
+	}
 
-	path := strings.Replace(n.webHookURL, baseURL, "", 1)
-	rawToken := strings.Replace(path, "/IncomingWebhook", "", 1)
-	token := strings.Split(rawToken, "/")
-	config := &shoutrrrTeams.Config{
-		Token: shoutrrrTeams.Token{
-			A: token[0],
-			B: token[1],
-			C: token[2],
-		},
+	config, err := (&shoutrrrTeams.Config{}).SetFromWebhookURL(webhookURL)
+
+	if err != nil {
+		log.WithFields(
+			log.Fields{
+				"Original Webhook URL": n.webHookURL,
+				"Mutated Webhook URL":  webhookURL,
+			}).Error(err)
+		return ""
 	}
 
 	return config.GetURL().String()
@@ -63,6 +66,6 @@ func (n *msTeamsTypeNotifier) GetURL() string {
 
 func (n *msTeamsTypeNotifier) StartNotification()          {}
 func (n *msTeamsTypeNotifier) SendNotification()           {}
-func (n *msTeamsTypeNotifier) Close() {}
+func (n *msTeamsTypeNotifier) Close()                      {}
 func (n *msTeamsTypeNotifier) Levels() []log.Level         { return nil }
 func (n *msTeamsTypeNotifier) Fire(entry *log.Entry) error { return nil }
