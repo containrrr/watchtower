@@ -1,8 +1,6 @@
 package notifications
 
 import (
-	"strings"
-
 	shoutrrrTeams "github.com/containrrr/shoutrrr/pkg/services/teams"
 	t "github.com/containrrr/watchtower/pkg/types"
 	log "github.com/sirupsen/logrus"
@@ -20,11 +18,11 @@ type msTeamsTypeNotifier struct {
 }
 
 // NewMsTeamsNotifier is a factory method creating a new teams notifier instance
-func NewMsTeamsNotifier(cmd *cobra.Command, acceptedLogLevels []log.Level) t.ConvertableNotifier {
+func NewMsTeamsNotifier(cmd *cobra.Command, acceptedLogLevels []log.Level) t.ConvertibleNotifier {
 	return newMsTeamsNotifier(cmd, acceptedLogLevels)
 }
 
-func newMsTeamsNotifier(cmd *cobra.Command, acceptedLogLevels []log.Level) t.ConvertableNotifier {
+func newMsTeamsNotifier(cmd *cobra.Command, acceptedLogLevels []log.Level) t.ConvertibleNotifier {
 
 	flags := cmd.PersistentFlags()
 
@@ -43,29 +41,23 @@ func newMsTeamsNotifier(cmd *cobra.Command, acceptedLogLevels []log.Level) t.Con
 	return n
 }
 
-func (n *msTeamsTypeNotifier) GetURL() string {
+func (n *msTeamsTypeNotifier) GetURL() (string, error) {
 
 	webhookURL := n.webHookURL
 	if webhookURL[len(webhookURL)-1] != '/' {
 		webhookURL += "/"
 	}
 
-	config, err := (&shoutrrrTeams.Config{}).SetFromWebhookURL(webhookURL)
+	var err error
+	config := &shoutrrrTeams.Config{}
+	config, err = config.SetFromWebhookURL(webhookURL)
 
 	if err != nil {
-		log.WithFields(
-			log.Fields{
-				"Original Webhook URL": n.webHookURL,
-				"Mutated Webhook URL":  webhookURL,
-			}).Error(err)
-		return ""
+		return "", err
 	}
 
-	return config.GetURL().String()
-}
+	config.Color = ColorHex
+	config.Title = GetTitle()
 
-func (n *msTeamsTypeNotifier) StartNotification()          {}
-func (n *msTeamsTypeNotifier) SendNotification()           {}
-func (n *msTeamsTypeNotifier) Close()                      {}
-func (n *msTeamsTypeNotifier) Levels() []log.Level         { return nil }
-func (n *msTeamsTypeNotifier) Fire(entry *log.Entry) error { return nil }
+	return config.GetURL().String(), nil
+}

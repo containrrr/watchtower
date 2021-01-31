@@ -53,7 +53,8 @@ func (n *Notifier) getNotificationTypes(cmd *cobra.Command, levels []log.Level, 
 			continue
 		}
 
-		var legacyNotifier ty.ConvertableNotifier
+		var legacyNotifier ty.ConvertibleNotifier
+		var err error
 
 		switch t {
 		case emailType:
@@ -70,9 +71,14 @@ func (n *Notifier) getNotificationTypes(cmd *cobra.Command, levels []log.Level, 
 			continue
 		}
 
+		shoutrrrURL, err := legacyNotifier.GetURL()
+		if err != nil {
+			log.Fatal("failed to create notification config:", err)
+		}
+
 		notifier := newShoutrrrNotifierFromURL(
 			cmd,
-			legacyNotifier.GetURL(),
+			shoutrrrURL,
 			levels,
 		)
 
@@ -112,3 +118,6 @@ func GetTitle() (title string) {
 
 	return
 }
+
+const ColorHex = "#406170"
+const ColorInt = 0x406170

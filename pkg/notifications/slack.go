@@ -20,11 +20,11 @@ type slackTypeNotifier struct {
 }
 
 // NewSlackNotifier is a factory function used to generate new instance of the slack notifier type
-func NewSlackNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.ConvertableNotifier {
+func NewSlackNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.ConvertibleNotifier {
 	return newSlackNotifier(c, acceptedLogLevels)
 }
 
-func newSlackNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.ConvertableNotifier {
+func newSlackNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.ConvertibleNotifier {
 	flags := c.PersistentFlags()
 
 	hookURL, _ := flags.GetString("notification-slack-hook-url")
@@ -46,7 +46,7 @@ func newSlackNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.Convert
 	return n
 }
 
-func (s *slackTypeNotifier) GetURL() string {
+func (s *slackTypeNotifier) GetURL() (string, error) {
 	trimmedURL := strings.TrimRight(s.HookURL, "/")
 	trimmedURL = strings.TrimLeft(trimmedURL, "https://")
 	parts := strings.Split(trimmedURL, "/")
@@ -54,10 +54,14 @@ func (s *slackTypeNotifier) GetURL() string {
 	if parts[0] == "discord.com" || parts[0] == "discordapp.com" {
 		log.Debug("Detected a discord slack wrapper URL, using shoutrrr discord service")
 		conf := &shoutrrrDisco.Config{
-			Channel: parts[len(parts)-3],
-			Token:   parts[len(parts)-2],
+			Channel:    parts[len(parts)-3],
+			Token:      parts[len(parts)-2],
+			Color:      ColorInt,
+			Title:      GetTitle(),
+			SplitLines: true,
+			Username:   s.Username,
 		}
-		return conf.GetURL().String()
+		return conf.GetURL().String(), nil
 	}
 
 	rawTokens := strings.Replace(s.HookURL, "https://hooks.slack.com/services/", "", 1)
@@ -66,14 +70,9 @@ func (s *slackTypeNotifier) GetURL() string {
 	conf := &shoutrrrSlack.Config{
 		BotName: s.Username,
 		Token:   tokens,
+		Color:   ColorHex,
+		Title:   GetTitle(),
 	}
 
-	return conf.GetURL().String()
+	return conf.GetURL().String(), nil
 }
-
-func (s *slackTypeNotifier) StartNotification() {
-}
-
-func (s *slackTypeNotifier) SendNotification() {}
-
-func (s *slackTypeNotifier) Close() {}

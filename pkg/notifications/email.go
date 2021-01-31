@@ -26,11 +26,11 @@ type emailTypeNotifier struct {
 }
 
 // NewEmailNotifier is a factory method creating a new email notifier instance
-func NewEmailNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.ConvertableNotifier {
+func NewEmailNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.ConvertibleNotifier {
 	return newEmailNotifier(c, acceptedLogLevels)
 }
 
-func newEmailNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.ConvertableNotifier {
+func newEmailNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.ConvertibleNotifier {
 	flags := c.PersistentFlags()
 
 	from, _ := flags.GetString("notification-email-from")
@@ -60,7 +60,7 @@ func newEmailNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.Convert
 	return n
 }
 
-func (e *emailTypeNotifier) GetURL() string {
+func (e *emailTypeNotifier) GetURL() (string, error) {
 	conf := &shoutrrrSmtp.Config{
 		FromAddress: e.From,
 		FromName:    "Watchtower",
@@ -76,8 +76,6 @@ func (e *emailTypeNotifier) GetURL() string {
 		Auth:        shoutrrrSmtp.AuthTypes.None,
 	}
 
-	pkr := format.NewPropKeyResolver(conf)
-	var err error
 	if len(e.User) > 0 {
 		conf.Auth = shoutrrrSmtp.AuthTypes.Plain
 	}
@@ -86,7 +84,7 @@ func (e *emailTypeNotifier) GetURL() string {
 		conf.Encryption = shoutrrrSmtp.EncMethods.None
 	}
 
-	return conf.GetURL().String()
+	return conf.GetURL().String(), nil
 }
 
 func (e *emailTypeNotifier) getSubject() string {
@@ -98,11 +96,3 @@ func (e *emailTypeNotifier) getSubject() string {
 
 	return subject
 }
-
-// TODO: Delete these once all notifiers have been converted to shoutrrr
-func (e *emailTypeNotifier) StartNotification()          {}
-func (e *emailTypeNotifier) SendNotification()           {}
-func (e *emailTypeNotifier) Levels() []log.Level         { return nil }
-func (e *emailTypeNotifier) Fire(entry *log.Entry) error { return nil }
-
-func (e *emailTypeNotifier) Close() {}

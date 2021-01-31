@@ -28,7 +28,9 @@ var _ = Describe("notifications", func() {
 		When("passing a discord url to the slack notifier", func() {
 			channel := "123456789"
 			token := "abvsihdbau"
-			expected := fmt.Sprintf("discord://%s@%s", token, channel)
+			color := notifications.ColorInt
+			title := notifications.GetTitle()
+			expected := fmt.Sprintf("discord://%s@%s?avatar=&color=%d&colordebug=0&colorerror=0&colorinfo=0&colorwarn=0&splitlines=Yes&title=%s&username=watchtower", token, channel, color, title)
 			buildArgs := func(url string) []string {
 				return []string{
 					"--notifications",
@@ -55,9 +57,11 @@ var _ = Describe("notifications", func() {
 				tokenA := "aaa"
 				tokenB := "bbb"
 				tokenC := "ccc"
+				color := notifications.ColorHex
+				title := notifications.GetTitle()
 
 				hookURL := fmt.Sprintf("https://hooks.slack.com/services/%s/%s/%s", tokenA, tokenB, tokenC)
-				expectedOutput := fmt.Sprintf("slack://%s@%s/%s/%s", username, tokenA, tokenB, tokenC)
+				expectedOutput := fmt.Sprintf("slack://%s@%s/%s/%s?color=%s&title=%s", username, tokenA, tokenB, tokenC, color, title)
 
 				args := []string{
 					"--notification-slack-hook-url",
@@ -78,8 +82,9 @@ var _ = Describe("notifications", func() {
 			It("should return the expected URL", func() {
 				token := "aaa"
 				host := "shoutrrr.local"
+				title := notifications.GetTitle()
 
-				expectedOutput := fmt.Sprintf("gotify://%s/%s", host, token)
+				expectedOutput := fmt.Sprintf("gotify://%s/%s?disabletls=No&priority=0&title=%s", host, token, title)
 
 				args := []string{
 					"--notification-gotify-url",
@@ -102,9 +107,11 @@ var _ = Describe("notifications", func() {
 				tokenA := "11111111-4444-4444-8444-cccccccccccc@22222222-4444-4444-8444-cccccccccccc"
 				tokenB := "33333333012222222222333333333344"
 				tokenC := "44444444-4444-4444-8444-cccccccccccc"
+				color := notifications.ColorHex
+				title := notifications.GetTitle()
 
 				hookURL := fmt.Sprintf("https://outlook.office.com/webhook/%s/IncomingWebhook/%s/%s", tokenA, tokenB, tokenC)
-				expectedOutput := fmt.Sprintf("teams://%s/%s/%s?color=&host=&title=", tokenA, tokenB, tokenC)
+				expectedOutput := fmt.Sprintf("teams://%s/%s/%s?color=%s&host=&title=%s", tokenA, tokenB, tokenC, color, title)
 
 				args := []string{
 					"--notification-msteams-hook",
@@ -156,20 +163,24 @@ func buildExpectedURL(username string, password string, host string, port int, f
 
 	subject := fmt.Sprintf("Watchtower updates on %s", hostname)
 
-	var template = "smtp://%s:%s@%s:%d/?auth=%s&encryption=None&fromaddress=%s&fromname=Watchtower&starttls=Yes&subject=%s&toaddresses=%s&usehtml=No"
+	var template = "smtp://%s:%s@%s:%d/?auth=%s&encryption=Auto&fromaddress=%s&fromname=Watchtower&starttls=Yes&subject=%s&toaddresses=%s&usehtml=No"
 	return fmt.Sprintf(template, username, password, host, port, auth, from, subject, to)
 }
 
-type builderFn = func(c *cobra.Command, acceptedLogLevels []log.Level) types.ConvertableNotifier
+type builderFn = func(c *cobra.Command, acceptedLogLevels []log.Level) types.ConvertibleNotifier
 
 func testURL(builder builderFn, args []string, expectedURL string) {
 
 	command := cmd.NewRootCommand()
 	flags.RegisterNotificationFlags(command)
-	command.ParseFlags(args)
+
+	err := command.ParseFlags(args)
+	Expect(err).NotTo(HaveOccurred())
 
 	notifier := builder(command, []log.Level{})
-	actualURL := notifier.GetURL()
+	actualURL, err := notifier.GetURL()
+
+	Expect(err).NotTo(HaveOccurred())
 
 	Expect(actualURL).To(Equal(expectedURL))
 }
