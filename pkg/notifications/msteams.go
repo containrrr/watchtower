@@ -5,6 +5,7 @@ import (
 	t "github.com/containrrr/watchtower/pkg/types"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"net/url"
 )
 
 const (
@@ -42,16 +43,12 @@ func newMsTeamsNotifier(cmd *cobra.Command, acceptedLogLevels []log.Level) t.Con
 }
 
 func (n *msTeamsTypeNotifier) GetURL() (string, error) {
-
-	webhookURL := n.webHookURL
-	if webhookURL[len(webhookURL)-1] != '/' {
-		webhookURL += "/"
+	webhookURL, err := url.Parse(n.webHookURL)
+	if err != nil {
+		return "", err
 	}
 
-	var err error
-	config := &shoutrrrTeams.Config{}
-	config, err = config.SetFromWebhookURL(webhookURL)
-
+	config, err := shoutrrrTeams.ConfigFromWebhookURL(*webhookURL)
 	if err != nil {
 		return "", err
 	}
