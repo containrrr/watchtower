@@ -69,5 +69,5 @@ jobs:
       - name: Build
         uses: goreleaser/goreleaser-action@v2
         with:
-          version: v0.104.1
+          version: v0.155.0
           args: --snapshot --skip-publish --debug
