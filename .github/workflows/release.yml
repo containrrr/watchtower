@@ -70,10 +70,10 @@ jobs:
         uses: actions/setup-go@v2
         with:
           go-version: 1.15.x
-      - name: Run goreleaser
+      - name: Build
         uses: goreleaser/goreleaser-action@v2
         with:
-          version: v0.104.1
+          version: v0.155.0
           args: --debug
       - name: Enable experimental docker features
         run: |
