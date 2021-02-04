@@ -10,20 +10,21 @@ build:
     - arm
     - arm64
 archives:
-  name_template: "{{.ProjectName}}_{{.Os}}_{{.Arch}}"
-  format: tar.gz
-  replacements:
-    arm: armhf
-    arm64: arm64v8
-    amd64: amd64
-    386: 386
-    darwin: macOS
-    linux: linux
-  format_overrides:
-    - goos: windows
-      format: zip
-  files:
-    - LICENSE.md
+  - 
+    name_template: "{{.ProjectName}}_{{.Os}}_{{.Arch}}"
+    format: tar.gz
+    replacements:
+      arm: armhf
+      arm64: arm64v8
+      amd64: amd64
+      386: 386
+      darwin: macOS
+      linux: linux
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - LICENSE.md
 dockers:
   -
     use_buildx: true
