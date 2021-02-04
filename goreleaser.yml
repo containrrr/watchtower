@@ -9,7 +9,7 @@ build:
     - 386
     - arm
     - arm64
-archive:
+archives:
   name_template: "{{.ProjectName}}_{{.Os}}_{{.Arch}}"
   format: tar.gz
   replacements:
