@@ -730,6 +730,15 @@
       "contributions": [
         "doc"
       ]
+    },
+    {
+      "login": "hydrargyrum",
+      "name": "hydrargyrum",
+      "avatar_url": "https://avatars.githubusercontent.com/u/2804645?v=4",
+      "profile": "https://indigo.re/",
+      "contributions": [
+        "doc"
+      ]
     }
   ],
   "contributorsPerLine": 7,
