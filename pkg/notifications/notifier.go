@@ -111,6 +111,7 @@ func (n *Notifier) Close() {
 	}
 }
 
+// GetTitle returns a common notification title with hostname appended
 func GetTitle() (title string) {
 	title = "Watchtower updates"
 
@@ -121,5 +122,8 @@ func GetTitle() (title string) {
 	return
 }
 
+// ColorHex is the default notification color used for services that support it (formatted as a CSS hex string)
 const ColorHex = "#406170"
+
+// ColorInt is the default notification color used for services that support it (as an int value)
 const ColorInt = 0x406170
