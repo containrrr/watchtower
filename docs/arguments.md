@@ -248,7 +248,9 @@ Sets an authentication token to HTTP API requests.
 Environment Variable: WATCHTOWER_HTTP_API_TOKEN
                 Type: String
              Default: -
-```## Filter by scope
+```
+
+## Filter by scope
 Update containers that have a `com.centurylinklabs.watchtower.scope` label set with the same value as the given argument. This enables [running multiple instances](https://containrrr.github.io/watchtower/running-multiple-instances).
 
 ```
