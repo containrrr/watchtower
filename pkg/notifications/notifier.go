@@ -5,6 +5,7 @@ import (
 	"github.com/johntdyer/slackrus"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"os"
 )
 
 // Notifier can send log output as notification to admins, with optional batching.
@@ -36,13 +37,13 @@ func NewNotifier(c *cobra.Command) *Notifier {
 		log.WithField("could not read notifications argument", log.Fields{"Error": err}).Fatal()
 	}
 
-	n.types = n.GetNotificationTypes(c, acceptedLogLevels, types)
+	n.types = n.getNotificationTypes(c, acceptedLogLevels, types)
 
 	return n
 }
 
-// GetNotificationTypes produces an array of notifiers from a list of types
-func (n *Notifier) GetNotificationTypes(cmd *cobra.Command, levels []log.Level, types []string) []ty.Notifier {
+// getNotificationTypes produces an array of notifiers from a list of types
+func (n *Notifier) getNotificationTypes(cmd *cobra.Command, levels []log.Level, types []string) []ty.Notifier {
 	output := make([]ty.Notifier, 0)
 
 	for _, t := range types {
@@ -52,7 +53,8 @@ func (n *Notifier) GetNotificationTypes(cmd *cobra.Command, levels []log.Level, 
 			continue
 		}
 
-		var legacyNotifier ty.ConvertableNotifier
+		var legacyNotifier ty.ConvertibleNotifier
+		var err error
 
 		switch t {
 		case emailType:
@@ -65,11 +67,20 @@ func (n *Notifier) GetNotificationTypes(cmd *cobra.Command, levels []log.Level, 
 			legacyNotifier = newGotifyNotifier(cmd, []log.Level{})
 		default:
 			log.Fatalf("Unknown notification type %q", t)
+			// Not really needed, used for nil checking static analysis
+			continue
 		}
+
+		shoutrrrURL, err := legacyNotifier.GetURL()
+		if err != nil {
+			log.Fatal("failed to create notification config:", err)
+		}
+
+		println(shoutrrrURL)
 
 		notifier := newShoutrrrNotifierFromURL(
 			cmd,
-			legacyNotifier.GetURL(),
+			shoutrrrURL,
 			levels,
 		)
 
@@ -99,3 +110,20 @@ func (n *Notifier) Close() {
 		t.Close()
 	}
 }
+
+// GetTitle returns a common notification title with hostname appended
+func GetTitle() (title string) {
+	title = "Watchtower updates"
+
+	if hostname, err := os.Hostname(); err == nil {
+		title += " on " + hostname
+	}
+
+	return
+}
+
+// ColorHex is the default notification color used for services that support it (formatted as a CSS hex string)
+const ColorHex = "#406170"
+
+// ColorInt is the default notification color used for services that support it (as an int value)
+const ColorInt = 0x406170
