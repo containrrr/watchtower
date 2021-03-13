@@ -24,7 +24,7 @@ jobs:
 
     - uses: jerray/publish-docker-action@master
       with:
-        username: ${{ github.repository_owner }}
+        username: ${{ secrets.GITHUB_USERNAME }}
         password: ${{ secrets.GITHUB_PASSWORD }}
         file: dockerfiles/Dockerfile.self-contained
         registry: ghcr.io
