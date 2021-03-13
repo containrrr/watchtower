@@ -166,8 +166,8 @@ jobs:
       - name: Push manifests to GitHub Container Registry
         run: |
           echo "$GITHUB_PASS" | docker login -u $GITHUB_USER --password-stdin && \
-            ghcr.io/docker manifest push containrrr/watchtower:$(echo $TAG | sed 's/^v*//') && \
-            ghcr.io/docker manifest push containrrr/watchtower:latest
+            docker manifest push ghcr.io/containrrr/watchtower:$(echo $TAG | sed 's/^v*//') && \
+            docker manifest push ghcr.io/containrrr/watchtower:latest
 
   publish-docs:
     name: Publish Docs
