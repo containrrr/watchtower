@@ -1,0 +1,179 @@
+name: Release (Production)
+
+on:
+  release:
+    types:
+      - created
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+      - '**/v[0-9]+.[0-9]+.[0-9]+'
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.15.x
+      - name: Install linter
+        run: |
+          go get -u golang.org/x/lint/golint
+      - name: Lint files
+        run: |
+          golint -set_exit_status ./...
+
+  test:
+    name: Test
+    strategy:
+      matrix:
+        go-version:
+          - 1.15.x
+        platform:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.15.x
+      - name: Run tests
+        run: |
+          go test ./... -coverprofile coverage.out
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: 
+      - test
+      - lint
+    env:
+      CGO_ENABLED: ${CGO_ENABLED:-0}
+      TAG: ${GITHUB_REF#refs/tags/}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.15.x
+      - name: Build
+        uses: goreleaser/goreleaser-action@v2
+        with:
+          version: v0.155.0
+          args: --debug
+      - name: Enable experimental docker features
+        run: |
+          mkdir -p ~/.docker/ && \
+          echo '{"experimental": "enabled"}' > ~/.docker/config.json
+      - name: Create manifest for version
+        run: |
+          export DH_TAG=$(echo $TAG | sed 's/^v*//')
+          docker manifest create \
+            containrrr/watchtower:$DH_TAG \
+            containrrr/watchtower:amd64-$DH_TAG \
+            containrrr/watchtower:i386-$DH_TAG \
+            containrrr/watchtower:armhf-$DH_TAG \
+            containrrr/watchtower:arm64v8-$DH_TAG
+      - name: Annotate manifest for version
+        run: |
+          docker manifest annotate \
+            containrrr/watchtower:$(echo $TAG | sed 's/^v*//') \
+            containrrr/watchtower:i386-$(echo $TAG | sed 's/^v*//') \
+            --os linux \
+            --arch 386
+          
+          docker manifest annotate \
+            containrrr/watchtower:$(echo $TAG | sed 's/^v*//') \
+            containrrr/watchtower:armhf-$(echo $TAG | sed 's/^v*//') \
+            --os linux \
+            --arch arm
+      
+          docker manifest annotate \
+            containrrr/watchtower:$(echo $TAG | sed 's/^v*//') \
+            containrrr/watchtower:arm64v8-$(echo $TAG | sed 's/^v*//') \
+            --os linux \
+            --arch arm64 \
+            --variant v8
+      - name: Create manifest for latest
+        run: |
+          docker manifest create \
+            containrrr/watchtower:latest \
+            containrrr/watchtower:amd64-latest \
+            containrrr/watchtower:i386-latest \
+            containrrr/watchtower:armhf-latest \
+            containrrr/watchtower:arm64v8-latest
+      - name: Annotate manifest for latest
+        run: |
+          docker manifest annotate \
+            containrrr/watchtower:latest \
+            containrrr/watchtower:i386-latest \
+            --os linux \
+            --arch 386
+      
+          docker manifest annotate \
+            containrrr/watchtower:latest \
+            containrrr/watchtower:armhf-latest \
+            --os linux \
+            --arch arm
+    
+          docker manifest annotate \
+            containrrr/watchtower:latest \
+            containrrr/watchtower:arm64v8-latest \
+            --os linux \
+            --arch arm64 \
+            --variant v8
+      - name: Push manifests to Dockerhub
+        run: |
+          echo "$DOCKER_PASS" | docker login -u $DOCKER_USER --password-stdin && \
+            docker manifest push containrrr/watchtower:$(echo $TAG | sed 's/^v*//') && \
+            docker manifest push containrrr/watchtower:latest
+
+  publish-docs:
+    name: Publish Docs
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Install mkdocs
+        run: |
+          pip install \
+            mkdocs \
+            mkdocs-material \
+            md-toc
+      - name: Generate docs
+        run: mkdocs build
+      - name: Publish docs
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./site
+
+  renew-docs:
+    name: Refresh pkg.go.dev
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+    - name: Pull new module version
+      uses: andrewslotin/go-proxy-pull-action@master
+
+  
+  
+
+  

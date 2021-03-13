@@ -311,7 +311,8 @@
       "profile": "https://github.com/zoispag",
       "contributions": [
         "code",
-        "review"
+        "review",
+        "maintenance"
       ]
     },
     {
@@ -641,10 +642,10 @@
       ]
     },
     {
-      "login": "x-jokay",
+      "login": "jokay",
       "name": "D. Domig",
       "avatar_url": "https://avatars0.githubusercontent.com/u/18613935?v=4",
-      "profile": "https://github.com/x-jokay",
+      "profile": "https://github.com/jokay",
       "contributions": [
         "doc"
       ]
@@ -710,6 +711,33 @@
       "profile": "https://github.com/tkalus",
       "contributions": [
         "code"
+      ]
+    },
+    {
+      "login": "SrihariThalla",
+      "name": "Srihari Thalla",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/7479937?v=4",
+      "profile": "https://github.com/SrihariThalla",
+      "contributions": [
+        "doc"
+      ]
+    },
+    {
+      "login": "nymous",
+      "name": "Thomas Gaudin",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/4216559?v=4",
+      "profile": "https://nymous.io",
+      "contributions": [
+        "doc"
+      ]
+    },
+    {
+      "login": "hydrargyrum",
+      "name": "hydrargyrum",
+      "avatar_url": "https://avatars.githubusercontent.com/u/2804645?v=4",
+      "profile": "https://indigo.re/",
+      "contributions": [
+        "doc"
       ]
     }
   ],
