@@ -87,24 +87,35 @@ jobs:
             containrrr/watchtower:amd64-$DH_TAG \
             containrrr/watchtower:i386-$DH_TAG \
             containrrr/watchtower:armhf-$DH_TAG \
-            containrrr/watchtower:arm64v8-$DH_TAG
+            containrrr/watchtower:arm64v8-$DH_TAG \
+            ghcr.io/containrrr/watchtower:$DH_TAG \
+            ghcr.io/containrrr/watchtower:amd64-$DH_TAG \
+            ghcr.io/containrrr/watchtower:i386-$DH_TAG \
+            ghcr.io/containrrr/watchtower:armhf-$DH_TAG \
+            ghcr.io/containrrr/watchtower:arm64v8-$DH_TAG
       - name: Annotate manifest for version
         run: |
           docker manifest annotate \
             containrrr/watchtower:$(echo $TAG | sed 's/^v*//') \
             containrrr/watchtower:i386-$(echo $TAG | sed 's/^v*//') \
+            ghcr.io/containrrr/watchtower:$(echo $TAG | sed 's/^v*//') \
+            ghcr.io/containrrr/watchtower:i386-$(echo $TAG | sed 's/^v*//') \
             --os linux \
             --arch 386
           
           docker manifest annotate \
             containrrr/watchtower:$(echo $TAG | sed 's/^v*//') \
             containrrr/watchtower:armhf-$(echo $TAG | sed 's/^v*//') \
+            ghcr.io/containrrr/watchtower:$(echo $TAG | sed 's/^v*//') \
+            ghcr.io/containrrr/watchtower:armhf-$(echo $TAG | sed 's/^v*//') \
             --os linux \
             --arch arm
       
           docker manifest annotate \
             containrrr/watchtower:$(echo $TAG | sed 's/^v*//') \
             containrrr/watchtower:arm64v8-$(echo $TAG | sed 's/^v*//') \
+            ghcr.io/containrrr/watchtower:$(echo $TAG | sed 's/^v*//') \
+            ghcr.io/containrrr/watchtower:arm64v8-$(echo $TAG | sed 's/^v*//') \
             --os linux \
             --arch arm64 \
             --variant v8
@@ -115,24 +126,35 @@ jobs:
             containrrr/watchtower:amd64-latest \
             containrrr/watchtower:i386-latest \
             containrrr/watchtower:armhf-latest \
-            containrrr/watchtower:arm64v8-latest
+            containrrr/watchtower:arm64v8-latest \
+            ghcr.io/containrrr/watchtower:latest \
+            ghcr.io/containrrr/watchtower:amd64-latest \
+            ghcr.io/containrrr/watchtower:i386-latest \
+            ghcr.io/containrrr/watchtower:armhf-latest \
+            ghcr.io/containrrr/watchtower:arm64v8-latest
       - name: Annotate manifest for latest
         run: |
           docker manifest annotate \
             containrrr/watchtower:latest \
             containrrr/watchtower:i386-latest \
+            ghcr.io/containrrr/watchtower:latest \
+            ghcr.io/containrrr/watchtower:i386-latest \
             --os linux \
             --arch 386
       
           docker manifest annotate \
             containrrr/watchtower:latest \
             containrrr/watchtower:armhf-latest \
+            ghcr.io/containrrr/watchtower:latest \
+            ghcr.io/containrrr/watchtower:armhf-latest \
             --os linux \
             --arch arm
     
           docker manifest annotate \
             containrrr/watchtower:latest \
             containrrr/watchtower:arm64v8-latest \
+            ghcr.io/containrrr/watchtower:latest \
+            ghcr.io/containrrr/watchtower:arm64v8-latest \
             --os linux \
             --arch arm64 \
             --variant v8
@@ -141,6 +163,11 @@ jobs:
           echo "$DOCKER_PASS" | docker login -u $DOCKER_USER --password-stdin && \
             docker manifest push containrrr/watchtower:$(echo $TAG | sed 's/^v*//') && \
             docker manifest push containrrr/watchtower:latest
+      - name: Push manifests to GitHub Container Registry
+        run: |
+          echo "$GITHUB_PASSWORD" | docker login -u ${{ github.repository_owner }} --password-stdin && \
+            docker manifest push ghcr.io/containrrr/watchtower:$(echo $TAG | sed 's/^v*//') && \
+            docker manifest push ghcr.io/containrrr/watchtower:latest
 
   publish-docs:
     name: Publish Docs
