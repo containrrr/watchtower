@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	metrics2 "github.com/containrrr/watchtower/pkg/metrics"
 	"math"
 	"os"
 	"os/signal"
@@ -10,7 +9,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containrrr/watchtower/pkg/api/metrics"
+	apiMetrics "github.com/containrrr/watchtower/pkg/api/metrics"
 	"github.com/containrrr/watchtower/pkg/api/update"
 
 	"github.com/containrrr/watchtower/internal/actions"
@@ -18,6 +17,7 @@ import (
 	"github.com/containrrr/watchtower/pkg/api"
 	"github.com/containrrr/watchtower/pkg/container"
 	"github.com/containrrr/watchtower/pkg/filters"
+	"github.com/containrrr/watchtower/pkg/metrics"
 	"github.com/containrrr/watchtower/pkg/notifications"
 	t "github.com/containrrr/watchtower/pkg/types"
 	"github.com/robfig/cron"
@@ -73,7 +73,7 @@ func Execute() {
 }
 
 // PreRun is a lifecycle hook that runs before the command is executed.
-func PreRun(cmd *cobra.Command, args []string) {
+func PreRun(cmd *cobra.Command, _ []string) {
 	f := cmd.PersistentFlags()
 
 	if enabled, _ := f.GetBool("no-color"); enabled {
@@ -177,11 +177,13 @@ func Run(c *cobra.Command, names []string) {
 	}
 
 	if enableMetricsAPI {
-		metricsHandler := metrics.New()
+		metricsHandler := apiMetrics.New()
 		httpAPI.RegisterHandler(metricsHandler.Path, metricsHandler.Handle)
 	}
 
-	httpAPI.Start(enableUpdateAPI)
+	if err := httpAPI.Start(enableUpdateAPI); err != nil {
+		log.Error("failed to start API", err)
+	}
 
 	if err := runUpgradesOnSchedule(c, filter, filterDesc); err != nil {
 		log.Error(err)
@@ -252,22 +254,22 @@ func runUpgradesOnSchedule(c *cobra.Command, filter t.Filter, filtering string) 
 	tryLockSem := make(chan bool, 1)
 	tryLockSem <- true
 
-	cron := cron.New()
-	err := cron.AddFunc(
+	scheduler := cron.New()
+	err := scheduler.AddFunc(
 		scheduleSpec,
 		func() {
 			select {
 			case v := <-tryLockSem:
 				defer func() { tryLockSem <- v }()
 				metric := runUpdatesWithNotifications(filter)
-				metrics2.RegisterScan(metric)
+				metrics.RegisterScan(metric)
 			default:
 				// Update was skipped
-				metrics2.RegisterScan(nil)
+				metrics.RegisterScan(nil)
 				log.Debug("Skipped another update already running.")
 			}
 
-			nextRuns := cron.Entries()
+			nextRuns := scheduler.Entries()
 			if len(nextRuns) > 0 {
 				log.Debug("Scheduled next run: " + nextRuns[0].Next.String())
 			}
@@ -277,9 +279,9 @@ func runUpgradesOnSchedule(c *cobra.Command, filter t.Filter, filtering string) 
 		return err
 	}
 
-	writeStartupMessage(c, cron.Entries()[0].Schedule.Next(time.Now()), filtering)
+	writeStartupMessage(c, scheduler.Entries()[0].Schedule.Next(time.Now()), filtering)
 
-	cron.Start()
+	scheduler.Start()
 
 	// Graceful shut-down on SIGINT/SIGTERM
 	interrupt := make(chan os.Signal, 1)
@@ -287,15 +289,13 @@ func runUpgradesOnSchedule(c *cobra.Command, filter t.Filter, filtering string) 
 	signal.Notify(interrupt, syscall.SIGTERM)
 
 	<-interrupt
-	cron.Stop()
+	scheduler.Stop()
 	log.Info("Waiting for running update to be finished...")
 	<-tryLockSem
 	return nil
 }
 
-func runUpdatesWithNotifications(filter t.Filter) *metrics2.Metric {
-	// return &metrics2.Metric{}
-
+func runUpdatesWithNotifications(filter t.Filter) *metrics.Metric {
 	notifier.StartNotification()
 	updateParams := t.UpdateParams{
 		Filter:         filter,
@@ -306,10 +306,10 @@ func runUpdatesWithNotifications(filter t.Filter) *metrics2.Metric {
 		LifecycleHooks: lifecycleHooks,
 		RollingRestart: rollingRestart,
 	}
-	metrics, err := actions.Update(client, updateParams)
+	metricResults, err := actions.Update(client, updateParams)
 	if err != nil {
 		log.Println(err)
 	}
 	notifier.SendNotification()
-	return metrics
+	return metricResults
 }
