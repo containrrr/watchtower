@@ -43,7 +43,10 @@ func (c Container) ID() string {
 // container is running. The status is determined by the value of the
 // container's "State.Running" property.
 func (c Container) IsRunning() bool {
-	return c.containerInfo.State.Running
+	if c.containerInfo.State != nil {
+		return c.containerInfo.State.Running
+	}
+	return false
 }
 
 // Name returns the Docker container name.
