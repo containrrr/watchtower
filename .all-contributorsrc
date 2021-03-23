@@ -739,6 +739,15 @@
       "contributions": [
         "doc"
       ]
+    },
+    {
+      "login": "reinout",
+      "name": "Reinout van Rees",
+      "avatar_url": "https://avatars.githubusercontent.com/u/121433?v=4",
+      "profile": "https://reinout.vanrees.org",
+      "contributions": [
+        "doc"
+      ]
     }
   ],
   "contributorsPerLine": 7,
