@@ -4,5 +4,6 @@ package types
 type Notifier interface {
 	StartNotification()
 	SendNotification()
+	GetNames() []string
 	Close()
 }
