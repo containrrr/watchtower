@@ -1,59 +1,59 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url>
      <loc>http://containrrr.github.io/watchtower/</loc>
-     <lastmod>2021-01-10</lastmod>
+     <lastmod>2021-03-28</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
      <loc>http://containrrr.github.io/watchtower/introduction/</loc>
-     <lastmod>2021-01-10</lastmod>
+     <lastmod>2021-03-28</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
      <loc>http://containrrr.github.io/watchtower/usage-overview/</loc>
-     <lastmod>2021-01-10</lastmod>
+     <lastmod>2021-03-28</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
      <loc>http://containrrr.github.io/watchtower/arguments/</loc>
-     <lastmod>2021-01-10</lastmod>
+     <lastmod>2021-03-28</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
      <loc>http://containrrr.github.io/watchtower/notifications/</loc>
-     <lastmod>2021-01-10</lastmod>
+     <lastmod>2021-03-28</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
      <loc>http://containrrr.github.io/watchtower/container-selection/</loc>
-     <lastmod>2021-01-10</lastmod>
+     <lastmod>2021-03-28</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
      <loc>http://containrrr.github.io/watchtower/private-registries/</loc>
-     <lastmod>2021-01-10</lastmod>
+     <lastmod>2021-03-28</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
      <loc>http://containrrr.github.io/watchtower/linked-containers/</loc>
-     <lastmod>2021-01-10</lastmod>
+     <lastmod>2021-03-28</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
      <loc>http://containrrr.github.io/watchtower/remote-hosts/</loc>
-     <lastmod>2021-01-10</lastmod>
+     <lastmod>2021-03-28</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
      <loc>http://containrrr.github.io/watchtower/secure-connections/</loc>
-     <lastmod>2021-01-10</lastmod>
+     <lastmod>2021-03-28</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
      <loc>http://containrrr.github.io/watchtower/stop-signals/</loc>
-     <lastmod>2021-01-10</lastmod>
+     <lastmod>2021-03-28</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
      <loc>http://containrrr.github.io/watchtower/lifecycle-hooks/</loc>
-     <lastmod>2021-01-10</lastmod>
+     <lastmod>2021-03-28</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
      <loc>http://containrrr.github.io/watchtower/running-multiple-instances/</loc>
-     <lastmod>2021-01-10</lastmod>
+     <lastmod>2021-03-28</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
      <loc>http://containrrr.github.io/watchtower/metrics/</loc>
-     <lastmod>2021-01-10</lastmod>
+     <lastmod>2021-03-28</lastmod>
      <changefreq>daily</changefreq>
     </url>
 </urlset>
