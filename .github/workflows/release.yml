@@ -145,6 +145,7 @@ jobs:
             --variant v8
       - name: Push manifests to Dockerhub
         run: |
+          echo "$DOCKER_TOKEN" | docker login -u $DOCKER_USER --password-stdin && \
             docker manifest push containrrr/watchtower:$(echo $TAG | sed 's/^v*//') && \
             docker manifest push containrrr/watchtower:latest
 
