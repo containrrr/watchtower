@@ -75,6 +75,8 @@ jobs:
         with:
           version: v0.155.0
           args: --debug
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Enable experimental docker features
         run: |
           mkdir -p ~/.docker/ && \
