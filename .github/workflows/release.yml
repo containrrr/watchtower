@@ -59,7 +59,7 @@ jobs:
       - test
       - lint
     env:
-      CGO_ENABLED: ${CGO_ENABLED:-0}
+      CGO_ENABLED: 0
       TAG: ${{ github.event.release.tag_name }}
     steps:
       - name: Checkout
