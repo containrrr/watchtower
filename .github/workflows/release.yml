@@ -144,8 +144,11 @@ jobs:
             --arch arm64 \
             --variant v8
       - name: Push manifests to Dockerhub
+        env:
+          DOCKER_USER: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKER_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
-          echo "$DOCKER_TOKEN" | docker login -u $DOCKER_USER --password-stdin && \
+          docker login -u $DOCKER_USER -p $DOCKER_TOKEN && \
             docker manifest push containrrr/watchtower:$(echo $TAG | sed 's/^v*//') && \
             docker manifest push containrrr/watchtower:latest
 
