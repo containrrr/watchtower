@@ -1,7 +1,7 @@
 site_name: Watchtower
 site_url: http://containrrr.github.io/watchtower/
 repo_url: https://github.com/containrrr/watchtower/
-edit_uri: edit/main/docs/index.md
+edit_uri: edit/main/docs/
 theme:
   name: 'material'
   palette:
