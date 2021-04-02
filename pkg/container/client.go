@@ -147,8 +147,10 @@ func (client dockerClient) StopContainer(c Container, timeout time.Duration) err
 		signal = defaultStopSignal
 	}
 
+	shortID := ShortID(c.ID())
+
 	if c.IsRunning() {
-		log.Infof("Stopping %s (%s) with %s", c.Name(), c.ID(), signal)
+		log.Infof("Stopping %s (%s) with %s", c.Name(), shortID, signal)
 		if err := client.api.ContainerKill(bg, c.ID(), signal); err != nil {
 			return err
 		}
@@ -158,9 +160,9 @@ func (client dockerClient) StopContainer(c Container, timeout time.Duration) err
 	_ = client.waitForStopOrTimeout(c, timeout)
 
 	if c.containerInfo.HostConfig.AutoRemove {
-		log.Debugf("AutoRemove container %s, skipping ContainerRemove call.", c.ID())
+		log.Debugf("AutoRemove container %s, skipping ContainerRemove call.", shortID)
 	} else {
-		log.Debugf("Removing container %s", c.ID())
+		log.Debugf("Removing container %s", shortID)
 
 		if err := client.api.ContainerRemove(bg, c.ID(), types.ContainerRemoveOptions{Force: true, RemoveVolumes: client.removeVolumes}); err != nil {
 			return err
@@ -169,7 +171,7 @@ func (client dockerClient) StopContainer(c Container, timeout time.Duration) err
 
 	// Wait for container to be removed. In this case an error is a good thing
 	if err := client.waitForStopOrTimeout(c, timeout); err == nil {
-		return fmt.Errorf("container %s (%s) could not be removed", c.Name(), c.ID())
+		return fmt.Errorf("container %s (%s) could not be removed", c.Name(), shortID)
 	}
 
 	return nil
@@ -229,7 +231,7 @@ func (client dockerClient) StartContainer(c Container) (string, error) {
 func (client dockerClient) doStartContainer(bg context.Context, c Container, creation container.ContainerCreateCreatedBody) error {
 	name := c.Name()
 
-	log.Debugf("Starting container %s (%s)", name, creation.ID)
+	log.Debugf("Starting container %s (%s)", name, ShortID(creation.ID))
 	err := client.api.ContainerStart(bg, creation.ID, types.ContainerStartOptions{})
 	if err != nil {
 		return err
@@ -239,7 +241,7 @@ func (client dockerClient) doStartContainer(bg context.Context, c Container, cre
 
 func (client dockerClient) RenameContainer(c Container, newName string) error {
 	bg := context.Background()
-	log.Debugf("Renaming container %s (%s) to %s", c.Name(), c.ID(), newName)
+	log.Debugf("Renaming container %s (%s) to %s", c.Name(), ShortID(c.ID()), newName)
 	return client.api.ContainerRename(bg, c.ID(), newName)
 }
 
@@ -269,7 +271,7 @@ func (client dockerClient) HasNewImage(ctx context.Context, container Container)
 		return false, nil
 	}
 
-	log.Infof("Found new %s image (%s)", imageName, newImageInfo.ID)
+	log.Infof("Found new %s image (%s)", imageName, ShortID(newImageInfo.ID))
 	return true, nil
 }
 
@@ -284,12 +286,12 @@ func (client dockerClient) PullImage(ctx context.Context, container Container) e
 
 	log.WithFields(fields).Debugf("Trying to load authentication credentials.")
 	opts, err := registry.GetPullOptions(imageName)
-	if opts.RegistryAuth != "" {
-		log.Debug("Credentials loaded")
-	}
 	if err != nil {
 		log.Debugf("Error loading authentication credentials %s", err)
 		return err
+	}
+	if opts.RegistryAuth != "" {
+		log.Debug("Credentials loaded")
 	}
 
 	log.WithFields(fields).Debugf("Checking if pull is needed")
@@ -326,7 +328,7 @@ func (client dockerClient) PullImage(ctx context.Context, container Container) e
 }
 
 func (client dockerClient) RemoveImageByID(id string) error {
-	log.Infof("Removing image %s", id)
+	log.Infof("Removing image %s", ShortID(id))
 
 	_, err := client.api.ImageRemove(
 		context.Background(),
@@ -404,6 +406,7 @@ func (client dockerClient) waitForExecOrTimeout(bg context.Context, ID string, e
 	for {
 		execInspect, err := client.api.ContainerExecInspect(ctx, ID)
 
+		//goland:noinspection GoNilness
 		log.WithFields(log.Fields{
 			"exit-code": execInspect.ExitCode,
 			"exec-id":   execInspect.ExecID,
