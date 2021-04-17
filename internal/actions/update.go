@@ -50,6 +50,7 @@ func Update(client container.Client, params types.UpdateParams) (*metrics2.Metri
 	}
 
 	containers, err = sorter.SortByDependencies(containers)
+
 	metric.Scanned = len(containers)
 	if err != nil {
 		return nil, err
@@ -57,11 +58,11 @@ func Update(client container.Client, params types.UpdateParams) (*metrics2.Metri
 
 	checkDependencies(containers)
 
-	containersToUpdate := []container.Container{}
+	var containersToUpdate []container.Container
 	if !params.MonitorOnly {
-		for i := len(containers) - 1; i >= 0; i-- {
-			if !containers[i].IsMonitorOnly() {
-				containersToUpdate = append(containersToUpdate, containers[i])
+		for _, c := range containers {
+			if !c.IsMonitorOnly() {
+				containersToUpdate = append(containersToUpdate, c)
 			}
 		}
 	}
@@ -86,7 +87,7 @@ func performRollingRestart(containers []container.Container, client container.Cl
 	failed := 0
 
 	for i := len(containers) - 1; i >= 0; i-- {
-		if containers[i].Stale {
+		if containers[i].ToRestart() {
 			if err := stopStaleContainer(containers[i], client, params); err != nil {
 				failed++
 			}
@@ -119,7 +120,7 @@ func stopStaleContainer(container container.Container, client container.Client, 
 		return nil
 	}
 
-	if !container.Stale {
+	if !container.ToRestart() {
 		return nil
 	}
 	if params.LifecycleHooks {
@@ -143,7 +144,7 @@ func restartContainersInSortedOrder(containers []container.Container, client con
 	failed := 0
 
 	for _, c := range containers {
-		if !c.Stale {
+		if !c.ToRestart() {
 			continue
 		}
 		if err := restartStaleContainer(c, client, params); err != nil {
@@ -183,7 +184,7 @@ func restartStaleContainer(container container.Container, client container.Clien
 		if newContainerID, err := client.StartContainer(container); err != nil {
 			log.Error(err)
 			return err
-		} else if container.Stale && params.LifecycleHooks {
+		} else if container.ToRestart() && params.LifecycleHooks {
 			lifecycle.ExecutePostUpdateCommand(client, newContainerID)
 		}
 	}
@@ -192,16 +193,19 @@ func restartStaleContainer(container container.Container, client container.Clien
 
 func checkDependencies(containers []container.Container) {
 
-	for i, parent := range containers {
-		if parent.ToRestart() {
+	for _, c := range containers {
+		if c.ToRestart() {
 			continue
 		}
 
 	LinkLoop:
-		for _, linkName := range parent.Links() {
-			for _, child := range containers {
-				if child.Name() == linkName && child.ToRestart() {
-					containers[i].Linked = true
+		for _, linkName := range c.Links() {
+			for _, candidate := range containers {
+				if candidate.Name() != linkName {
+					continue
+				}
+				if candidate.ToRestart() {
+					c.LinkedToRestarting = true
 					break LinkLoop
 				}
 			}
