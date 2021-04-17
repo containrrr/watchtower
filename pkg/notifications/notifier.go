@@ -97,7 +97,7 @@ func (n *Notifier) getNotificationTypes(cmd *cobra.Command, levels []log.Level, 
 			log.Fatal("failed to create notification config:", err)
 		}
 
-		println(shoutrrrURL)
+		log.WithField("URL", shoutrrrURL).Trace("created Shoutrrr URL from legacy notifier")
 
 		notifier := newShoutrrrNotifierFromURL(
 			cmd,
