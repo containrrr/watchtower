@@ -52,8 +52,17 @@ func (c Container) Name() string {
 }
 
 // ImageID returns the ID of the Docker image that was used to start the
-// container.
+// container. May cause nil dereference if imageInfo is not set!
 func (c Container) ImageID() string {
+	return c.imageInfo.ID
+}
+
+// SafeImageID returns the ID of the Docker image that was used to start the container if available,
+// otherwise returns an empty string
+func (c Container) SafeImageID() string {
+	if c.imageInfo == nil {
+		return ""
+	}
 	return c.imageInfo.ID
 }
 

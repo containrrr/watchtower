@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 	"os"
 	"strings"
+	"time"
 )
 
 // Notifier can send log output as notification to admins, with optional batching.
@@ -125,14 +126,15 @@ func (n *Notifier) StartNotification() {
 }
 
 // SendNotification sends any notifications accumulated since StartNotification() was called.
-func (n *Notifier) SendNotification() {
+func (n *Notifier) SendNotification(report ty.Report) {
 	for _, t := range n.types {
-		t.SendNotification()
+		t.SendNotification(report)
 	}
 }
 
 // Close closes all notifiers.
 func (n *Notifier) Close() {
+	time.Sleep(time.Second * 2)
 	for _, t := range n.types {
 		t.Close()
 	}

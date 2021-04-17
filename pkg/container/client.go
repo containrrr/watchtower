@@ -30,7 +30,7 @@ type Client interface {
 	StopContainer(Container, time.Duration) error
 	StartContainer(Container) (string, error)
 	RenameContainer(Container, string) error
-	IsContainerStale(Container) (bool, error)
+	IsContainerStale(Container) (stale bool, newestImage string, err error)
 	ExecuteCommand(containerID string, command string, timeout int) error
 	RemoveImageByID(string) error
 	WarnOnHeadPullFailed(container Container) bool
@@ -259,34 +259,34 @@ func (client dockerClient) RenameContainer(c Container, newName string) error {
 	return client.api.ContainerRename(bg, c.ID(), newName)
 }
 
-func (client dockerClient) IsContainerStale(container Container) (bool, error) {
+func (client dockerClient) IsContainerStale(container Container) (stale bool, newestImage string, err error) {
 	ctx := context.Background()
 
 	if !client.pullImages {
 		log.Debugf("Skipping image pull.")
 	} else if err := client.PullImage(ctx, container); err != nil {
-		return false, err
+		return false, container.SafeImageID(), err
 	}
 
 	return client.HasNewImage(ctx, container)
 }
 
-func (client dockerClient) HasNewImage(ctx context.Context, container Container) (bool, error) {
+func (client dockerClient) HasNewImage(ctx context.Context, container Container) (hasNew bool, newestImage string, err error) {
 	oldImageID := container.containerInfo.ContainerJSONBase.Image
 	imageName := container.ImageName()
 
 	newImageInfo, _, err := client.api.ImageInspectWithRaw(ctx, imageName)
 	if err != nil {
-		return false, err
+		return false, oldImageID, err
 	}
 
 	if newImageInfo.ID == oldImageID {
 		log.Debugf("No new images found for %s", container.Name())
-		return false, nil
+		return false, oldImageID, nil
 	}
 
 	log.Infof("Found new %s image (%s)", imageName, ShortID(newImageInfo.ID))
-	return true, nil
+	return true, newImageInfo.ID, nil
 }
 
 // PullImage pulls the latest image for the supplied container, optionally skipping if it's digest can be confirmed

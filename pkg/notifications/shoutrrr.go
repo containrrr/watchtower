@@ -15,8 +15,11 @@ import (
 )
 
 const (
-	shoutrrrDefaultTemplate = "{{range .}}{{.Message}}{{println}}{{end}}"
-	shoutrrrType            = "shoutrrr"
+	shoutrrrDefaultLegacyTemplate = "{{range .}}{{.Message}}{{println}}{{end}}"
+	shoutrrrDefaultTemplate = `{{with .Report -}}{{len .Scanned}} Scanned, {{len .Updated}} Updated
+{{range .Scanned}} - {{.Name}} ({{.ImageName}}): {{.State}}{{println}}{{end}}
+{{- end}}{{range .Entries}} {{- println .Message -}} {{end}}`
+	shoutrrrType = "shoutrrr"
 )
 
 type router interface {
@@ -32,6 +35,7 @@ type shoutrrrTypeNotifier struct {
 	template  *template.Template
 	messages  chan string
 	done      chan bool
+	legacyTemplate bool
 }
 
 func (n *shoutrrrTypeNotifier) GetNames() []string {
@@ -47,19 +51,19 @@ func (n *shoutrrrTypeNotifier) GetNames() []string {
 	return names
 }
 
-func newShoutrrrNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.Notifier {
+func newShoutrrrNotifier(c *cobra.Command, acceptedLogLevels []log.Level, legacy bool) t.Notifier {
 	flags := c.PersistentFlags()
 	urls, _ := flags.GetStringArray("notification-url")
-	tpl := getShoutrrrTemplate(c)
-	return createSender(urls, acceptedLogLevels, tpl)
+	tpl := getShoutrrrTemplate(c, legacy)
+	return createSender(urls, acceptedLogLevels, tpl, legacy)
 }
 
-func newShoutrrrNotifierFromURL(c *cobra.Command, url string, levels []log.Level) t.Notifier {
-	tpl := getShoutrrrTemplate(c)
-	return createSender([]string{url}, levels, tpl)
+func newShoutrrrNotifierFromURL(c *cobra.Command, url string, levels []log.Level, legacy bool) t.Notifier {
+	tpl := getShoutrrrTemplate(c, legacy)
+	return createSender([]string{url}, levels, tpl, legacy)
 }
 
-func createSender(urls []string, levels []log.Level, template *template.Template) t.Notifier {
+func createSender(urls []string, levels []log.Level, template *template.Template, legacy bool) t.Notifier {
 
 	traceWriter := log.StandardLogger().WriterLevel(log.TraceLevel)
 	r, err := shoutrrr.NewSender(stdlog.New(traceWriter, "Shoutrrr: ", 0), urls...)
@@ -74,6 +78,7 @@ func createSender(urls []string, levels []log.Level, template *template.Template
 		done:      make(chan bool),
 		logLevels: levels,
 		template:  template,
+		legacyTemplate: legacy,
 	}
 
 	log.AddHook(n)
@@ -99,17 +104,17 @@ func sendNotifications(n *shoutrrrTypeNotifier) {
 	n.done <- true
 }
 
-func (n *shoutrrrTypeNotifier) buildMessage(entries []*log.Entry) string {
+func (n *shoutrrrTypeNotifier) buildMessage(data Data) string {
 	var body bytes.Buffer
-	if err := n.template.Execute(&body, entries); err != nil {
+	if err := n.template.Execute(&body, data); err != nil {
 		fmt.Printf("Failed to execute Shoutrrrr template: %s\n", err.Error())
 	}
 
 	return body.String()
 }
 
-func (n *shoutrrrTypeNotifier) sendEntries(entries []*log.Entry) {
-	msg := n.buildMessage(entries)
+func (n *shoutrrrTypeNotifier) sendEntries(entries []*log.Entry, report t.Report) {
+	msg := n.buildMessage(Data{entries, report})
 	n.messages <- msg
 }
 
@@ -119,12 +124,12 @@ func (n *shoutrrrTypeNotifier) StartNotification() {
 	}
 }
 
-func (n *shoutrrrTypeNotifier) SendNotification() {
-	if n.entries == nil || len(n.entries) <= 0 {
-		return
-	}
+func (n *shoutrrrTypeNotifier) SendNotification(report t.Report) {
+	//if n.entries == nil || len(n.entries) <= 0 {
+	//	return
+	//}
 
-	n.sendEntries(n.entries)
+	n.sendEntries(n.entries, report)
 	n.entries = nil
 }
 
@@ -146,12 +151,12 @@ func (n *shoutrrrTypeNotifier) Fire(entry *log.Entry) error {
 		n.entries = append(n.entries, entry)
 	} else {
 		// Log output generated outside a cycle is sent immediately.
-		n.sendEntries([]*log.Entry{entry})
+		n.sendEntries([]*log.Entry{entry}, nil)
 	}
 	return nil
 }
 
-func getShoutrrrTemplate(c *cobra.Command) *template.Template {
+func getShoutrrrTemplate(c *cobra.Command, legacy bool) *template.Template {
 	var tpl *template.Template
 
 	flags := c.PersistentFlags()
@@ -183,8 +188,18 @@ func getShoutrrrTemplate(c *cobra.Command) *template.Template {
 	// template wasn't configured (the empty template string)
 	// fallback to using the default template.
 	if err != nil || tplString == "" {
-		tpl = template.Must(template.New("").Funcs(funcs).Parse(shoutrrrDefaultTemplate))
+		defaultTemplate := shoutrrrDefaultTemplate
+		if legacy {
+			defaultTemplate =  shoutrrrDefaultLegacyTemplate
+		}
+
+		tpl = template.Must(template.New("").Funcs(funcs).Parse(defaultTemplate))
 	}
 
 	return tpl
+}
+
+type Data struct {
+	Entries []*log.Entry
+	Report  t.Report
 }
