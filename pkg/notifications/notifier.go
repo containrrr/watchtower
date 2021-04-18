@@ -55,6 +55,12 @@ func (n *Notifier) String() string {
 			sb.WriteString(", ")
 		}
 	}
+
+	if sb.Len() < 2 {
+		// No notification services are configured, return early as the separator strip is not applicable
+		return "none"
+	}
+
 	names := sb.String()
 
 	// remove the last separator
