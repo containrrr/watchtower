@@ -154,8 +154,17 @@ func Run(c *cobra.Command, names []string) {
 	runOnce, _ := c.PersistentFlags().GetBool("run-once")
 	enableUpdateAPI, _ := c.PersistentFlags().GetBool("http-api-update")
 	enableMetricsAPI, _ := c.PersistentFlags().GetBool("http-api-metrics")
-
 	apiToken, _ := c.PersistentFlags().GetString("http-api-token")
+
+	if rollingRestart && monitorOnly {
+		log.Fatal("Rolling restarts is not compatible with the global monitor only flag")
+	}
+
+	awaitDockerClient()
+
+	if err := actions.CheckForSanity(client, filter, rollingRestart); err != nil {
+		logNotifyExit(err)
+	}
 
 	if runOnce {
 		writeStartupMessage(c, time.Time{}, filterDesc)
@@ -166,7 +175,7 @@ func Run(c *cobra.Command, names []string) {
 	}
 
 	if err := actions.CheckForMultipleWatchtowerInstances(client, cleanup, scope); err != nil {
-		log.Fatal(err)
+		logNotifyExit(err)
 	}
 
 	httpAPI := api.New(apiToken)
@@ -190,6 +199,17 @@ func Run(c *cobra.Command, names []string) {
 	}
 
 	os.Exit(1)
+}
+
+func logNotifyExit(err error) {
+	log.Error(err)
+	notifier.Close()
+	os.Exit(1)
+}
+
+func awaitDockerClient() {
+	log.Debug("Sleeping for a second to ensure the docker api client has been properly initialized.")
+	time.Sleep(1 * time.Second)
 }
 
 func formatDuration(d time.Duration) string {
