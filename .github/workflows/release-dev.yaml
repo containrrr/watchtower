@@ -1,23 +1,47 @@
-name: Release (Develop)
+name: Push to main
 
 on:
+  workflow_dispatch: {}
   push:
     branches:
       - main
 
 jobs:
-
   build:
-
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v2
-
-    - uses: jerray/publish-docker-action@master
-      with:
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_PASSWORD }}
-        file: dockerfiles/Dockerfile.self-contained
-        repository: containrrr/watchtower
-        tags: latest-dev
+      - uses: actions/checkout@v2
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.15
+      - name: Build
+        run: go build -v ./...
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.15
+      - name: Test
+        run: go test -v -coverprofile coverage.out -covermode atomic ./... 
+      - name: Publish coverage
+        uses: codecov/codecov-action@v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+  publish:
+    needs:
+      - build
+      - test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: jerray/publish-docker-action@master
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          file: dockerfiles/Dockerfile.self-contained
+          repository: containrrr/watchtower
+          tags: latest-dev
