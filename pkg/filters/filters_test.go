@@ -114,7 +114,8 @@ func TestBuildFilter(t *testing.T) {
 	var names []string
 	names = append(names, "test")
 
-	filter := BuildFilter(names, false, "")
+	filter, desc := BuildFilter(names, false, "")
+	assert.Contains(t, desc, "test")
 
 	container := new(mocks.FilterableContainer)
 	container.On("Name").Return("Invalid")
@@ -150,7 +151,8 @@ func TestBuildFilterEnableLabel(t *testing.T) {
 	var names []string
 	names = append(names, "test")
 
-	filter := BuildFilter(names, true, "")
+	filter, desc := BuildFilter(names, true, "")
+	assert.Contains(t, desc, "using enable label")
 
 	container := new(mocks.FilterableContainer)
 	container.On("Enabled").Return(false, false)

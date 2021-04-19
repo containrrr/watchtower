@@ -1,6 +1,7 @@
 name: Release (Production)
 
 on:
+  workflow_dispatch: {}
   release:
     types:
       - created
@@ -59,8 +60,8 @@ jobs:
       - test
       - lint
     env:
-      CGO_ENABLED: ${CGO_ENABLED:-0}
-      TAG: ${GITHUB_REF#refs/tags/}
+      CGO_ENABLED: 0
+      TAG: ${{ github.event.release.tag_name }}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -70,11 +71,18 @@ jobs:
         uses: actions/setup-go@v2
         with:
           go-version: 1.15.x
+      - name: Login to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Build
         uses: goreleaser/goreleaser-action@v2
         with:
           version: v0.155.0
           args: --debug
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Enable experimental docker features
         run: |
           mkdir -p ~/.docker/ && \
@@ -159,8 +167,11 @@ jobs:
             --arch arm64 \
             --variant v8
       - name: Push manifests to Dockerhub
+        env:
+          DOCKER_USER: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKER_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
-          echo "$DOCKER_PASS" | docker login -u $DOCKER_USER --password-stdin && \
+          docker login -u $DOCKER_USER -p $DOCKER_TOKEN && \
             docker manifest push containrrr/watchtower:$(echo $TAG | sed 's/^v*//') && \
             docker manifest push containrrr/watchtower:latest
       - name: Push manifests to GitHub Container Registry

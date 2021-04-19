@@ -9,6 +9,8 @@ build:
     - 386
     - arm
     - arm64
+  ldflags:
+    - -s -w -X github.com/containrrr/watchtower/cmd.version={{.Version}}
 archives:
   - 
     name_template: "{{.ProjectName}}_{{.Os}}_{{.Arch}}"

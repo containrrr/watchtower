@@ -23,6 +23,22 @@ func TestActions(t *testing.T) {
 }
 
 var _ = Describe("notifications", func() {
+	Describe("the notifier", func() {
+		When("only empty notifier types are provided", func() {
+
+			command := cmd.NewRootCommand()
+			flags.RegisterNotificationFlags(command)
+
+			err := command.ParseFlags([]string{
+				"--notifications",
+				"shoutrrr",
+			})
+			Expect(err).NotTo(HaveOccurred())
+			notif := notifications.NewNotifier(command)
+
+			Expect(notif.String()).To(Equal("none"))
+		})
+	})
 	Describe("the slack notifier", func() {
 		builderFn := notifications.NewSlackNotifier
 
