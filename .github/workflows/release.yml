@@ -165,7 +165,7 @@ jobs:
             docker manifest push containrrr/watchtower:latest
       - name: Push manifests to GitHub Container Registry
         run: |
-          echo "$BOT_GHRC_PAT" | docker login -u $BOT_USERNAME --password-stdin && \
+          echo "$BOT_GHCR_PAT" | docker login -u $BOT_USERNAME --password-stdin && \
             docker manifest push ghcr.io/containrrr/watchtower:$(echo $TAG | sed 's/^v*//') && \
             docker manifest push ghcr.io/containrrr/watchtower:latest
 

@@ -25,7 +25,7 @@ jobs:
     - uses: jerray/publish-docker-action@master
       with:
         username: ${{ secrets.BOT_USERNAME }}
-        password: ${{ secrets.BOT_GHRC_PAT }}
+        password: ${{ secrets.BOT_GHCR_PAT }}
         file: dockerfiles/Dockerfile.self-contained
         registry: ghcr.io
         repository: containrrr/watchtower
