@@ -103,30 +103,28 @@ jobs:
             ghcr.io/containrrr/watchtower:arm64v8-$DH_TAG
       - name: Annotate manifest for version
         run: |
+          for REPO in '' ghrc.io/ ; do
+          
           docker manifest annotate \
-            containrrr/watchtower:$(echo $TAG | sed 's/^v*//') \
-            containrrr/watchtower:i386-$(echo $TAG | sed 's/^v*//') \
-            ghcr.io/containrrr/watchtower:$(echo $TAG | sed 's/^v*//') \
-            ghcr.io/containrrr/watchtower:i386-$(echo $TAG | sed 's/^v*//') \
+            ${REPO}containrrr/watchtower:$(echo $TAG | sed 's/^v*//') \
+            ${REPO}containrrr/watchtower:i386-$(echo $TAG | sed 's/^v*//') \
             --os linux \
             --arch 386
           
           docker manifest annotate \
-            containrrr/watchtower:$(echo $TAG | sed 's/^v*//') \
-            containrrr/watchtower:armhf-$(echo $TAG | sed 's/^v*//') \
-            ghcr.io/containrrr/watchtower:$(echo $TAG | sed 's/^v*//') \
-            ghcr.io/containrrr/watchtower:armhf-$(echo $TAG | sed 's/^v*//') \
+            ${REPO}containrrr/watchtower:$(echo $TAG | sed 's/^v*//') \
+            ${REPO}containrrr/watchtower:armhf-$(echo $TAG | sed 's/^v*//') \
             --os linux \
             --arch arm
       
           docker manifest annotate \
-            containrrr/watchtower:$(echo $TAG | sed 's/^v*//') \
-            containrrr/watchtower:arm64v8-$(echo $TAG | sed 's/^v*//') \
-            ghcr.io/containrrr/watchtower:$(echo $TAG | sed 's/^v*//') \
-            ghcr.io/containrrr/watchtower:arm64v8-$(echo $TAG | sed 's/^v*//') \
+            ${REPO}containrrr/watchtower:$(echo $TAG | sed 's/^v*//') \
+            ${REPO}containrrr/watchtower:arm64v8-$(echo $TAG | sed 's/^v*//') \
             --os linux \
             --arch arm64 \
             --variant v8
+            
+            done
       - name: Create manifest for latest
         run: |
           docker manifest create \
