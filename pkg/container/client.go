@@ -42,7 +42,7 @@ type Client interface {
 //  * DOCKER_HOST			the docker-engine host to send api requests to
 //  * DOCKER_TLS_VERIFY		whether to verify tls certificates
 //  * DOCKER_API_VERSION	the minimum docker api version to work with
-func NewClient(pullImages, includeStopped, reviveStopped, removeVolumes, includeRestarting bool, warnOnHeadFailed string) Client {
+func NewClient(pullImages, includeStopped, reviveStopped, removeVolumes, includeRestarting, warnOnHeadFailedKnownReg, warnOnHeadFailedAllReg bool) Client {
 	cli, err := sdkClient.NewClientWithOpts(sdkClient.FromEnv)
 
 	if err != nil {
@@ -50,35 +50,36 @@ func NewClient(pullImages, includeStopped, reviveStopped, removeVolumes, include
 	}
 
 	return dockerClient{
-		api:               cli,
-		pullImages:        pullImages,
-		removeVolumes:     removeVolumes,
-		includeStopped:    includeStopped,
-		reviveStopped:     reviveStopped,
-		includeRestarting: includeRestarting,
-		warnOnHeadFailed:  warnOnHeadFailed,
+		api:                      cli,
+		pullImages:               pullImages,
+		removeVolumes:            removeVolumes,
+		includeStopped:           includeStopped,
+		reviveStopped:            reviveStopped,
+		includeRestarting:        includeRestarting,
+		warnOnHeadFailedKnownReg: warnOnHeadFailedKnownReg,
+		warnOnHeadFailedAllReg:   warnOnHeadFailedAllReg,
 	}
 }
 
 type dockerClient struct {
-	api               sdkClient.CommonAPIClient
-	pullImages        bool
-	removeVolumes     bool
-	includeStopped    bool
-	reviveStopped     bool
-	includeRestarting bool
-	warnOnHeadFailed  string
+	api                      sdkClient.CommonAPIClient
+	pullImages               bool
+	removeVolumes            bool
+	includeStopped           bool
+	reviveStopped            bool
+	includeRestarting        bool
+	warnOnHeadFailedKnownReg bool
+	warnOnHeadFailedAllReg   bool
 }
 
 func (client dockerClient) WarnOnHeadPullFailed(container Container) bool {
-	if client.warnOnHeadFailed == "always" {
+	if client.warnOnHeadFailedAllReg {
 		return true
 	}
-	if client.warnOnHeadFailed == "never" {
-		return false
+	if client.warnOnHeadFailedKnownReg && registry.WarnOnAPIConsumption(container) {
+		return true
 	}
-
-	return registry.WarnOnAPIConsumption(container)
+	return false
 }
 
 func (client dockerClient) ListContainers(fn t.Filter) ([]Container, error) {
