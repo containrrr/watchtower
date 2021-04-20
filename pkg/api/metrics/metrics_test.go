@@ -37,11 +37,9 @@ func getWithToken(c http.Client, url string) (*http.Response, error) {
 var _ = Describe("the metrics", func() {
 	httpAPI := api.New(Token)
 	m := metricsAPI.New()
+
 	httpAPI.RegisterHandler(m.Path, m.Handle)
 	httpAPI.Start(false)
-
-	// We should likely split this into multiple tests, but as prometheus requires a restart of the binary
-	// to reset the metrics and gauges, we'll just do it all at once.
 
 	It("should serve metrics", func() {
 		metric := &metrics.Metric{
@@ -50,27 +48,35 @@ var _ = Describe("the metrics", func() {
 			Failed:  1,
 		}
 		metrics.RegisterScan(metric)
-		c := http.Client{}
-		res, err := getWithToken(c, "http://localhost:8080/v1/metrics")
 
-		Expect(err).NotTo(HaveOccurred())
-		contents, err := ioutil.ReadAll(res.Body)
+		Eventually(func() {
+			c := http.Client{}
 
-		Expect(string(contents)).To(ContainSubstring("watchtower_containers_updated 3"))
-		Expect(string(contents)).To(ContainSubstring("watchtower_containers_failed 1"))
-		Expect(string(contents)).To(ContainSubstring("watchtower_containers_scanned 4"))
-		Expect(string(contents)).To(ContainSubstring("watchtower_scans_total 1"))
-		Expect(string(contents)).To(ContainSubstring("watchtower_scans_skipped 0"))
+			res, err := getWithToken(c, "http://localhost:8080/v1/metrics")
+
+			Expect(err).NotTo(HaveOccurred())
+			contents, err := ioutil.ReadAll(res.Body)
+
+			Expect(string(contents)).To(ContainSubstring("watchtower_containers_updated 3"))
+			Expect(string(contents)).To(ContainSubstring("watchtower_containers_failed 1"))
+			Expect(string(contents)).To(ContainSubstring("watchtower_containers_scanned 4"))
+			Expect(string(contents)).To(ContainSubstring("watchtower_scans_total 1"))
+			Expect(string(contents)).To(ContainSubstring("watchtower_scans_skipped 0"))
+		})
 
 		for i := 0; i < 3; i++ {
 			metrics.RegisterScan(nil)
 		}
 
-		res, err = getWithToken(c, "http://localhost:8080/v1/metrics")
-		Expect(err).NotTo(HaveOccurred())
-		contents, err = ioutil.ReadAll(res.Body)
+		Eventually(func() {
+			c := http.Client{}
 
-		Expect(string(contents)).To(ContainSubstring("watchtower_scans_total 4"))
-		Expect(string(contents)).To(ContainSubstring("watchtower_scans_skipped 3"))
+			res, err := getWithToken(c, "http://localhost:8080/v1/metrics")
+			Expect(err).NotTo(HaveOccurred())
+			contents, err := ioutil.ReadAll(res.Body)
+
+			Expect(string(contents)).To(ContainSubstring("watchtower_scans_total 4"))
+			Expect(string(contents)).To(ContainSubstring("watchtower_scans_skipped 3"))
+		})
 	})
 })
