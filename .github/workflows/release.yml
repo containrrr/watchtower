@@ -142,30 +142,28 @@ jobs:
             ghcr.io/containrrr/watchtower:arm64v8-latest
       - name: Annotate manifest for latest
         run: |
+          for REPO in '' ghrc.io/ ; do
+
           docker manifest annotate \
-            containrrr/watchtower:latest \
-            containrrr/watchtower:i386-latest \
-            ghcr.io/containrrr/watchtower:latest \
-            ghcr.io/containrrr/watchtower:i386-latest \
+            ${REPO}containrrr/watchtower:latest \
+            ${REPO}containrrr/watchtower:i386-latest \
             --os linux \
             --arch 386
       
           docker manifest annotate \
-            containrrr/watchtower:latest \
-            containrrr/watchtower:armhf-latest \
-            ghcr.io/containrrr/watchtower:latest \
-            ghcr.io/containrrr/watchtower:armhf-latest \
+            ${REPO}containrrr/watchtower:latest \
+            ${REPO}containrrr/watchtower:armhf-latest \
             --os linux \
             --arch arm
-    
+            
           docker manifest annotate \
-            containrrr/watchtower:latest \
-            containrrr/watchtower:arm64v8-latest \
-            ghcr.io/containrrr/watchtower:latest \
-            ghcr.io/containrrr/watchtower:arm64v8-latest \
+            ${REPO}containrrr/watchtower:latest \
+            ${REPO}containrrr/watchtower:arm64v8-latest \
             --os linux \
             --arch arm64 \
             --variant v8
+
+          done
       - name: Push manifests to Dockerhub
         env:
           DOCKER_USER: ${{ secrets.DOCKERHUB_USERNAME }}
