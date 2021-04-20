@@ -307,6 +307,12 @@ Should only be used for testing.`)
 		"",
 		viper.GetStringSlice("WATCHTOWER_NOTIFICATION_URL"),
 		"The shoutrrr URL to send notifications to")
+
+	flags.String(
+		"warn-on-head-failure",
+		viper.GetString("WATCHTOWER_WARN_ON_HEAD_FAILURE"),
+		"When to warn about HEAD pull requests failing. Possible values: always, auto or never")
+
 }
 
 // SetDefaults provides default values for environment variables
