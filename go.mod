@@ -17,7 +17,7 @@ require (
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
 	github.com/cloudflare/cfssl v0.0.0-20190911221928-1a911ca1b1d6 // indirect
 	github.com/containerd/continuity v0.0.0-20181203112020-004b46473808 // indirect
-	github.com/containrrr/shoutrrr v0.4.1
+	github.com/containrrr/shoutrrr v0.4.4
 	github.com/docker/cli v0.0.0-20190327152802-57b27434ea29
 	github.com/docker/distribution v2.7.1+incompatible
 	github.com/docker/docker v0.0.0-20190404075923-dbe4a30928d4
