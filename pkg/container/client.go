@@ -41,7 +41,7 @@ type Client interface {
 //  * DOCKER_HOST			the docker-engine host to send api requests to
 //  * DOCKER_TLS_VERIFY		whether to verify tls certificates
 //  * DOCKER_API_VERSION	the minimum docker api version to work with
-func NewClient(pullImages, includeStopped, reviveStopped, removeVolumes, includeRestarting, warnOnHeadFailedKnownReg, warnOnHeadFailedAllReg bool) Client {
+func NewClient(pullImages, includeStopped, reviveStopped, removeVolumes, includeRestarting bool, warnOnHeadFailed string) Client {
 	cli, err := sdkClient.NewClientWithOpts(sdkClient.FromEnv)
 
 	if err != nil {
@@ -55,8 +55,7 @@ func NewClient(pullImages, includeStopped, reviveStopped, removeVolumes, include
 		includeStopped:           includeStopped,
 		reviveStopped:            reviveStopped,
 		includeRestarting:        includeRestarting,
-		warnOnHeadFailedKnownReg: warnOnHeadFailedKnownReg,
-		warnOnHeadFailedAllReg:   warnOnHeadFailedAllReg,
+		warnOnHeadFailed: 		  warnOnHeadFailed,
 	}
 }
 
@@ -67,18 +66,18 @@ type dockerClient struct {
 	includeStopped           bool
 	reviveStopped            bool
 	includeRestarting        bool
-	warnOnHeadFailedKnownReg bool
-	warnOnHeadFailedAllReg   bool
+	warnOnHeadFailed 		 string
 }
 
 func (client dockerClient) WarnOnHeadPullFailed(container Container) bool {
-	if client.warnOnHeadFailedAllReg {
+	if client.warnOnHeadFailed == "always" {
 		return true
 	}
-	if client.warnOnHeadFailedKnownReg && registry.WarnOnAPIConsumption(container) {
-		return true
+	if client.warnOnHeadFailed == "never" {
+		return false
 	}
-	return false
+
+	return registry.WarnOnAPIConsumption(container)
 }
 
 func (client dockerClient) ListContainers(fn t.Filter) ([]Container, error) {
