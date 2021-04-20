@@ -144,8 +144,7 @@ func PreRun(cmd *cobra.Command, _ []string) {
 		reviveStopped,
 		removeVolumes,
 		includeRestarting,
-		warnOnHeadPullFailed != "never",
-		warnOnHeadPullFailed == "always",
+		warnOnHeadPullFailed,
 	)
 
 	notifier = notifications.NewNotifier(cmd)
