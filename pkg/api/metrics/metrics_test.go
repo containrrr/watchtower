@@ -48,32 +48,36 @@ var _ = Describe("the metrics", func() {
 			Failed:  1,
 		}
 		metrics.RegisterScan(metric)
-		Eventually(metrics.Default().QueueIsEmpty).Should(BeTrue())
 
-		c := http.Client{}
+		Eventually(func() {
+			c := http.Client{}
 
-		res, err := getWithToken(c, "http://localhost:8080/v1/metrics")
-		Expect(err).ToNot(HaveOccurred())
+			res, err := getWithToken(c, "http://localhost:8080/v1/metrics")
 
-		contents, err := ioutil.ReadAll(res.Body)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(string(contents)).To(ContainSubstring("watchtower_containers_updated 3"))
-		Expect(string(contents)).To(ContainSubstring("watchtower_containers_failed 1"))
-		Expect(string(contents)).To(ContainSubstring("watchtower_containers_scanned 4"))
-		Expect(string(contents)).To(ContainSubstring("watchtower_scans_total 1"))
-		Expect(string(contents)).To(ContainSubstring("watchtower_scans_skipped 0"))
+			Expect(err).NotTo(HaveOccurred())
+			contents, err := ioutil.ReadAll(res.Body)
+
+			Expect(string(contents)).To(ContainSubstring("watchtower_containers_updated 3"))
+			Expect(string(contents)).To(ContainSubstring("watchtower_containers_failed 1"))
+			Expect(string(contents)).To(ContainSubstring("watchtower_containers_scanned 4"))
+			Expect(string(contents)).To(ContainSubstring("watchtower_scans_total 1"))
+			Expect(string(contents)).To(ContainSubstring("watchtower_scans_skipped 0"))
+		})
 
 		for i := 0; i < 3; i++ {
 			metrics.RegisterScan(nil)
 		}
 		Eventually(metrics.Default().QueueIsEmpty).Should(BeTrue())
 
-		res, err = getWithToken(c, "http://localhost:8080/v1/metrics")
-		Expect(err).ToNot(HaveOccurred())
+		Eventually(func() {
+			c := http.Client{}
 
-		contents, err = ioutil.ReadAll(res.Body)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(string(contents)).To(ContainSubstring("watchtower_scans_total 4"))
-		Expect(string(contents)).To(ContainSubstring("watchtower_scans_skipped 3"))
+			res, err := getWithToken(c, "http://localhost:8080/v1/metrics")
+			Expect(err).NotTo(HaveOccurred())
+			contents, err := ioutil.ReadAll(res.Body)
+
+			Expect(string(contents)).To(ContainSubstring("watchtower_scans_total 4"))
+			Expect(string(contents)).To(ContainSubstring("watchtower_scans_skipped 3"))
+		})
 	})
 })
