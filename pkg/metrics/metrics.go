@@ -16,12 +16,17 @@ type Metric struct {
 
 // Metrics is the handler processing all individual scan metrics
 type Metrics struct {
-	channel chan *Metric
-	scanned prometheus.Gauge
-	updated prometheus.Gauge
-	failed  prometheus.Gauge
-	total   prometheus.Counter
-	skipped prometheus.Counter
+	channel  chan *Metric
+	scanned  prometheus.Gauge
+	updated  prometheus.Gauge
+	failed   prometheus.Gauge
+	total    prometheus.Counter
+	skipped  prometheus.Counter
+}
+
+// QueueIsEmpty checks whether any messages are enqueued in the channel
+func (metrics *Metrics) QueueIsEmpty() bool {
+	return len(metrics.channel) == 0
 }
 
 // Register registers metrics for an executed scan
@@ -56,7 +61,7 @@ func Default() *Metrics {
 			Name: "watchtower_scans_skipped",
 			Help: "Number of skipped scans since watchtower started",
 		}),
-		channel: make(chan *Metric, 10),
+		channel:  make(chan *Metric, 10),
 	}
 
 	go metrics.HandleUpdate(metrics.channel)
