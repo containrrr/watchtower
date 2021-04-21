@@ -50,24 +50,24 @@ func NewClient(pullImages, includeStopped, reviveStopped, removeVolumes, include
 	}
 
 	return dockerClient{
-		api:                      cli,
-		pullImages:               pullImages,
-		removeVolumes:            removeVolumes,
-		includeStopped:           includeStopped,
-		reviveStopped:            reviveStopped,
-		includeRestarting:        includeRestarting,
-		warnOnHeadFailed: 		  warnOnHeadFailed,
+		api:               cli,
+		pullImages:        pullImages,
+		removeVolumes:     removeVolumes,
+		includeStopped:    includeStopped,
+		reviveStopped:     reviveStopped,
+		includeRestarting: includeRestarting,
+		warnOnHeadFailed:  warnOnHeadFailed,
 	}
 }
 
 type dockerClient struct {
-	api                      sdkClient.CommonAPIClient
-	pullImages               bool
-	removeVolumes            bool
-	includeStopped           bool
-	reviveStopped            bool
-	includeRestarting        bool
-	warnOnHeadFailed 		 string
+	api               sdkClient.CommonAPIClient
+	pullImages        bool
+	removeVolumes     bool
+	includeStopped    bool
+	reviveStopped     bool
+	includeRestarting bool
+	warnOnHeadFailed  string
 }
 
 func (client dockerClient) WarnOnHeadPullFailed(container Container) bool {
