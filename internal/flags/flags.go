@@ -151,6 +151,11 @@ func RegisterSystemFlags(rootCmd *cobra.Command) {
 		"",
 		viper.GetString("WATCHTOWER_HTTP_API_TOKEN"),
 		"Sets an authentication token to HTTP API requests.")
+	flags.BoolP(
+		"http-api-periodic-polls",
+		"",
+		viper.GetBool("WATCHTOWER_HTTP_API_PERIODIC_POLLS"),
+		"Also run periodic updates (specified with --interval and --schedule) if HTTP API is enabled")
 	// https://no-color.org/
 	flags.BoolP(
 		"no-color",
