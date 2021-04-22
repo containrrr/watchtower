@@ -288,6 +288,8 @@ func (client dockerClient) HasNewImage(ctx context.Context, container Container)
 	return true, nil
 }
 
+// PullImage pulls the latest image for the supplied container, optionally skipping if it's digest can be confirmed
+// to match the one that the registry reports via a HEAD request
 func (client dockerClient) PullImage(ctx context.Context, container Container) error {
 	containerName := container.Name()
 	imageName := container.ImageName()
