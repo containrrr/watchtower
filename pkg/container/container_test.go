@@ -27,31 +27,32 @@ var _ = Describe("the container", func() {
 		It("should return a client for the api", func() {
 			Expect(client).NotTo(BeNil())
 		})
-		Describe("WarnOnHeadPullFailed", func() {
+
+		Describe("WarnOnHeadPullFailed", func(){
 			containerUnknown := *mockContainerWithImageName("unknown.repo/prefix/imagename:latest")
 			containerKnown := *mockContainerWithImageName("docker.io/prefix/imagename:latest")
 
 			When("warn on head failure is set to \"always\"", func() {
-				c := NewClient(false, false, false, false, false, "always")
+				clientWarnAlways := dockerClient{warnOnHeadFailed: "always"}
 				It("should always return true", func() {
-					Expect(c.WarnOnHeadPullFailed(containerUnknown)).To(BeTrue())
-					Expect(c.WarnOnHeadPullFailed(containerKnown)).To(BeTrue())
+					Expect(clientWarnAlways.WarnOnHeadPullFailed(containerUnknown)).To(BeTrue())
+					Expect(clientWarnAlways.WarnOnHeadPullFailed(containerKnown)).To(BeTrue())
 				})
 			})
 			When("warn on head failure is set to \"auto\"", func() {
-				c := NewClient(false, false, false, false, false, "auto")
+				clientWarnAuto := dockerClient{warnOnHeadFailed: "auto"}
 				It("should always return true", func() {
-					Expect(c.WarnOnHeadPullFailed(containerUnknown)).To(BeFalse())
+					Expect(clientWarnAuto.WarnOnHeadPullFailed(containerUnknown)).To(BeFalse())
 				})
 				It("should", func() {
-					Expect(c.WarnOnHeadPullFailed(containerKnown)).To(BeTrue())
+					Expect(clientWarnAuto.WarnOnHeadPullFailed(containerKnown)).To(BeTrue())
 				})
 			})
 			When("warn on head failure is set to \"never\"", func() {
-				c := NewClient(false, false, false, false, false, "never")
+				clientWarnNever := dockerClient{warnOnHeadFailed: "never"}
 				It("should never return true", func() {
-					Expect(c.WarnOnHeadPullFailed(containerUnknown)).To(BeFalse())
-					Expect(c.WarnOnHeadPullFailed(containerKnown)).To(BeFalse())
+					Expect(clientWarnNever.WarnOnHeadPullFailed(containerUnknown)).To(BeFalse())
+					Expect(clientWarnNever.WarnOnHeadPullFailed(containerKnown)).To(BeFalse())
 				})
 			})
 		})
