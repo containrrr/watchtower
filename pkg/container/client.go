@@ -33,6 +33,7 @@ type Client interface {
 	IsContainerStale(Container) (bool, error)
 	ExecuteCommand(containerID string, command string, timeout int) error
 	RemoveImageByID(string) error
+	WarnOnHeadPullFailed(container Container) bool
 }
 
 // NewClient returns a new Client instance which can be used to interact with
@@ -41,7 +42,7 @@ type Client interface {
 //  * DOCKER_HOST			the docker-engine host to send api requests to
 //  * DOCKER_TLS_VERIFY		whether to verify tls certificates
 //  * DOCKER_API_VERSION	the minimum docker api version to work with
-func NewClient(pullImages bool, includeStopped bool, reviveStopped bool, removeVolumes bool, includeRestarting bool) Client {
+func NewClient(pullImages, includeStopped, reviveStopped, removeVolumes, includeRestarting bool, warnOnHeadFailed string) Client {
 	cli, err := sdkClient.NewClientWithOpts(sdkClient.FromEnv)
 
 	if err != nil {
@@ -55,6 +56,7 @@ func NewClient(pullImages bool, includeStopped bool, reviveStopped bool, removeV
 		includeStopped:    includeStopped,
 		reviveStopped:     reviveStopped,
 		includeRestarting: includeRestarting,
+		warnOnHeadFailed:  warnOnHeadFailed,
 	}
 }
 
@@ -65,6 +67,18 @@ type dockerClient struct {
 	includeStopped    bool
 	reviveStopped     bool
 	includeRestarting bool
+	warnOnHeadFailed  string
+}
+
+func (client dockerClient) WarnOnHeadPullFailed(container Container) bool {
+	if client.warnOnHeadFailed == "always" {
+		return true
+	}
+	if client.warnOnHeadFailed == "never" {
+		return false
+	}
+
+	return registry.WarnOnAPIConsumption(container)
 }
 
 func (client dockerClient) ListContainers(fn t.Filter) ([]Container, error) {
@@ -275,6 +289,8 @@ func (client dockerClient) HasNewImage(ctx context.Context, container Container)
 	return true, nil
 }
 
+// PullImage pulls the latest image for the supplied container, optionally skipping if it's digest can be confirmed
+// to match the one that the registry reports via a HEAD request
 func (client dockerClient) PullImage(ctx context.Context, container Container) error {
 	containerName := container.Name()
 	imageName := container.ImageName()
@@ -297,12 +313,12 @@ func (client dockerClient) PullImage(ctx context.Context, container Container) e
 	log.WithFields(fields).Debugf("Checking if pull is needed")
 
 	if match, err := digest.CompareDigest(container, opts.RegistryAuth); err != nil {
-		if registry.WarnOnAPIConsumption(container) {
-			log.WithFields(fields).Warning("Could not do a head request, falling back to regular pull.")
-		} else {
-			log.Debug("Could not do a head request, falling back to regular pull.")
+		headLevel := log.DebugLevel
+		if client.WarnOnHeadPullFailed(container) {
+			headLevel = log.WarnLevel
 		}
-		log.Debugf("Reason: %s", err.Error())
+		log.WithFields(fields).Logf(headLevel, "Could not do a head request for %q, falling back to regular pull.", imageName)
+		log.WithFields(fields).Log(headLevel, "Reason: ", err)
 	} else if match {
 		log.Debug("No pull needed. Skipping image.")
 		return nil

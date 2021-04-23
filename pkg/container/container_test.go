@@ -1,8 +1,6 @@
 package container
 
 import (
-	"testing"
-
 	"github.com/containrrr/watchtower/pkg/container/mocks"
 	"github.com/containrrr/watchtower/pkg/filters"
 	"github.com/docker/docker/api/types"
@@ -11,11 +9,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
-
-func TestContainer(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Container Suite")
-}
 
 var _ = Describe("the container", func() {
 	Describe("the client", func() {
@@ -34,6 +27,35 @@ var _ = Describe("the container", func() {
 		It("should return a client for the api", func() {
 			Expect(client).NotTo(BeNil())
 		})
+		Describe("WarnOnHeadPullFailed", func() {
+			containerUnknown := *mockContainerWithImageName("unknown.repo/prefix/imagename:latest")
+			containerKnown := *mockContainerWithImageName("docker.io/prefix/imagename:latest")
+
+			When("warn on head failure is set to \"always\"", func() {
+				c := NewClient(false, false, false, false, false, "always")
+				It("should always return true", func() {
+					Expect(c.WarnOnHeadPullFailed(containerUnknown)).To(BeTrue())
+					Expect(c.WarnOnHeadPullFailed(containerKnown)).To(BeTrue())
+				})
+			})
+			When("warn on head failure is set to \"auto\"", func() {
+				c := NewClient(false, false, false, false, false, "auto")
+				It("should always return true", func() {
+					Expect(c.WarnOnHeadPullFailed(containerUnknown)).To(BeFalse())
+				})
+				It("should", func() {
+					Expect(c.WarnOnHeadPullFailed(containerKnown)).To(BeTrue())
+				})
+			})
+			When("warn on head failure is set to \"never\"", func() {
+				c := NewClient(false, false, false, false, false, "never")
+				It("should never return true", func() {
+					Expect(c.WarnOnHeadPullFailed(containerUnknown)).To(BeFalse())
+					Expect(c.WarnOnHeadPullFailed(containerKnown)).To(BeFalse())
+				})
+			})
+		})
+
 		When("listing containers without any filter", func() {
 			It("should return all available containers", func() {
 				containers, err := client.ListContainers(filters.NoFilter)

@@ -4,13 +4,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"os"
-	"testing"
 )
-
-func TestTrust(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Trust Suite")
-}
 
 var _ = Describe("Testing with Ginkgo", func() {
 	It("encoded env auth_ should return an error if repo envs are unset", func() {

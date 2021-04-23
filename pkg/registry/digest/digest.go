@@ -95,7 +95,11 @@ func GetDigest(url string, token string) (string, error) {
 	defer res.Body.Close()
 
 	if res.StatusCode != 200 {
-		return "", fmt.Errorf("registry responded to head request with %v", res)
+		wwwAuthHeader := res.Header.Get("www-authenticate")
+		if wwwAuthHeader == "" {
+			wwwAuthHeader = "not present"
+		}
+		return "", fmt.Errorf("registry responded to head request with %q, auth: %q", res.Status, wwwAuthHeader)
 	}
 	return res.Header.Get(ContentDigestHeader), nil
 }
