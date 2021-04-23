@@ -3,11 +3,12 @@ package notifications
 import (
 	"bytes"
 	"fmt"
-	"github.com/containrrr/shoutrrr/pkg/types"
+	stdlog "log"
 	"strings"
 	"text/template"
 
 	"github.com/containrrr/shoutrrr"
+	"github.com/containrrr/shoutrrr/pkg/types"
 	t "github.com/containrrr/watchtower/pkg/types"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -59,7 +60,9 @@ func newShoutrrrNotifierFromURL(c *cobra.Command, url string, levels []log.Level
 }
 
 func createSender(urls []string, levels []log.Level, template *template.Template) t.Notifier {
-	r, err := shoutrrr.CreateSender(urls...)
+
+	traceWriter := log.StandardLogger().WriterLevel(log.TraceLevel)
+	r, err := shoutrrr.NewSender(stdlog.New(traceWriter, "Shoutrrr: ", 0), urls...)
 	if err != nil {
 		log.Fatalf("Failed to initialize Shoutrrr notifications: %s\n", err.Error())
 	}
