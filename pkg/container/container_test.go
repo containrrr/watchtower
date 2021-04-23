@@ -27,7 +27,7 @@ var _ = Describe("the container", func() {
 		It("should return a client for the api", func() {
 			Expect(client).NotTo(BeNil())
 		})
-		Describe("WarnOnHeadPullFailed", func(){
+		Describe("WarnOnHeadPullFailed", func() {
 			containerUnknown := *mockContainerWithImageName("unknown.repo/prefix/imagename:latest")
 			containerKnown := *mockContainerWithImageName("docker.io/prefix/imagename:latest")
 
