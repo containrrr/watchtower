@@ -33,6 +33,7 @@ type Client interface {
 	IsContainerStale(Container) (bool, error)
 	ExecuteCommand(containerID string, command string, timeout int) error
 	RemoveImageByID(string) error
+	WarnOnHeadPullFailed(container Container) bool
 }
 
 // NewClient returns a new Client instance which can be used to interact with
