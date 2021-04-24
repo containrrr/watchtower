@@ -276,7 +276,12 @@ func (c Container) VerifyConfiguration() error {
 		return errorInvalidConfig
 	}
 
-	if containerConfig.ExposedPorts == nil {
+	hostConfig := containerInfo.HostConfig
+	if hostConfig == nil {
+		return errorInvalidConfig
+	}
+
+	if len(hostConfig.PortBindings) > 0 && containerConfig.ExposedPorts == nil {
 		return errorNoExposedPorts
 	}
 
