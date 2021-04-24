@@ -76,6 +76,12 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Login to GHCR
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.BOT_USERNAME }}
+          password: ${{ secrets.BOT_GHCR_PAT }}
+          registry: ghcr.io
       - name: Build
         uses: goreleaser/goreleaser-action@v2
         with:
@@ -173,8 +179,11 @@ jobs:
             docker manifest push containrrr/watchtower:$(echo $TAG | sed 's/^v*//') && \
             docker manifest push containrrr/watchtower:latest
       - name: Push manifests to GitHub Container Registry
+        env:
+          DOCKER_USER: ${{ secrets.BOT_USERNAME }}
+          DOCKER_TOKEN: ${{ secrets.BOT_GHCR_PAT }}
         run: |
-          echo "$BOT_GHCR_PAT" | docker login -u $BOT_USERNAME --password-stdin && \
+          docker login -u $DOCKER_USER -p $DOCKER_TOKEN ghcr.io && \
             docker manifest push ghcr.io/containrrr/watchtower:$(echo $TAG | sed 's/^v*//') && \
             docker manifest push ghcr.io/containrrr/watchtower:latest
 
