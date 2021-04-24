@@ -122,7 +122,7 @@ WORKDIR /go/bin/
 
 2.  Use the following commands to build the aws-ecr-dock-cred-helper and store it's output in a volume:
 
-```shell script
+```bash
 # Create a volume to store the command (once built)
 docker volume create helper 
 
