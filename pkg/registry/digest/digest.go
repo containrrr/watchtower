@@ -10,8 +10,10 @@ import (
 	"github.com/containrrr/watchtower/pkg/registry/manifest"
 	"github.com/containrrr/watchtower/pkg/types"
 	"github.com/sirupsen/logrus"
+	"net"
 	"net/http"
 	"strings"
+	"time"
 )
 
 // ContentDigestHeader is the key for the key-value pair containing the digest header
@@ -69,7 +71,17 @@ func TransformAuth(registryAuth string) string {
 // GetDigest from registry using a HEAD request to prevent rate limiting
 func GetDigest(url string, token string) (string, error) {
 	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		Proxy: http.ProxyFromEnvironment,
+		DialContext: (&net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).DialContext,
+		ForceAttemptHTTP2:     true,
+		MaxIdleConns:          100,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+		TLSClientConfig:       &tls.Config{InsecureSkipVerify: true},
 	}
 	client := &http.Client{Transport: tr}
 
