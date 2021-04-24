@@ -175,16 +175,24 @@ To send notifications via shoutrrr, the following command-line options, or their
 
 - `--notification-url` (env. `WATCHTOWER_NOTIFICATION_URL`): The shoutrrr service URL to be used.
 
-Go to [containrrr.github.io/shoutrrr/services/overview](https://containrrr.github.io/shoutrrr/services/overview) to learn more about the different service URLs you can use.
-You can define multiple services by space separating the URLs. (See example below)
+Go to [containrrr.github.io/shoutrrr/services/overview](https://containrrr.github.io/shoutrrr/services/overview) to
+learn more about the different service URLs you can use. You can define multiple services by space separating the
+URLs. (See example below)
 
 You can customize the message posted by setting a template.
 
 - `--notification-template` (env. `WATCHTOWER_NOTIFICATION_TEMPLATE`): The template used for the message.
 
-The template is a Go [template](https://golang.org/pkg/text/template/) and the you format a list of [log entries](https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry).
+The template is a Go [template](https://golang.org/pkg/text/template/) and that format a list
+of [log entries](https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry).
 
-The default value if not set is `{{range .}}{{.Message}}{{println}}{{end}}`. The example below uses a template that also outputs timestamp and log level.
+The default value if not set is `{{range .}}{{.Message}}{{println}}{{end}}`. The example below uses a template that also
+outputs timestamp and log level.
+
+Note that if you want to adjust the date/time format, it must show how
+the [reference time](https://golang.org/pkg/time/#pkg-constants) (`Mon Jan 2 15:04:05 MST 2006`) would be displayed in
+your custom format. i.e. The day of the year has to be 1, the month has to be 2 (february), the hour 3 (or 15 for 24h
+time) etc.
 
 Example:
 
