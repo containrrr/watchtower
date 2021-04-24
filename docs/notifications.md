@@ -1,7 +1,9 @@
 # Notifications
 
-Watchtower can send notifications when containers are updated. Notifications are sent via hooks in the logging system, [logrus](http://github.com/sirupsen/logrus).
-The types of notifications to send are set by passing a comma-separated list of values to the `--notifications` option (or corresponding environment variable `WATCHTOWER_NOTIFICATIONS`), which has the following valid values:
+Watchtower can send notifications when containers are updated. Notifications are sent via hooks in the logging
+system, [logrus](http://github.com/sirupsen/logrus). The types of notifications to send are set by passing a
+comma-separated list of values to the `--notifications` option
+(or corresponding environment variable `WATCHTOWER_NOTIFICATIONS`), which has the following valid values:
 
 - `email` to send notifications via e-mail
 - `slack` to send notifications through a Slack webhook
@@ -9,11 +11,16 @@ The types of notifications to send are set by passing a comma-separated list of 
 - `gotify` to send notifications via Gotify
 - `shoutrrr` to send notifications via [containrrr/shoutrrr](https://github.com/containrrr/shoutrrr)
 
-> There is currently a [bug](https://github.com/spf13/viper/issues/380) in Viper, which prevents comma-separated slices to be used when using the environment variable. A workaround is available where we instead put quotes around the environment variable value and replace the commas with spaces, as `WATCHTOWER_NOTIFICATIONS="slack msteams"`
-
-> If you're a `docker-compose` user, make sure to specify environment variables' values in your `.yml` file without double quotes (`"`).
->
-> This prevents unexpected errors when watchtower starts.
+!!! note "Using multiple notifications with environment variables"
+There is currently a bug in Viper (https://github.com/spf13/viper/issues/380), which prevents comma-separated slices to
+be used when using the environment variable.  
+A workaround is available where we instead put quotes around the environment variable value and replace the commas with
+spaces:
+```
+WATCHTOWER_NOTIFICATIONS="slack msteams"
+```
+If you're a `docker-compose` user, make sure to specify environment variables' values in your `.yml` file without double
+quotes (`"`). This prevents unexpected errors when watchtower starts.
 
 ## Settings
 
@@ -60,7 +67,6 @@ The following example assumes, that your domain is called `your-domain.com` and 
 Example including an SMTP relay:
 
 ```yaml
----
 version: '3.8'
 services:
   watchtower:
@@ -189,10 +195,11 @@ of [log entries](https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry).
 The default value if not set is `{{range .}}{{.Message}}{{println}}{{end}}`. The example below uses a template that also
 outputs timestamp and log level.
 
-Note that if you want to adjust the date/time format, it must show how
-the [reference time](https://golang.org/pkg/time/#pkg-constants) (`Mon Jan 2 15:04:05 MST 2006`) would be displayed in
-your custom format. i.e. The day of the year has to be 1, the month has to be 2 (february), the hour 3 (or 15 for 24h
-time) etc.
+!!! tip "Custom date format"
+If you want to adjust the date/time format it must show how the
+[reference time](https://golang.org/pkg/time/#pkg-constants) (*Mon Jan 2 15:04:05 MST 2006*) would be displayed in your
+custom format.  
+i.e. The day of the year has to be 1, the month has to be 2 (february), the hour 3 (or 15 for 24h time) etc.
 
 Example:
 

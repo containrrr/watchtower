@@ -1,5 +1,5 @@
 site_name: Watchtower
-site_url: http://containrrr.github.io/watchtower/
+site_url: https://containrrr.dev/watchtower/
 repo_url: https://github.com/containrrr/watchtower/
 edit_uri: edit/main/docs/
 theme:
@@ -14,7 +14,16 @@ markdown_extensions:
     - toc:
         permalink: True
         separator: "_"
-    - codehilite
+    - admonition
+    - pymdownx.highlight
+    - pymdownx.superfences
+    - pymdownx.magiclink:
+        repo_url_shortener: True
+        provider: github
+        user: containrrr
+        repo: watchtower
+    - pymdownx.saneheaders
+    - pymdownx.tabbed
 nav:
    - 'Home': 'index.md'
    - 'Introduction': 'introduction.md'
