@@ -1,7 +1,6 @@
 package actions
 
 import (
-	"errors"
 	"github.com/containrrr/watchtower/internal/util"
 	"github.com/containrrr/watchtower/pkg/container"
 	"github.com/containrrr/watchtower/pkg/lifecycle"
@@ -33,11 +32,23 @@ func Update(client container.Client, params types.UpdateParams) (*metrics2.Metri
 
 	for i, targetContainer := range containers {
 		stale, err := client.IsContainerStale(targetContainer)
-		if stale && !params.NoRestart && !params.MonitorOnly && !targetContainer.IsMonitorOnly() && !targetContainer.HasImageInfo() {
-			err = errors.New("no available image info")
+		shouldUpdate := stale && !params.NoRestart && !params.MonitorOnly && !targetContainer.IsMonitorOnly()
+		if err == nil && shouldUpdate {
+			// Check to make sure we have all the necessary information for recreating the container
+			err = targetContainer.VerifyConfiguration()
+			// If the image information is incomplete and trace logging is enabled, log it for further diagnosis
+			if err != nil && log.IsLevelEnabled(log.TraceLevel) {
+				imageInfo := targetContainer.ImageInfo()
+				log.Tracef("Image info: %#v", imageInfo)
+				log.Tracef("Container info: %#v", targetContainer.ContainerInfo())
+				if imageInfo != nil {
+					log.Tracef("Image config: %#v", imageInfo.Config)
+				}
+			}
 		}
+
 		if err != nil {
-			log.Infof("Unable to update container %q: %v. Proceeding to next.", containers[i].Name(), err)
+			log.Infof("Unable to update container %q: %v. Proceeding to next.", targetContainer.Name(), err)
 			stale = false
 			staleCheckFailed++
 			metric.Failed++

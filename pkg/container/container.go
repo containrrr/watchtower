@@ -258,3 +258,27 @@ func (c Container) HasImageInfo() bool {
 func (c Container) ImageInfo() *types.ImageInspect {
 	return c.imageInfo
 }
+
+// VerifyConfiguration checks the container and image configurations for nil references to make sure
+// that the container can be recreated once deleted
+func (c Container) VerifyConfiguration() error {
+	if c.imageInfo == nil {
+		return errorNoImageInfo
+	}
+
+	containerInfo := c.ContainerInfo()
+	if containerInfo == nil {
+		return errorInvalidConfig
+	}
+
+	containerConfig := containerInfo.Config
+	if containerConfig == nil {
+		return errorInvalidConfig
+	}
+
+	if containerConfig.ExposedPorts == nil {
+		return errorNoExposedPorts
+	}
+
+	return nil
+}

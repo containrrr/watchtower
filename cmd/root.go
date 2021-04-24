@@ -269,6 +269,9 @@ func writeStartupMessage(c *cobra.Command, sched time.Time, filtering string) {
 		}
 
 		log.Info("Watchtower ", version, "\n", notifs, "\n", filtering, "\n", schedMessage)
+		if log.IsLevelEnabled(log.TraceLevel) {
+			log.Warn("trace level enabled: log will include sensitive information as credentials and tokens")
+		}
 	}
 }
 
@@ -330,8 +333,10 @@ func runUpdatesWithNotifications(filter t.Filter) *metrics.Metric {
 	}
 	metricResults, err := actions.Update(client, updateParams)
 	if err != nil {
-		log.Println(err)
+		log.Error(err)
 	}
 	notifier.SendNotification()
+	log.Debugf("Session done: %v scanned, %v updated, %v failed",
+		metricResults.Scanned, metricResults.Updated, metricResults.Failed)
 	return metricResults
 }
