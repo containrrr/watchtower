@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"github.com/containrrr/watchtower/pkg/api"
 	metricsAPI "github.com/containrrr/watchtower/pkg/api/metrics"
@@ -53,6 +52,9 @@ var _ = Describe("the metrics API", func() {
 	handleReq := httpAPI.RequireToken(m.Handle)
 
 	It("should serve metrics", func() {
+
+		Expect(getWithToken(handleReq)).To(ContainSubstring("watchtower_containers_updated 0"))
+
 		metric := &metrics.Metric{
 			Scanned: 4,
 			Updated: 3,
@@ -62,7 +64,7 @@ var _ = Describe("the metrics API", func() {
 		metrics.RegisterScan(metric)
 		Eventually(metrics.Default().QueueIsEmpty).Should(BeTrue())
 
-		Eventually(getWithToken(handleReq), time.Second * 5, time.Second).Should(ContainSubstring("watchtower_containers_updated 3"))
+		Eventually(getWithToken(handleReq)).Should(ContainSubstring("watchtower_containers_updated 3"))
 		Eventually(getWithToken(handleReq)).Should(ContainSubstring("watchtower_containers_failed 1"))
 		Eventually(getWithToken(handleReq)).Should(ContainSubstring("watchtower_containers_scanned 4"))
 		Eventually(getWithToken(handleReq)).Should(ContainSubstring("watchtower_scans_total 1"))
@@ -73,7 +75,7 @@ var _ = Describe("the metrics API", func() {
 		}
 		Eventually(metrics.Default().QueueIsEmpty).Should(BeTrue())
 
-		Eventually(getWithToken(handleReq), time.Second * 5, time.Second).Should(ContainSubstring("watchtower_scans_total 4"))
+		Eventually(getWithToken(handleReq)).Should(ContainSubstring("watchtower_scans_total 4"))
 		Eventually(getWithToken(handleReq)).Should(ContainSubstring("watchtower_scans_skipped 3"))
 	})
 })

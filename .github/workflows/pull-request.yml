@@ -35,6 +35,7 @@ jobs:
         platform:
           - macos-latest
           - windows-latest
+          - ubuntu-latest
     runs-on: ${{ matrix.platform }}
     steps:
       - name: Checkout
@@ -48,26 +49,6 @@ jobs:
       - name: Run tests
         run: |
           go test -v -coverprofile coverage.out -covermode atomic ./... 
-      - name: Publish coverage
-        uses: codecov/codecov-action@v1
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-  test-ubuntu:
-    name: Test (Ubuntu)
-    runs-on: ubuntu-latest
-    needs: test
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
-      - name: Set up Go
-        uses: actions/setup-go@v2
-        with:
-          go-version: 1.15.x
-      - name: Run tests
-        run: |
-          go test -v -coverprofile coverage.out -covermode atomic ./...
       - name: Publish coverage
         uses: codecov/codecov-action@v1
         with:
