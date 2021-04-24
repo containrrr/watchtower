@@ -32,14 +32,14 @@ var _ = Describe("the container", func() {
 			containerKnown := *mockContainerWithImageName("docker.io/prefix/imagename:latest")
 
 			When("warn on head failure is set to \"always\"", func() {
-				c := NewClient(false, false, false, false, false, "always")
+				c := newClientNoAPI(false, false, false, false, false, "always")
 				It("should always return true", func() {
 					Expect(c.WarnOnHeadPullFailed(containerUnknown)).To(BeTrue())
 					Expect(c.WarnOnHeadPullFailed(containerKnown)).To(BeTrue())
 				})
 			})
 			When("warn on head failure is set to \"auto\"", func() {
-				c := NewClient(false, false, false, false, false, "auto")
+				c := newClientNoAPI(false, false, false, false, false, "auto")
 				It("should always return true", func() {
 					Expect(c.WarnOnHeadPullFailed(containerUnknown)).To(BeFalse())
 				})
@@ -48,7 +48,7 @@ var _ = Describe("the container", func() {
 				})
 			})
 			When("warn on head failure is set to \"never\"", func() {
-				c := NewClient(false, false, false, false, false, "never")
+				c := newClientNoAPI(false, false, false, false, false, "never")
 				It("should never return true", func() {
 					Expect(c.WarnOnHeadPullFailed(containerUnknown)).To(BeFalse())
 					Expect(c.WarnOnHeadPullFailed(containerKnown)).To(BeFalse())
@@ -282,9 +282,9 @@ var _ = Describe("the container", func() {
 })
 
 func mockContainerWithImageName(name string) *Container {
-	container := mockContainerWithLabels(nil)
-	container.containerInfo.Config.Image = name
-	return container
+	mockContainer := mockContainerWithLabels(nil)
+	mockContainer.containerInfo.Config.Image = name
+	return mockContainer
 }
 
 func mockContainerWithLinks(links []string) *Container {
@@ -316,4 +316,16 @@ func mockContainerWithLabels(labels map[string]string) *Container {
 		},
 	}
 	return NewContainer(&content, nil)
+}
+
+func newClientNoAPI(pullImages, includeStopped, reviveStopped, removeVolumes, includeRestarting bool, warnOnHeadFailed string) Client {
+	return dockerClient{
+		api:               nil,
+		pullImages:        pullImages,
+		removeVolumes:     removeVolumes,
+		includeStopped:    includeStopped,
+		reviveStopped:     reviveStopped,
+		includeRestarting: includeRestarting,
+		warnOnHeadFailed:  warnOnHeadFailed,
+	}
 }
