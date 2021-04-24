@@ -110,7 +110,7 @@ jobs:
             ghcr.io/containrrr/watchtower:arm64v8-$DH_TAG
       - name: Annotate manifest for version
         run: |
-          for REPO in '' ghrc.io/ ; do
+          for REPO in '' ghcr.io/ ; do
           
           docker manifest annotate \
             ${REPO}containrrr/watchtower:$(echo $TAG | sed 's/^v*//') \
@@ -148,7 +148,7 @@ jobs:
             ghcr.io/containrrr/watchtower:arm64v8-latest
       - name: Annotate manifest for latest
         run: |
-          for REPO in '' ghrc.io/ ; do
+          for REPO in '' ghcr.io/ ; do
 
           docker manifest annotate \
             ${REPO}containrrr/watchtower:latest \
