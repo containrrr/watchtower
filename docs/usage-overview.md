@@ -38,11 +38,10 @@ docker run -d \
 ```
 
 !!! note "Changes to config.json while running"
-If you mount `config.json` in the manner above, changes from the host system will (generally) not be propagated to the
-running container. Mounting files into the Docker daemon uses bind mounts, which are based on inodes. Most
-applications (including `docker login` and `vim`) will not directly edit the file, but instead make a copy and replace
-the original file, which results in a new inode which in turn *breaks* the bind mount.
-
+    If you mount `config.json` in the manner above, changes from the host system will (generally) not be propagated to the
+    running container. Mounting files into the Docker daemon uses bind mounts, which are based on inodes. Most
+    applications (including `docker login` and `vim`) will not directly edit the file, but instead make a copy and replace
+    the original file, which results in a new inode which in turn *breaks* the bind mount.  
     **As a workaround**, you can create a symlink to your `config.json` file and then mount the symlink in the container. 
     The symlinked file will always have the same inode, which keeps the bind mount intact and will ensure changes
     to the original file are propagated to the running container (regardless of the inode of the source file!).

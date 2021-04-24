@@ -12,15 +12,15 @@ comma-separated list of values to the `--notifications` option
 - `shoutrrr` to send notifications via [containrrr/shoutrrr](https://github.com/containrrr/shoutrrr)
 
 !!! note "Using multiple notifications with environment variables"
-There is currently a bug in Viper (https://github.com/spf13/viper/issues/380), which prevents comma-separated slices to
-be used when using the environment variable.  
-A workaround is available where we instead put quotes around the environment variable value and replace the commas with
-spaces:
-```
-WATCHTOWER_NOTIFICATIONS="slack msteams"
-```
-If you're a `docker-compose` user, make sure to specify environment variables' values in your `.yml` file without double
-quotes (`"`). This prevents unexpected errors when watchtower starts.
+    There is currently a bug in Viper (https://github.com/spf13/viper/issues/380), which prevents comma-separated slices to
+    be used when using the environment variable.  
+    A workaround is available where we instead put quotes around the environment variable value and replace the commas with
+    spaces:
+    ```
+    WATCHTOWER_NOTIFICATIONS="slack msteams"
+    ```
+    If you're a `docker-compose` user, make sure to specify environment variables' values in your `.yml` file without double
+    quotes (`"`). This prevents unexpected errors when watchtower starts.
 
 ## Settings
 
@@ -196,10 +196,10 @@ The default value if not set is `{{range .}}{{.Message}}{{println}}{{end}}`. The
 outputs timestamp and log level.
 
 !!! tip "Custom date format"
-If you want to adjust the date/time format it must show how the
-[reference time](https://golang.org/pkg/time/#pkg-constants) (*Mon Jan 2 15:04:05 MST 2006*) would be displayed in your
-custom format.  
-i.e. The day of the year has to be 1, the month has to be 2 (february), the hour 3 (or 15 for 24h time) etc.
+    If you want to adjust the date/time format it must show how the
+    [reference time](https://golang.org/pkg/time/#pkg-constants) (_Mon Jan 2 15:04:05 MST 2006_) would be displayed in your
+    custom format.  
+    i.e. The day of the year has to be 1, the month has to be 2 (february), the hour 3 (or 15 for 24h time) etc.
 
 Example:
 

@@ -1,6 +1,6 @@
 !!! warning "Experimental feature"
-This feature was added in v1.0.4 and is still considered experimental. If you notice any strange behavior, please raise
-a ticket in the repository issues.
+    This feature was added in v1.0.4 and is still considered experimental. If you notice any strange behavior, please raise
+    a ticket in the repository issues.
 
 Metrics can be used to track how Watchtower behaves over time.
 

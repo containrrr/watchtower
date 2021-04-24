@@ -32,9 +32,10 @@ echo -n 'username:password' | base64
 ```
 
 !!! info "Username and Password for GCloud"
-For gcloud, we'll use `_json_key` as our username and the content of `gcloudauth.json` as the password.
-```bash echo -n "_json_key:$(cat gcloudauth.json)" | base64 -w0
-```
+    For gcloud, we'll use `_json_key` as our username and the content of `gcloudauth.json` as the password.
+    ```
+    bash echo -n "_json_key:$(cat gcloudauth.json)" | base64 -w0
+    ```
 
 When the watchtower Docker container is started, the created configuration file
 (`<PATH>/config.json` in this example) needs to be passed to the container:
@@ -101,7 +102,7 @@ Example implementation for use with [amazon-ecr-credential-helper](https://githu
 Use the dockerfile below to build the [amazon-ecr-credential-helper](https://github.com/awslabs/amazon-ecr-credential-helper),
 in a volume that may be mounted onto your watchtower container.
 
-1. Create the Dockerfile (contents below):
+1.  Create the Dockerfile (contents below):
 
    ```Dockerfile
    FROM golang:latest
@@ -120,7 +121,7 @@ in a volume that may be mounted onto your watchtower container.
    WORKDIR /go/bin/
    ```
 
-2. Use the following commands to build the aws-ecr-dock-cred-helper and store it's output in a volume:
+2.  Use the following commands to build the aws-ecr-dock-cred-helper and store it's output in a volume:
 
    ```bash
    # Create a volume to store the command (once built)
@@ -134,7 +135,7 @@ in a volume that may be mounted onto your watchtower container.
    
    ```
 
-3. Create a configuration file for docker, and store it in $HOME/.docker/config.json (replace the <AWS_ACCOUNT_ID>
+3.  Create a configuration file for docker, and store it in $HOME/.docker/config.json (replace the <AWS_ACCOUNT_ID>
    placeholders with your AWS Account ID):
 
    ```json
@@ -152,11 +153,11 @@ in a volume that may be mounted onto your watchtower container.
    }
    ```
 
-4. Create a docker-compose file (as an example) to help launch the container:
-
-   ```yaml
-   version: "3.4"
-   services:
+4.  Create a docker-compose file (as an example) to help launch the container:
+ 
+    ```yaml
+    version: "3.4"
+    services:
      # Check for new images and restart things if a new image exists
      # for any of our containers.
      watchtower:
@@ -169,10 +170,10 @@ in a volume that may be mounted onto your watchtower container.
          - HOME=/
          - PATH=$PATH:/go/bin
          - AWS_REGION=us-west-1
-   volumes:
+    volumes:
      helper: 
        external: true
-   ```
+    ```
 
 A few additional notes:
 

@@ -1,7 +1,8 @@
 ## Executing commands before and after updating
 
-!!! note These are shell commands executed with `sh`, and therefore require the container to provide the `sh`
-executable.
+!!! note 
+    These are shell commands executed with `sh`, and therefore require the container to provide the `sh`
+    executable.
 
 It is possible to execute _pre/post\-check_ and _pre/post\-update_ commands
 **inside** every container updated by watchtower.
