@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/containrrr/watchtower/pkg/api"
 	metricsAPI "github.com/containrrr/watchtower/pkg/api/metrics"
@@ -57,10 +58,11 @@ var _ = Describe("the metrics API", func() {
 			Updated: 3,
 			Failed:  1,
 		}
+
 		metrics.RegisterScan(metric)
 		Eventually(metrics.Default().QueueIsEmpty).Should(BeTrue())
 
-		Eventually(getWithToken(handleReq)).Should(ContainSubstring("watchtower_containers_updated 3"))
+		Eventually(getWithToken(handleReq), time.Second * 5, time.Second).Should(ContainSubstring("watchtower_containers_updated 3"))
 		Eventually(getWithToken(handleReq)).Should(ContainSubstring("watchtower_containers_failed 1"))
 		Eventually(getWithToken(handleReq)).Should(ContainSubstring("watchtower_containers_scanned 4"))
 		Eventually(getWithToken(handleReq)).Should(ContainSubstring("watchtower_scans_total 1"))
@@ -71,7 +73,7 @@ var _ = Describe("the metrics API", func() {
 		}
 		Eventually(metrics.Default().QueueIsEmpty).Should(BeTrue())
 
-		Eventually(getWithToken(handleReq)).Should(ContainSubstring("watchtower_scans_total 4"))
+		Eventually(getWithToken(handleReq), time.Second * 5, time.Second).Should(ContainSubstring("watchtower_scans_total 4"))
 		Eventually(getWithToken(handleReq)).Should(ContainSubstring("watchtower_scans_skipped 3"))
 	})
 })
