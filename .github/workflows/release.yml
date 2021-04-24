@@ -95,7 +95,8 @@ jobs:
             containrrr/watchtower:amd64-$DH_TAG \
             containrrr/watchtower:i386-$DH_TAG \
             containrrr/watchtower:armhf-$DH_TAG \
-            containrrr/watchtower:arm64v8-$DH_TAG \
+            containrrr/watchtower:arm64v8-$DH_TAG
+          docker manifest create \
             ghcr.io/containrrr/watchtower:$DH_TAG \
             ghcr.io/containrrr/watchtower:amd64-$DH_TAG \
             ghcr.io/containrrr/watchtower:i386-$DH_TAG \
@@ -132,7 +133,8 @@ jobs:
             containrrr/watchtower:amd64-latest \
             containrrr/watchtower:i386-latest \
             containrrr/watchtower:armhf-latest \
-            containrrr/watchtower:arm64v8-latest \
+            containrrr/watchtower:arm64v8-latest
+          docker manifest create \
             ghcr.io/containrrr/watchtower:latest \
             ghcr.io/containrrr/watchtower:amd64-latest \
             ghcr.io/containrrr/watchtower:i386-latest \
