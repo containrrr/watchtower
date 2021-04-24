@@ -2,44 +2,54 @@ package metrics_test
 
 import (
 	"fmt"
-	"github.com/containrrr/watchtower/pkg/metrics"
 	"io/ioutil"
+	stdlog "log"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/containrrr/watchtower/pkg/api"
 	metricsAPI "github.com/containrrr/watchtower/pkg/api/metrics"
+	"github.com/containrrr/watchtower/pkg/metrics"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
-const Token = "123123123"
+const (
+	token  = "123123123"
+	getUrl = "http://localhost:8080/v1/metrics"
+)
+
+var log = stdlog.New(GinkgoWriter, "", 0)
 
 func TestContainer(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Metrics Suite")
 }
 
-func runTestServer(m *metricsAPI.Handler) {
-	http.Handle(m.Path, m.Handle)
-	go func() {
-		http.ListenAndServe(":8080", nil)
-	}()
+func getWithToken(handler http.Handler) string {
+	respWriter := httptest.NewRecorder()
+
+	req := httptest.NewRequest("GET", getUrl, nil)
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
+
+	handler.ServeHTTP(respWriter, req)
+
+	res := respWriter.Result()
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		log.Println("reading body failed: ", err)
+		return ""
+	}
+	return string(body)
 }
 
-func getWithToken(c http.Client, url string) (*http.Response, error) {
-	req, _ := http.NewRequest("GET", url, nil)
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", Token))
-	return c.Do(req)
-}
-
-var _ = Describe("the metrics", func() {
-	httpAPI := api.New(Token)
+var _ = Describe("the metrics API", func() {
+	httpAPI := api.New(token)
 	m := metricsAPI.New()
 
-	httpAPI.RegisterHandler(m.Path, m.Handle)
-	httpAPI.Start(false)
+	handleReq := httpAPI.RequireToken(m.Handle)
 
 	It("should serve metrics", func() {
 		metric := &metrics.Metric{
@@ -50,30 +60,18 @@ var _ = Describe("the metrics", func() {
 		metrics.RegisterScan(metric)
 		Eventually(metrics.Default().QueueIsEmpty).Should(BeTrue())
 
-		c := http.Client{}
-
-		res, err := getWithToken(c, "http://localhost:8080/v1/metrics")
-		Expect(err).ToNot(HaveOccurred())
-
-		contents, err := ioutil.ReadAll(res.Body)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(string(contents)).To(ContainSubstring("watchtower_containers_updated 3"))
-		Expect(string(contents)).To(ContainSubstring("watchtower_containers_failed 1"))
-		Expect(string(contents)).To(ContainSubstring("watchtower_containers_scanned 4"))
-		Expect(string(contents)).To(ContainSubstring("watchtower_scans_total 1"))
-		Expect(string(contents)).To(ContainSubstring("watchtower_scans_skipped 0"))
+		Eventually(getWithToken(handleReq)).Should(ContainSubstring("watchtower_containers_updated 3"))
+		Eventually(getWithToken(handleReq)).Should(ContainSubstring("watchtower_containers_failed 1"))
+		Eventually(getWithToken(handleReq)).Should(ContainSubstring("watchtower_containers_scanned 4"))
+		Eventually(getWithToken(handleReq)).Should(ContainSubstring("watchtower_scans_total 1"))
+		Eventually(getWithToken(handleReq)).Should(ContainSubstring("watchtower_scans_skipped 0"))
 
 		for i := 0; i < 3; i++ {
 			metrics.RegisterScan(nil)
 		}
 		Eventually(metrics.Default().QueueIsEmpty).Should(BeTrue())
 
-		res, err = getWithToken(c, "http://localhost:8080/v1/metrics")
-		Expect(err).ToNot(HaveOccurred())
-
-		contents, err = ioutil.ReadAll(res.Body)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(string(contents)).To(ContainSubstring("watchtower_scans_total 4"))
-		Expect(string(contents)).To(ContainSubstring("watchtower_scans_skipped 3"))
+		Eventually(getWithToken(handleReq)).Should(ContainSubstring("watchtower_scans_total 4"))
+		Eventually(getWithToken(handleReq)).Should(ContainSubstring("watchtower_scans_skipped 3"))
 	})
 })
