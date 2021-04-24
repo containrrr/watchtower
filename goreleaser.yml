@@ -38,6 +38,8 @@ dockers:
     image_templates:
       - containrrr/watchtower:amd64-{{ .Version }}
       - containrrr/watchtower:amd64-latest
+      - ghcr.io/containrrr/watchtower:amd64-{{ .Version }}
+      - ghcr.io/containrrr/watchtower:amd64-latest
     binaries:
       - watchtower
   - 
@@ -50,6 +52,8 @@ dockers:
     image_templates:
       - containrrr/watchtower:i386-{{ .Version }}
       - containrrr/watchtower:i386-latest
+      - ghcr.io/containrrr/watchtower:i386-{{ .Version }}
+      - ghcr.io/containrrr/watchtower:i386-latest
     binaries:
       - watchtower
   - 
@@ -62,6 +66,8 @@ dockers:
     image_templates:
       - containrrr/watchtower:armhf-{{ .Version }}
       - containrrr/watchtower:armhf-latest
+      - ghcr.io/containrrr/watchtower:armhf-{{ .Version }}
+      - ghcr.io/containrrr/watchtower:armhf-latest
     binaries:
       - watchtower
   - 
@@ -74,5 +80,7 @@ dockers:
     image_templates:
       - containrrr/watchtower:arm64v8-{{ .Version }}
       - containrrr/watchtower:arm64v8-latest
+      - ghcr.io/containrrr/watchtower:arm64v8-{{ .Version }}
+      - ghcr.io/containrrr/watchtower:arm64v8-latest
     binaries:
       - watchtower
