@@ -12,7 +12,7 @@
     <img alt="Circle CI" src="https://circleci.com/gh/containrrr/watchtower.svg?style=shield" />
   </a>
   <a href="https://codecov.io/gh/containrrr/watchtower">
-    <img alt="Codecov" src="https://codecov.io/gh/containrrr/watchtower/branch/master/graph/badge.svg?token=8pxWgB380Y">
+    <img alt="Codecov" src="https://codecov.io/gh/containrrr/watchtower/branch/main/graph/badge.svg">
   </a>
   <a href="https://godoc.org/github.com/containrrr/watchtower">
     <img alt="GoDoc" src="https://godoc.org/github.com/containrrr/watchtower?status.svg" />
