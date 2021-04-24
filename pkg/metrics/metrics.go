@@ -29,11 +29,6 @@ func (metrics *Metrics) QueueIsEmpty() bool {
 	return len(metrics.channel) == 0
 }
 
-// QueueIsEmpty checks whether any messages are enqueued in the channel
-func (metrics *Metrics) QueueIsEmpty() bool {
-	return len(metrics.channel) == 0
-}
-
 // Register registers metrics for an executed scan
 func (metrics *Metrics) Register(metric *Metric) {
 	metrics.channel <- metric
