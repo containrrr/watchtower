@@ -176,7 +176,9 @@ Will only monitor for new images, send notifications and invoke the [pre-check/p
 
 > **⚠️ Please note**
 >
-> Due to Docker API limitations the latest image will still be pulled from the registry.
+> Due to Docker API limitations the latest image will still be pulled from the registry.  
+> The HEAD digest checks allows watchtower to skip pulling when there are no changes, but to know *what* has changed
+> it will still do a pull whenever the repository digest doesn't match the local image digest.
 
 ```
             Argument: --monitor-only
@@ -303,11 +305,25 @@ Environment Variable: WATCHTOWER_TIMEOUT
 ```
 
 ## TLS Verification
-Use TLS when connecting to the Docker socket and verify the server's certificate. See below for options used to configure notifications.
+
+Use TLS when connecting to the Docker socket and verify the server's certificate. See below for options used to
+configure notifications.
 
 ```
             Argument: --tlsverify
 Environment Variable: DOCKER_TLS_VERIFY
                 Type: Boolean
              Default: false
+```
+
+## HEAD failure warnings
+
+When to warn about HEAD pull requests failing. Auto means that it will warn when the registry is known to handle the
+requests and may rate limit pull requests (mainly docker.io).
+
+```
+            Argument: --warn-on-head-failure
+Environment Variable: WATCHTOWER_WARN_ON_HEAD_FAILURE
+     Possible values: always, auto, never
+             Default: auto
 ```
