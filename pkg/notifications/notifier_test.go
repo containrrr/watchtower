@@ -47,7 +47,7 @@ var _ = Describe("notifications", func() {
 			token := "abvsihdbau"
 			color := notifications.ColorInt
 			title := url.QueryEscape(notifications.GetTitle())
-			expected := fmt.Sprintf("discord://%s@%s?avatar=&color=0x%x&colordebug=0x0&colorerror=0x0&colorinfo=0x0&colorwarn=0x0&splitlines=Yes&title=%s&username=watchtower", token, channel, color, title)
+			expected := fmt.Sprintf("discord://%s@%s?color=0x%x&colordebug=0x0&colorerror=0x0&colorinfo=0x0&colorwarn=0x0&splitlines=Yes&title=%s&username=watchtower", token, channel, color, title)
 			buildArgs := func(url string) []string {
 				return []string{
 					"--notifications",
@@ -101,7 +101,7 @@ var _ = Describe("notifications", func() {
 				host := "shoutrrr.local"
 				title := url.QueryEscape(notifications.GetTitle())
 
-				expectedOutput := fmt.Sprintf("gotify://%s/%s?disabletls=No&priority=0&title=%s", host, token, title)
+				expectedOutput := fmt.Sprintf("gotify://%s/%s?title=%s", host, token, title)
 
 				args := []string{
 					"--notification-gotify-url",
@@ -128,7 +128,7 @@ var _ = Describe("notifications", func() {
 				title := url.QueryEscape(notifications.GetTitle())
 
 				hookURL := fmt.Sprintf("https://outlook.office.com/webhook/%s/IncomingWebhook/%s/%s", tokenA, tokenB, tokenC)
-				expectedOutput := fmt.Sprintf("teams://%s/%s/%s?color=%s&host=outlook.office.com&title=%s", tokenA, tokenB, tokenC, color, title)
+				expectedOutput := fmt.Sprintf("teams://%s/%s/%s?color=%s&title=%s", tokenA, tokenB, tokenC, color, title)
 
 				args := []string{
 					"--notification-msteams-hook",
@@ -147,10 +147,18 @@ var _ = Describe("notifications", func() {
 		When("converting an email service config into a shoutrrr url", func() {
 			It("should set the from address in the URL", func() {
 				fromAddress := "lala@example.com"
-				expectedOutput := buildExpectedURL("", "", "", 25, fromAddress, "", "None")
+				expectedOutput := buildExpectedURL("containrrrbot", "secret-password", "mail.containrrr.dev", 25, fromAddress, "mail@example.com", "Plain")
 				args := []string{
 					"--notification-email-from",
 					fromAddress,
+					"--notification-email-to",
+					"mail@example.com",
+					"--notification-email-server-user",
+					"containrrrbot",
+					"--notification-email-server-password",
+					"secret-password",
+					"--notification-email-server",
+					"mail.containrrr.dev",
 				}
 				testURL(builderFn, args, expectedOutput)
 			})
@@ -159,13 +167,19 @@ var _ = Describe("notifications", func() {
 
 				fromAddress := "sender@example.com"
 				toAddress := "receiver@example.com"
-				expectedOutput := buildExpectedURL("", "", "", 25, fromAddress, toAddress, "None")
+				expectedOutput := buildExpectedURL("containrrrbot", "secret-password", "mail.containrrr.dev", 25, fromAddress, toAddress, "Plain")
 
 				args := []string{
 					"--notification-email-from",
 					fromAddress,
 					"--notification-email-to",
 					toAddress,
+					"--notification-email-server-user",
+					"containrrrbot",
+					"--notification-email-server-password",
+					"secret-password",
+					"--notification-email-server",
+					"mail.containrrr.dev",
 				}
 
 				testURL(builderFn, args, expectedOutput)
@@ -180,7 +194,7 @@ func buildExpectedURL(username string, password string, host string, port int, f
 
 	subject := fmt.Sprintf("Watchtower updates on %s", hostname)
 
-	var template = "smtp://%s:%s@%s:%d/?auth=%s&encryption=Auto&fromaddress=%s&fromname=Watchtower&starttls=Yes&subject=%s&toaddresses=%s&usehtml=No"
+	var template = "smtp://%s:%s@%s:%d/?auth=%s&fromaddress=%s&fromname=Watchtower&subject=%s&toaddresses=%s"
 	return fmt.Sprintf(template,
 		url.QueryEscape(username),
 		url.QueryEscape(password),
