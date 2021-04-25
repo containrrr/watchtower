@@ -1,0 +1,16 @@
+[data-md-color-scheme="containrrr"] {
+    --md-primary-fg-color: #406170;
+    --md-primary-fg-color--light:#acbfc7;
+    --md-primary-fg-color--dark: #003343;
+    --md-accent-fg-color: #003343;
+    --md-accent-fg-color--transparent: #00334310;
+}
+
+.md-header-nav__button.md-logo {
+    padding: 0;
+}
+
+.md-header-nav__button.md-logo img {
+    width: 1.6rem;
+    height: 1.6rem;
+}

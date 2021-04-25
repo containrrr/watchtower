@@ -1,9 +1,10 @@
 package actions_test
 
 import (
-	"github.com/containrrr/watchtower/internal/actions"
 	"testing"
 	"time"
+
+	"github.com/containrrr/watchtower/internal/actions"
 
 	"github.com/containrrr/watchtower/pkg/container"
 	"github.com/containrrr/watchtower/pkg/container/mocks"

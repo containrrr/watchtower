@@ -1,0 +1,91 @@
+name: Pull Request
+
+on:
+  workflow_dispatch: {}
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.15.x
+      - name: Install linter
+        run: |
+          go get -u golang.org/x/lint/golint
+      - name: Lint files
+        run: |
+          golint -set_exit_status ./...
+  test:
+    name: Test
+    strategy:
+      fail-fast: false
+      matrix:
+        go-version:
+          - 1.15.x
+        platform:
+          - macos-latest
+          - windows-latest
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.15.x
+      - name: Run tests
+        run: |
+          go test -v -coverprofile coverage.out -covermode atomic ./... 
+      - name: Publish coverage
+        uses: codecov/codecov-action@v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+  test-ubuntu:
+    name: Test (Ubuntu)
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.15.x
+      - name: Run tests
+        run: |
+          go test -v -coverprofile coverage.out -covermode atomic ./...
+      - name: Publish coverage
+        uses: codecov/codecov-action@v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.15.x
+      - name: Build
+        uses: goreleaser/goreleaser-action@v2
+        with:
+          version: v0.155.0
+          args: --snapshot --skip-publish --debug

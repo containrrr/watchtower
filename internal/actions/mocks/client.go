@@ -86,3 +86,8 @@ func (client MockClient) ExecuteCommand(containerID string, command string, time
 func (client MockClient) IsContainerStale(c container.Container) (bool, error) {
 	return true, nil
 }
+
+// WarnOnHeadPullFailed is always true for the mock client
+func (client MockClient) WarnOnHeadPullFailed(c container.Container) bool {
+	return true
+}

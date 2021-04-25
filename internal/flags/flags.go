@@ -106,6 +106,12 @@ func RegisterSystemFlags(rootCmd *cobra.Command) {
 		"Run once now and exit")
 
 	flags.BoolP(
+		"include-restarting",
+		"",
+		viper.GetBool("WATCHTOWER_INCLUDE_RESTARTING"),
+		"Will also include restarting containers")
+
+	flags.BoolP(
 		"include-stopped",
 		"S",
 		viper.GetBool("WATCHTOWER_INCLUDE_STOPPED"),
@@ -130,10 +136,15 @@ func RegisterSystemFlags(rootCmd *cobra.Command) {
 		"Restart containers one at a time")
 
 	flags.BoolP(
-		"http-api",
+		"http-api-update",
 		"",
-		viper.GetBool("WATCHTOWER_HTTP_API"),
+		viper.GetBool("WATCHTOWER_HTTP_API_UPDATE"),
 		"Runs Watchtower in HTTP API mode, so that image updates must to be triggered by a request")
+	flags.BoolP(
+		"http-api-metrics",
+		"",
+		viper.GetBool("WATCHTOWER_HTTP_API_METRICS"),
+		"Runs Watchtower with the Prometheus metrics API enabled")
 
 	flags.StringP(
 		"http-api-token",
@@ -296,14 +307,21 @@ Should only be used for testing.`)
 		"",
 		viper.GetStringSlice("WATCHTOWER_NOTIFICATION_URL"),
 		"The shoutrrr URL to send notifications to")
+
+	flags.String(
+		"warn-on-head-failure",
+		viper.GetString("WATCHTOWER_WARN_ON_HEAD_FAILURE"),
+		"When to warn about HEAD pull requests failing. Possible values: always, auto or never")
+
 }
 
 // SetDefaults provides default values for environment variables
 func SetDefaults() {
+	day := (time.Hour * 24).Seconds()
 	viper.AutomaticEnv()
 	viper.SetDefault("DOCKER_HOST", "unix:///var/run/docker.sock")
 	viper.SetDefault("DOCKER_API_VERSION", DockerAPIMinVersion)
-	viper.SetDefault("WATCHTOWER_POLL_INTERVAL", 300)
+	viper.SetDefault("WATCHTOWER_POLL_INTERVAL", day)
 	viper.SetDefault("WATCHTOWER_TIMEOUT", time.Second*10)
 	viper.SetDefault("WATCHTOWER_NOTIFICATIONS", []string{})
 	viper.SetDefault("WATCHTOWER_NOTIFICATIONS_LEVEL", "info")

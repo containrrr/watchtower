@@ -11,7 +11,7 @@ jobs:
         repo-token: ${{ secrets.GITHUB_TOKEN }}
         issue-message: >
           Hi there! 👋🏼
-          As you're new to this repo, we'd like to suggest that you read our [code of conduct](https://github.com/containrrr/watchtower/blob/master/CODE_OF_CONDUCT.md)
+          As you're new to this repo, we'd like to suggest that you read our [code of conduct](https://github.com/containrrr/.github/blob/master/CODE_OF_CONDUCT.md)
           as well as our [contribution guidelines](https://github.com/containrrr/watchtower/blob/master/CONTRIBUTING.md).
           Thanks a bunch for opening your first issue! 🙏
         pr-message: >

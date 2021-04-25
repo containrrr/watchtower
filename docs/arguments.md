@@ -39,7 +39,7 @@ Environment Variable: N/A
 
 ## Time Zone
 Sets the time zone to be used by WatchTower's logs and the optional Cron scheduling argument (--schedule). If this environment variable is not set, Watchtower will use the default time zone: UTC.
-To find out the right value, see [this list](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones), find your location and use the value in _TZ Database Name_, e.g _Europe/Rome_. The timezome can alternatively be set by volume mounting your hosts /etc/timezone file. `-v /etc/timezone:/etc/timezone:ro`
+To find out the right value, see [this list](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones), find your location and use the value in _TZ Database Name_, e.g _Europe/Rome_. The timezone can alternatively be set by volume mounting your hosts /etc/localtime file. `-v /etc/localtime:/etc/localtime:ro`
 
 ```
             Argument: N/A
@@ -102,7 +102,7 @@ Environment Variable: NO_COLOR
 Docker daemon socket to connect to. Can be pointed at a remote Docker host by specifying a TCP endpoint as "tcp://hostname:port".
 
 ```
-            Argument: --host, -h
+            Argument: --host, -H
 Environment Variable: DOCKER_HOST
                 Type: String
              Default: "unix:///var/run/docker.sock"
@@ -116,6 +116,16 @@ The API version to use by the Docker client for connecting to the Docker daemon.
 Environment Variable: DOCKER_API_VERSION
                 Type: String
              Default: "1.24"
+```
+
+## Include restarting
+Will also include restarting containers.
+
+```
+            Argument: --include-restarting
+Environment Variable: WATCHTOWER_INCLUDE_RESTARTING
+                Type: Boolean
+             Default: false
 ```
 
 ## Include stopped
@@ -145,7 +155,7 @@ Poll interval (in seconds). This value controls how frequently watchtower will p
             Argument: --interval, -i
 Environment Variable: WATCHTOWER_POLL_INTERVAL
                 Type: Integer
-             Default: 300
+             Default: 86400 (24 hours)
 ```
 
 ## Filter by enable label
@@ -164,7 +174,7 @@ Environment Variable: WATCHTOWER_LABEL_ENABLE
 ## Without updating containers
 Will only monitor for new images, send notifications and invoke the [pre-check/post-check hooks](https://containrrr.dev/watchtower/lifecycle-hooks/), but will **not** update the containers.
 
-> ### ⚠️ Please note
+> **⚠️ Please note**
 >
 > Due to Docker API limitations the latest image will still be pulled from the registry.
 
@@ -221,10 +231,10 @@ Environment Variable: WATCHTOWER_RUN_ONCE
 ```
 
 ## HTTP API Mode
-Runs Watchtower in HTTP API mode, only allowing image updates to be triggered by an HTTP request.
+Runs Watchtower in HTTP API mode, only allowing image updates to be triggered by an HTTP request. For details see [HTTP API](https://containrrr.github.io/watchtower/http-api-mode).
 
 ```
-            Argument: --http-api
+            Argument: --http-api-update
 Environment Variable: WATCHTOWER_HTTP_API
                 Type: Boolean
              Default: false
@@ -249,6 +259,16 @@ Environment Variable: WATCHTOWER_SCOPE
                 Type: String
              Default: -
 ``` 
+
+## HTTP API Metrics
+Enables a metrics endpoint, exposing prometheus metrics via HTTP. See [Metrics](metrics.md) for details.  
+
+```
+            Argument: --http-api-metrics
+Environment Variable: WATCHTOWER_HTTP_API_METRICS
+                Type: Boolean
+             Default: false
+```
 
 ## Scheduling
 [Cron expression](https://pkg.go.dev/github.com/robfig/cron@v1.2.0?tab=doc#hdr-CRON_Expression_Format) in 6 fields (rather than the traditional 5) which defines when and how often to check for new images. Either `--interval` or the schedule expression
