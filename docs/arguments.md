@@ -255,6 +255,16 @@ Environment Variable: WATCHTOWER_HTTP_API_TOKEN
              Default: -
 ```
 
+## HTTP API periodic polls
+Keep running periodic updates if the HTTP API mode is enabled, otherwise the HTTP API would prevent periodic polls.  
+
+```
+            Argument: --http-api-periodic-polls
+Environment Variable: WATCHTOWER_HTTP_API_PERIODIC_POLLS
+                Type: Boolean
+             Default: false
+```
+
 ## Filter by scope
 Update containers that have a `com.centurylinklabs.watchtower.scope` label set with the same value as the given argument. 
 This enables [running multiple instances](https://containrrr.github.io/watchtower/running-multiple-instances).

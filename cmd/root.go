@@ -156,6 +156,7 @@ func Run(c *cobra.Command, names []string) {
 	runOnce, _ := c.PersistentFlags().GetBool("run-once")
 	enableUpdateAPI, _ := c.PersistentFlags().GetBool("http-api-update")
 	enableMetricsAPI, _ := c.PersistentFlags().GetBool("http-api-metrics")
+	unblockHTTPAPI, _ := c.PersistentFlags().GetBool("http-api-periodic-polls")
 	apiToken, _ := c.PersistentFlags().GetString("http-api-token")
 
 	if rollingRestart && monitorOnly {
@@ -180,10 +181,14 @@ func Run(c *cobra.Command, names []string) {
 		logNotifyExit(err)
 	}
 
+	// The lock is shared between the scheduler and the HTTP API. It only allows one update to run at a time.
+	updateLock := make(chan bool, 1)
+	updateLock <- true
+
 	httpAPI := api.New(apiToken)
 
 	if enableUpdateAPI {
-		updateHandler := update.New(func() { runUpdatesWithNotifications(filter) })
+		updateHandler := update.New(func() { runUpdatesWithNotifications(filter) }, updateLock)
 		httpAPI.RegisterFunc(updateHandler.Path, updateHandler.Handle)
 	}
 
@@ -192,11 +197,11 @@ func Run(c *cobra.Command, names []string) {
 		httpAPI.RegisterHandler(metricsHandler.Path, metricsHandler.Handle)
 	}
 
-	if err := httpAPI.Start(enableUpdateAPI); err != nil {
+	if err := httpAPI.Start(enableUpdateAPI && !unblockHTTPAPI); err != nil {
 		log.Error("failed to start API", err)
 	}
 
-	if err := runUpgradesOnSchedule(c, filter, filterDesc); err != nil {
+	if err := runUpgradesOnSchedule(c, filter, filterDesc, updateLock); err != nil {
 		log.Error(err)
 	}
 
@@ -275,17 +280,19 @@ func writeStartupMessage(c *cobra.Command, sched time.Time, filtering string) {
 	}
 }
 
-func runUpgradesOnSchedule(c *cobra.Command, filter t.Filter, filtering string) error {
-	tryLockSem := make(chan bool, 1)
-	tryLockSem <- true
+func runUpgradesOnSchedule(c *cobra.Command, filter t.Filter, filtering string, lock chan bool) error {
+	if lock == nil {
+		lock = make(chan bool, 1)
+		lock <- true
+	}
 
 	scheduler := cron.New()
 	err := scheduler.AddFunc(
 		scheduleSpec,
 		func() {
 			select {
-			case v := <-tryLockSem:
-				defer func() { tryLockSem <- v }()
+			case v := <-lock:
+				defer func() { lock <- v }()
 				metric := runUpdatesWithNotifications(filter)
 				metrics.RegisterScan(metric)
 			default:
@@ -316,7 +323,7 @@ func runUpgradesOnSchedule(c *cobra.Command, filter t.Filter, filtering string) 
 	<-interrupt
 	scheduler.Stop()
 	log.Info("Waiting for running update to be finished...")
-	<-tryLockSem
+	<-lock
 	return nil
 }
 

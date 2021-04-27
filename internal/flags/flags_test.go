@@ -79,3 +79,18 @@ func testGetSecretsFromFiles(t *testing.T, flagName string, expected string) {
 
 	assert.Equal(t, expected, value)
 }
+
+func TestHTTPAPIPeriodicPollsFlag(t *testing.T) {
+	cmd := new(cobra.Command)
+	SetDefaults()
+	RegisterDockerFlags(cmd)
+	RegisterSystemFlags(cmd)
+
+	err := cmd.ParseFlags([]string{"--http-api-periodic-polls"})
+	require.NoError(t, err)
+
+	periodicPolls, err := cmd.PersistentFlags().GetBool("http-api-periodic-polls")
+	require.NoError(t, err)
+
+	assert.Equal(t, true, periodicPolls)
+}
