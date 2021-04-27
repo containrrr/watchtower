@@ -749,6 +749,15 @@
       "contributions": [
         "doc"
       ]
+    },
+    {
+      "login": "DasSkelett",
+      "name": "DasSkelett",
+      "avatar_url": "https://avatars.githubusercontent.com/u/28812678?v=4",
+      "profile": "https://github.com/DasSkelett",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
