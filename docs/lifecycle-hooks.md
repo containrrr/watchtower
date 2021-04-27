@@ -31,18 +31,21 @@ These labels can be declared as instructions in a Dockerfile (with some example 
 the `docker run` command line:
 
 === "Dockerfile"
-```docker LABEL com.centurylinklabs.watchtower.lifecycle.pre-check="/sync.sh"
-LABEL com.centurylinklabs.watchtower.lifecycle.pre-update="/dump-data.sh"
-LABEL com.centurylinklabs.watchtower.lifecycle.post-update="/restore-data.sh"
-LABEL com.centurylinklabs.watchtower.lifecycle.post-check="/send-heartbeat.sh"
-```
+    ```docker 
+    LABEL com.centurylinklabs.watchtower.lifecycle.pre-check="/sync.sh"
+    LABEL com.centurylinklabs.watchtower.lifecycle.pre-update="/dump-data.sh"
+    LABEL com.centurylinklabs.watchtower.lifecycle.post-update="/restore-data.sh"
+    LABEL com.centurylinklabs.watchtower.lifecycle.post-check="/send-heartbeat.sh"
+    ```
+
 === "docker run"
-```bash docker run -d \
---label=com.centurylinklabs.watchtower.lifecycle.pre-check="/sync.sh" \
---label=com.centurylinklabs.watchtower.lifecycle.pre-update="/dump-data.sh" \
---label=com.centurylinklabs.watchtower.lifecycle.post-update="/restore-data.sh" \
-someimage --label=com.centurylinklabs.watchtower.lifecycle.post-check="/send-heartbeat.sh" \
-```
+    ```bash 
+    docker run -d \
+    --label=com.centurylinklabs.watchtower.lifecycle.pre-check="/sync.sh" \
+    --label=com.centurylinklabs.watchtower.lifecycle.pre-update="/dump-data.sh" \
+    --label=com.centurylinklabs.watchtower.lifecycle.post-update="/restore-data.sh" \
+    someimage --label=com.centurylinklabs.watchtower.lifecycle.post-check="/send-heartbeat.sh" \
+    ```
 
 ### Timeouts
 The timeout for all lifecycle commands is 60 seconds. After that, a timeout will

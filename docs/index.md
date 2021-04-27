@@ -1,5 +1,5 @@
 <p style="text-align: center; margin-left: 1.6rem;">
-  <img src="./images/logo-450px.png" width="450" />
+  <img alt="Logotype depicting a lighthouse" src="./images/logo-450px.png" width="450" />
 </p>
 <h1 align="center">
   Watchtower
@@ -48,15 +48,17 @@ and restart it with the same options that were used when it was deployed initial
 the following command:
 
 === "docker run"
-```bash $ docker run -d \
---name watchtower \
--v /var/run/docker.sock:/var/run/docker.sock \
-containrrr/watchtower
-```
+    ```bash
+    $ docker run -d \
+    --name watchtower \
+    -v /var/run/docker.sock:/var/run/docker.sock \
+    containrrr/watchtower
+    ```
 === "docker-compose.yml"
-```yaml version: "3"
-services:
-watchtower:
-image: containrrr/watchtower volumes:
-- /var/run/docker.sock:/var/run/docker.sock
-```
+    ```yaml
+    version: "3"
+    services:
+    watchtower:
+    image: containrrr/watchtower volumes:
+    - /var/run/docker.sock:/var/run/docker.sock
+    ```
