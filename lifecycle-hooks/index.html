@@ -611,19 +611,22 @@ executable.</p>
 </table>
 <p>These labels can be declared as instructions in a Dockerfile (with some example .sh files) or be specified as part of
 the <code>docker run</code> command line:</p>
-<div class="tabbed-set" data-tabs="1:1"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><label for="__tabbed_1_1">Dockerfile</label><div class="tabbed-content"></div>
+<div class="tabbed-set" data-tabs="1:2"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><label for="__tabbed_1_1">Dockerfile</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code><span class="k">LABEL</span> com.centurylinklabs.watchtower.lifecycle.pre-check<span class="o">=</span><span class="s2">&quot;/sync.sh&quot;</span>
+<span class="k">LABEL</span> com.centurylinklabs.watchtower.lifecycle.pre-update<span class="o">=</span><span class="s2">&quot;/dump-data.sh&quot;</span>
+<span class="k">LABEL</span> com.centurylinklabs.watchtower.lifecycle.post-update<span class="o">=</span><span class="s2">&quot;/restore-data.sh&quot;</span>
+<span class="k">LABEL</span> com.centurylinklabs.watchtower.lifecycle.post-check<span class="o">=</span><span class="s2">&quot;/send-heartbeat.sh&quot;</span>
+</code></pre></div>
 </div>
-<p>```docker LABEL com.centurylinklabs.watchtower.lifecycle.pre-check="/sync.sh"
-LABEL com.centurylinklabs.watchtower.lifecycle.pre-update="/dump-data.sh"
-LABEL com.centurylinklabs.watchtower.lifecycle.post-update="/restore-data.sh"
-LABEL com.centurylinklabs.watchtower.lifecycle.post-check="/send-heartbeat.sh"
-<div class="highlight"><pre><span></span><code>=== &quot;docker run&quot;
-```bash docker run -d \
---label=com.centurylinklabs.watchtower.lifecycle.pre-check=&quot;/sync.sh&quot; \
---label=com.centurylinklabs.watchtower.lifecycle.pre-update=&quot;/dump-data.sh&quot; \
---label=com.centurylinklabs.watchtower.lifecycle.post-update=&quot;/restore-data.sh&quot; \
-someimage --label=com.centurylinklabs.watchtower.lifecycle.post-check=&quot;/send-heartbeat.sh&quot; \
-</code></pre></div></p>
+<input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><label for="__tabbed_1_2">docker run</label><div class="tabbed-content">
+<div class="highlight"><pre><span></span><code>docker run -d <span class="se">\</span>
+--label<span class="o">=</span>com.centurylinklabs.watchtower.lifecycle.pre-check<span class="o">=</span><span class="s2">&quot;/sync.sh&quot;</span> <span class="se">\</span>
+--label<span class="o">=</span>com.centurylinklabs.watchtower.lifecycle.pre-update<span class="o">=</span><span class="s2">&quot;/dump-data.sh&quot;</span> <span class="se">\</span>
+--label<span class="o">=</span>com.centurylinklabs.watchtower.lifecycle.post-update<span class="o">=</span><span class="s2">&quot;/restore-data.sh&quot;</span> <span class="se">\</span>
+someimage --label<span class="o">=</span>com.centurylinklabs.watchtower.lifecycle.post-check<span class="o">=</span><span class="s2">&quot;/send-heartbeat.sh&quot;</span> <span class="se">\</span>
+</code></pre></div>
+</div>
+</div>
 <h3 id="timeouts">Timeouts<a class="headerlink" href="#timeouts" title="Permanent link">&para;</a></h3>
 <p>The timeout for all lifecycle commands is 60 seconds. After that, a timeout will
 occur, forcing Watchtower to continue the update loop.</p>

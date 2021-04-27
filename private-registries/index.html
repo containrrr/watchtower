@@ -641,9 +641,9 @@ helper in a separate container and mount it using volumes.</p>
 <p>Use the dockerfile below to build the <a href="https://github.com/awslabs/amazon-ecr-credential-helper">amazon-ecr-credential-helper</a>,
 in a volume that may be mounted onto your watchtower container.</p>
 <ol>
-<li>Create the Dockerfile (contents below):</li>
-</ol>
-<div class="highlight"><pre><span></span><code><span class="k">FROM</span> <span class="s">golang:latest</span>
+<li>
+<p>Create the Dockerfile (contents below):
+    <div class="highlight"><pre><span></span><code><span class="k">FROM</span> <span class="s">golang:latest</span>
 
 <span class="k">ENV</span> CGO_ENABLED <span class="m">0</span>
 <span class="k">ENV</span> REPO github.com/awslabs/amazon-ecr-credential-helper/ecr-login/cli/docker-credential-ecr-login
@@ -653,44 +653,45 @@ in a volume that may be mounted onto your watchtower container.</p>
 <span class="k">RUN</span> rm /go/bin/docker-credential-ecr-login
 
 <span class="k">RUN</span> go build <span class="se">\</span>
-  -o /go/bin/docker-credential-ecr-login <span class="se">\</span>
-  /go/src/<span class="nv">$REPO</span>
+ -o /go/bin/docker-credential-ecr-login <span class="se">\</span>
+ /go/src/<span class="nv">$REPO</span>
 
 <span class="k">WORKDIR</span><span class="s"> /go/bin/</span>
-</code></pre></div>
-<ol>
-<li>Use the following commands to build the aws-ecr-dock-cred-helper and store it's output in a volume:</li>
-</ol>
-<div class="highlight"><pre><span></span><code><span class="c1"># Create a volume to store the command (once built)</span>
+</code></pre></div></p>
+</li>
+<li>
+<p>Use the following commands to build the aws-ecr-dock-cred-helper and store it's output in a volume:
+    <div class="highlight"><pre><span></span><code><span class="c1"># Create a volume to store the command (once built)</span>
 docker volume create helper 
 
 <span class="c1"># Build the container</span>
 docker build -t aws-ecr-dock-cred-helper .
 
 <span class="c1"># Build the command and store it in the new volume in the /go/bin directory.</span>
-docker run  -d --rm --name aws-cred-helper --volume helper:/go/bin aws-ecr-dock-cred-helper
-</code></pre></div>
-<ol>
-<li>Create a configuration file for docker, and store it in $HOME/.docker/config.json (replace the <AWS_ACCOUNT_ID>
-   placeholders with your AWS Account ID):</li>
-</ol>
-<div class="highlight"><pre><span></span><code><span class="p">{</span>
-    <span class="nt">&quot;credsStore&quot;</span> <span class="p">:</span> <span class="s2">&quot;ecr-login&quot;</span><span class="p">,</span>
-    <span class="nt">&quot;HttpHeaders&quot;</span> <span class="p">:</span> <span class="p">{</span>
-      <span class="nt">&quot;User-Agent&quot;</span> <span class="p">:</span> <span class="s2">&quot;Docker-Client/19.03.1 (XXXXXX)&quot;</span>
-    <span class="p">},</span>
-    <span class="nt">&quot;auths&quot;</span> <span class="p">:</span> <span class="p">{</span>
-      <span class="nt">&quot;&lt;AWS_ACCOUNT_ID&gt;.dkr.ecr.us-west-1.amazonaws.com&quot;</span> <span class="p">:</span> <span class="p">{}</span>
-    <span class="p">},</span>
-    <span class="nt">&quot;credHelpers&quot;</span><span class="p">:</span> <span class="p">{</span>
-      <span class="nt">&quot;&lt;AWS_ACCOUNT_ID&gt;.dkr.ecr.us-west-1.amazonaws.com&quot;</span> <span class="p">:</span> <span class="s2">&quot;ecr-login&quot;</span>
-    <span class="p">}</span>
-<span class="p">}</span>
-</code></pre></div>
-<ol>
+docker run  -d --rm --name aws-cred-helper <span class="se">\</span>
+  --volume helper:/go/bin aws-ecr-dock-cred-helper
+</code></pre></div></p>
+</li>
 <li>
-<p>Create a docker-compose file (as an example) to help launch the container:</p>
-<div class="highlight"><pre><span></span><code><span class="nt">version</span><span class="p">:</span> <span class="s">&quot;3.4&quot;</span>
+<p>Create a configuration file for docker, and store it in $HOME/.docker/config.json (replace the <AWS_ACCOUNT_ID>
+   placeholders with your AWS Account ID):
+    <div class="highlight"><pre><span></span><code><span class="p">{</span>
+   <span class="nt">&quot;credsStore&quot;</span> <span class="p">:</span> <span class="s2">&quot;ecr-login&quot;</span><span class="p">,</span>
+   <span class="nt">&quot;HttpHeaders&quot;</span> <span class="p">:</span> <span class="p">{</span>
+     <span class="nt">&quot;User-Agent&quot;</span> <span class="p">:</span> <span class="s2">&quot;Docker-Client/19.03.1 (XXXXXX)&quot;</span>
+   <span class="p">},</span>
+   <span class="nt">&quot;auths&quot;</span> <span class="p">:</span> <span class="p">{</span>
+     <span class="nt">&quot;&lt;AWS_ACCOUNT_ID&gt;.dkr.ecr.us-west-1.amazonaws.com&quot;</span> <span class="p">:</span> <span class="p">{}</span>
+   <span class="p">},</span>
+   <span class="nt">&quot;credHelpers&quot;</span><span class="p">:</span> <span class="p">{</span>
+     <span class="nt">&quot;&lt;AWS_ACCOUNT_ID&gt;.dkr.ecr.us-west-1.amazonaws.com&quot;</span> <span class="p">:</span> <span class="s2">&quot;ecr-login&quot;</span>
+   <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div></p>
+</li>
+<li>
+<p>Create a docker-compose file (as an example) to help launch the container:
+    <div class="highlight"><pre><span></span><code><span class="nt">version</span><span class="p">:</span> <span class="s">&quot;3.4&quot;</span>
 <span class="nt">services</span><span class="p">:</span>
  <span class="c1"># Check for new images and restart things if a new image exists</span>
  <span class="c1"># for any of our containers.</span>
@@ -707,7 +708,7 @@ docker run  -d --rm --name aws-cred-helper --volume helper:/go/bin aws-ecr-dock-
 <span class="nt">volumes</span><span class="p">:</span>
  <span class="nt">helper</span><span class="p">:</span> 
    <span class="nt">external</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
-</code></pre></div>
+</code></pre></div></p>
 </li>
 </ol>
 <p>A few additional notes:</p>
