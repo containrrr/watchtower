@@ -4,7 +4,7 @@ With watchtower you can update the running version of your containerized app sim
 
 For example, let's say you were running watchtower along with an instance of _centurylink/wetty-cli_ image:
 
-```bash
+```text
 $ docker ps
 CONTAINER ID   IMAGE                   STATUS          PORTS                    NAMES
 967848166a45   centurylink/wetty-cli   Up 10 minutes   0.0.0.0:8080->3000/tcp   wetty

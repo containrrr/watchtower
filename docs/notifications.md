@@ -1,7 +1,9 @@
 # Notifications
 
-Watchtower can send notifications when containers are updated. Notifications are sent via hooks in the logging system, [logrus](http://github.com/sirupsen/logrus).
-The types of notifications to send are set by passing a comma-separated list of values to the `--notifications` option (or corresponding environment variable `WATCHTOWER_NOTIFICATIONS`), which has the following valid values:
+Watchtower can send notifications when containers are updated. Notifications are sent via hooks in the logging
+system, [logrus](http://github.com/sirupsen/logrus). The types of notifications to send are set by passing a
+comma-separated list of values to the `--notifications` option
+(or corresponding environment variable `WATCHTOWER_NOTIFICATIONS`), which has the following valid values:
 
 - `email` to send notifications via e-mail
 - `slack` to send notifications through a Slack webhook
@@ -9,11 +11,16 @@ The types of notifications to send are set by passing a comma-separated list of 
 - `gotify` to send notifications via Gotify
 - `shoutrrr` to send notifications via [containrrr/shoutrrr](https://github.com/containrrr/shoutrrr)
 
-> There is currently a [bug](https://github.com/spf13/viper/issues/380) in Viper, which prevents comma-separated slices to be used when using the environment variable. A workaround is available where we instead put quotes around the environment variable value and replace the commas with spaces, as `WATCHTOWER_NOTIFICATIONS="slack msteams"`
-
-> If you're a `docker-compose` user, make sure to specify environment variables' values in your `.yml` file without double quotes (`"`).
->
-> This prevents unexpected errors when watchtower starts.
+!!! note "Using multiple notifications with environment variables"
+    There is currently a bug in Viper (https://github.com/spf13/viper/issues/380), which prevents comma-separated slices to
+    be used when using the environment variable.  
+    A workaround is available where we instead put quotes around the environment variable value and replace the commas with
+    spaces:
+    ```
+    WATCHTOWER_NOTIFICATIONS="slack msteams"
+    ```
+    If you're a `docker-compose` user, make sure to specify environment variables' values in your `.yml` file without double
+    quotes (`"`). This prevents unexpected errors when watchtower starts.
 
 ## Settings
 
@@ -60,7 +67,6 @@ The following example assumes, that your domain is called `your-domain.com` and 
 Example including an SMTP relay:
 
 ```yaml
----
 version: '3.8'
 services:
   watchtower:
@@ -117,8 +123,6 @@ By default, watchtower will send messages under the name `watchtower`, you can c
 Other, optional, variables include:
 
 - `--notification-slack-channel` (env. `WATCHTOWER_NOTIFICATION_SLACK_CHANNEL`): A string which overrides the webhook's default channel. Example: #my-custom-channel.
-- `--notification-slack-icon-emoji` (env. `WATCHTOWER_NOTIFICATION_SLACK_ICON_EMOJI`): An [emoji code](https://www.webpagefx.com/tools/emoji-cheat-sheet/) string to use in place of the default icon.
-- `--notification-slack-icon-url` (env. `WATCHTOWER_NOTIFICATION_SLACK_ICON_URL`): An icon image URL string to use in place of the default icon.
 
 Example:
 
@@ -130,8 +134,6 @@ docker run -d \
   -e WATCHTOWER_NOTIFICATION_SLACK_HOOK_URL="https://hooks.slack.com/services/xxx/yyyyyyyyyyyyyyy" \
   -e WATCHTOWER_NOTIFICATION_SLACK_IDENTIFIER=watchtower-server-1 \
   -e WATCHTOWER_NOTIFICATION_SLACK_CHANNEL=#my-custom-channel \
-  -e WATCHTOWER_NOTIFICATION_SLACK_ICON_EMOJI=:whale: \
-  -e WATCHTOWER_NOTIFICATION_SLACK_ICON_URL=<icon url> \
   containrrr/watchtower
 ```
 
@@ -179,16 +181,25 @@ To send notifications via shoutrrr, the following command-line options, or their
 
 - `--notification-url` (env. `WATCHTOWER_NOTIFICATION_URL`): The shoutrrr service URL to be used.
 
-Go to [containrrr.github.io/shoutrrr/services/overview](https://containrrr.github.io/shoutrrr/services/overview) to learn more about the different service URLs you can use.
-You can define multiple services by space separating the URLs. (See example below)
+Go to [containrrr.github.io/shoutrrr/services/overview](https://containrrr.github.io/shoutrrr/services/overview) to
+learn more about the different service URLs you can use. You can define multiple services by space separating the
+URLs. (See example below)
 
 You can customize the message posted by setting a template.
 
 - `--notification-template` (env. `WATCHTOWER_NOTIFICATION_TEMPLATE`): The template used for the message.
 
-The template is a Go [template](https://golang.org/pkg/text/template/) and the you format a list of [log entries](https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry).
+The template is a Go [template](https://golang.org/pkg/text/template/) and that format a list
+of [log entries](https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry).
 
-The default value if not set is `{{range .}}{{.Message}}{{println}}{{end}}`. The example below uses a template that also outputs timestamp and log level.
+The default value if not set is `{{range .}}{{.Message}}{{println}}{{end}}`. The example below uses a template that also
+outputs timestamp and log level.
+
+!!! tip "Custom date format"
+    If you want to adjust the date/time format it must show how the
+    [reference time](https://golang.org/pkg/time/#pkg-constants) (_Mon Jan 2 15:04:05 MST 2006_) would be displayed in your
+    custom format.  
+    i.e. The day of the year has to be 1, the month has to be 2 (february), the hour 3 (or 15 for 24h time) etc.
 
 Example:
 
