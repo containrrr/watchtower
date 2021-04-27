@@ -9,7 +9,7 @@
       
       
       
-        <link rel="canonical" href="http://containrrr.github.io/watchtower/usage-overview/">
+        <link rel="canonical" href="https://containrrr.dev/watchtower/usage-overview/">
       
       <link rel="icon" href="../images/favicon.ico">
       <meta name="generator" content="mkdocs-1.1.2, mkdocs-material-7.1.3">
@@ -424,37 +424,44 @@
                 <p>Watchtower is itself packaged as a Docker container so installation is as simple as pulling the <code>containrrr/watchtower</code> image. If you are using ARM based architecture, pull the appropriate <code>containrrr/watchtower:armhf-&lt;tag&gt;</code> image from the <a href="https://hub.docker.com/r/containrrr/watchtower/tags/">containrrr Docker Hub</a>.</p>
 <p>Since the watchtower code needs to interact with the Docker API in order to monitor the running containers, you need to mount <em>/var/run/docker.sock</em> into the container with the <code>-v</code> flag when you run it.</p>
 <p>Run the <code>watchtower</code> container with the following command:</p>
-<div class="codehilite"><pre><span></span><code>docker run -d <span class="se">\</span>
+<div class="highlight"><pre><span></span><code>docker run -d <span class="se">\</span>
   --name watchtower <span class="se">\</span>
   -v /var/run/docker.sock:/var/run/docker.sock <span class="se">\</span>
   containrrr/watchtower
 </code></pre></div>
-
 <p>If pulling images from private Docker registries, supply registry authentication credentials with the environment variables <code>REPO_USER</code> and <code>REPO_PASS</code>
 or by mounting the host's docker config file into the container (at the root of the container filesystem <code>/</code>).</p>
 <p>Passing environment variables:</p>
-<div class="codehilite"><pre><span></span><code>docker run -d <span class="se">\</span>
+<div class="highlight"><pre><span></span><code>docker run -d <span class="se">\</span>
   --name watchtower <span class="se">\</span>
   -e <span class="nv">REPO_USER</span><span class="o">=</span>username <span class="se">\</span>
   -e <span class="nv">REPO_PASS</span><span class="o">=</span>password <span class="se">\</span>
   -v /var/run/docker.sock:/var/run/docker.sock <span class="se">\</span>
   containrrr/watchtower container_to_watch --debug
 </code></pre></div>
-
 <p>Also check out <a href="https://stackoverflow.com/a/30494145/7872793">this Stack Overflow answer</a> for more options on how to pass environment variables.</p>
 <p>Mounting the host's docker config file:</p>
-<div class="codehilite"><pre><span></span><code>docker run -d <span class="se">\</span>
+<div class="highlight"><pre><span></span><code>docker run -d <span class="se">\</span>
   --name watchtower <span class="se">\</span>
   -v /home/&lt;user&gt;/.docker/config.json:/config.json <span class="se">\</span>
   -v /var/run/docker.sock:/var/run/docker.sock <span class="se">\</span>
   containrrr/watchtower container_to_watch --debug
 </code></pre></div>
-
-<blockquote>
-<p>NOTE: if you mount <code>config.json</code> in the manner above, changes from the host system will (generally) not be propagated to the running container. Mounting files into the Docker daemon uses bind mounts, which are based on inodes. Most applications (including <code>docker login</code> and <code>vim</code>) will not directly edit the file, but instead make a copy and replace the original file, which results in a new inode which in turn <em>breaks</em> the bind mount. <strong>As a workaround</strong>, you can create a symlink to your <code>config.json</code> file and then mount the symlink in the container. The symlinked file will always have the same inode, which keeps the bind mount intact and will ensure changes to the original file are propagated to the running container (regardless of the inode of the source file!).</p>
-</blockquote>
-<p>If you mount the config file as described above, be sure to also prepend the URL for the registry when starting up your watched image (you can omit the https://). Here is a complete docker-compose.yml file that starts up a docker container from a private repo at Docker Hub and monitors it with watchtower. Note the command argument changing the interval to 30s rather than the default 24 hours.</p>
-<div class="codehilite"><pre><span></span><code><span class="nt">version</span><span class="p">:</span> <span class="s">&quot;3&quot;</span>
+<div class="admonition note">
+<p class="admonition-title">Changes to config.json while running</p>
+<p>If you mount <code>config.json</code> in the manner above, changes from the host system will (generally) not be propagated to the
+running container. Mounting files into the Docker daemon uses bind mounts, which are based on inodes. Most
+applications (including <code>docker login</code> and <code>vim</code>) will not directly edit the file, but instead make a copy and replace
+the original file, which results in a new inode which in turn <em>breaks</em> the bind mount.<br />
+<strong>As a workaround</strong>, you can create a symlink to your <code>config.json</code> file and then mount the symlink in the container. 
+The symlinked file will always have the same inode, which keeps the bind mount intact and will ensure changes
+to the original file are propagated to the running container (regardless of the inode of the source file!).</p>
+</div>
+<p>If you mount the config file as described above, be sure to also prepend the URL for the registry when starting up your
+watched image (you can omit the https://). Here is a complete docker-compose.yml file that starts up a docker container
+from a private repo at Docker Hub and monitors it with watchtower. Note the command argument changing the interval to
+30s rather than the default 24 hours.</p>
+<div class="highlight"><pre><span></span><code><span class="nt">version</span><span class="p">:</span> <span class="s">&quot;3&quot;</span>
 <span class="nt">services</span><span class="p">:</span>
   <span class="nt">cavo</span><span class="p">:</span>
     <span class="nt">image</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">index.docker.io/&lt;org&gt;/&lt;image&gt;:&lt;tag&gt;</span>

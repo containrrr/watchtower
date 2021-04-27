@@ -9,7 +9,7 @@
       
       
       
-        <link rel="canonical" href="http://containrrr.github.io/watchtower/container-selection/">
+        <link rel="canonical" href="https://containrrr.dev/watchtower/container-selection/">
       
       <link rel="icon" href="../images/favicon.ico">
       <meta name="generator" content="mkdocs-1.1.2, mkdocs-material-7.1.3">
@@ -506,21 +506,17 @@
 </ul>
 <h2 id="full_exclude">Full Exclude<a class="headerlink" href="#full_exclude" title="Permanent link">&para;</a></h2>
 <p>If you need to exclude some containers, set the <em>com.centurylinklabs.watchtower.enable</em> label to <code>false</code>.</p>
-<div class="codehilite"><pre><span></span><code><span class="k">LABEL</span> com.centurylinklabs.watchtower.enable<span class="o">=</span><span class="s2">&quot;false&quot;</span>
+<div class="highlight"><pre><span></span><code><span class="k">LABEL</span> com.centurylinklabs.watchtower.enable<span class="o">=</span><span class="s2">&quot;false&quot;</span>
 </code></pre></div>
-
 <p>Or, it can be specified as part of the <code>docker run</code> command line:</p>
-<div class="codehilite"><pre><span></span><code>docker run -d --label<span class="o">=</span>com.centurylinklabs.watchtower.enable<span class="o">=</span><span class="nb">false</span> someimage
+<div class="highlight"><pre><span></span><code>docker run -d --label<span class="o">=</span>com.centurylinklabs.watchtower.enable<span class="o">=</span><span class="nb">false</span> someimage
 </code></pre></div>
-
 <p>If you need to <a href="https://containrrr.github.io/watchtower/arguments/#filter_by_enable_label">include only containers with the enable label</a>, pass the <code>--label-enable</code> flag or the <code>WATCHTOWER_LABEL_ENABLE</code> environment variable on startup and set the <em>com.centurylinklabs.watchtower.enable</em> label with a value of <code>true</code> for the containers you want to watch.</p>
-<div class="codehilite"><pre><span></span><code><span class="k">LABEL</span> com.centurylinklabs.watchtower.enable<span class="o">=</span><span class="s2">&quot;true&quot;</span>
+<div class="highlight"><pre><span></span><code><span class="k">LABEL</span> com.centurylinklabs.watchtower.enable<span class="o">=</span><span class="s2">&quot;true&quot;</span>
 </code></pre></div>
-
 <p>Or, it can be specified as part of the <code>docker run</code> command line:</p>
-<div class="codehilite"><pre><span></span><code>docker run -d --label<span class="o">=</span>com.centurylinklabs.watchtower.enable<span class="o">=</span><span class="nb">true</span> someimage
+<div class="highlight"><pre><span></span><code>docker run -d --label<span class="o">=</span>com.centurylinklabs.watchtower.enable<span class="o">=</span><span class="nb">true</span> someimage
 </code></pre></div>
-
 <p>If you wish to create a monitoring scope, you will need to <a href="https://containrrr.github.io/watchtower/running-multiple-instances">run multiple instances and set a scope for each of them</a>.</p>
 <p>Watchtower filters running containers by testing them against each configured criteria. A container is monitored if all criteria are met. For example:
 - If a container's name is on the monitoring name list (not empty <code>--name</code> argument) but it is not enabled (<em>centurylinklabs.watchtower.enable=false</em>), it won't be monitored;
@@ -528,13 +524,11 @@
 <h2 id="monitor_only">Monitor Only<a class="headerlink" href="#monitor_only" title="Permanent link">&para;</a></h2>
 <p>Individual containers can be marked to only be monitored (without being updated).</p>
 <p>To do so, set the <em>com.centurylinklabs.watchtower.monitor-only</em> label to <code>true</code> on that container.</p>
-<div class="codehilite"><pre><span></span><code><span class="k">LABEL</span> com.centurylinklabs.watchtower.monitor-only<span class="o">=</span><span class="s2">&quot;true&quot;</span>
+<div class="highlight"><pre><span></span><code><span class="k">LABEL</span> com.centurylinklabs.watchtower.monitor-only<span class="o">=</span><span class="s2">&quot;true&quot;</span>
 </code></pre></div>
-
 <p>Or, it can be specified as part of the <code>docker run</code> command line:</p>
-<div class="codehilite"><pre><span></span><code>docker run -d --label<span class="o">=</span>com.centurylinklabs.watchtower.monitor-only<span class="o">=</span><span class="nb">true</span> someimage
+<div class="highlight"><pre><span></span><code>docker run -d --label<span class="o">=</span>com.centurylinklabs.watchtower.monitor-only<span class="o">=</span><span class="nb">true</span> someimage
 </code></pre></div>
-
 <p>When the label is specified on a container, watchtower treats that container exactly as if <a href="https://containrrr.dev/watchtower/arguments/#without_updating_containers"><code>WATCHTOWER_MONITOR_ONLY</code></a> was set, but the effect is limited to the individual container. </p>
                 
               

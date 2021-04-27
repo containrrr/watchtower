@@ -9,7 +9,7 @@
       
       
       
-        <link rel="canonical" href="http://containrrr.github.io/watchtower/notifications/">
+        <link rel="canonical" href="https://containrrr.dev/watchtower/notifications/">
       
       <link rel="icon" href="../images/favicon.ico">
       <meta name="generator" content="mkdocs-1.1.2, mkdocs-material-7.1.3">
@@ -585,8 +585,10 @@
                 
                 
                 <h1 id="notifications">Notifications<a class="headerlink" href="#notifications" title="Permanent link">&para;</a></h1>
-<p>Watchtower can send notifications when containers are updated. Notifications are sent via hooks in the logging system, <a href="http://github.com/sirupsen/logrus">logrus</a>.
-The types of notifications to send are set by passing a comma-separated list of values to the <code>--notifications</code> option (or corresponding environment variable <code>WATCHTOWER_NOTIFICATIONS</code>), which has the following valid values:</p>
+<p>Watchtower can send notifications when containers are updated. Notifications are sent via hooks in the logging
+system, <a href="http://github.com/sirupsen/logrus">logrus</a>. The types of notifications to send are set by passing a
+comma-separated list of values to the <code>--notifications</code> option
+(or corresponding environment variable <code>WATCHTOWER_NOTIFICATIONS</code>), which has the following valid values:</p>
 <ul>
 <li><code>email</code> to send notifications via e-mail</li>
 <li><code>slack</code> to send notifications through a Slack webhook</li>
@@ -594,11 +596,17 @@ The types of notifications to send are set by passing a comma-separated list of 
 <li><code>gotify</code> to send notifications via Gotify</li>
 <li><code>shoutrrr</code> to send notifications via <a href="https://github.com/containrrr/shoutrrr">containrrr/shoutrrr</a></li>
 </ul>
-<blockquote>
-<p>There is currently a <a href="https://github.com/spf13/viper/issues/380">bug</a> in Viper, which prevents comma-separated slices to be used when using the environment variable. A workaround is available where we instead put quotes around the environment variable value and replace the commas with spaces, as <code>WATCHTOWER_NOTIFICATIONS="slack msteams"</code></p>
-<p>If you're a <code>docker-compose</code> user, make sure to specify environment variables' values in your <code>.yml</code> file without double quotes (<code>"</code>).</p>
-<p>This prevents unexpected errors when watchtower starts.</p>
-</blockquote>
+<div class="admonition note">
+<p class="admonition-title">Using multiple notifications with environment variables</p>
+<p>There is currently a bug in Viper (<a class="magiclink magiclink-github magiclink-issue" href="https://github.com/spf13/viper/issues/380" title="GitHub Issue: spf13/viper#380">spf13/viper#380</a>), which prevents comma-separated slices to
+be used when using the environment variable.<br />
+A workaround is available where we instead put quotes around the environment variable value and replace the commas with
+spaces:
+<div class="highlight"><pre><span></span><code>WATCHTOWER_NOTIFICATIONS=&quot;slack msteams&quot;
+</code></pre></div>
+If you're a <code>docker-compose</code> user, make sure to specify environment variables' values in your <code>.yml</code> file without double
+quotes (<code>"</code>). This prevents unexpected errors when watchtower starts.</p>
+</div>
 <h2 id="settings">Settings<a class="headerlink" href="#settings" title="Permanent link">&para;</a></h2>
 <ul>
 <li><code>--notifications-level</code> (env. <code>WATCHTOWER_NOTIFICATIONS_LEVEL</code>): Controls the log level which is used for the notifications. If omitted, the default log level is <code>info</code>. Possible values are: <code>panic</code>, <code>fatal</code>, <code>error</code>, <code>warn</code>, <code>info</code>, <code>debug</code> or <code>trace</code>.</li>
@@ -619,7 +627,7 @@ The types of notifications to send are set by passing a comma-separated list of 
 <li><code>--notification-email-subjecttag</code> (env. <code>WATCHTOWER_NOTIFICATION_EMAIL_SUBJECTTAG</code>): Prefix to include in the subject tag. Useful when running multiple watchtowers.</li>
 </ul>
 <p>Example:</p>
-<div class="codehilite"><pre><span></span><code>docker run -d <span class="se">\</span>
+<div class="highlight"><pre><span></span><code>docker run -d <span class="se">\</span>
   --name watchtower <span class="se">\</span>
   -v /var/run/docker.sock:/var/run/docker.sock <span class="se">\</span>
   -e <span class="nv">WATCHTOWER_NOTIFICATIONS</span><span class="o">=</span>email <span class="se">\</span>
@@ -632,12 +640,10 @@ The types of notifications to send are set by passing a comma-separated list of 
   -e <span class="nv">WATCHTOWER_NOTIFICATION_EMAIL_DELAY</span><span class="o">=</span><span class="m">2</span> <span class="se">\</span>
   containrrr/watchtower
 </code></pre></div>
-
 <p>The previous example assumes, that you already have an SMTP server up and running you can connect to. If you don't or you want to bring up watchtower with your own simple SMTP relay the following <code>docker-compose.yml</code> might be a good start for you.</p>
 <p>The following example assumes, that your domain is called <code>your-domain.com</code> and that you are going to use a certificate valid for <code>smtp.your-domain.com</code>. This hostname has to be used as <code>WATCHTOWER_NOTIFICATION_EMAIL_SERVER</code> otherwise the TLS connection is going to fail with <code>Failed to send notification email</code> or <code>connect: connection refused</code>. We also have to add a network for this setup in order to add an alias to it. If you also want to enable DKIM or other features on the SMTP server, you will find more information at <a href="https://hub.docker.com/r/freinet/postfix-relay">freinet/postfix-relay</a>.</p>
 <p>Example including an SMTP relay:</p>
-<div class="codehilite"><pre><span></span><code><span class="nn">---</span>
-<span class="nt">version</span><span class="p">:</span> <span class="s">&#39;3.8&#39;</span>
+<div class="highlight"><pre><span></span><code><span class="nt">version</span><span class="p">:</span> <span class="s">&#39;3.8&#39;</span>
 <span class="nt">services</span><span class="p">:</span>
   <span class="nt">watchtower</span><span class="p">:</span>
     <span class="nt">image</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">containrrr/watchtower:latest</span>
@@ -679,7 +685,6 @@ The types of notifications to send are set by passing a comma-separated list of 
   <span class="nt">watchtower</span><span class="p">:</span>
     <span class="nt">external</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">false</span>
 </code></pre></div>
-
 <h3 id="slack">Slack<a class="headerlink" href="#slack" title="Permanent link">&para;</a></h3>
 <p>If watchtower is monitoring the same Docker daemon under which the watchtower container itself is running (i.e. if you volume-mounted <em>/var/run/docker.sock</em> into the watchtower container) then it has the ability to update itself. If a new version of the <em>containrrr/watchtower</em> image is pushed to the Docker Hub, your watchtower will pull down the new image and restart itself automatically.</p>
 <p>To receive notifications in Slack, add <code>slack</code> to the <code>--notifications</code> option or the <code>WATCHTOWER_NOTIFICATIONS</code> environment variable.</p>
@@ -688,28 +693,23 @@ The types of notifications to send are set by passing a comma-separated list of 
 <p>Other, optional, variables include:</p>
 <ul>
 <li><code>--notification-slack-channel</code> (env. <code>WATCHTOWER_NOTIFICATION_SLACK_CHANNEL</code>): A string which overrides the webhook's default channel. Example: #my-custom-channel.</li>
-<li><code>--notification-slack-icon-emoji</code> (env. <code>WATCHTOWER_NOTIFICATION_SLACK_ICON_EMOJI</code>): An <a href="https://www.webpagefx.com/tools/emoji-cheat-sheet/">emoji code</a> string to use in place of the default icon.</li>
-<li><code>--notification-slack-icon-url</code> (env. <code>WATCHTOWER_NOTIFICATION_SLACK_ICON_URL</code>): An icon image URL string to use in place of the default icon.</li>
 </ul>
 <p>Example:</p>
-<div class="codehilite"><pre><span></span><code>docker run -d <span class="se">\</span>
+<div class="highlight"><pre><span></span><code>docker run -d <span class="se">\</span>
   --name watchtower <span class="se">\</span>
   -v /var/run/docker.sock:/var/run/docker.sock <span class="se">\</span>
   -e <span class="nv">WATCHTOWER_NOTIFICATIONS</span><span class="o">=</span>slack <span class="se">\</span>
   -e <span class="nv">WATCHTOWER_NOTIFICATION_SLACK_HOOK_URL</span><span class="o">=</span><span class="s2">&quot;https://hooks.slack.com/services/xxx/yyyyyyyyyyyyyyy&quot;</span> <span class="se">\</span>
   -e <span class="nv">WATCHTOWER_NOTIFICATION_SLACK_IDENTIFIER</span><span class="o">=</span>watchtower-server-1 <span class="se">\</span>
   -e <span class="nv">WATCHTOWER_NOTIFICATION_SLACK_CHANNEL</span><span class="o">=</span><span class="c1">#my-custom-channel \</span>
-  -e <span class="nv">WATCHTOWER_NOTIFICATION_SLACK_ICON_EMOJI</span><span class="o">=</span>:whale: <span class="se">\</span>
-  -e <span class="nv">WATCHTOWER_NOTIFICATION_SLACK_ICON_URL</span><span class="o">=</span>&lt;icon url&gt; <span class="se">\</span>
   containrrr/watchtower
 </code></pre></div>
-
 <h3 id="microsoft_teams">Microsoft Teams<a class="headerlink" href="#microsoft_teams" title="Permanent link">&para;</a></h3>
 <p>To receive notifications in MSTeams channel, add <code>msteams</code> to the <code>--notifications</code> option or the <code>WATCHTOWER_NOTIFICATIONS</code> environment variable.</p>
 <p>Additionally, you should set the MSTeams webhook URL using the <code>--notification-msteams-hook</code> option or the <code>WATCHTOWER_NOTIFICATION_MSTEAMS_HOOK_URL</code> environment variable. This option can also reference a file, in which case the contents of the file are used.</p>
 <p>MSTeams notifier could send keys/values filled by <code>log.WithField</code> or <code>log.WithFields</code> as MSTeams message facts. To enable this feature add <code>--notification-msteams-data</code> flag or set <code>WATCHTOWER_NOTIFICATION_MSTEAMS_USE_LOG_DATA=true</code> environment variable.</p>
 <p>Example:</p>
-<div class="codehilite"><pre><span></span><code>docker run -d <span class="se">\</span>
+<div class="highlight"><pre><span></span><code>docker run -d <span class="se">\</span>
   --name watchtower <span class="se">\</span>
   -v /var/run/docker.sock:/var/run/docker.sock <span class="se">\</span>
   -e <span class="nv">WATCHTOWER_NOTIFICATIONS</span><span class="o">=</span>msteams <span class="se">\</span>
@@ -717,10 +717,9 @@ The types of notifications to send are set by passing a comma-separated list of 
   -e <span class="nv">WATCHTOWER_NOTIFICATION_MSTEAMS_USE_LOG_DATA</span><span class="o">=</span><span class="nb">true</span> <span class="se">\</span>
   containrrr/watchtower
 </code></pre></div>
-
 <h3 id="gotify">Gotify<a class="headerlink" href="#gotify" title="Permanent link">&para;</a></h3>
 <p>To push a notification to your Gotify instance, register a Gotify app and specify the Gotify URL and app token:</p>
-<div class="codehilite"><pre><span></span><code>docker run -d <span class="se">\</span>
+<div class="highlight"><pre><span></span><code>docker run -d <span class="se">\</span>
   --name watchtower <span class="se">\</span>
   -v /var/run/docker.sock:/var/run/docker.sock <span class="se">\</span>
   -e <span class="nv">WATCHTOWER_NOTIFICATIONS</span><span class="o">=</span>gotify <span class="se">\</span>
@@ -728,7 +727,6 @@ The types of notifications to send are set by passing a comma-separated list of 
   -e <span class="nv">WATCHTOWER_NOTIFICATION_GOTIFY_TOKEN</span><span class="o">=</span><span class="s2">&quot;SuperSecretToken&quot;</span> <span class="se">\</span>
   containrrr/watchtower
 </code></pre></div>
-
 <p><code>-e WATCHTOWER_NOTIFICATION_GOTIFY_TOKEN</code> or <code>--notification-gotify-token</code> can also reference a file, in which case the contents of the file are used.</p>
 <p>If you want to disable TLS verification for the Gotify instance, you can use either <code>-e WATCHTOWER_NOTIFICATION_GOTIFY_TLS_SKIP_VERIFY=true</code> or <code>--notification-gotify-tls-skip-verify</code>.</p>
 <h3 id="containrrrshoutrrr"><a href="https://github.com/containrrr/shoutrrr">containrrr/shoutrrr</a><a class="headerlink" href="#containrrrshoutrrr" title="Permanent link">&para;</a></h3>
@@ -736,16 +734,26 @@ The types of notifications to send are set by passing a comma-separated list of 
 <ul>
 <li><code>--notification-url</code> (env. <code>WATCHTOWER_NOTIFICATION_URL</code>): The shoutrrr service URL to be used.</li>
 </ul>
-<p>Go to <a href="https://containrrr.github.io/shoutrrr/services/overview">containrrr.github.io/shoutrrr/services/overview</a> to learn more about the different service URLs you can use.
-You can define multiple services by space separating the URLs. (See example below)</p>
+<p>Go to <a href="https://containrrr.github.io/shoutrrr/services/overview">containrrr.github.io/shoutrrr/services/overview</a> to
+learn more about the different service URLs you can use. You can define multiple services by space separating the
+URLs. (See example below)</p>
 <p>You can customize the message posted by setting a template.</p>
 <ul>
 <li><code>--notification-template</code> (env. <code>WATCHTOWER_NOTIFICATION_TEMPLATE</code>): The template used for the message.</li>
 </ul>
-<p>The template is a Go <a href="https://golang.org/pkg/text/template/">template</a> and the you format a list of <a href="https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry">log entries</a>.</p>
-<p>The default value if not set is <code>{{range .}}{{.Message}}{{println}}{{end}}</code>. The example below uses a template that also outputs timestamp and log level.</p>
+<p>The template is a Go <a href="https://golang.org/pkg/text/template/">template</a> and that format a list
+of <a href="https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry">log entries</a>.</p>
+<p>The default value if not set is <code>{{range .}}{{.Message}}{{println}}{{end}}</code>. The example below uses a template that also
+outputs timestamp and log level.</p>
+<div class="admonition tip">
+<p class="admonition-title">Custom date format</p>
+<p>If you want to adjust the date/time format it must show how the
+<a href="https://golang.org/pkg/time/#pkg-constants">reference time</a> (<em>Mon Jan 2 15:04:05 MST 2006</em>) would be displayed in your
+custom format.<br />
+i.e. The day of the year has to be 1, the month has to be 2 (february), the hour 3 (or 15 for 24h time) etc.</p>
+</div>
 <p>Example:</p>
-<div class="codehilite"><pre><span></span><code>docker run -d <span class="se">\</span>
+<div class="highlight"><pre><span></span><code>docker run -d <span class="se">\</span>
   --name watchtower <span class="se">\</span>
   -v /var/run/docker.sock:/var/run/docker.sock <span class="se">\</span>
   -e <span class="nv">WATCHTOWER_NOTIFICATIONS</span><span class="o">=</span>shoutrrr <span class="se">\</span>

@@ -9,7 +9,7 @@
       
       
       
-        <link rel="canonical" href="http://containrrr.github.io/watchtower/arguments/">
+        <link rel="canonical" href="https://containrrr.dev/watchtower/arguments/">
       
       <link rel="icon" href="../images/favicon.ico">
       <meta name="generator" content="mkdocs-1.1.2, mkdocs-material-7.1.3">
@@ -466,6 +466,13 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#head_failure_warnings" class="md-nav__link">
+    HEAD failure warnings
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -843,6 +850,13 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#head_failure_warnings" class="md-nav__link">
+    HEAD failure warnings
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -866,253 +880,239 @@
 will be the local Docker daemon, but you can override it with the <code>--host</code> option described in the next section). However, you
 can restrict watchtower to monitoring a subset of the running containers by specifying the container names as arguments when
 launching watchtower.</p>
-<div class="codehilite"><pre><span></span><code>$ docker run -d <span class="se">\</span>
+<div class="highlight"><pre><span></span><code>$ docker run -d <span class="se">\</span>
     --name watchtower <span class="se">\</span>
     -v /var/run/docker.sock:/var/run/docker.sock <span class="se">\</span>
     containrrr/watchtower <span class="se">\</span>
     nginx redis
 </code></pre></div>
-
 <p>In the example above, watchtower will only monitor the containers named "nginx" and "redis" for updates -- all of the other
 running containers will be ignored. If you do not want watchtower to run as a daemon you can pass the <code>--run-once</code> flag and remove
 the watchtower container after its execution.</p>
-<div class="codehilite"><pre><span></span><code>$ docker run --rm <span class="se">\</span>
+<div class="highlight"><pre><span></span><code>$ docker run --rm <span class="se">\</span>
     -v /var/run/docker.sock:/var/run/docker.sock <span class="se">\</span>
     containrrr/watchtower <span class="se">\</span>
     --run-once <span class="se">\</span>
     nginx redis
 </code></pre></div>
-
 <p>In the example above, watchtower will execute an upgrade attempt on the containers named "nginx" and "redis". Using this mode will enable debugging output showing all actions performed, as usage is intended for interactive users. Once the attempt is completed, the container will exit and remove itself due to the <code>--rm</code> flag.</p>
 <p>When no arguments are specified, watchtower will monitor all running containers.</p>
 <h2 id="help">Help<a class="headerlink" href="#help" title="Permanent link">&para;</a></h2>
 <p>Shows documentation about the supported flags.</p>
-<div class="codehilite"><pre><span></span><code>            Argument: --help
+<div class="highlight"><pre><span></span><code>            Argument: --help
 Environment Variable: N/A
                 Type: N/A
              Default: N/A
 </code></pre></div>
-
 <h2 id="time_zone">Time Zone<a class="headerlink" href="#time_zone" title="Permanent link">&para;</a></h2>
 <p>Sets the time zone to be used by WatchTower's logs and the optional Cron scheduling argument (--schedule). If this environment variable is not set, Watchtower will use the default time zone: UTC.
 To find out the right value, see <a href="https://en.wikipedia.org/wiki/List_of_tz_database_time_zones">this list</a>, find your location and use the value in <em>TZ Database Name</em>, e.g <em>Europe/Rome</em>. The timezone can alternatively be set by volume mounting your hosts /etc/localtime file. <code>-v /etc/localtime:/etc/localtime:ro</code></p>
-<div class="codehilite"><pre><span></span><code>            Argument: N/A
+<div class="highlight"><pre><span></span><code>            Argument: N/A
 Environment Variable: TZ
                 Type: String
              Default: &quot;UTC&quot;
 </code></pre></div>
-
 <h2 id="cleanup">Cleanup<a class="headerlink" href="#cleanup" title="Permanent link">&para;</a></h2>
 <p>Removes old images after updating. When this flag is specified, watchtower will remove the old image after restarting a container with a new image. Use this option to prevent the accumulation of orphaned images on your system as containers are updated.</p>
-<div class="codehilite"><pre><span></span><code>            Argument: --cleanup
+<div class="highlight"><pre><span></span><code>            Argument: --cleanup
 Environment Variable: WATCHTOWER_CLEANUP
                 Type: Boolean
              Default: false
 </code></pre></div>
-
 <h2 id="remove_attached_volumes">Remove attached volumes<a class="headerlink" href="#remove_attached_volumes" title="Permanent link">&para;</a></h2>
 <p>Removes attached volumes after updating. When this flag is specified, watchtower will remove all attached volumes from the container before restarting with a new image. Use this option to force new volumes to be populated as containers are updated.</p>
-<div class="codehilite"><pre><span></span><code>            Argument: --remove-volumes
+<div class="highlight"><pre><span></span><code>            Argument: --remove-volumes
 Environment Variable: WATCHTOWER_REMOVE_VOLUMES
                 Type: Boolean
              Default: false
 </code></pre></div>
-
 <h2 id="debug">Debug<a class="headerlink" href="#debug" title="Permanent link">&para;</a></h2>
 <p>Enable debug mode with verbose logging.</p>
-<div class="codehilite"><pre><span></span><code>            Argument: --debug, -d
+<div class="highlight"><pre><span></span><code>            Argument: --debug, -d
 Environment Variable: WATCHTOWER_DEBUG
                 Type: Boolean
              Default: false
 </code></pre></div>
-
 <h2 id="trace">Trace<a class="headerlink" href="#trace" title="Permanent link">&para;</a></h2>
 <p>Enable trace mode with very verbose logging. Caution: exposes credentials!</p>
-<div class="codehilite"><pre><span></span><code>            Argument: --trace
+<div class="highlight"><pre><span></span><code>            Argument: --trace
 Environment Variable: WATCHTOWER_TRACE
                 Type: Boolean
              Default: false
 </code></pre></div>
-
 <h2 id="ansi_colors">ANSI colors<a class="headerlink" href="#ansi_colors" title="Permanent link">&para;</a></h2>
 <p>Disable ANSI color escape codes in log output.</p>
-<div class="codehilite"><pre><span></span><code>            Argument: --no-color
+<div class="highlight"><pre><span></span><code>            Argument: --no-color
 Environment Variable: NO_COLOR
                 Type: Boolean
              Default: false
 </code></pre></div>
-
 <h2 id="docker_host">Docker host<a class="headerlink" href="#docker_host" title="Permanent link">&para;</a></h2>
 <p>Docker daemon socket to connect to. Can be pointed at a remote Docker host by specifying a TCP endpoint as "tcp://hostname:port".</p>
-<div class="codehilite"><pre><span></span><code>            <span class="n">Argument</span><span class="p">:</span> <span class="o">--</span><span class="n">host</span><span class="p">,</span> <span class="o">-</span><span class="n">H</span>
-<span class="n">Environment</span> <span class="n">Variable</span><span class="p">:</span> <span class="n">DOCKER_HOST</span>
-                <span class="n">Type</span><span class="p">:</span> <span class="nb nb-Type">String</span>
-             <span class="n">Default</span><span class="p">:</span> <span class="s2">&quot;unix:///var/run/docker.sock&quot;</span>
+<div class="highlight"><pre><span></span><code>            Argument: --host, -H
+Environment Variable: DOCKER_HOST
+                Type: String
+             Default: &quot;unix:///var/run/docker.sock&quot;
 </code></pre></div>
-
 <h2 id="docker_api_version">Docker API version<a class="headerlink" href="#docker_api_version" title="Permanent link">&para;</a></h2>
 <p>The API version to use by the Docker client for connecting to the Docker daemon. The minimum supported version is 1.24.</p>
-<div class="codehilite"><pre><span></span><code>            Argument: --api-version, -a
+<div class="highlight"><pre><span></span><code>            Argument: --api-version, -a
 Environment Variable: DOCKER_API_VERSION
                 Type: String
              Default: &quot;1.24&quot;
 </code></pre></div>
-
 <h2 id="include_restarting">Include restarting<a class="headerlink" href="#include_restarting" title="Permanent link">&para;</a></h2>
 <p>Will also include restarting containers.</p>
-<div class="codehilite"><pre><span></span><code>            <span class="nv">Argument</span>: <span class="o">--</span><span class="k">include</span><span class="o">-</span><span class="nv">restarting</span>
-<span class="nv">Environment</span> <span class="nv">Variable</span>: <span class="nv">WATCHTOWER_INCLUDE_RESTARTING</span>
-                <span class="nv">Type</span>: <span class="nv">Boolean</span>
-             <span class="nv">Default</span>: <span class="nv">false</span>
+<div class="highlight"><pre><span></span><code>            Argument: --include-restarting
+Environment Variable: WATCHTOWER_INCLUDE_RESTARTING
+                Type: Boolean
+             Default: false
 </code></pre></div>
-
 <h2 id="include_stopped">Include stopped<a class="headerlink" href="#include_stopped" title="Permanent link">&para;</a></h2>
 <p>Will also include created and exited containers.</p>
-<div class="codehilite"><pre><span></span><code>            <span class="nv">Argument</span>: <span class="o">--</span><span class="k">include</span><span class="o">-</span><span class="nv">stopped</span>
-<span class="nv">Environment</span> <span class="nv">Variable</span>: <span class="nv">WATCHTOWER_INCLUDE_STOPPED</span>
-                <span class="nv">Type</span>: <span class="nv">Boolean</span>
-             <span class="nv">Default</span>: <span class="nv">false</span>
+<div class="highlight"><pre><span></span><code>            Argument: --include-stopped
+Environment Variable: WATCHTOWER_INCLUDE_STOPPED
+                Type: Boolean
+             Default: false
 </code></pre></div>
-
 <h2 id="revive_stopped">Revive stopped<a class="headerlink" href="#revive_stopped" title="Permanent link">&para;</a></h2>
 <p>Start any stopped containers that have had their image updated. This argument is only usable with the <code>--include-stopped</code> argument.</p>
-<div class="codehilite"><pre><span></span><code>            Argument: --revive-stopped
+<div class="highlight"><pre><span></span><code>            Argument: --revive-stopped
 Environment Variable: WATCHTOWER_REVIVE_STOPPED
                 Type: Boolean
              Default: false
 </code></pre></div>
-
 <h2 id="poll_interval">Poll interval<a class="headerlink" href="#poll_interval" title="Permanent link">&para;</a></h2>
 <p>Poll interval (in seconds). This value controls how frequently watchtower will poll for new images. Either <code>--schedule</code> or a poll interval can be defined, but not both.</p>
-<div class="codehilite"><pre><span></span><code>            Argument: --interval, -i
+<div class="highlight"><pre><span></span><code>            Argument: --interval, -i
 Environment Variable: WATCHTOWER_POLL_INTERVAL
                 Type: Integer
              Default: 86400 (24 hours)
 </code></pre></div>
-
 <h2 id="filter_by_enable_label">Filter by enable label<a class="headerlink" href="#filter_by_enable_label" title="Permanent link">&para;</a></h2>
 <p>Update containers that have a <code>com.centurylinklabs.watchtower.enable</code> label set to true.</p>
-<div class="codehilite"><pre><span></span><code>            Argument: --label-enable
+<div class="highlight"><pre><span></span><code>            Argument: --label-enable
 Environment Variable: WATCHTOWER_LABEL_ENABLE
                 Type: Boolean
              Default: false
 </code></pre></div>
-
 <h2 id="filter_by_disable_label">Filter by disable label<a class="headerlink" href="#filter_by_disable_label" title="Permanent link">&para;</a></h2>
-<p><strong>Do not</strong> update containers that have <code>com.centurylinklabs.watchtower.enable</code> label set to false and no <code>--label-enable</code> argument is passed. Note that only one or the other (targeting by enable label) can be used at the same time to target containers.</p>
+<p><strong>Do not</strong> update containers that have <code>com.centurylinklabs.watchtower.enable</code> label set to false and 
+no <code>--label-enable</code> argument is passed. Note that only one or the other (targeting by enable label) can be 
+used at the same time to target containers.</p>
 <h2 id="without_updating_containers">Without updating containers<a class="headerlink" href="#without_updating_containers" title="Permanent link">&para;</a></h2>
-<p>Will only monitor for new images, send notifications and invoke the <a href="https://containrrr.dev/watchtower/lifecycle-hooks/">pre-check/post-check hooks</a>, but will <strong>not</strong> update the containers.</p>
-<blockquote>
-<p><strong>⚠️ Please note</strong></p>
-<p>Due to Docker API limitations the latest image will still be pulled from the registry.</p>
-</blockquote>
-<div class="codehilite"><pre><span></span><code>            Argument: --monitor-only
+<p>Will only monitor for new images, send notifications and invoke
+the <a href="https://containrrr.dev/watchtower/lifecycle-hooks/">pre-check/post-check hooks</a>, but will <strong>not</strong> update the
+containers.</p>
+<p>!!! note Due to Docker API limitations the latest image will still be pulled from the registry.<br />
+The HEAD digest checks allows watchtower to skip pulling when there are no changes, but to know <em>what</em> has changed it
+will still do a pull whenever the repository digest doesn't match the local image digest.</p>
+<div class="highlight"><pre><span></span><code>            Argument: --monitor-only
 Environment Variable: WATCHTOWER_MONITOR_ONLY
                 Type: Boolean
              Default: false
 </code></pre></div>
-
 <p>Note that monitor-only can also be specified on a per-container basis with the <code>com.centurylinklabs.watchtower.monitor-only</code> label set on those containers.</p>
 <h2 id="without_restarting_containers">Without restarting containers<a class="headerlink" href="#without_restarting_containers" title="Permanent link">&para;</a></h2>
 <p>Do not restart containers after updating. This option can be useful when the start of the containers
-is managed by an external system such as systemd.</p>
-<div class="codehilite"><pre><span></span><code>            Argument: --no-restart
+is managed by an external system such as systemd.
+<div class="highlight"><pre><span></span><code>            Argument: --no-restart
 Environment Variable: WATCHTOWER_NO_RESTART
                 Type: Boolean
              Default: false
-</code></pre></div>
-
+</code></pre></div></p>
 <h2 id="without_pulling_new_images">Without pulling new images<a class="headerlink" href="#without_pulling_new_images" title="Permanent link">&para;</a></h2>
 <p>Do not pull new images. When this flag is specified, watchtower will not attempt to pull
 new images from the registry. Instead it will only monitor the local image cache for changes.
 Use this option if you are building new images directly on the Docker host without pushing
 them to a registry.</p>
-<div class="codehilite"><pre><span></span><code>            Argument: --no-pull
+<div class="highlight"><pre><span></span><code>            Argument: --no-pull
 Environment Variable: WATCHTOWER_NO_PULL
                 Type: Boolean
              Default: false
 </code></pre></div>
-
 <h2 id="without_sending_a_startup_message">Without sending a startup message<a class="headerlink" href="#without_sending_a_startup_message" title="Permanent link">&para;</a></h2>
 <p>Do not send a message after watchtower started. Otherwise there will be an info-level notification.</p>
-<div class="codehilite"><pre><span></span><code>            Argument: --no-startup-message
+<div class="highlight"><pre><span></span><code>            Argument: --no-startup-message
 Environment Variable: WATCHTOWER_NO_STARTUP_MESSAGE
                 Type: Boolean
              Default: false
 </code></pre></div>
-
 <h2 id="run_once">Run once<a class="headerlink" href="#run_once" title="Permanent link">&para;</a></h2>
 <p>Run an update attempt against a container name list one time immediately and exit.</p>
-<div class="codehilite"><pre><span></span><code>            Argument: --run-once
+<div class="highlight"><pre><span></span><code>            Argument: --run-once
 Environment Variable: WATCHTOWER_RUN_ONCE
                 Type: Boolean
              Default: false
 </code></pre></div>
-
 <h2 id="http_api_mode">HTTP API Mode<a class="headerlink" href="#http_api_mode" title="Permanent link">&para;</a></h2>
-<p>Runs Watchtower in HTTP API mode, only allowing image updates to be triggered by an HTTP request. For details see <a href="https://containrrr.github.io/watchtower/http-api-mode">HTTP API</a>.</p>
-<div class="codehilite"><pre><span></span><code>            Argument: --http-api-update
+<p>Runs Watchtower in HTTP API mode, only allowing image updates to be triggered by an HTTP request. 
+For details see <a href="https://containrrr.github.io/watchtower/http-api-mode">HTTP API</a>.</p>
+<div class="highlight"><pre><span></span><code>            Argument: --http-api-update
 Environment Variable: WATCHTOWER_HTTP_API
                 Type: Boolean
              Default: false
 </code></pre></div>
-
 <h2 id="http_api_token">HTTP API Token<a class="headerlink" href="#http_api_token" title="Permanent link">&para;</a></h2>
 <p>Sets an authentication token to HTTP API requests.</p>
-<div class="codehilite"><pre><span></span><code>            Argument: --http-api-token
+<div class="highlight"><pre><span></span><code>            Argument: --http-api-token
 Environment Variable: WATCHTOWER_HTTP_API_TOKEN
                 Type: String
              Default: -
 </code></pre></div>
-
 <h2 id="filter_by_scope">Filter by scope<a class="headerlink" href="#filter_by_scope" title="Permanent link">&para;</a></h2>
-<p>Update containers that have a <code>com.centurylinklabs.watchtower.scope</code> label set with the same value as the given argument. This enables <a href="https://containrrr.github.io/watchtower/running-multiple-instances">running multiple instances</a>.</p>
-<div class="codehilite"><pre><span></span><code>            Argument: --scope
+<p>Update containers that have a <code>com.centurylinklabs.watchtower.scope</code> label set with the same value as the given argument. 
+This enables <a href="https://containrrr.github.io/watchtower/running-multiple-instances">running multiple instances</a>.</p>
+<div class="highlight"><pre><span></span><code>            Argument: --scope
 Environment Variable: WATCHTOWER_SCOPE
                 Type: String
              Default: -
 </code></pre></div>
-
 <h2 id="http_api_metrics">HTTP API Metrics<a class="headerlink" href="#http_api_metrics" title="Permanent link">&para;</a></h2>
 <p>Enables a metrics endpoint, exposing prometheus metrics via HTTP. See <a href="../metrics/">Metrics</a> for details.  </p>
-<div class="codehilite"><pre><span></span><code>            Argument: --http-api-metrics
+<div class="highlight"><pre><span></span><code>            Argument: --http-api-metrics
 Environment Variable: WATCHTOWER_HTTP_API_METRICS
                 Type: Boolean
              Default: false
 </code></pre></div>
-
 <h2 id="scheduling">Scheduling<a class="headerlink" href="#scheduling" title="Permanent link">&para;</a></h2>
 <p><a href="https://pkg.go.dev/github.com/robfig/cron@v1.2.0?tab=doc#hdr-CRON_Expression_Format">Cron expression</a> in 6 fields (rather than the traditional 5) which defines when and how often to check for new images. Either <code>--interval</code> or the schedule expression
 can be defined, but not both. An example: <code>--schedule "0 0 4 * * *"</code></p>
-<div class="codehilite"><pre><span></span><code>            Argument: --schedule, -s
+<div class="highlight"><pre><span></span><code>            Argument: --schedule, -s
 Environment Variable: WATCHTOWER_SCHEDULE
                 Type: String
              Default: -
 </code></pre></div>
-
 <h2 id="rolling_restart">Rolling restart<a class="headerlink" href="#rolling_restart" title="Permanent link">&para;</a></h2>
 <p>Restart one image at time instead of stopping and starting all at once.  Useful in conjunction with lifecycle hooks
 to implement zero-downtime deploy.</p>
-<div class="codehilite"><pre><span></span><code>            Argument: --rolling-restart
+<div class="highlight"><pre><span></span><code>            Argument: --rolling-restart
 Environment Variable: WATCHTOWER_ROLLING_RESTART
                 Type: Boolean
              Default: false
 </code></pre></div>
-
 <h2 id="wait_until_timeout">Wait until timeout<a class="headerlink" href="#wait_until_timeout" title="Permanent link">&para;</a></h2>
 <p>Timeout before the container is forcefully stopped. When set, this option will change the default (<code>10s</code>) wait time to the given value. An example: <code>--stop-timeout 30s</code> will set the timeout to 30 seconds.</p>
-<div class="codehilite"><pre><span></span><code>            Argument: --stop-timeout
+<div class="highlight"><pre><span></span><code>            Argument: --stop-timeout
 Environment Variable: WATCHTOWER_TIMEOUT
                 Type: Duration
              Default: 10s
 </code></pre></div>
-
 <h2 id="tls_verification">TLS Verification<a class="headerlink" href="#tls_verification" title="Permanent link">&para;</a></h2>
-<p>Use TLS when connecting to the Docker socket and verify the server's certificate. See below for options used to configure notifications.</p>
-<div class="codehilite"><pre><span></span><code>            Argument: --tlsverify
+<p>Use TLS when connecting to the Docker socket and verify the server's certificate. See below for options used to
+configure notifications.</p>
+<div class="highlight"><pre><span></span><code>            Argument: --tlsverify
 Environment Variable: DOCKER_TLS_VERIFY
                 Type: Boolean
              Default: false
+</code></pre></div>
+<h2 id="head_failure_warnings">HEAD failure warnings<a class="headerlink" href="#head_failure_warnings" title="Permanent link">&para;</a></h2>
+<p>When to warn about HEAD pull requests failing. Auto means that it will warn when the registry is known to handle the
+requests and may rate limit pull requests (mainly docker.io).</p>
+<div class="highlight"><pre><span></span><code>            Argument: --warn-on-head-failure
+Environment Variable: WATCHTOWER_WARN_ON_HEAD_FAILURE
+     Possible values: always, auto, never
+             Default: auto
 </code></pre></div>
                 
               

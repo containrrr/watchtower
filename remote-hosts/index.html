@@ -9,7 +9,7 @@
       
       
       
-        <link rel="canonical" href="http://containrrr.github.io/watchtower/remote-hosts/">
+        <link rel="canonical" href="https://containrrr.dev/watchtower/remote-hosts/">
       
       <link rel="icon" href="../images/favicon.ico">
       <meta name="generator" content="mkdocs-1.1.2, mkdocs-material-7.1.3">
@@ -422,18 +422,16 @@
                   <h1>Remote hosts</h1>
                 
                 <p>By default, watchtower is set-up to monitor the local Docker daemon (the same daemon running the watchtower container itself). However, it is possible to configure watchtower to monitor a remote Docker endpoint. When starting the watchtower container you can specify a remote Docker endpoint with either the <code>--host</code> flag or the <code>DOCKER_HOST</code> environment variable:</p>
-<div class="codehilite"><pre><span></span><code>docker run -d <span class="se">\</span>
+<div class="highlight"><pre><span></span><code>docker run -d <span class="se">\</span>
   --name watchtower <span class="se">\</span>
   containrrr/watchtower --host <span class="s2">&quot;tcp://10.0.1.2:2375&quot;</span>
 </code></pre></div>
-
 <p>or</p>
-<div class="codehilite"><pre><span></span><code>docker run -d <span class="se">\</span>
+<div class="highlight"><pre><span></span><code>docker run -d <span class="se">\</span>
   --name watchtower <span class="se">\</span>
   -e <span class="nv">DOCKER_HOST</span><span class="o">=</span><span class="s2">&quot;tcp://10.0.1.2:2375&quot;</span> <span class="se">\</span>
   containrrr/watchtower
 </code></pre></div>
-
 <p>Note in both of the examples above that it is unnecessary to mount the <em>/var/run/docker.sock</em> into the watchtower container.</p>
                 
               

@@ -9,7 +9,7 @@
       
       
       
-        <link rel="canonical" href="http://containrrr.github.io/watchtower/http-api-mode/">
+        <link rel="canonical" href="https://containrrr.dev/watchtower/http-api-mode/">
       
       <link rel="icon" href="../images/favicon.ico">
       <meta name="generator" content="mkdocs-1.1.2, mkdocs-material-7.1.3">
@@ -419,7 +419,7 @@
 </ul>
 <hr />
 <p>To enable this mode, use the flag <code>--http-api-update</code>. For example, in a Docker Compose config file:</p>
-<div class="codehilite"><pre><span></span><code><span class="nt">version</span><span class="p">:</span> <span class="s">&#39;3&#39;</span>
+<div class="highlight"><pre><span></span><code><span class="nt">version</span><span class="p">:</span> <span class="s">&#39;3&#39;</span>
 
 <span class="nt">services</span><span class="p">:</span>
   <span class="nt">app-monitored-by-watchtower</span><span class="p">:</span>
@@ -439,9 +439,8 @@
     <span class="nt">ports</span><span class="p">:</span>
       <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">8080:8080</span>
 </code></pre></div>
-
 <p>Notice that there is an environment variable named WATCHTOWER_HTTP_API_TOKEN. To prevent external services from accidentally triggering image updates, all of the requests have to contain a "Token" field, valued as the token defined in WATCHTOWER_HTTP_API_TOKEN, in their headers. In this case, there is a port bind to the host machine, allowing to request localhost:8080 to reach Watchtower. The following <code>curl</code> command would trigger an image update:</p>
-<div class="codehilite"><pre><span></span><code>curl -H <span class="s2">&quot;Authorization: Bearer mytoken&quot;</span> localhost:8080/v1/update
+<div class="highlight"><pre><span></span><code>curl -H <span class="s2">&quot;Authorization: Bearer mytoken&quot;</span> localhost:8080/v1/update
 </code></pre></div>
                 
               

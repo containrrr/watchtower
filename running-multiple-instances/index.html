@@ -9,7 +9,7 @@
       
       
       
-        <link rel="canonical" href="http://containrrr.github.io/watchtower/running-multiple-instances/">
+        <link rel="canonical" href="https://containrrr.dev/watchtower/running-multiple-instances/">
       
       <link rel="icon" href="../images/favicon.ico">
       <meta name="generator" content="mkdocs-1.1.2, mkdocs-material-7.1.3">
@@ -427,7 +427,7 @@
 - An instance without a scope will clean up other running instances, even if they have a defined scope;</p>
 <p>To define an instance monitoring scope, use the <code>--scope</code> argument or the <code>WATCHTOWER_SCOPE</code> environment variable on startup and set the <em>com.centurylinklabs.watchtower.scope</em> label with the same value for the containers you want to include in this instance's scope (including the instance itself).</p>
 <p>For example, in a Docker Compose config file:</p>
-<div class="codehilite"><pre><span></span><code><span class="nt">version</span><span class="p">:</span> <span class="s">&#39;3&#39;</span>
+<div class="highlight"><pre><span></span><code><span class="nt">version</span><span class="p">:</span> <span class="s">&#39;3&#39;</span>
 
 <span class="nt">services</span><span class="p">:</span>
   <span class="nt">app-monitored-by-watchtower</span><span class="p">:</span>

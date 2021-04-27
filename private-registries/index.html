@@ -9,7 +9,7 @@
       
       
       
-        <link rel="canonical" href="http://containrrr.github.io/watchtower/private-registries/">
+        <link rel="canonical" href="https://containrrr.dev/watchtower/private-registries/">
       
       <link rel="icon" href="../images/favicon.ico">
       <meta name="generator" content="mkdocs-1.1.2, mkdocs-material-7.1.3">
@@ -323,13 +323,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#i_username_and_password_for_gcloud" class="md-nav__link">
-    ℹ️ Username and Password for GCloud
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#share_the_docker_configuration_file" class="md-nav__link">
     Share the Docker configuration file
   </a>
@@ -366,27 +359,6 @@
         
       </ul>
     </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#create_a_volume_to_store_the_command_once_built" class="md-nav__link">
-    Create a volume to store the command (once built)
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#build_the_container" class="md-nav__link">
-    Build the container
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#build_the_command_and_store_it_in_the_new_volume_in_the_gobin_directory" class="md-nav__link">
-    Build the command and store it in the new volume in the /go/bin directory.
-  </a>
   
 </li>
       
@@ -534,13 +506,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#i_username_and_password_for_gcloud" class="md-nav__link">
-    ℹ️ Username and Password for GCloud
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#share_the_docker_configuration_file" class="md-nav__link">
     Share the Docker configuration file
   </a>
@@ -580,27 +545,6 @@
   
 </li>
       
-        <li class="md-nav__item">
-  <a href="#create_a_volume_to_store_the_command_once_built" class="md-nav__link">
-    Create a volume to store the command (once built)
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#build_the_container" class="md-nav__link">
-    Build the container
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#build_the_command_and_store_it_in_the_new_volume_in_the_gobin_directory" class="md-nav__link">
-    Build the command and store it in the new volume in the /go/bin directory.
-  </a>
-  
-</li>
-      
     </ul>
   
 </nav>
@@ -618,6 +562,8 @@
                   </a>
                 
                 
+                  <h1>Private registries</h1>
+                
                 <p>Watchtower supports private Docker image registries. In many cases, accessing a private registry
 requires a valid username and password (i.e., <em>credentials</em>). In order to operate in such an
 environment, watchtower needs to know the credentials to access the registry. </p>
@@ -630,7 +576,7 @@ There are two ways to generate this configuration file:</p>
 <h3 id="create_the_configuration_file_manually">Create the configuration file manually<a class="headerlink" href="#create_the_configuration_file_manually" title="Permanent link">&para;</a></h3>
 <p>Create a new configuration file with the following syntax and a base64 encoded username and
 password <code>auth</code> string:</p>
-<div class="codehilite"><pre><span></span><code><span class="p">{</span>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
     <span class="nt">&quot;auths&quot;</span><span class="p">:</span> <span class="p">{</span>
         <span class="nt">&quot;&lt;REGISTRY_NAME&gt;&quot;</span><span class="p">:</span> <span class="p">{</span>
             <span class="nt">&quot;auth&quot;</span><span class="p">:</span> <span class="s2">&quot;XXXXXXX&quot;</span>
@@ -638,36 +584,31 @@ password <code>auth</code> string:</p>
     <span class="p">}</span>
 <span class="p">}</span>
 </code></pre></div>
-
 <p><code>&lt;REGISTRY_NAME&gt;</code> needs to be replaced by the name of your private registry
 (e.g., <code>my-private-registry.example.org</code>)</p>
 <p>The required <code>auth</code> string can be generated as follows:</p>
-<div class="codehilite"><pre><span></span><code><span class="nb">echo</span> -n <span class="s1">&#39;username:password&#39;</span> <span class="p">|</span> base64
+<div class="highlight"><pre><span></span><code><span class="nb">echo</span> -n <span class="s1">&#39;username:password&#39;</span> <span class="p">|</span> base64
 </code></pre></div>
-
-<blockquote>
-<h3 id="i_username_and_password_for_gcloud">ℹ️ Username and Password for GCloud<a class="headerlink" href="#i_username_and_password_for_gcloud" title="Permanent link">&para;</a></h3>
-<p>For gcloud, we'll use <code>_json_key</code> as our username and the content
-of <code>gcloudauth.json</code> as the password.
-<code>bash
-echo -n "_json_key:$(cat gcloudauth.json)" | base64 -w0</code>
-When the watchtower Docker container is started, the created configuration file
+<div class="admonition info">
+<p class="admonition-title">Username and Password for GCloud</p>
+<p>For gcloud, we'll use <code>_json_key</code> as our username and the content of <code>gcloudauth.json</code> as the password.
+<div class="highlight"><pre><span></span><code>bash echo -n &quot;_json_key:$(cat gcloudauth.json)&quot; | base64 -w0
+</code></pre></div></p>
+</div>
+<p>When the watchtower Docker container is started, the created configuration file
 (<code>&lt;PATH&gt;/config.json</code> in this example) needs to be passed to the container:</p>
-</blockquote>
-<div class="codehilite"><pre><span></span><code>docker run <span class="o">[</span>...<span class="o">]</span> -v &lt;PATH&gt;/config.json:/config.json containrrr/watchtower
+<div class="highlight"><pre><span></span><code>docker run <span class="o">[</span>...<span class="o">]</span> -v &lt;PATH&gt;/config.json:/config.json containrrr/watchtower
 </code></pre></div>
-
 <h3 id="share_the_docker_configuration_file">Share the Docker configuration file<a class="headerlink" href="#share_the_docker_configuration_file" title="Permanent link">&para;</a></h3>
 <p>To pull an image from a private registry, <code>docker login</code> needs to be called first, to get access
 to the registry. The provided credentials are stored in a configuration file called <code>&lt;PATH_TO_HOME_DIR&gt;/.docker/config.json</code>.
 This configuration file can be directly used by watchtower. In this case, the creation of an
 additional configuration file is not necessary.</p>
 <p>When the Docker container is started, pass the configuration file to watchtower:</p>
-<div class="codehilite"><pre><span></span><code>docker run <span class="o">[</span>...<span class="o">]</span> -v &lt;PATH_TO_HOME_DIR&gt;/.docker/config.json:/config.json containrrr/watchtower
+<div class="highlight"><pre><span></span><code>docker run <span class="o">[</span>...<span class="o">]</span> -v &lt;PATH_TO_HOME_DIR&gt;/.docker/config.json:/config.json containrrr/watchtower
 </code></pre></div>
-
 <p>When creating the watchtower container via docker-compose, use the following lines:</p>
-<div class="codehilite"><pre><span></span><code><span class="nt">version</span><span class="p">:</span> <span class="s">&quot;3.4&quot;</span>
+<div class="highlight"><pre><span></span><code><span class="nt">version</span><span class="p">:</span> <span class="s">&quot;3.4&quot;</span>
 <span class="nt">services</span><span class="p">:</span>
   <span class="nt">watchtower</span><span class="p">:</span>
     <span class="nt">image</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">index.docker.io/containrrr/watchtower:latest</span>
@@ -676,11 +617,10 @@ additional configuration file is not necessary.</p>
       <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">&lt;PATH_TO_HOME_DIR&gt;/.docker/config.json:/config.json</span>
   <span class="l l-Scalar l-Scalar-Plain">...</span>
 </code></pre></div>
-
 <h4 id="docker_config_path">Docker Config path<a class="headerlink" href="#docker_config_path" title="Permanent link">&para;</a></h4>
 <p>By default, watchtower will look for the <code>config.json</code> file in <code>/</code>, but this can be changed by setting the <code>DOCKER_CONFIG</code> environment variable to the directory path where your config is located. This is useful for setups where the config.json file is changed while the watchtower instance is running, as the changes will not be picked up for a mounted file if the inode changes.
 Example usage:</p>
-<div class="codehilite"><pre><span></span><code><span class="nt">version</span><span class="p">:</span> <span class="s">&quot;3.4&quot;</span>
+<div class="highlight"><pre><span></span><code><span class="nt">version</span><span class="p">:</span> <span class="s">&quot;3.4&quot;</span>
 
 <span class="nt">services</span><span class="p">:</span> 
   <span class="nt">watchtower</span><span class="p">:</span>
@@ -691,7 +631,6 @@ Example usage:</p>
       <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">/etc/watchtower/config/:/config/</span>
       <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">/var/run/docker.sock:/var/run/docker.sock</span>
 </code></pre></div>
-
 <h2 id="credential_helpers">Credential helpers<a class="headerlink" href="#credential_helpers" title="Permanent link">&para;</a></h2>
 <p>Some private Docker registries (the most prominent probably being AWS ECR) use non-standard ways of authentication.
 To be able to use this together with watchtower, we need to use a credential helper.</p>
@@ -702,9 +641,9 @@ helper in a separate container and mount it using volumes.</p>
 <p>Use the dockerfile below to build the <a href="https://github.com/awslabs/amazon-ecr-credential-helper">amazon-ecr-credential-helper</a>,
 in a volume that may be mounted onto your watchtower container.</p>
 <ol>
-<li>Create the Dockerfile (contents below):    </li>
+<li>Create the Dockerfile (contents below):</li>
 </ol>
-<div class="codehilite"><pre><span></span><code><span class="k">FROM</span> <span class="s">golang:latest</span>
+<div class="highlight"><pre><span></span><code><span class="k">FROM</span> <span class="s">golang:latest</span>
 
 <span class="k">ENV</span> CGO_ENABLED <span class="m">0</span>
 <span class="k">ENV</span> REPO github.com/awslabs/amazon-ecr-credential-helper/ecr-login/cli/docker-credential-ecr-login
@@ -719,58 +658,58 @@ in a volume that may be mounted onto your watchtower container.</p>
 
 <span class="k">WORKDIR</span><span class="s"> /go/bin/</span>
 </code></pre></div>
-
 <ol>
 <li>Use the following commands to build the aws-ecr-dock-cred-helper and store it's output in a volume:</li>
 </ol>
-<p>```shell script</p>
-<h1 id="create_a_volume_to_store_the_command_once_built">Create a volume to store the command (once built)<a class="headerlink" href="#create_a_volume_to_store_the_command_once_built" title="Permanent link">&para;</a></h1>
-<p>docker volume create helper </p>
-<h1 id="build_the_container">Build the container<a class="headerlink" href="#build_the_container" title="Permanent link">&para;</a></h1>
-<p>docker build -t aws-ecr-dock-cred-helper .</p>
-<h1 id="build_the_command_and_store_it_in_the_new_volume_in_the_gobin_directory">Build the command and store it in the new volume in the /go/bin directory.<a class="headerlink" href="#build_the_command_and_store_it_in_the_new_volume_in_the_gobin_directory" title="Permanent link">&para;</a></h1>
-<p>docker run  -d --rm --name aws-cred-helper --volume helper:/go/bin aws-ecr-dock-cred-helper</p>
-<div class="codehilite"><pre><span></span><code><span class="mf">3.</span>  <span class="n">Create</span> <span class="n">a</span> <span class="n">configuration</span> <span class="n">file</span> <span class="kr">for</span> <span class="n">docker</span><span class="p">,</span> <span class="ow">and</span> <span class="n">store</span> <span class="n">it</span> <span class="n">in</span> <span class="err">$</span><span class="n">HOME</span><span class="o">/</span><span class="mf">.</span><span class="n">docker</span><span class="o">/</span><span class="n">config</span><span class="mf">.</span><span class="n">json</span> <span class="p">(</span><span class="n">replace</span> <span class="n">the</span> <span class="o">&lt;</span><span class="n">AWS_ACCOUNT_ID</span><span class="o">&gt;</span>
-    <span class="n">placeholders</span> <span class="n">with</span> <span class="n">your</span> <span class="n">AWS</span> <span class="n">Account</span> <span class="n">ID</span><span class="p">):</span>
+<div class="highlight"><pre><span></span><code><span class="c1"># Create a volume to store the command (once built)</span>
+docker volume create helper 
 
-<span class="err">```</span><span class="n">json</span>
-<span class="err">{</span>
-    <span class="s">&quot;credsStore&quot;</span> <span class="p">:</span> <span class="s">&quot;ecr-login&quot;</span><span class="p">,</span>
-    <span class="s">&quot;HttpHeaders&quot;</span> <span class="p">:</span> <span class="err">{</span>
-      <span class="s">&quot;User-Agent&quot;</span> <span class="p">:</span> <span class="s">&quot;Docker-Client/19.03.1 (XXXXXX)&quot;</span>
-    <span class="err">}</span><span class="p">,</span>
-    <span class="s">&quot;auths&quot;</span> <span class="p">:</span> <span class="err">{</span>
-      <span class="s">&quot;&lt;AWS_ACCOUNT_ID&gt;.dkr.ecr.us-west-1.amazonaws.com&quot;</span> <span class="p">:</span> <span class="err">{}</span>
-    <span class="err">}</span><span class="p">,</span>
-    <span class="s">&quot;credHelpers&quot;</span><span class="p">:</span> <span class="err">{</span>
-      <span class="s">&quot;&lt;AWS_ACCOUNT_ID&gt;.dkr.ecr.us-west-1.amazonaws.com&quot;</span> <span class="p">:</span> <span class="s">&quot;ecr-login&quot;</span>
-    <span class="err">}</span>
-<span class="err">}</span>
+<span class="c1"># Build the container</span>
+docker build -t aws-ecr-dock-cred-helper .
+
+<span class="c1"># Build the command and store it in the new volume in the /go/bin directory.</span>
+docker run  -d --rm --name aws-cred-helper --volume helper:/go/bin aws-ecr-dock-cred-helper
 </code></pre></div>
-
 <ol>
-<li>Create a docker-compose file (as an example) to help launch the container:</li>
+<li>Create a configuration file for docker, and store it in $HOME/.docker/config.json (replace the <AWS_ACCOUNT_ID>
+   placeholders with your AWS Account ID):</li>
 </ol>
-<p>and the docker-compose definition:</p>
-<div class="codehilite"><pre><span></span><code><span class="nt">version</span><span class="p">:</span> <span class="s">&quot;3.4&quot;</span>
-<span class="nt">services</span><span class="p">:</span>
-  <span class="c1"># Check for new images and restart things if a new image exists</span>
-  <span class="c1"># for any of our containers.</span>
-  <span class="nt">watchtower</span><span class="p">:</span>
-    <span class="nt">image</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">containrrr/watchtower:latest</span>
-    <span class="nt">volumes</span><span class="p">:</span>
-      <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">/var/run/docker.sock:/var/run/docker.sock</span>
-      <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">.docker/config.json:/config.json</span>
-      <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">helper:/go/bin</span>
-    <span class="nt">environment</span><span class="p">:</span>
-      <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">HOME=/</span>
-      <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">PATH=$PATH:/go/bin</span>
-      <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">AWS_REGION=us-west-1</span>
-<span class="nt">volumes</span><span class="p">:</span>
-  <span class="nt">helper</span><span class="p">:</span> 
-    <span class="nt">external</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+    <span class="nt">&quot;credsStore&quot;</span> <span class="p">:</span> <span class="s2">&quot;ecr-login&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;HttpHeaders&quot;</span> <span class="p">:</span> <span class="p">{</span>
+      <span class="nt">&quot;User-Agent&quot;</span> <span class="p">:</span> <span class="s2">&quot;Docker-Client/19.03.1 (XXXXXX)&quot;</span>
+    <span class="p">},</span>
+    <span class="nt">&quot;auths&quot;</span> <span class="p">:</span> <span class="p">{</span>
+      <span class="nt">&quot;&lt;AWS_ACCOUNT_ID&gt;.dkr.ecr.us-west-1.amazonaws.com&quot;</span> <span class="p">:</span> <span class="p">{}</span>
+    <span class="p">},</span>
+    <span class="nt">&quot;credHelpers&quot;</span><span class="p">:</span> <span class="p">{</span>
+      <span class="nt">&quot;&lt;AWS_ACCOUNT_ID&gt;.dkr.ecr.us-west-1.amazonaws.com&quot;</span> <span class="p">:</span> <span class="s2">&quot;ecr-login&quot;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
 </code></pre></div>
-
+<ol>
+<li>
+<p>Create a docker-compose file (as an example) to help launch the container:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">version</span><span class="p">:</span> <span class="s">&quot;3.4&quot;</span>
+<span class="nt">services</span><span class="p">:</span>
+ <span class="c1"># Check for new images and restart things if a new image exists</span>
+ <span class="c1"># for any of our containers.</span>
+ <span class="nt">watchtower</span><span class="p">:</span>
+   <span class="nt">image</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">containrrr/watchtower:latest</span>
+   <span class="nt">volumes</span><span class="p">:</span>
+     <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">/var/run/docker.sock:/var/run/docker.sock</span>
+     <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">.docker/config.json:/config.json</span>
+     <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">helper:/go/bin</span>
+   <span class="nt">environment</span><span class="p">:</span>
+     <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">HOME=/</span>
+     <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">PATH=$PATH:/go/bin</span>
+     <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">AWS_REGION=us-west-1</span>
+<span class="nt">volumes</span><span class="p">:</span>
+ <span class="nt">helper</span><span class="p">:</span> 
+   <span class="nt">external</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
+</code></pre></div>
+</li>
+</ol>
 <p>A few additional notes:</p>
 <ol>
 <li>With docker-compose the volume (helper, in this case) MUST be set to <code>external: true</code>, otherwise docker-compose 
