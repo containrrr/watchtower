@@ -103,43 +103,40 @@ Use the dockerfile below to build the [amazon-ecr-credential-helper](https://git
 in a volume that may be mounted onto your watchtower container.
 
 1.  Create the Dockerfile (contents below):
-
-   ```Dockerfile
-   FROM golang:latest
-   
-   ENV CGO_ENABLED 0
-   ENV REPO github.com/awslabs/amazon-ecr-credential-helper/ecr-login/cli/docker-credential-ecr-login
-   
-   RUN go get -u $REPO
-   
-   RUN rm /go/bin/docker-credential-ecr-login
-   
-   RUN go build \
+    ```Dockerfile
+    FROM golang:latest
+    
+    ENV CGO_ENABLED 0
+    ENV REPO github.com/awslabs/amazon-ecr-credential-helper/ecr-login/cli/docker-credential-ecr-login
+    
+    RUN go get -u $REPO
+    
+    RUN rm /go/bin/docker-credential-ecr-login
+    
+    RUN go build \
      -o /go/bin/docker-credential-ecr-login \
      /go/src/$REPO
-   
-   WORKDIR /go/bin/
-   ```
+    
+    WORKDIR /go/bin/
+    ```
 
 2.  Use the following commands to build the aws-ecr-dock-cred-helper and store it's output in a volume:
-
-   ```bash
-   # Create a volume to store the command (once built)
-   docker volume create helper 
-   
-   # Build the container
-   docker build -t aws-ecr-dock-cred-helper .
-   
-   # Build the command and store it in the new volume in the /go/bin directory.
-   docker run  -d --rm --name aws-cred-helper --volume helper:/go/bin aws-ecr-dock-cred-helper
-   
-   ```
+    ```bash
+    # Create a volume to store the command (once built)
+    docker volume create helper 
+    
+    # Build the container
+    docker build -t aws-ecr-dock-cred-helper .
+    
+    # Build the command and store it in the new volume in the /go/bin directory.
+    docker run  -d --rm --name aws-cred-helper \
+      --volume helper:/go/bin aws-ecr-dock-cred-helper
+    ```
 
 3.  Create a configuration file for docker, and store it in $HOME/.docker/config.json (replace the <AWS_ACCOUNT_ID>
    placeholders with your AWS Account ID):
-
-   ```json
-   {
+    ```json
+    {
        "credsStore" : "ecr-login",
        "HttpHeaders" : {
          "User-Agent" : "Docker-Client/19.03.1 (XXXXXX)"
@@ -150,11 +147,10 @@ in a volume that may be mounted onto your watchtower container.
        "credHelpers": {
          "<AWS_ACCOUNT_ID>.dkr.ecr.us-west-1.amazonaws.com" : "ecr-login"
        }
-   }
-   ```
+    }
+    ```
 
 4.  Create a docker-compose file (as an example) to help launch the container:
- 
     ```yaml
     version: "3.4"
     services:
