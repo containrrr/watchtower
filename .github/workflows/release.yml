@@ -187,29 +187,6 @@ jobs:
             docker manifest push ghcr.io/containrrr/watchtower:$(echo $TAG | sed 's/^v*//') && \
             docker manifest push ghcr.io/containrrr/watchtower:latest
 
-  publish-docs:
-    name: Publish Docs
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
-      - name: Install mkdocs
-        run: |
-          pip install \
-            mkdocs \
-            mkdocs-material \
-            md-toc
-      - name: Generate docs
-        run: mkdocs build
-      - name: Publish docs
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./site
-
   renew-docs:
     name: Refresh pkg.go.dev
     needs: build
