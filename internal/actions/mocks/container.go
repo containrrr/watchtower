@@ -29,9 +29,9 @@ func CreateMockContainer(id string, name string, image string, created time.Time
 	dependencyString := ""
 	for ind, i := range depends {
 		if ind == 0 {
-			dependencyString += i;
-		}else{
-			dependencyString += "," + i;
+			dependencyString += i
+		} else {
+			dependencyString += "," + i
 		}
 	}
 	content.Config.Labels["com.centurylinklabs.watchtower.depends-on"] = dependencyString
@@ -68,7 +68,7 @@ func CreateMockContainerWithImageInfo(id string, name string, image string, crea
 
 // CreateMockContainerWithDigest should only be used for testing
 func CreateMockContainerWithDigest(id string, name string, image string, created time.Time, digest string) container.Container {
-	c := CreateMockContainer(id, name, image, created)
+	c := CreateMockContainer(id, name, image, created, []string{})
 	c.ImageInfo().RepoDigests = []string{digest}
 	return c
 }

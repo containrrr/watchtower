@@ -9,9 +9,11 @@ var metrics *Metrics
 
 // Metric is the data points of a single scan
 type Metric struct {
-	Scanned int
-	Updated int
-	Failed  int
+	Scanned          int
+	Updated          int
+	Failed           int
+	StaleCheckFailed int
+	StaleCount       int
 }
 
 // Metrics is the handler processing all individual scan metrics
