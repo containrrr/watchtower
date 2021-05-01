@@ -1,6 +1,7 @@
 package actions
 
 import (
+	"errors"
 	"github.com/containrrr/watchtower/internal/util"
 	"github.com/containrrr/watchtower/pkg/container"
 	"github.com/containrrr/watchtower/pkg/lifecycle"
@@ -82,7 +83,7 @@ func Update(client container.Client, params types.UpdateParams) (*metrics2.Metri
 		metric.Failed += performRollingRestart(containersToUpdate, client, params)
 	} else {
 		imageIDsOfStoppedContainers := make(map[string]bool)
-		metric.Failed,imageIDsOfStoppedContainers = stopContainersInReversedOrder(containersToUpdate, client, params)
+		metric.Failed, imageIDsOfStoppedContainers = stopContainersInReversedOrder(containersToUpdate, client, params)
 		metric.Failed += restartContainersInSortedOrder(containersToUpdate, client, params, imageIDsOfStoppedContainers)
 	}
 
@@ -100,7 +101,7 @@ func performRollingRestart(containers []container.Container, client container.Cl
 
 	for i := len(containers) - 1; i >= 0; i-- {
 		if containers[i].ToRestart() {
-      err := stopStaleContainer(containers[i], client, params)
+			err := stopStaleContainer(containers[i], client, params)
 			if err != nil {
 				failed++
 			} else {
@@ -127,7 +128,7 @@ func stopContainersInReversedOrder(containers []container.Container, client cont
 		} else {
 			imageIDsOfStoppedContainers[containers[i].ImageID()] = true
 		}
-		
+
 	}
 	return failed, imageIDsOfStoppedContainers
 }
@@ -142,8 +143,8 @@ func stopStaleContainer(container container.Container, client container.Client, 
 		return nil
 	}
 	if params.LifecycleHooks {
-		SkipUpdate,err := lifecycle.ExecutePreUpdateCommand(client, container)
-		if  err != nil {
+		SkipUpdate, err := lifecycle.ExecutePreUpdateCommand(client, container)
+		if err != nil {
 			log.Error(err)
 			log.Info("Skipping container as the pre-update command failed")
 			return err
