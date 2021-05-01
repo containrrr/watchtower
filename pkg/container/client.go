@@ -409,7 +409,7 @@ func (client dockerClient) ExecuteCommand(containerID string, command string, ti
 }
 
 func (client dockerClient) waitForExecOrTimeout(bg context.Context, ID string, execOutput string, timeout int) (SkipUpdate bool, err error) {
-	const EX_TEMPFAIL = 75
+	const ExTempFail = 75
 	var ctx context.Context
 	var cancel context.CancelFunc
 
@@ -441,7 +441,7 @@ func (client dockerClient) waitForExecOrTimeout(bg context.Context, ID string, e
 			log.Infof("Command output:\n%v", execOutput)
 		}
 
-		if execInspect.ExitCode == EX_TEMPFAIL {
+		if execInspect.ExitCode == ExTempFail {
 			return true, nil
 		}
 
