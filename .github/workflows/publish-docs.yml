@@ -1,0 +1,27 @@
+name: Publish Docs
+
+on:
+  workflow_dispatch: { }
+  workflow_run:
+    workflows: [ "Release (Production)" ]
+    branches: [ main ]
+    types:
+      - completed
+
+jobs:
+  publish-docs:
+    name: Publish Docs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Install mkdocs
+        run: |
+          pip install \
+            mkdocs \
+            mkdocs-material \
+            md-toc
+      - name: Generate docs
+        run: mkdocs gh-deploy --strict

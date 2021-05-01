@@ -3,11 +3,12 @@ package notifications
 import (
 	"bytes"
 	"fmt"
-	"github.com/containrrr/shoutrrr/pkg/types"
+	stdlog "log"
 	"strings"
 	"text/template"
 
 	"github.com/containrrr/shoutrrr"
+	"github.com/containrrr/shoutrrr/pkg/types"
 	t "github.com/containrrr/watchtower/pkg/types"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -33,20 +34,35 @@ type shoutrrrTypeNotifier struct {
 	done      chan bool
 }
 
+func (n *shoutrrrTypeNotifier) GetNames() []string {
+	names := make([]string, len(n.Urls))
+	for i, u := range n.Urls {
+		schemeEnd := strings.Index(u, ":")
+		if schemeEnd <= 0 {
+			names[i] = "invalid"
+			continue
+		}
+		names[i] = u[:schemeEnd]
+	}
+	return names
+}
+
 func newShoutrrrNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.Notifier {
 	flags := c.PersistentFlags()
 	urls, _ := flags.GetStringArray("notification-url")
-	template := getShoutrrrTemplate(c)
-	return createSender(urls, acceptedLogLevels, template)
+	tpl := getShoutrrrTemplate(c)
+	return createSender(urls, acceptedLogLevels, tpl)
 }
 
 func newShoutrrrNotifierFromURL(c *cobra.Command, url string, levels []log.Level) t.Notifier {
-	template := getShoutrrrTemplate(c)
-	return createSender([]string{url}, levels, template)
+	tpl := getShoutrrrTemplate(c)
+	return createSender([]string{url}, levels, tpl)
 }
 
 func createSender(urls []string, levels []log.Level, template *template.Template) t.Notifier {
-	r, err := shoutrrr.CreateSender(urls...)
+
+	traceWriter := log.StandardLogger().WriterLevel(log.TraceLevel)
+	r, err := shoutrrr.NewSender(stdlog.New(traceWriter, "Shoutrrr: ", 0), urls...)
 	if err != nil {
 		log.Fatalf("Failed to initialize Shoutrrr notifications: %s\n", err.Error())
 	}
@@ -83,54 +99,54 @@ func sendNotifications(n *shoutrrrTypeNotifier) {
 	n.done <- true
 }
 
-func (e *shoutrrrTypeNotifier) buildMessage(entries []*log.Entry) string {
+func (n *shoutrrrTypeNotifier) buildMessage(entries []*log.Entry) string {
 	var body bytes.Buffer
-	if err := e.template.Execute(&body, entries); err != nil {
+	if err := n.template.Execute(&body, entries); err != nil {
 		fmt.Printf("Failed to execute Shoutrrrr template: %s\n", err.Error())
 	}
 
 	return body.String()
 }
 
-func (e *shoutrrrTypeNotifier) sendEntries(entries []*log.Entry) {
-	msg := e.buildMessage(entries)
-	e.messages <- msg
+func (n *shoutrrrTypeNotifier) sendEntries(entries []*log.Entry) {
+	msg := n.buildMessage(entries)
+	n.messages <- msg
 }
 
-func (e *shoutrrrTypeNotifier) StartNotification() {
-	if e.entries == nil {
-		e.entries = make([]*log.Entry, 0, 10)
+func (n *shoutrrrTypeNotifier) StartNotification() {
+	if n.entries == nil {
+		n.entries = make([]*log.Entry, 0, 10)
 	}
 }
 
-func (e *shoutrrrTypeNotifier) SendNotification() {
-	if e.entries == nil || len(e.entries) <= 0 {
+func (n *shoutrrrTypeNotifier) SendNotification() {
+	if n.entries == nil || len(n.entries) <= 0 {
 		return
 	}
 
-	e.sendEntries(e.entries)
-	e.entries = nil
+	n.sendEntries(n.entries)
+	n.entries = nil
 }
 
-func (e *shoutrrrTypeNotifier) Close() {
-	close(e.messages)
+func (n *shoutrrrTypeNotifier) Close() {
+	close(n.messages)
 
 	// Use fmt so it doesn't trigger another notification.
 	fmt.Println("Waiting for the notification goroutine to finish")
 
-	_ = <-e.done
+	_ = <-n.done
 }
 
-func (e *shoutrrrTypeNotifier) Levels() []log.Level {
-	return e.logLevels
+func (n *shoutrrrTypeNotifier) Levels() []log.Level {
+	return n.logLevels
 }
 
-func (e *shoutrrrTypeNotifier) Fire(entry *log.Entry) error {
-	if e.entries != nil {
-		e.entries = append(e.entries, entry)
+func (n *shoutrrrTypeNotifier) Fire(entry *log.Entry) error {
+	if n.entries != nil {
+		n.entries = append(n.entries, entry)
 	} else {
 		// Log output generated outside a cycle is sent immediately.
-		e.sendEntries([]*log.Entry{entry})
+		n.sendEntries([]*log.Entry{entry})
 	}
 	return nil
 }

@@ -1,6 +1,7 @@
 package notifications
 
 import (
+	"net/url"
 	"strings"
 
 	shoutrrrGotify "github.com/containrrr/shoutrrr/pkg/services/gotify"
@@ -22,20 +23,20 @@ type gotifyTypeNotifier struct {
 }
 
 // NewGotifyNotifier is a factory method creating a new gotify notifier instance
-func NewGotifyNotifier(c *cobra.Command, levels []log.Level) t.ConvertableNotifier {
+func NewGotifyNotifier(c *cobra.Command, levels []log.Level) t.ConvertibleNotifier {
 	return newGotifyNotifier(c, levels)
 }
 
-func newGotifyNotifier(c *cobra.Command, levels []log.Level) t.ConvertableNotifier {
+func newGotifyNotifier(c *cobra.Command, levels []log.Level) t.ConvertibleNotifier {
 	flags := c.PersistentFlags()
 
-	url := getGotifyURL(flags)
+	apiURL := getGotifyURL(flags)
 	token := getGotifyToken(flags)
 
 	skipVerify, _ := flags.GetBool("notification-gotify-tls-skip-verify")
 
 	n := &gotifyTypeNotifier{
-		gotifyURL:                url,
+		gotifyURL:                apiURL,
 		gotifyAppToken:           token,
 		gotifyInsecureSkipVerify: skipVerify,
 		logLevels:                levels,
@@ -66,26 +67,19 @@ func getGotifyURL(flags *pflag.FlagSet) string {
 	return gotifyURL
 }
 
-func (n *gotifyTypeNotifier) GetURL() string {
-	url := n.gotifyURL
-
-	if strings.HasPrefix(url, "https://") {
-		url = strings.TrimPrefix(url, "https://")
-	} else {
-		url = strings.TrimPrefix(url, "http://")
+func (n *gotifyTypeNotifier) GetURL() (string, error) {
+	apiURL, err := url.Parse(n.gotifyURL)
+	if err != nil {
+		return "", err
 	}
-
-	url = strings.TrimSuffix(url, "/")
 
 	config := &shoutrrrGotify.Config{
-		Host:  url,
-		Token: n.gotifyAppToken,
+		Host:       apiURL.Host,
+		Path:       apiURL.Path,
+		DisableTLS: apiURL.Scheme == "http",
+		Title:      GetTitle(),
+		Token:      n.gotifyAppToken,
 	}
 
-	return config.GetURL().String()
+	return config.GetURL().String(), nil
 }
-
-func (n *gotifyTypeNotifier) StartNotification()  {}
-func (n *gotifyTypeNotifier) SendNotification()   {}
-func (n *gotifyTypeNotifier) Close() {}
-func (n *gotifyTypeNotifier) Levels() []log.Level { return nil }

@@ -26,8 +26,8 @@ func New(token string) *API {
 func (api *API) RequireToken(fn http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Authorization") != fmt.Sprintf("Bearer %s", api.Token) {
-			log.Errorf("Invalid token \"%s\"", r.Header.Get("Authorization"))
-			log.Debugf("Expected token to be \"%s\"", api.Token)
+			log.Tracef("Invalid token \"%s\"", r.Header.Get("Authorization"))
+			log.Tracef("Expected token to be \"%s\"", api.Token)
 			return
 		}
 		log.Debug("Valid token found.")

@@ -642,10 +642,10 @@
       ]
     },
     {
-      "login": "x-jokay",
+      "login": "jokay",
       "name": "D. Domig",
       "avatar_url": "https://avatars0.githubusercontent.com/u/18613935?v=4",
-      "profile": "https://github.com/x-jokay",
+      "profile": "https://github.com/jokay",
       "contributions": [
         "doc"
       ]
@@ -692,7 +692,8 @@
       "avatar_url": "https://avatars1.githubusercontent.com/u/1371562?v=4",
       "profile": "https://github.com/ksurl",
       "contributions": [
-        "doc"
+        "doc",
+        "code"
       ]
     },
     {
@@ -729,6 +730,33 @@
       "profile": "https://nymous.io",
       "contributions": [
         "doc"
+      ]
+    },
+    {
+      "login": "hydrargyrum",
+      "name": "hydrargyrum",
+      "avatar_url": "https://avatars.githubusercontent.com/u/2804645?v=4",
+      "profile": "https://indigo.re/",
+      "contributions": [
+        "doc"
+      ]
+    },
+    {
+      "login": "reinout",
+      "name": "Reinout van Rees",
+      "avatar_url": "https://avatars.githubusercontent.com/u/121433?v=4",
+      "profile": "https://reinout.vanrees.org",
+      "contributions": [
+        "doc"
+      ]
+    },
+    {
+      "login": "DasSkelett",
+      "name": "DasSkelett",
+      "avatar_url": "https://avatars.githubusercontent.com/u/28812678?v=4",
+      "profile": "https://github.com/DasSkelett",
+      "contributions": [
+        "code"
       ]
     }
   ],

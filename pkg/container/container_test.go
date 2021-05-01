@@ -1,21 +1,15 @@
 package container
 
 import (
-	"testing"
-
 	"github.com/containrrr/watchtower/pkg/container/mocks"
 	"github.com/containrrr/watchtower/pkg/filters"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	cli "github.com/docker/docker/client"
+	"github.com/docker/go-connections/nat"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
-
-func TestContainer(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Container Suite")
-}
 
 var _ = Describe("the container", func() {
 	Describe("the client", func() {
@@ -34,6 +28,35 @@ var _ = Describe("the container", func() {
 		It("should return a client for the api", func() {
 			Expect(client).NotTo(BeNil())
 		})
+		Describe("WarnOnHeadPullFailed", func() {
+			containerUnknown := *mockContainerWithImageName("unknown.repo/prefix/imagename:latest")
+			containerKnown := *mockContainerWithImageName("docker.io/prefix/imagename:latest")
+
+			When("warn on head failure is set to \"always\"", func() {
+				c := newClientNoAPI(false, false, false, false, false, "always")
+				It("should always return true", func() {
+					Expect(c.WarnOnHeadPullFailed(containerUnknown)).To(BeTrue())
+					Expect(c.WarnOnHeadPullFailed(containerKnown)).To(BeTrue())
+				})
+			})
+			When("warn on head failure is set to \"auto\"", func() {
+				c := newClientNoAPI(false, false, false, false, false, "auto")
+				It("should always return true", func() {
+					Expect(c.WarnOnHeadPullFailed(containerUnknown)).To(BeFalse())
+				})
+				It("should", func() {
+					Expect(c.WarnOnHeadPullFailed(containerKnown)).To(BeTrue())
+				})
+			})
+			When("warn on head failure is set to \"never\"", func() {
+				c := newClientNoAPI(false, false, false, false, false, "never")
+				It("should never return true", func() {
+					Expect(c.WarnOnHeadPullFailed(containerUnknown)).To(BeFalse())
+					Expect(c.WarnOnHeadPullFailed(containerKnown)).To(BeFalse())
+				})
+			})
+		})
+
 		When("listing containers without any filter", func() {
 			It("should return all available containers", func() {
 				containers, err := client.ListContainers(filters.NoFilter)
@@ -105,6 +128,63 @@ var _ = Describe("the container", func() {
 				}
 				Expect(RestartingContainerFound).To(BeFalse())
 				Expect(RestartingContainerFound).NotTo(BeTrue())
+			})
+		})
+	})
+	Describe("VerifyConfiguration", func() {
+		When("verifying a container with no image info", func() {
+			It("should return an error", func() {
+				c := mockContainerWithPortBindings()
+				c.imageInfo = nil
+				err := c.VerifyConfiguration()
+				Expect(err).To(Equal(errorNoImageInfo))
+			})
+		})
+		When("verifying a container with no container info", func() {
+			It("should return an error", func() {
+				c := mockContainerWithPortBindings()
+				c.containerInfo = nil
+				err := c.VerifyConfiguration()
+				Expect(err).To(Equal(errorInvalidConfig))
+			})
+		})
+		When("verifying a container with no config", func() {
+			It("should return an error", func() {
+				c := mockContainerWithPortBindings()
+				c.containerInfo.Config = nil
+				err := c.VerifyConfiguration()
+				Expect(err).To(Equal(errorInvalidConfig))
+			})
+		})
+		When("verifying a container with no host config", func() {
+			It("should return an error", func() {
+				c := mockContainerWithPortBindings()
+				c.containerInfo.HostConfig = nil
+				err := c.VerifyConfiguration()
+				Expect(err).To(Equal(errorInvalidConfig))
+			})
+		})
+		When("verifying a container with no port bindings", func() {
+			It("should not return an error", func() {
+				c := mockContainerWithPortBindings()
+				err := c.VerifyConfiguration()
+				Expect(err).ToNot(HaveOccurred())
+			})
+		})
+		When("verifying a container with port bindings, but no exposed ports", func() {
+			It("should return an error", func() {
+				c := mockContainerWithPortBindings("80/tcp")
+				c.containerInfo.Config.ExposedPorts = nil
+				err := c.VerifyConfiguration()
+				Expect(err).To(Equal(errorNoExposedPorts))
+			})
+		})
+		When("verifying a container with port bindings and exposed ports is non-nil", func() {
+			It("should return an error", func() {
+				c := mockContainerWithPortBindings("80/tcp")
+				c.containerInfo.Config.ExposedPorts = map[nat.Port]struct{}{"80/tcp": {}}
+				err := c.VerifyConfiguration()
+				Expect(err).ToNot(HaveOccurred())
 			})
 		})
 	})
@@ -259,10 +339,23 @@ var _ = Describe("the container", func() {
 	})
 })
 
+func mockContainerWithPortBindings(portBindingSources ...string) *Container {
+	mockContainer := mockContainerWithLabels(nil)
+	mockContainer.imageInfo = &types.ImageInspect{}
+	hostConfig := &container.HostConfig{
+		PortBindings: nat.PortMap{},
+	}
+	for _, pbs := range portBindingSources {
+		hostConfig.PortBindings[nat.Port(pbs)] = []nat.PortBinding{}
+	}
+	mockContainer.containerInfo.HostConfig = hostConfig
+	return mockContainer
+}
+
 func mockContainerWithImageName(name string) *Container {
-	container := mockContainerWithLabels(nil)
-	container.containerInfo.Config.Image = name
-	return container
+	mockContainer := mockContainerWithLabels(nil)
+	mockContainer.containerInfo.Config.Image = name
+	return mockContainer
 }
 
 func mockContainerWithLinks(links []string) *Container {
@@ -294,4 +387,16 @@ func mockContainerWithLabels(labels map[string]string) *Container {
 		},
 	}
 	return NewContainer(&content, nil)
+}
+
+func newClientNoAPI(pullImages, includeStopped, reviveStopped, removeVolumes, includeRestarting bool, warnOnHeadFailed string) Client {
+	return dockerClient{
+		api:               nil,
+		pullImages:        pullImages,
+		removeVolumes:     removeVolumes,
+		includeStopped:    includeStopped,
+		reviveStopped:     reviveStopped,
+		includeRestarting: includeRestarting,
+		warnOnHeadFailed:  warnOnHeadFailed,
+	}
 }

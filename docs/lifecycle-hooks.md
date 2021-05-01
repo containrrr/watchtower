@@ -1,7 +1,8 @@
 ## Executing commands before and after updating
 
-> **DO NOTE**: These are shell commands executed with `sh`, and therefore require the
-> container to provide the `sh` executable.
+!!! note 
+    These are shell commands executed with `sh`, and therefore require the container to provide the `sh`
+    executable.
 
 > **DO NOTE**: If the container is not running then lifecycle hooks can not run and therefore 
 > the update is executed without running any lifecycle hooks.
@@ -29,25 +30,25 @@ The commands are specified using docker container labels, the following are curr
 | Post Update | `com.centurylinklabs.watchtower.lifecycle.post-update` |
 | Post Check  | `com.centurylinklabs.watchtower.lifecycle.post-check`  |
 
-These labels can be declared as instructions in a Dockerfile (with some example .sh files):
+These labels can be declared as instructions in a Dockerfile (with some example .sh files) or be specified as part of
+the `docker run` command line:
 
-```docker
-LABEL com.centurylinklabs.watchtower.lifecycle.pre-check="/sync.sh"
-LABEL com.centurylinklabs.watchtower.lifecycle.pre-update="/dump-data.sh"
-LABEL com.centurylinklabs.watchtower.lifecycle.post-update="/restore-data.sh"
-LABEL com.centurylinklabs.watchtower.lifecycle.post-check="/send-heartbeat.sh"
-```
+=== "Dockerfile"
+    ```docker 
+    LABEL com.centurylinklabs.watchtower.lifecycle.pre-check="/sync.sh"
+    LABEL com.centurylinklabs.watchtower.lifecycle.pre-update="/dump-data.sh"
+    LABEL com.centurylinklabs.watchtower.lifecycle.post-update="/restore-data.sh"
+    LABEL com.centurylinklabs.watchtower.lifecycle.post-check="/send-heartbeat.sh"
+    ```
 
-Or be specified as part of the `docker run` command line:
-
-```bash
-docker run -d \
-  --label=com.centurylinklabs.watchtower.lifecycle.pre-check="/sync.sh" \
-  --label=com.centurylinklabs.watchtower.lifecycle.pre-update="/dump-data.sh" \
-  --label=com.centurylinklabs.watchtower.lifecycle.post-update="/restore-data.sh" \
-  someimage
-  --label=com.centurylinklabs.watchtower.lifecycle.post-check="/send-heartbeat.sh" \
-```
+=== "docker run"
+    ```bash 
+    docker run -d \
+    --label=com.centurylinklabs.watchtower.lifecycle.pre-check="/sync.sh" \
+    --label=com.centurylinklabs.watchtower.lifecycle.pre-update="/dump-data.sh" \
+    --label=com.centurylinklabs.watchtower.lifecycle.post-update="/restore-data.sh" \
+    someimage --label=com.centurylinklabs.watchtower.lifecycle.post-check="/send-heartbeat.sh" \
+    ```
 
 ### Timeouts
 The timeout for all lifecycle commands is 60 seconds. After that, a timeout will

@@ -26,17 +26,17 @@ password `auth` string:
 (e.g., `my-private-registry.example.org`)
 
 The required `auth` string can be generated as follows:
+
 ```bash
 echo -n 'username:password' | base64
 ```
 
-> ### ℹ️ Username and Password for GCloud
->
-> For gcloud, we'll use `_json_key` as our username and the content
-> of `gcloudauth.json` as the password.
->```bash
-> echo -n "_json_key:$(cat gcloudauth.json)" | base64 -w0
->```
+!!! info "Username and Password for GCloud"
+    For gcloud, we'll use `_json_key` as our username and the content of `gcloudauth.json` as the password.
+    ```
+    bash echo -n "_json_key:$(cat gcloudauth.json)" | base64 -w0
+    ```
+
 When the watchtower Docker container is started, the created configuration file
 (`<PATH>/config.json` in this example) needs to be passed to the container:
 
@@ -45,6 +45,7 @@ docker run [...] -v <PATH>/config.json:/config.json containrrr/watchtower
 ```
 
 ### Share the Docker configuration file
+
 To pull an image from a private registry, `docker login` needs to be called first, to get access
 to the registry. The provided credentials are stored in a configuration file called `<PATH_TO_HOME_DIR>/.docker/config.json`.
 This configuration file can be directly used by watchtower. In this case, the creation of an
@@ -101,79 +102,74 @@ Example implementation for use with [amazon-ecr-credential-helper](https://githu
 Use the dockerfile below to build the [amazon-ecr-credential-helper](https://github.com/awslabs/amazon-ecr-credential-helper),
 in a volume that may be mounted onto your watchtower container.
 
-1.  Create the Dockerfile (contents below):    
-
-```Dockerfile
-FROM golang:latest
-
-ENV CGO_ENABLED 0
-ENV REPO github.com/awslabs/amazon-ecr-credential-helper/ecr-login/cli/docker-credential-ecr-login
-
-RUN go get -u $REPO
-
-RUN rm /go/bin/docker-credential-ecr-login
-
-RUN go build \
-  -o /go/bin/docker-credential-ecr-login \
-  /go/src/$REPO
-
-WORKDIR /go/bin/
-```
+1.  Create the Dockerfile (contents below):
+    ```Dockerfile
+    FROM golang:latest
+    
+    ENV CGO_ENABLED 0
+    ENV REPO github.com/awslabs/amazon-ecr-credential-helper/ecr-login/cli/docker-credential-ecr-login
+    
+    RUN go get -u $REPO
+    
+    RUN rm /go/bin/docker-credential-ecr-login
+    
+    RUN go build \
+     -o /go/bin/docker-credential-ecr-login \
+     /go/src/$REPO
+    
+    WORKDIR /go/bin/
+    ```
 
 2.  Use the following commands to build the aws-ecr-dock-cred-helper and store it's output in a volume:
-
-```shell script
-# Create a volume to store the command (once built)
-docker volume create helper 
-
-# Build the container
-docker build -t aws-ecr-dock-cred-helper .
-
-# Build the command and store it in the new volume in the /go/bin directory.
-docker run  -d --rm --name aws-cred-helper --volume helper:/go/bin aws-ecr-dock-cred-helper
-
-```
+    ```bash
+    # Create a volume to store the command (once built)
+    docker volume create helper 
+    
+    # Build the container
+    docker build -t aws-ecr-dock-cred-helper .
+    
+    # Build the command and store it in the new volume in the /go/bin directory.
+    docker run  -d --rm --name aws-cred-helper \
+      --volume helper:/go/bin aws-ecr-dock-cred-helper
+    ```
 
 3.  Create a configuration file for docker, and store it in $HOME/.docker/config.json (replace the <AWS_ACCOUNT_ID>
-    placeholders with your AWS Account ID):
-
-```json
-{
-    "credsStore" : "ecr-login",
-    "HttpHeaders" : {
-      "User-Agent" : "Docker-Client/19.03.1 (XXXXXX)"
-    },
-    "auths" : {
-      "<AWS_ACCOUNT_ID>.dkr.ecr.us-west-1.amazonaws.com" : {}
-    },
-    "credHelpers": {
-      "<AWS_ACCOUNT_ID>.dkr.ecr.us-west-1.amazonaws.com" : "ecr-login"
+   placeholders with your AWS Account ID):
+    ```json
+    {
+       "credsStore" : "ecr-login",
+       "HttpHeaders" : {
+         "User-Agent" : "Docker-Client/19.03.1 (XXXXXX)"
+       },
+       "auths" : {
+         "<AWS_ACCOUNT_ID>.dkr.ecr.us-west-1.amazonaws.com" : {}
+       },
+       "credHelpers": {
+         "<AWS_ACCOUNT_ID>.dkr.ecr.us-west-1.amazonaws.com" : "ecr-login"
+       }
     }
-}
-```
+    ```
 
 4.  Create a docker-compose file (as an example) to help launch the container:
-
-and the docker-compose definition:
-```yaml
-version: "3.4"
-services:
-  # Check for new images and restart things if a new image exists
-  # for any of our containers.
-  watchtower:
-    image: containrrr/watchtower:latest
+    ```yaml
+    version: "3.4"
+    services:
+     # Check for new images and restart things if a new image exists
+     # for any of our containers.
+     watchtower:
+       image: containrrr/watchtower:latest
+       volumes:
+         - /var/run/docker.sock:/var/run/docker.sock
+         - .docker/config.json:/config.json
+         - helper:/go/bin
+       environment:
+         - HOME=/
+         - PATH=$PATH:/go/bin
+         - AWS_REGION=us-west-1
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - .docker/config.json:/config.json
-      - helper:/go/bin
-    environment:
-      - HOME=/
-      - PATH=$PATH:/go/bin
-      - AWS_REGION=us-west-1
-volumes:
-  helper: 
-    external: true
-```
+     helper: 
+       external: true
+    ```
 
 A few additional notes:
 

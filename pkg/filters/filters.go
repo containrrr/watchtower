@@ -1,6 +1,9 @@
 package filters
 
-import t "github.com/containrrr/watchtower/pkg/types"
+import (
+	t "github.com/containrrr/watchtower/pkg/types"
+	"strings"
+)
 
 // WatchtowerContainersFilter filters only watchtower containers
 func WatchtowerContainersFilter(c t.FilterableContainer) bool { return c.IsWatchtower() }
@@ -68,19 +71,45 @@ func FilterByScope(scope string, baseFilter t.Filter) t.Filter {
 }
 
 // BuildFilter creates the needed filter of containers
-func BuildFilter(names []string, enableLabel bool, scope string) t.Filter {
+func BuildFilter(names []string, enableLabel bool, scope string) (t.Filter, string) {
+	sb := strings.Builder{}
 	filter := NoFilter
 	filter = FilterByNames(names, filter)
+
+	if len(names) > 0 {
+		sb.WriteString("with name \"")
+		for i, n := range names {
+			sb.WriteString(n)
+			if i < len(names)-1 {
+				sb.WriteString(`" or "`)
+			}
+		}
+		sb.WriteString(`", `)
+	}
+
 	if enableLabel {
 		// If label filtering is enabled, containers should only be considered
 		// if the label is specifically set.
 		filter = FilterByEnableLabel(filter)
+		sb.WriteString("using enable label, ")
 	}
 	if scope != "" {
 		// If a scope has been defined, containers should only be considered
 		// if the scope is specifically set.
 		filter = FilterByScope(scope, filter)
+		sb.WriteString(`in scope "`)
+		sb.WriteString(scope)
+		sb.WriteString(`", `)
 	}
 	filter = FilterByDisabledLabel(filter)
-	return filter
+
+	filterDesc := "Checking all containers (except explicitly disabled with label)"
+	if sb.Len() > 0 {
+		filterDesc = "Only checking containers " + sb.String()
+
+		// Remove the last ", "
+		filterDesc = filterDesc[:len(filterDesc)-2]
+	}
+
+	return filter, filterDesc
 }

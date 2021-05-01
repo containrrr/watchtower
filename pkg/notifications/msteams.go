@@ -1,12 +1,11 @@
 package notifications
 
 import (
-	"strings"
-
 	shoutrrrTeams "github.com/containrrr/shoutrrr/pkg/services/teams"
 	t "github.com/containrrr/watchtower/pkg/types"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"net/url"
 )
 
 const (
@@ -20,11 +19,11 @@ type msTeamsTypeNotifier struct {
 }
 
 // NewMsTeamsNotifier is a factory method creating a new teams notifier instance
-func NewMsTeamsNotifier(cmd *cobra.Command, acceptedLogLevels []log.Level) t.ConvertableNotifier {
+func NewMsTeamsNotifier(cmd *cobra.Command, acceptedLogLevels []log.Level) t.ConvertibleNotifier {
 	return newMsTeamsNotifier(cmd, acceptedLogLevels)
 }
 
-func newMsTeamsNotifier(cmd *cobra.Command, acceptedLogLevels []log.Level) t.ConvertableNotifier {
+func newMsTeamsNotifier(cmd *cobra.Command, acceptedLogLevels []log.Level) t.ConvertibleNotifier {
 
 	flags := cmd.PersistentFlags()
 
@@ -43,26 +42,19 @@ func newMsTeamsNotifier(cmd *cobra.Command, acceptedLogLevels []log.Level) t.Con
 	return n
 }
 
-func (n *msTeamsTypeNotifier) GetURL() string {
-
-	baseURL := "https://outlook.office.com/webhook/"
-
-	path := strings.Replace(n.webHookURL, baseURL, "", 1)
-	rawToken := strings.Replace(path, "/IncomingWebhook", "", 1)
-	token := strings.Split(rawToken, "/")
-	config := &shoutrrrTeams.Config{
-		Token: shoutrrrTeams.Token{
-			A: token[0],
-			B: token[1],
-			C: token[2],
-		},
+func (n *msTeamsTypeNotifier) GetURL() (string, error) {
+	webhookURL, err := url.Parse(n.webHookURL)
+	if err != nil {
+		return "", err
 	}
 
-	return config.GetURL().String()
-}
+	config, err := shoutrrrTeams.ConfigFromWebhookURL(*webhookURL)
+	if err != nil {
+		return "", err
+	}
 
-func (n *msTeamsTypeNotifier) StartNotification()          {}
-func (n *msTeamsTypeNotifier) SendNotification()           {}
-func (n *msTeamsTypeNotifier) Close() {}
-func (n *msTeamsTypeNotifier) Levels() []log.Level         { return nil }
-func (n *msTeamsTypeNotifier) Fire(entry *log.Entry) error { return nil }
+	config.Color = ColorHex
+	config.Title = GetTitle()
+
+	return config.GetURL().String(), nil
+}

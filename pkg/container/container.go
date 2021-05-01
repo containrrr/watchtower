@@ -22,8 +22,8 @@ func NewContainer(containerInfo *types.ContainerJSON, imageInfo *types.ImageInsp
 
 // Container represents a running Docker container.
 type Container struct {
-	Linked bool
-	Stale  bool
+	LinkedToRestarting bool
+	Stale              bool
 
 	containerInfo *types.ContainerJSON
 	imageInfo     *types.ImageInspect
@@ -145,7 +145,7 @@ func (c Container) Links() []string {
 // ToRestart return whether the container should be restarted, either because
 // is stale or linked to another stale container.
 func (c Container) ToRestart() bool {
-	return c.Stale || c.Linked
+	return c.Stale || c.LinkedToRestarting
 }
 
 // IsWatchtower returns a boolean flag indicating whether or not the current
@@ -260,4 +260,33 @@ func (c Container) HasImageInfo() bool {
 // ImageInfo fetches the ImageInspect data of the current container
 func (c Container) ImageInfo() *types.ImageInspect {
 	return c.imageInfo
+}
+
+// VerifyConfiguration checks the container and image configurations for nil references to make sure
+// that the container can be recreated once deleted
+func (c Container) VerifyConfiguration() error {
+	if c.imageInfo == nil {
+		return errorNoImageInfo
+	}
+
+	containerInfo := c.ContainerInfo()
+	if containerInfo == nil {
+		return errorInvalidConfig
+	}
+
+	containerConfig := containerInfo.Config
+	if containerConfig == nil {
+		return errorInvalidConfig
+	}
+
+	hostConfig := containerInfo.HostConfig
+	if hostConfig == nil {
+		return errorInvalidConfig
+	}
+
+	if len(hostConfig.PortBindings) > 0 && containerConfig.ExposedPorts == nil {
+		return errorNoExposedPorts
+	}
+
+	return nil
 }

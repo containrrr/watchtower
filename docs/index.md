@@ -1,5 +1,5 @@
 <p style="text-align: center; margin-left: 1.6rem;">
-  <img src="./images/logo-450px.png" width="450" />
+  <img alt="Logotype depicting a lighthouse" src="./images/logo-450px.png" width="450" />
 </p>
 <h1 align="center">
   Watchtower
@@ -12,7 +12,7 @@
     <img alt="Circle CI" src="https://circleci.com/gh/containrrr/watchtower.svg?style=shield" />
   </a>
   <a href="https://codecov.io/gh/containrrr/watchtower">
-    <img alt="Codecov" src="https://codecov.io/gh/containrrr/watchtower/branch/master/graph/badge.svg?token=8pxWgB380Y">
+    <img alt="Codecov" src="https://codecov.io/gh/containrrr/watchtower/branch/main/graph/badge.svg">
   </a>
   <a href="https://godoc.org/github.com/containrrr/watchtower">
     <img alt="GoDoc" src="https://godoc.org/github.com/containrrr/watchtower?status.svg" />
@@ -42,11 +42,23 @@
 
 ## Quick Start
 
-With watchtower you can update the running version of your containerized app simply by pushing a new image to the Docker Hub or your own image registry. Watchtower will pull down your new image, gracefully shut down your existing container and restart it with the same options that were used when it was deployed initially. Run the watchtower container with the following command:
+With watchtower you can update the running version of your containerized app simply by pushing a new image to the Docker
+Hub or your own image registry. Watchtower will pull down your new image, gracefully shut down your existing container
+and restart it with the same options that were used when it was deployed initially. Run the watchtower container with
+the following command:
 
-```
-$ docker run -d \
+=== "docker run"
+    ```bash
+    $ docker run -d \
     --name watchtower \
     -v /var/run/docker.sock:/var/run/docker.sock \
     containrrr/watchtower
-```
+    ```
+=== "docker-compose.yml"
+    ```yaml
+    version: "3"
+    services:
+    watchtower:
+    image: containrrr/watchtower volumes:
+    - /var/run/docker.sock:/var/run/docker.sock
+    ```

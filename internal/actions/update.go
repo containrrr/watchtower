@@ -1,7 +1,6 @@
 package actions
 
 import (
-	"errors"
 	"github.com/containrrr/watchtower/internal/util"
 	"github.com/containrrr/watchtower/pkg/container"
 	"github.com/containrrr/watchtower/pkg/lifecycle"
@@ -33,11 +32,23 @@ func Update(client container.Client, params types.UpdateParams) (*metrics2.Metri
 
 	for i, targetContainer := range containers {
 		stale, err := client.IsContainerStale(targetContainer)
-		if stale && !params.NoRestart && !params.MonitorOnly && !targetContainer.IsMonitorOnly() && !targetContainer.HasImageInfo() {
-			err = errors.New("no available image info")
+		shouldUpdate := stale && !params.NoRestart && !params.MonitorOnly && !targetContainer.IsMonitorOnly()
+		if err == nil && shouldUpdate {
+			// Check to make sure we have all the necessary information for recreating the container
+			err = targetContainer.VerifyConfiguration()
+			// If the image information is incomplete and trace logging is enabled, log it for further diagnosis
+			if err != nil && log.IsLevelEnabled(log.TraceLevel) {
+				imageInfo := targetContainer.ImageInfo()
+				log.Tracef("Image info: %#v", imageInfo)
+				log.Tracef("Container info: %#v", targetContainer.ContainerInfo())
+				if imageInfo != nil {
+					log.Tracef("Image config: %#v", imageInfo.Config)
+				}
+			}
 		}
+
 		if err != nil {
-			log.Infof("Unable to update container %q: %v. Proceeding to next.", containers[i].Name(), err)
+			log.Infof("Unable to update container %q: %v. Proceeding to next.", targetContainer.Name(), err)
 			stale = false
 			staleCheckFailed++
 			metric.Failed++
@@ -50,6 +61,7 @@ func Update(client container.Client, params types.UpdateParams) (*metrics2.Metri
 	}
 
 	containers, err = sorter.SortByDependencies(containers)
+
 	metric.Scanned = len(containers)
 	if err != nil {
 		return nil, err
@@ -57,11 +69,11 @@ func Update(client container.Client, params types.UpdateParams) (*metrics2.Metri
 
 	checkDependencies(containers)
 
-	containersToUpdate := []container.Container{}
+	var containersToUpdate []container.Container
 	if !params.MonitorOnly {
-		for i := len(containers) - 1; i >= 0; i-- {
-			if !containers[i].IsMonitorOnly() {
-				containersToUpdate = append(containersToUpdate, containers[i])
+		for _, c := range containers {
+			if !c.IsMonitorOnly() {
+				containersToUpdate = append(containersToUpdate, c)
 			}
 		}
 	}
@@ -87,8 +99,8 @@ func performRollingRestart(containers []container.Container, client container.Cl
 	failed := 0
 
 	for i := len(containers) - 1; i >= 0; i-- {
-		if containers[i].Stale {
-			err := stopStaleContainer(containers[i], client, params)
+		if containers[i].ToRestart() {
+      err := stopStaleContainer(containers[i], client, params)
 			if err != nil {
 				failed++
 			} else {
@@ -126,7 +138,7 @@ func stopStaleContainer(container container.Container, client container.Client, 
 		return nil
 	}
 
-	if !container.Stale {
+	if !container.ToRestart() {
 		return nil
 	}
 	if params.LifecycleHooks {
@@ -155,7 +167,7 @@ func restartContainersInSortedOrder(containers []container.Container, client con
 	failed := 0
 
 	for _, c := range containers {
-		if !c.Stale {
+		if !c.ToRestart() {
 			continue
 		}
 		if imageIDsOfStoppedContainers[c.ImageID()] {
@@ -197,7 +209,7 @@ func restartStaleContainer(container container.Container, client container.Clien
 		if newContainerID, err := client.StartContainer(container); err != nil {
 			log.Error(err)
 			return err
-		} else if container.Stale && params.LifecycleHooks {
+		} else if container.ToRestart() && params.LifecycleHooks {
 			lifecycle.ExecutePostUpdateCommand(client, newContainerID)
 		}
 	}
@@ -206,16 +218,19 @@ func restartStaleContainer(container container.Container, client container.Clien
 
 func checkDependencies(containers []container.Container) {
 
-	for i, parent := range containers {
-		if parent.ToRestart() {
+	for _, c := range containers {
+		if c.ToRestart() {
 			continue
 		}
 
 	LinkLoop:
-		for _, linkName := range parent.Links() {
-			for _, child := range containers {
-				if child.Name() == linkName && child.ToRestart() {
-					containers[i].Linked = true
+		for _, linkName := range c.Links() {
+			for _, candidate := range containers {
+				if candidate.Name() != linkName {
+					continue
+				}
+				if candidate.ToRestart() {
+					c.LinkedToRestarting = true
 					break LinkLoop
 				}
 			}

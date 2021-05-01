@@ -13,9 +13,13 @@ var (
 )
 
 // New is a factory function creating a new  Handler instance
-func New(updateFn func()) *Handler {
-	lock = make(chan bool, 1)
-	lock <- true
+func New(updateFn func(), updateLock chan bool) *Handler {
+	if updateLock != nil {
+		lock = updateLock
+	} else {
+		lock = make(chan bool, 1)
+		lock <- true
+	}
 
 	return &Handler{
 		fn:   updateFn,

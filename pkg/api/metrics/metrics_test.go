@@ -37,11 +37,9 @@ func getWithToken(c http.Client, url string) (*http.Response, error) {
 var _ = Describe("the metrics", func() {
 	httpAPI := api.New(Token)
 	m := metricsAPI.New()
+
 	httpAPI.RegisterHandler(m.Path, m.Handle)
 	httpAPI.Start(false)
-
-	// We should likely split this into multiple tests, but as prometheus requires a restart of the binary
-	// to reset the metrics and gauges, we'll just do it all at once.
 
 	It("should serve metrics", func() {
 		metric := &metrics.Metric{
@@ -50,12 +48,15 @@ var _ = Describe("the metrics", func() {
 			Failed:  1,
 		}
 		metrics.RegisterScan(metric)
+		Eventually(metrics.Default().QueueIsEmpty).Should(BeTrue())
+
 		c := http.Client{}
+
 		res, err := getWithToken(c, "http://localhost:8080/v1/metrics")
+		Expect(err).ToNot(HaveOccurred())
 
-		Expect(err).NotTo(HaveOccurred())
 		contents, err := ioutil.ReadAll(res.Body)
-
+		Expect(err).ToNot(HaveOccurred())
 		Expect(string(contents)).To(ContainSubstring("watchtower_containers_updated 3"))
 		Expect(string(contents)).To(ContainSubstring("watchtower_containers_failed 1"))
 		Expect(string(contents)).To(ContainSubstring("watchtower_containers_scanned 4"))
@@ -65,11 +66,13 @@ var _ = Describe("the metrics", func() {
 		for i := 0; i < 3; i++ {
 			metrics.RegisterScan(nil)
 		}
+		Eventually(metrics.Default().QueueIsEmpty).Should(BeTrue())
 
 		res, err = getWithToken(c, "http://localhost:8080/v1/metrics")
-		Expect(err).NotTo(HaveOccurred())
-		contents, err = ioutil.ReadAll(res.Body)
+		Expect(err).ToNot(HaveOccurred())
 
+		contents, err = ioutil.ReadAll(res.Body)
+		Expect(err).ToNot(HaveOccurred())
 		Expect(string(contents)).To(ContainSubstring("watchtower_scans_total 4"))
 		Expect(string(contents)).To(ContainSubstring("watchtower_scans_skipped 3"))
 	})

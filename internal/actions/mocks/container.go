@@ -4,6 +4,7 @@ import (
 	"github.com/containrrr/watchtower/pkg/container"
 	"github.com/docker/docker/api/types"
 	container2 "github.com/docker/docker/api/types/container"
+	"github.com/docker/go-connections/nat"
 	"time"
 )
 
@@ -15,10 +16,14 @@ func CreateMockContainer(id string, name string, image string, created time.Time
 			Image:   image,
 			Name:    name,
 			Created: created.String(),
+			HostConfig: &container2.HostConfig{
+				PortBindings: map[nat.Port][]nat.PortBinding{},
+			},
 		},
 		Config: &container2.Config{
-			Image:  image,
-			Labels: make(map[string]string),
+			Image:        image,
+			Labels:       make(map[string]string),
+			ExposedPorts: map[nat.Port]struct{}{},
 		},
 	}
 	return *container.NewContainer(
