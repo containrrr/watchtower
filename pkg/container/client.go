@@ -31,7 +31,7 @@ type Client interface {
 	StartContainer(Container) (string, error)
 	RenameContainer(Container, string) error
 	IsContainerStale(Container) (bool, error)
-	ExecuteCommand(containerID string, command string, timeout int) (bool, error)
+	ExecuteCommand(containerID string, command string, timeout int) (SkipUpdate bool, err error)
 	RemoveImageByID(string) error
 	WarnOnHeadPullFailed(container Container) bool
 }
