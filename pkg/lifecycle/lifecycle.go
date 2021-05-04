@@ -66,8 +66,8 @@ func ExecutePreUpdateCommand(client container.Client, container container.Contai
 		log.Debug("No pre-update command supplied. Skipping")
 		return false,nil
 	}
-	
-	if !container.IsRunning() {
+
+	if !container.IsRunning() || container.IsRestarting() {
 		log.Debug("Container is not running. Skipping pre-update command.")
 		return false,nil
 	}

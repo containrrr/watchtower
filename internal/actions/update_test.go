@@ -108,6 +108,7 @@ var _ = Describe("the update action", func() {
 								"test-container-02",
 								"fake-image2:latest",
 								false,
+								false,
 								time.Now(),
 								&container2.Config{
 									Labels: map[string]string{
@@ -174,6 +175,7 @@ var _ = Describe("the update action", func() {
 								"test-container-02",
 								"fake-image2:latest",
 								true,
+								false,
 								time.Now(),
 								&container2.Config{
 									Labels: map[string]string{
@@ -209,6 +211,7 @@ var _ = Describe("the update action", func() {
 								"test-container-02",
 								"fake-image2:latest",
 								true,
+								false,
 								time.Now(),
 								&container2.Config{
 									Labels: map[string]string{
@@ -244,6 +247,7 @@ var _ = Describe("the update action", func() {
 								"test-container-02",
 								"fake-image2:latest",
 								true,
+								false,
 								time.Now(),
 								&container2.Config{
 									Labels: map[string]string{
@@ -278,6 +282,43 @@ var _ = Describe("the update action", func() {
 								"test-container-02",
 								"fake-image2:latest",
 								false,
+								false,
+								time.Now(),
+								&container2.Config{
+									Labels: map[string]string{
+										"com.centurylinklabs.watchtower.lifecycle.pre-update-timeout": "190",
+										"com.centurylinklabs.watchtower.lifecycle.pre-update":         "/PreUpdateReturn1.sh",
+									},
+									ExposedPorts: map[nat.Port]struct{}{},
+								}),
+						},
+					},
+					dockerClient,
+					false,
+					false,
+				)
+			})
+
+			It("skip running preupdate", func() {
+				_, err := actions.Update(client, types.UpdateParams{Cleanup: true, LifecycleHooks: true})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(client.TestData.TriedToRemoveImageCount).To(Equal(1))
+			})
+
+		})
+
+		When("container is restarting", func() {
+			BeforeEach(func() {
+				client = CreateMockClient(
+					&TestData{
+						//NameOfContainerToKeep: "test-container-02",
+						Containers: []container.Container{
+							CreateMockContainerWithConfig(
+								"test-container-02",
+								"test-container-02",
+								"fake-image2:latest",
+								false,
+								true,
 								time.Now(),
 								&container2.Config{
 									Labels: map[string]string{
