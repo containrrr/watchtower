@@ -3,9 +3,9 @@ package metrics_test
 import (
 	"fmt"
 	"io/ioutil"
-	stdlog "log"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/containrrr/watchtower/pkg/api"
@@ -18,31 +18,35 @@ import (
 
 const (
 	token  = "123123123"
-	getUrl = "http://localhost:8080/v1/metrics"
+	getURL = "http://localhost:8080/v1/metrics"
 )
 
-var log = stdlog.New(GinkgoWriter, "", 0)
-
-func TestContainer(t *testing.T) {
+func TestMetrics(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Metrics Suite")
 }
 
-func getWithToken(handler http.Handler) string {
+func getWithToken(handler http.Handler) map[string]string {
+	metricMap := map[string]string{}
 	respWriter := httptest.NewRecorder()
 
-	req := httptest.NewRequest("GET", getUrl, nil)
+	req := httptest.NewRequest("GET", getURL, nil)
 	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
 
 	handler.ServeHTTP(respWriter, req)
 
 	res := respWriter.Result()
-	body, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		log.Println("reading body failed: ", err)
-		return ""
+	body, _ := ioutil.ReadAll(res.Body)
+
+	for _, line := range strings.Split(string(body), "\n") {
+		if len(line) < 1 || line[0] == '#' {
+			continue
+		}
+		parts := strings.Split(line, " ")
+		metricMap[parts[0]] = parts[1]
 	}
-	return string(body)
+
+	return metricMap
 }
 
 var _ = Describe("the metrics API", func() {
@@ -50,10 +54,11 @@ var _ = Describe("the metrics API", func() {
 	m := metricsAPI.New()
 
 	handleReq := httpAPI.RequireToken(m.Handle)
+	tryGetMetrics := func() map[string]string { return getWithToken(handleReq) }
 
 	It("should serve metrics", func() {
 
-		Expect(getWithToken(handleReq)).To(ContainSubstring("watchtower_containers_updated 0"))
+		Expect(tryGetMetrics()).To(HaveKeyWithValue("watchtower_containers_updated", "0"))
 
 		metric := &metrics.Metric{
 			Scanned: 4,
@@ -64,18 +69,22 @@ var _ = Describe("the metrics API", func() {
 		metrics.RegisterScan(metric)
 		Eventually(metrics.Default().QueueIsEmpty).Should(BeTrue())
 
-		Eventually(getWithToken(handleReq)).Should(ContainSubstring("watchtower_containers_updated 3"))
-		Eventually(getWithToken(handleReq)).Should(ContainSubstring("watchtower_containers_failed 1"))
-		Eventually(getWithToken(handleReq)).Should(ContainSubstring("watchtower_containers_scanned 4"))
-		Eventually(getWithToken(handleReq)).Should(ContainSubstring("watchtower_scans_total 1"))
-		Eventually(getWithToken(handleReq)).Should(ContainSubstring("watchtower_scans_skipped 0"))
+		Eventually(tryGetMetrics).Should(SatisfyAll(
+			HaveKeyWithValue("watchtower_containers_updated", "3"),
+			HaveKeyWithValue("watchtower_containers_failed", "1"),
+			HaveKeyWithValue("watchtower_containers_scanned", "4"),
+			HaveKeyWithValue("watchtower_scans_total", "1"),
+			HaveKeyWithValue("watchtower_scans_skipped", "0"),
+		))
 
 		for i := 0; i < 3; i++ {
 			metrics.RegisterScan(nil)
 		}
 		Eventually(metrics.Default().QueueIsEmpty).Should(BeTrue())
 
-		Eventually(getWithToken(handleReq)).Should(ContainSubstring("watchtower_scans_total 4"))
-		Eventually(getWithToken(handleReq)).Should(ContainSubstring("watchtower_scans_skipped 3"))
+		Eventually(tryGetMetrics).Should(SatisfyAll(
+			HaveKeyWithValue("watchtower_scans_total", "4"),
+			HaveKeyWithValue("watchtower_scans_skipped", "3"),
+		))
 	})
 })
