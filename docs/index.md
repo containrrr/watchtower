@@ -59,6 +59,7 @@ the following command:
     version: "3"
     services:
     watchtower:
-    image: containrrr/watchtower volumes:
+    image: containrrr/watchtower 
+    volumes:
     - /var/run/docker.sock:/var/run/docker.sock
     ```
