@@ -145,6 +145,7 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
     <td align="center"><a href="https://indigo.re/"><img src="https://avatars.githubusercontent.com/u/2804645?v=4?s=100" width="100px;" alt=""/><br /><sub><b>hydrargyrum</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=hydrargyrum" title="Documentation">📖</a></td>
     <td align="center"><a href="https://reinout.vanrees.org"><img src="https://avatars.githubusercontent.com/u/121433?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Reinout van Rees</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=reinout" title="Documentation">📖</a></td>
     <td align="center"><a href="https://github.com/DasSkelett"><img src="https://avatars.githubusercontent.com/u/28812678?v=4?s=100" width="100px;" alt=""/><br /><sub><b>DasSkelett</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=DasSkelett" title="Code">💻</a></td>
+    <td align="center"><a href="https://github.com/zenjabba"><img src="https://avatars.githubusercontent.com/u/679864?v=4?s=100" width="100px;" alt=""/><br /><sub><b>zenjabba</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=zenjabba" title="Documentation">📖</a></td>
   </tr>
 </table>
 
