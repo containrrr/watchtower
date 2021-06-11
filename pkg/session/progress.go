@@ -1,7 +1,6 @@
 package session
 
 import (
-	"github.com/containrrr/watchtower/pkg/container"
 	"github.com/containrrr/watchtower/pkg/types"
 )
 
@@ -9,7 +8,7 @@ import (
 type Progress map[string]*ContainerStatus
 
 // UpdateFromContainer sets various status fields from their corresponding container equivalents
-func UpdateFromContainer(cont container.Interface, newImage string, state State) *ContainerStatus {
+func UpdateFromContainer(cont types.Container, newImage string, state State) *ContainerStatus {
 	return &ContainerStatus{
 		containerID:   cont.ID(),
 		containerName: cont.Name(),
@@ -21,14 +20,14 @@ func UpdateFromContainer(cont container.Interface, newImage string, state State)
 }
 
 // AddSkipped adds a container to the Progress with the state set as skipped
-func (m Progress) AddSkipped(cont container.Interface, err error) {
+func (m Progress) AddSkipped(cont types.Container, err error) {
 	update := UpdateFromContainer(cont, cont.SafeImageID(), SkippedState)
 	update.error = err
 	m.Add(update)
 }
 
 // AddScanned adds a container to the Progress with the state set as scanned
-func (m Progress) AddScanned(cont container.Interface, newImage string) {
+func (m Progress) AddScanned(cont types.Container, newImage string) {
 	m.Add(UpdateFromContainer(cont, newImage, ScannedState))
 }
 

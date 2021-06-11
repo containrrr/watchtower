@@ -9,6 +9,7 @@ type Container interface {
 	IsRunning() bool
 	Name() string
 	ImageID() string
+	SafeImageID() string
 	ImageName() string
 	Enabled() (bool, bool)
 	IsMonitorOnly() bool
