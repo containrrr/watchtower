@@ -32,6 +32,7 @@ func (r *report) Fresh() []types.ContainerReport {
 	return r.fresh
 }
 
+// NewReport creates a types.Report from the supplied Progress
 func NewReport(progress Progress) types.Report {
 	report := &report{
 		scanned: []types.ContainerReport{},

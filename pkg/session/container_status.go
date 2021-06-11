@@ -1,8 +1,11 @@
 package session
 
+// State indicates what the current state is of the container
 type State int
 
+// State enum values
 const (
+	// UnknownState is only used to represent an uninitialized State value
 	UnknownState State = iota
 	SkippedState
 	ScannedState
@@ -12,6 +15,7 @@ const (
 	StaleState
 )
 
+// ContainerStatus contains the container state during a session
 type ContainerStatus struct {
 	containerID   string
 	oldImage      string
@@ -22,26 +26,32 @@ type ContainerStatus struct {
 	state State
 }
 
+// ID returns the container ID
 func (u *ContainerStatus) ID() string {
 	return u.containerID
 }
 
+// Name returns the container name
 func (u *ContainerStatus) Name() string {
 	return u.containerName
 }
 
+// OldImageID returns the image ID that the container used when the session started
 func (u *ContainerStatus) OldImageID() string {
 	return u.oldImage
 }
 
+// NewImageID returns the newest image ID found during the session
 func (u *ContainerStatus) NewImageID() string {
 	return u.oldImage
 }
 
+// ImageName returns the name:tag that the container uses
 func (u *ContainerStatus) ImageName() string {
 	return u.imageName
 }
 
+// Error returns the error (if any) that was encountered for the container during a session
 func (u *ContainerStatus) Error() string {
 	if u.error == nil {
 		return ""
@@ -49,6 +59,7 @@ func (u *ContainerStatus) Error() string {
 	return u.error.Error()
 }
 
+// State returns the current State that the container is in
 func (u *ContainerStatus) State() string {
 	switch u.state {
 	case SkippedState:
