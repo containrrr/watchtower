@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/containrrr/watchtower/internal/meta"
 	"math"
 	"os"
 	"os/signal"
@@ -39,7 +40,6 @@ var (
 	rollingRestart bool
 	scope          string
 	// Set on build using ldflags
-	version = "v0.0.0-unknown"
 )
 
 var rootCmd = NewRootCommand()
@@ -273,7 +273,7 @@ func writeStartupMessage(c *cobra.Command, sched time.Time, filtering string) {
 			notifs = "Using notifications: " + notifList
 		}
 
-		log.Info("Watchtower ", version, "\n", notifs, "\n", filtering, "\n", schedMessage)
+		log.Info("Watchtower ", meta.Version, "\n", notifs, "\n", filtering, "\n", schedMessage)
 		if log.IsLevelEnabled(log.TraceLevel) {
 			log.Warn("trace level enabled: log will include sensitive information as credentials and tokens")
 		}

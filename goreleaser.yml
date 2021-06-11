@@ -10,7 +10,7 @@ build:
     - arm
     - arm64
   ldflags:
-    - -s -w -X github.com/containrrr/watchtower/cmd.version={{.Version}}
+    - -s -w -X github.com/containrrr/watchtower/internal/meta.Version={{.Version}}
 archives:
   - 
     name_template: "{{.ProjectName}}_{{.Os}}_{{.Arch}}"
