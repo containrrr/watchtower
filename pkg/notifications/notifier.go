@@ -73,11 +73,12 @@ func (n *Notifier) String() string {
 // getNotificationTypes produces an array of notifiers from a list of types
 func (n *Notifier) getNotificationTypes(cmd *cobra.Command, levels []log.Level, types []string) []ty.Notifier {
 	output := make([]ty.Notifier, 0)
+	reportTemplate, _ := cmd.Flags().GetBool("notification-report")
 
 	for _, t := range types {
 
 		if t == shoutrrrType {
-			output = append(output, newShoutrrrNotifier(cmd, levels))
+			output = append(output, newShoutrrrNotifier(cmd, levels, !reportTemplate))
 			continue
 		}
 
@@ -110,6 +111,7 @@ func (n *Notifier) getNotificationTypes(cmd *cobra.Command, levels []log.Level, 
 			cmd,
 			shoutrrrURL,
 			levels,
+			reportTemplate,
 		)
 
 		output = append(output, notifier)

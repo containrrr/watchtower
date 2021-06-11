@@ -16,7 +16,7 @@ import (
 
 const (
 	shoutrrrDefaultLegacyTemplate = "{{range .}}{{.Message}}{{println}}{{end}}"
-	shoutrrrDefaultTemplate = `{{with .Report -}}{{len .Scanned}} Scanned, {{len .Updated}} Updated
+	shoutrrrDefaultTemplate       = `{{with .Report -}}{{len .Scanned}} Scanned, {{len .Updated}} Updated
 {{range .Scanned}} - {{.Name}} ({{.ImageName}}): {{.State}}{{println}}{{end}}
 {{- end}}{{range .Entries}} {{- println .Message -}} {{end}}`
 	shoutrrrType = "shoutrrr"
@@ -28,13 +28,13 @@ type router interface {
 
 // Implements Notifier, logrus.Hook
 type shoutrrrTypeNotifier struct {
-	Urls      []string
-	Router    router
-	entries   []*log.Entry
-	logLevels []log.Level
-	template  *template.Template
-	messages  chan string
-	done      chan bool
+	Urls           []string
+	Router         router
+	entries        []*log.Entry
+	logLevels      []log.Level
+	template       *template.Template
+	messages       chan string
+	done           chan bool
 	legacyTemplate bool
 }
 
@@ -72,12 +72,12 @@ func createSender(urls []string, levels []log.Level, template *template.Template
 	}
 
 	n := &shoutrrrTypeNotifier{
-		Urls:      urls,
-		Router:    r,
-		messages:  make(chan string, 1),
-		done:      make(chan bool),
-		logLevels: levels,
-		template:  template,
+		Urls:           urls,
+		Router:         r,
+		messages:       make(chan string, 1),
+		done:           make(chan bool),
+		logLevels:      levels,
+		template:       template,
 		legacyTemplate: legacy,
 	}
 
@@ -106,7 +106,11 @@ func sendNotifications(n *shoutrrrTypeNotifier) {
 
 func (n *shoutrrrTypeNotifier) buildMessage(data Data) string {
 	var body bytes.Buffer
-	if err := n.template.Execute(&body, data); err != nil {
+	var templateData interface{} = data
+	if n.legacyTemplate {
+		templateData = data.Entries
+	}
+	if err := n.template.Execute(&body, templateData); err != nil {
 		fmt.Printf("Failed to execute Shoutrrrr template: %s\n", err.Error())
 	}
 
@@ -190,7 +194,7 @@ func getShoutrrrTemplate(c *cobra.Command, legacy bool) *template.Template {
 	if err != nil || tplString == "" {
 		defaultTemplate := shoutrrrDefaultTemplate
 		if legacy {
-			defaultTemplate =  shoutrrrDefaultLegacyTemplate
+			defaultTemplate = shoutrrrDefaultLegacyTemplate
 		}
 
 		tpl = template.Must(template.New("").Funcs(funcs).Parse(defaultTemplate))

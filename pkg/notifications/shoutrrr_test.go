@@ -15,7 +15,8 @@ func TestShoutrrrDefaultTemplate(t *testing.T) {
 	cmd := new(cobra.Command)
 
 	shoutrrr := &shoutrrrTypeNotifier{
-		template: getShoutrrrTemplate(cmd),
+		template:       getShoutrrrTemplate(cmd, true),
+		legacyTemplate: true,
 	}
 
 	entries := []*log.Entry{
@@ -24,7 +25,7 @@ func TestShoutrrrDefaultTemplate(t *testing.T) {
 		},
 	}
 
-	s := shoutrrr.buildMessage(entries)
+	s := shoutrrr.buildMessage(Data{Entries: entries})
 
 	require.Equal(t, "foo bar\n", s)
 }
@@ -37,7 +38,8 @@ func TestShoutrrrTemplate(t *testing.T) {
 	require.NoError(t, err)
 
 	shoutrrr := &shoutrrrTypeNotifier{
-		template: getShoutrrrTemplate(cmd),
+		template:       getShoutrrrTemplate(cmd, true),
+		legacyTemplate: true,
 	}
 
 	entries := []*log.Entry{
@@ -47,7 +49,7 @@ func TestShoutrrrTemplate(t *testing.T) {
 		},
 	}
 
-	s := shoutrrr.buildMessage(entries)
+	s := shoutrrr.buildMessage(Data{Entries: entries})
 
 	require.Equal(t, "info: foo bar\n", s)
 }
@@ -60,7 +62,8 @@ func TestShoutrrrStringFunctions(t *testing.T) {
 	require.NoError(t, err)
 
 	shoutrrr := &shoutrrrTypeNotifier{
-		template: getShoutrrrTemplate(cmd),
+		template:       getShoutrrrTemplate(cmd, true),
+		legacyTemplate: true,
 	}
 
 	entries := []*log.Entry{
@@ -70,7 +73,7 @@ func TestShoutrrrStringFunctions(t *testing.T) {
 		},
 	}
 
-	s := shoutrrr.buildMessage(entries)
+	s := shoutrrr.buildMessage(Data{Entries: entries})
 
 	require.Equal(t, "INFO: foo bar Foo Bar\n", s)
 }
@@ -84,11 +87,11 @@ func TestShoutrrrInvalidTemplateUsesTemplate(t *testing.T) {
 	require.NoError(t, err)
 
 	shoutrrr := &shoutrrrTypeNotifier{
-		template: getShoutrrrTemplate(cmd),
+		template: getShoutrrrTemplate(cmd, true),
 	}
 
 	shoutrrrDefault := &shoutrrrTypeNotifier{
-		template: template.Must(template.New("").Parse(shoutrrrDefaultTemplate)),
+		template: template.Must(template.New("").Parse(shoutrrrDefaultLegacyTemplate)),
 	}
 
 	entries := []*log.Entry{
@@ -96,9 +99,10 @@ func TestShoutrrrInvalidTemplateUsesTemplate(t *testing.T) {
 			Message: "foo bar",
 		},
 	}
+	data := Data{Entries: entries}
 
-	s := shoutrrr.buildMessage(entries)
-	sd := shoutrrrDefault.buildMessage(entries)
+	s := shoutrrr.buildMessage(data)
+	sd := shoutrrrDefault.buildMessage(data)
 
 	require.Equal(t, sd, s)
 }
@@ -108,7 +112,7 @@ type blockingRouter struct {
 	sent   chan bool
 }
 
-func (b blockingRouter) Send(message string, params *types.Params) []error {
+func (b blockingRouter) Send(_ string, _ *types.Params) []error {
 	_ = <-b.unlock
 	b.sent <- true
 	return nil
@@ -149,7 +153,7 @@ func sendNotificationsWithBlockingRouter() (*shoutrrrTypeNotifier, *blockingRout
 	}
 
 	shoutrrr := &shoutrrrTypeNotifier{
-		template: getShoutrrrTemplate(cmd),
+		template: getShoutrrrTemplate(cmd, true),
 		messages: make(chan string, 1),
 		done:     make(chan bool),
 		Router:   router,
@@ -162,9 +166,9 @@ func sendNotificationsWithBlockingRouter() (*shoutrrrTypeNotifier, *blockingRout
 	go sendNotifications(shoutrrr)
 
 	shoutrrr.StartNotification()
-	shoutrrr.Fire(entry)
+	_ = shoutrrr.Fire(entry)
 
-	shoutrrr.SendNotification()
+	shoutrrr.SendNotification(nil)
 
 	return shoutrrr, router
 }

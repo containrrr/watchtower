@@ -40,12 +40,12 @@ func CreateMockClient(data *TestData, api cli.CommonAPIClient, pullImages bool, 
 }
 
 // ListContainers is a mock method returning the provided container testdata
-func (client MockClient) ListContainers(f t.Filter) ([]container.Container, error) {
+func (client MockClient) ListContainers(_ t.Filter) ([]container.Container, error) {
 	return client.TestData.Containers, nil
 }
 
 // StopContainer is a mock method
-func (client MockClient) StopContainer(c container.Container, d time.Duration) error {
+func (client MockClient) StopContainer(c container.Container, _ time.Duration) error {
 	if c.Name() == client.TestData.NameOfContainerToKeep {
 		return errors.New("tried to stop the instance we want to keep")
 	}
@@ -53,37 +53,37 @@ func (client MockClient) StopContainer(c container.Container, d time.Duration) e
 }
 
 // StartContainer is a mock method
-func (client MockClient) StartContainer(c container.Container) (string, error) {
+func (client MockClient) StartContainer(_ container.Container) (string, error) {
 	return "", nil
 }
 
 // RenameContainer is a mock method
-func (client MockClient) RenameContainer(c container.Container, s string) error {
+func (client MockClient) RenameContainer(_ container.Container, _ string) error {
 	return nil
 }
 
 // RemoveImageByID increments the TriedToRemoveImageCount on being called
-func (client MockClient) RemoveImageByID(id string) error {
+func (client MockClient) RemoveImageByID(_ string) error {
 	client.TestData.TriedToRemoveImageCount++
 	return nil
 }
 
 // GetContainer is a mock method
-func (client MockClient) GetContainer(containerID string) (container.Container, error) {
+func (client MockClient) GetContainer(_ string) (container.Container, error) {
 	return container.Container{}, nil
 }
 
 // ExecuteCommand is a mock method
-func (client MockClient) ExecuteCommand(containerID string, command string, timeout int) error {
+func (client MockClient) ExecuteCommand(_ string, _ string, _ int) error {
 	return nil
 }
 
 // IsContainerStale is always true for the mock client
-func (client MockClient) IsContainerStale(c container.Container) (bool, error) {
-	return true, nil
+func (client MockClient) IsContainerStale(_ container.Container) (bool, string, error) {
+	return true, "", nil
 }
 
 // WarnOnHeadPullFailed is always true for the mock client
-func (client MockClient) WarnOnHeadPullFailed(c container.Container) bool {
+func (client MockClient) WarnOnHeadPullFailed(_ container.Container) bool {
 	return true
 }
