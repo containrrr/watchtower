@@ -1,6 +1,7 @@
 package metrics
 
 import (
+	"github.com/containrrr/watchtower/pkg/types"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
@@ -22,6 +23,16 @@ type Metrics struct {
 	failed  prometheus.Gauge
 	total   prometheus.Counter
 	skipped prometheus.Counter
+}
+
+// NewMetric returns a Metric with the counts taken from the appropriate types.Report fields
+func NewMetric(report types.Report) *Metric {
+	return &Metric{
+		Scanned: len(report.Scanned()),
+		// Note: This is for backwards compatibility. ideally, stale containers should be counted separately
+		Updated: len(report.Updated()) + len(report.Stale()),
+		Failed:  len(report.Failed()),
+	}
 }
 
 // QueueIsEmpty checks whether any messages are enqueued in the channel

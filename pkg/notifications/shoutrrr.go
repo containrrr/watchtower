@@ -203,6 +203,7 @@ func getShoutrrrTemplate(c *cobra.Command, legacy bool) *template.Template {
 	return tpl
 }
 
+// Data is the notification template data model
 type Data struct {
 	Entries []*log.Entry
 	Report  t.Report

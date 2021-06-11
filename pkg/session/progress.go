@@ -1,9 +1,14 @@
 package session
 
-import "github.com/containrrr/watchtower/pkg/container"
+import (
+	"github.com/containrrr/watchtower/pkg/container"
+	"github.com/containrrr/watchtower/pkg/types"
+)
 
+// Progress contains the current session container status
 type Progress map[string]*ContainerStatus
 
+// UpdateFromContainer sets various status fields from their corresponding container equivalents
 func UpdateFromContainer(cont container.Interface, newImage string, state State) *ContainerStatus {
 	return &ContainerStatus{
 		containerID:   cont.ID(),
@@ -15,16 +20,19 @@ func UpdateFromContainer(cont container.Interface, newImage string, state State)
 	}
 }
 
+// AddSkipped adds a container to the Progress with the state set as skipped
 func (m Progress) AddSkipped(cont container.Interface, err error) {
 	update := UpdateFromContainer(cont, cont.SafeImageID(), SkippedState)
 	update.error = err
 	m.Add(update)
 }
 
+// AddScanned adds a container to the Progress with the state set as scanned
 func (m Progress) AddScanned(cont container.Interface, newImage string) {
 	m.Add(UpdateFromContainer(cont, newImage, ScannedState))
 }
 
+// UpdateFailed updates the containers passed, setting their state as failed with the supplied error
 func (m Progress) UpdateFailed(failures map[string]error) {
 	for id, err := range failures {
 		update := m[id]
@@ -33,14 +41,17 @@ func (m Progress) UpdateFailed(failures map[string]error) {
 	}
 }
 
+// Add a container to the map using container ID as the key
 func (m Progress) Add(update *ContainerStatus) {
 	m[update.containerID] = update
 }
 
+// MarkForUpdate marks the container identified by containerID for update
 func (m Progress) MarkForUpdate(containerID string) {
 	m[containerID].state = UpdatedState
 }
 
-func (m Progress) Report() *Report {
+// Report creates a new Report from a Progress instance
+func (m Progress) Report() types.Report {
 	return NewReport(m)
 }

@@ -343,7 +343,7 @@ func runUpdatesWithNotifications(filter t.Filter) *metrics.Metric {
 		log.Error(err)
 	}
 	notifier.SendNotification(result)
-	metricResults := result.Metric()
+	metricResults := metrics.NewMetric(result)
 	log.Debugf("Session done: %v scanned, %v updated, %v failed",
 		metricResults.Scanned, metricResults.Updated, metricResults.Failed)
 	return metricResults

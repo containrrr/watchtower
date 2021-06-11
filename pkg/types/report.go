@@ -1,5 +1,6 @@
 package types
 
+// Report contains reports for all the containers processed during a session
 type Report interface {
 	Scanned() []ContainerReport
 	Updated() []ContainerReport
@@ -9,6 +10,7 @@ type Report interface {
 	Fresh() []ContainerReport
 }
 
+// ContainerReport represents a container that was included in watchtower session
 type ContainerReport interface {
 	ID() string
 	Name() string

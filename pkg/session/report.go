@@ -1,11 +1,10 @@
 package session
 
 import (
-	"github.com/containrrr/watchtower/pkg/metrics"
 	"github.com/containrrr/watchtower/pkg/types"
 )
 
-type Report struct {
+type report struct {
 	scanned []types.ContainerReport
 	updated []types.ContainerReport
 	failed  []types.ContainerReport
@@ -14,35 +13,27 @@ type Report struct {
 	fresh   []types.ContainerReport
 }
 
-func (r *Report) Scanned() []types.ContainerReport {
+func (r *report) Scanned() []types.ContainerReport {
 	return r.scanned
 }
-func (r *Report) Updated() []types.ContainerReport {
+func (r *report) Updated() []types.ContainerReport {
 	return r.updated
 }
-func (r *Report) Failed() []types.ContainerReport {
+func (r *report) Failed() []types.ContainerReport {
 	return r.failed
 }
-func (r *Report) Skipped() []types.ContainerReport {
+func (r *report) Skipped() []types.ContainerReport {
 	return r.skipped
 }
-func (r *Report) Stale() []types.ContainerReport {
+func (r *report) Stale() []types.ContainerReport {
 	return r.stale
 }
-func (r *Report) Fresh() []types.ContainerReport {
+func (r *report) Fresh() []types.ContainerReport {
 	return r.fresh
 }
 
-func (m Report) Metric() *metrics.Metric {
-	return &metrics.Metric{
-		len(m.scanned),
-		len(m.updated),
-		len(m.failed),
-	}
-}
-
-func NewReport(progress Progress) *Report {
-	report := &Report{
+func NewReport(progress Progress) types.Report {
+	report := &report{
 		scanned: []types.ContainerReport{},
 		updated: []types.ContainerReport{},
 		failed:  []types.ContainerReport{},
