@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/net/context"
 	"net/http"
 )
 
@@ -10,15 +11,30 @@ const tokenMissingMsg = "api token is empty or has not been set. exiting"
 
 // API is the http server responsible for serving the HTTP API endpoints
 type API struct {
-	Token       string
-	hasHandlers bool
+	Token           string
+	hasHandlers     bool
+	Server          *http.Server
+	ShutdownContext *context.Context
 }
 
 // New is a factory function creating a new API instance
 func New(token string) *API {
-	return &API{
+
+	api := &API{
 		Token:       token,
 		hasHandlers: false,
+	}
+	http.Handle("/v1/prepare-self-update", api.RequireToken(api.handlePrepareUpdate))
+	return api
+}
+
+func (api *API) handlePrepareUpdate(writer http.ResponseWriter, _ *http.Request) {
+	err := api.Server.Shutdown(context.Background())
+	if err != http.ErrServerClosed && err != nil {
+		writer.WriteHeader(500)
+		_, _ = writer.Write([]byte(err.Error()))
+	} else {
+		writer.WriteHeader(201)
 	}
 }
 
@@ -61,16 +77,19 @@ func (api *API) Start(block bool) error {
 
 	log.Info("Watchtower HTTP API started.")
 	if block {
-		runHTTPServer()
+		api.runHTTPServer()
 	} else {
 		go func() {
-			runHTTPServer()
+			api.runHTTPServer()
 		}()
 	}
 	return nil
 }
 
-func runHTTPServer() {
+func (api *API) runHTTPServer() {
 	log.Info("Serving HTTP")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	api.Server = &http.Server{Addr: ":8080", Handler: nil}
+	if err := api.Server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		log.Fatal(err)
+	}
 }
