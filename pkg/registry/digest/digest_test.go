@@ -7,6 +7,8 @@ import (
 	wtTypes "github.com/containrrr/watchtower/pkg/types"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/ghttp"
+	"net/http"
 	"os"
 	"testing"
 	"time"
@@ -18,14 +20,16 @@ func TestDigest(t *testing.T) {
 	RunSpecs(GinkgoT(), "Digest Suite")
 }
 
-var DockerHubCredentials = &wtTypes.RegistryCredentials{
-	Username: os.Getenv("CI_INTEGRATION_TEST_REGISTRY_DH_USERNAME"),
-	Password: os.Getenv("CI_INTEGRATION_TEST_REGISTRY_DH_PASSWORD"),
-}
-var GHCRCredentials = &wtTypes.RegistryCredentials{
-	Username: os.Getenv("CI_INTEGRATION_TEST_REGISTRY_GH_USERNAME"),
-	Password: os.Getenv("CI_INTEGRATION_TEST_REGISTRY_GH_PASSWORD"),
-}
+var (
+	DockerHubCredentials = &wtTypes.RegistryCredentials{
+		Username: os.Getenv("CI_INTEGRATION_TEST_REGISTRY_DH_USERNAME"),
+		Password: os.Getenv("CI_INTEGRATION_TEST_REGISTRY_DH_PASSWORD"),
+	}
+	GHCRCredentials = &wtTypes.RegistryCredentials{
+		Username: os.Getenv("CI_INTEGRATION_TEST_REGISTRY_GH_USERNAME"),
+		Password: os.Getenv("CI_INTEGRATION_TEST_REGISTRY_GH_PASSWORD"),
+	}
+)
 
 func SkipIfCredentialsEmpty(credentials *wtTypes.RegistryCredentials, fn func()) func() {
 	if credentials.Username == "" {
@@ -83,5 +87,33 @@ var _ = Describe("Digests", func() {
 				fmt.Println(GHCRCredentials != nil) // to avoid crying linters
 			}),
 		)
+	})
+	When("sending a HEAD request", func() {
+		var server *ghttp.Server
+		BeforeEach(func() {
+			server = ghttp.NewServer()
+		})
+		AfterEach(func() {
+			server.Close()
+		})
+		It("should use a custom user-agent", func() {
+			server.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyHeader(http.Header{
+						"User-Agent": []string{"Watchtower/v0.0.0-unknown"},
+					}),
+					ghttp.RespondWith(http.StatusOK, "", http.Header{
+						digest.ContentDigestHeader: []string{
+							mockDigest,
+						},
+					}),
+				),
+			)
+			dig, err := digest.GetDigest(server.URL(), "token")
+			println(dig)
+			Expect(server.ReceivedRequests()).Should(HaveLen(1))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(dig).To(Equal(mockDigest))
+		})
 	})
 })

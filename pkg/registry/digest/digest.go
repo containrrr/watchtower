@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/containrrr/watchtower/internal/meta"
 	"github.com/containrrr/watchtower/pkg/registry/auth"
 	"github.com/containrrr/watchtower/pkg/registry/manifest"
 	"github.com/containrrr/watchtower/pkg/types"
@@ -86,6 +87,7 @@ func GetDigest(url string, token string) (string, error) {
 	client := &http.Client{Transport: tr}
 
 	req, _ := http.NewRequest("HEAD", url, nil)
+	req.Header.Set("User-Agent", meta.UserAgent)
 
 	if token != "" {
 		logrus.WithField("token", token).Trace("Setting request token")
