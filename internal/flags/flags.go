@@ -186,6 +186,12 @@ func RegisterNotificationFlags(rootCmd *cobra.Command) {
 		"The log level used for sending notifications. Possible values: panic, fatal, error, warn, info or debug")
 
 	flags.StringP(
+		"notifications-hostname",
+		"",
+		viper.GetString("WATCHTOWER_NOTIFICATIONS_HOSTNAME"),
+		"Custom hostname for notification titles")
+
+	flags.StringP(
 		"notification-email-from",
 		"",
 		viper.GetString("WATCHTOWER_NOTIFICATION_EMAIL_FROM"),
@@ -239,12 +245,6 @@ Should only be used for testing.`)
 		"",
 		viper.GetString("WATCHTOWER_NOTIFICATION_EMAIL_SUBJECTTAG"),
 		"Subject prefix tag for notifications via mail")
-
-	flags.StringP(
-		"notification-email-subjecthostname",
-		"",
-		viper.GetString("WATCHTOWER_NOTIFICATION_EMAIL_SUBJECTHOSTNAME"),
-		"Subject custom hostname for notifications via mail")
 
 	flags.StringP(
 		"notification-slack-hook-url",

@@ -98,7 +98,7 @@ func (n *Notifier) getNotificationTypes(cmd *cobra.Command, levels []log.Level, 
 			continue
 		}
 
-		shoutrrrURL, err := legacyNotifier.GetURL()
+		shoutrrrURL, err := legacyNotifier.GetURL(cmd)
 		if err != nil {
 			log.Fatal("failed to create notification config:", err)
 		}
@@ -139,15 +139,17 @@ func (n *Notifier) Close() {
 }
 
 // GetTitle returns a common notification title with hostname appended
-func GetTitle(customHostname string) (title string) {
+func GetTitle(c *cobra.Command) (title string) {
 	title = "Watchtower updates"
 
-	if customHostname != "" {
-		title += " on " + customHostname
-	} else {
-		if hostname, err := os.Hostname(); err == nil {
-			title += " on " + hostname
-		}
+	f := c.PersistentFlags()
+
+	hostname, _ := f.GetString("notifications-hostname")
+
+	if hostname != "" {
+		title += " on " + hostname
+	} else if hostname, err := os.Hostname(); err == nil {
+		title += " on " + hostname
 	}
 
 	return
