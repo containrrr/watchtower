@@ -5,11 +5,11 @@ system, [logrus](http://github.com/sirupsen/logrus). The types of notifications 
 comma-separated list of values to the `--notifications` option
 (or corresponding environment variable `WATCHTOWER_NOTIFICATIONS`), which has the following valid values:
 
-- `email` to send notifications via e-mail
-- `slack` to send notifications through a Slack webhook
-- `msteams` to send notifications via MSTeams webhook
-- `gotify` to send notifications via Gotify
-- `shoutrrr` to send notifications via [containrrr/shoutrrr](https://github.com/containrrr/shoutrrr)
+-  `email` to send notifications via e-mail
+-  `slack` to send notifications through a Slack webhook
+-  `msteams` to send notifications via MSTeams webhook
+-  `gotify` to send notifications via Gotify
+-  `shoutrrr` to send notifications via [containrrr/shoutrrr](https://github.com/containrrr/shoutrrr)
 
 !!! note "Using multiple notifications with environment variables"
     There is currently a bug in Viper (https://github.com/spf13/viper/issues/380), which prevents comma-separated slices to
