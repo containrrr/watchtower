@@ -57,7 +57,7 @@ func (s *slackTypeNotifier) GetURL() (string, error) {
 			Channel:    parts[len(parts)-3],
 			Token:      parts[len(parts)-2],
 			Color:      ColorInt,
-			Title:      GetTitle(),
+			Title:      GetTitle(""),
 			SplitLines: true,
 			Username:   s.Username,
 		}
@@ -71,7 +71,7 @@ func (s *slackTypeNotifier) GetURL() (string, error) {
 		BotName: s.Username,
 		Token:   tokens,
 		Color:   ColorHex,
-		Title:   GetTitle(),
+		Title:   GetTitle(""),
 	}
 
 	return conf.GetURL().String(), nil

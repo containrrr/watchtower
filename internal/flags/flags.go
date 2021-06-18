@@ -241,6 +241,12 @@ Should only be used for testing.`)
 		"Subject prefix tag for notifications via mail")
 
 	flags.StringP(
+		"notification-email-subjecthostname",
+		"",
+		viper.GetString("WATCHTOWER_NOTIFICATION_EMAIL_SUBJECTHOSTNAME"),
+		"Subject custom hostname for notifications via mail")
+
+	flags.StringP(
 		"notification-slack-hook-url",
 		"",
 		viper.GetString("WATCHTOWER_NOTIFICATION_SLACK_HOOK_URL"),

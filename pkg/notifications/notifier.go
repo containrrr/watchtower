@@ -139,11 +139,15 @@ func (n *Notifier) Close() {
 }
 
 // GetTitle returns a common notification title with hostname appended
-func GetTitle() (title string) {
+func GetTitle(customHostname string) (title string) {
 	title = "Watchtower updates"
 
-	if hostname, err := os.Hostname(); err == nil {
-		title += " on " + hostname
+	if customHostname != "" {
+		title += " on " + customHostname
+	} else {
+		if hostname, err := os.Hostname(); err == nil {
+			title += " on " + hostname
+		}
 	}
 
 	return

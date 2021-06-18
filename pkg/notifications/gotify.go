@@ -77,7 +77,7 @@ func (n *gotifyTypeNotifier) GetURL() (string, error) {
 		Host:       apiURL.Host,
 		Path:       apiURL.Path,
 		DisableTLS: apiURL.Scheme == "http",
-		Title:      GetTitle(),
+		Title:      GetTitle(""),
 		Token:      n.gotifyAppToken,
 	}
 

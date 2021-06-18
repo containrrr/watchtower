@@ -54,7 +54,7 @@ func (n *msTeamsTypeNotifier) GetURL() (string, error) {
 	}
 
 	config.Color = ColorHex
-	config.Title = GetTitle()
+	config.Title = GetTitle("")
 
 	return config.GetURL().String(), nil
 }
