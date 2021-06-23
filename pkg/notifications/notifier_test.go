@@ -43,10 +43,13 @@ var _ = Describe("notifications", func() {
 		builderFn := notifications.NewSlackNotifier
 
 		When("passing a discord url to the slack notifier", func() {
+			command := cmd.NewRootCommand()
+			flags.RegisterNotificationFlags(command)
+
 			channel := "123456789"
 			token := "abvsihdbau"
 			color := notifications.ColorInt
-			title := url.QueryEscape(notifications.GetTitle())
+			title := url.QueryEscape(notifications.GetTitle(command))
 			expected := fmt.Sprintf("discord://%s@%s?color=0x%x&colordebug=0x0&colorerror=0x0&colorinfo=0x0&colorwarn=0x0&splitlines=Yes&title=%s&username=watchtower", token, channel, color, title)
 			buildArgs := func(url string) []string {
 				return []string{
@@ -69,13 +72,15 @@ var _ = Describe("notifications", func() {
 		When("converting a slack service config into a shoutrrr url", func() {
 
 			It("should return the expected URL", func() {
+				command := cmd.NewRootCommand()
+				flags.RegisterNotificationFlags(command)
 
 				username := "containrrrbot"
 				tokenA := "aaa"
 				tokenB := "bbb"
 				tokenC := "ccc"
 				color := url.QueryEscape(notifications.ColorHex)
-				title := url.QueryEscape(notifications.GetTitle())
+				title := url.QueryEscape(notifications.GetTitle(command))
 
 				hookURL := fmt.Sprintf("https://hooks.slack.com/services/%s/%s/%s", tokenA, tokenB, tokenC)
 				expectedOutput := fmt.Sprintf("slack://%s@%s/%s/%s?color=%s&title=%s", username, tokenA, tokenB, tokenC, color, title)
@@ -97,9 +102,12 @@ var _ = Describe("notifications", func() {
 			builderFn := notifications.NewGotifyNotifier
 
 			It("should return the expected URL", func() {
+				command := cmd.NewRootCommand()
+				flags.RegisterNotificationFlags(command)
+
 				token := "aaa"
 				host := "shoutrrr.local"
-				title := url.QueryEscape(notifications.GetTitle())
+				title := url.QueryEscape(notifications.GetTitle(command))
 
 				expectedOutput := fmt.Sprintf("gotify://%s/%s?title=%s", host, token, title)
 
@@ -120,12 +128,14 @@ var _ = Describe("notifications", func() {
 			builderFn := notifications.NewMsTeamsNotifier
 
 			It("should return the expected URL", func() {
+				command := cmd.NewRootCommand()
+				flags.RegisterNotificationFlags(command)
 
 				tokenA := "11111111-4444-4444-8444-cccccccccccc@22222222-4444-4444-8444-cccccccccccc"
 				tokenB := "33333333012222222222333333333344"
 				tokenC := "44444444-4444-4444-8444-cccccccccccc"
 				color := url.QueryEscape(notifications.ColorHex)
-				title := url.QueryEscape(notifications.GetTitle())
+				title := url.QueryEscape(notifications.GetTitle(command))
 
 				hookURL := fmt.Sprintf("https://outlook.office.com/webhook/%s/IncomingWebhook/%s/%s", tokenA, tokenB, tokenC)
 				expectedOutput := fmt.Sprintf("teams://%s/%s/%s?color=%s&title=%s", tokenA, tokenB, tokenC, color, title)
@@ -215,7 +225,7 @@ func testURL(builder builderFn, args []string, expectedURL string) {
 	Expect(err).NotTo(HaveOccurred())
 
 	notifier := builder(command, []log.Level{})
-	actualURL, err := notifier.GetURL()
+	actualURL, err := notifier.GetURL(command)
 
 	Expect(err).NotTo(HaveOccurred())
 
