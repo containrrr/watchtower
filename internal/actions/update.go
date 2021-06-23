@@ -1,6 +1,7 @@
 package actions
 
 import (
+	"errors"
 	"github.com/containrrr/watchtower/internal/util"
 	"github.com/containrrr/watchtower/pkg/container"
 	"github.com/containrrr/watchtower/pkg/lifecycle"
@@ -81,8 +82,9 @@ func Update(client container.Client, params types.UpdateParams) (*metrics2.Metri
 	if params.RollingRestart {
 		metric.Failed += performRollingRestart(containersToUpdate, client, params)
 	} else {
-		metric.Failed += stopContainersInReversedOrder(containersToUpdate, client, params)
-		metric.Failed += restartContainersInSortedOrder(containersToUpdate, client, params)
+		imageIDsOfStoppedContainers := make(map[string]bool)
+		metric.Failed, imageIDsOfStoppedContainers = stopContainersInReversedOrder(containersToUpdate, client, params)
+		metric.Failed += restartContainersInSortedOrder(containersToUpdate, client, params, imageIDsOfStoppedContainers)
 	}
 
 	metric.Updated = staleCount - (metric.Failed - staleCheckFailed)
@@ -99,13 +101,15 @@ func performRollingRestart(containers []container.Container, client container.Cl
 
 	for i := len(containers) - 1; i >= 0; i-- {
 		if containers[i].ToRestart() {
-			if err := stopStaleContainer(containers[i], client, params); err != nil {
+			err := stopStaleContainer(containers[i], client, params)
+			if err != nil {
 				failed++
+			} else {
+				if err := restartStaleContainer(containers[i], client, params); err != nil {
+					failed++
+				}
+				cleanupImageIDs[containers[i].ImageID()] = true
 			}
-			if err := restartStaleContainer(containers[i], client, params); err != nil {
-				failed++
-			}
-			cleanupImageIDs[containers[i].ImageID()] = true
 		}
 	}
 
@@ -115,14 +119,18 @@ func performRollingRestart(containers []container.Container, client container.Cl
 	return failed
 }
 
-func stopContainersInReversedOrder(containers []container.Container, client container.Client, params types.UpdateParams) int {
+func stopContainersInReversedOrder(containers []container.Container, client container.Client, params types.UpdateParams) (int, map[string]bool) {
+	imageIDsOfStoppedContainers := make(map[string]bool)
 	failed := 0
 	for i := len(containers) - 1; i >= 0; i-- {
 		if err := stopStaleContainer(containers[i], client, params); err != nil {
 			failed++
+		} else {
+			imageIDsOfStoppedContainers[containers[i].ImageID()] = true
 		}
+
 	}
-	return failed
+	return failed, imageIDsOfStoppedContainers
 }
 
 func stopStaleContainer(container container.Container, client container.Client, params types.UpdateParams) error {
@@ -135,10 +143,15 @@ func stopStaleContainer(container container.Container, client container.Client, 
 		return nil
 	}
 	if params.LifecycleHooks {
-		if err := lifecycle.ExecutePreUpdateCommand(client, container); err != nil {
+		SkipUpdate, err := lifecycle.ExecutePreUpdateCommand(client, container)
+		if err != nil {
 			log.Error(err)
 			log.Info("Skipping container as the pre-update command failed")
 			return err
+		}
+		if SkipUpdate {
+			log.Debug("Skipping container as the pre-update command returned exit code 75 (EX_TEMPFAIL)")
+			return errors.New("Skipping container as the pre-update command returned exit code 75 (EX_TEMPFAIL)")
 		}
 	}
 
@@ -149,7 +162,7 @@ func stopStaleContainer(container container.Container, client container.Client, 
 	return nil
 }
 
-func restartContainersInSortedOrder(containers []container.Container, client container.Client, params types.UpdateParams) int {
+func restartContainersInSortedOrder(containers []container.Container, client container.Client, params types.UpdateParams, imageIDsOfStoppedContainers map[string]bool) int {
 	imageIDs := make(map[string]bool)
 
 	failed := 0
@@ -158,10 +171,12 @@ func restartContainersInSortedOrder(containers []container.Container, client con
 		if !c.ToRestart() {
 			continue
 		}
-		if err := restartStaleContainer(c, client, params); err != nil {
-			failed++
+		if imageIDsOfStoppedContainers[c.ImageID()] {
+			if err := restartStaleContainer(c, client, params); err != nil {
+				failed++
+			}
+			imageIDs[c.ImageID()] = true
 		}
-		imageIDs[c.ImageID()] = true
 	}
 
 	if params.Cleanup {

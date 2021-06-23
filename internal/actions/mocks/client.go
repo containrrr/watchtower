@@ -2,6 +2,7 @@ package mocks
 
 import (
 	"errors"
+	"fmt"
 	"github.com/containrrr/watchtower/pkg/container"
 	"time"
 
@@ -70,12 +71,21 @@ func (client MockClient) RemoveImageByID(id string) error {
 
 // GetContainer is a mock method
 func (client MockClient) GetContainer(containerID string) (container.Container, error) {
-	return container.Container{}, nil
+	return client.TestData.Containers[0], nil
 }
 
 // ExecuteCommand is a mock method
-func (client MockClient) ExecuteCommand(containerID string, command string, timeout int) error {
-	return nil
+func (client MockClient) ExecuteCommand(containerID string, command string, timeout int) (SkipUpdate bool, err error) {
+	switch command {
+	case "/PreUpdateReturn0.sh":
+		return false, nil
+	case "/PreUpdateReturn1.sh":
+		return false, fmt.Errorf("command exited with code 1")
+	case "/PreUpdateReturn75.sh":
+		return true, nil
+	default:
+		return false, nil
+	}
 }
 
 // IsContainerStale is always true for the mock client
