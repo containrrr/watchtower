@@ -7,14 +7,12 @@ import (
 	ty "github.com/containrrr/watchtower/pkg/types"
 	"github.com/johntdyer/slackrus"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // NewNotifier creates and returns a new Notifier, using global configuration.
-func NewNotifier(c *cobra.Command) ty.Notifier {
-	f := c.PersistentFlags()
-
-	level, _ := f.GetString("notifications-level")
+func NewNotifier() ty.Notifier {
+	level := viper.GetString("notifications-level")
 	logLevel, err := log.ParseLevel(level)
 	if err != nil {
 		log.Fatalf("Notifications invalid log level: %s", err.Error())
@@ -26,24 +24,21 @@ func NewNotifier(c *cobra.Command) ty.Notifier {
 		log.Fatalf("Unsupported notification log level provided: %s", level)
 	}
 
-	reportTemplate, _ := f.GetBool("notification-report")
-	tplString, _ := f.GetString("notification-template")
-	urls, _ := f.GetStringArray("notification-url")
+	reportTemplate := viper.GetBool("notification-report")
+	tplString := viper.GetString("notification-template")
+	urls := viper.GetStringSlice("notification-url")
 
-	hostname := GetHostname(c)
-	urls, delay := AppendLegacyUrls(urls, c, GetTitle(hostname))
+	hostname := GetHostname()
+	urls, delay := AppendLegacyUrls(urls, GetTitle(hostname))
 
 	return newShoutrrrNotifier(tplString, acceptedLogLevels, !reportTemplate, hostname, delay, urls...)
 }
 
 // AppendLegacyUrls creates shoutrrr equivalent URLs from legacy notification flags
-func AppendLegacyUrls(urls []string, cmd *cobra.Command, title string) ([]string, time.Duration) {
+func AppendLegacyUrls(urls []string, title string) ([]string, time.Duration) {
 
 	// Parse types and create notifiers.
-	types, err := cmd.Flags().GetStringSlice("notifications")
-	if err != nil {
-		log.WithError(err).Fatal("could not read notifications argument")
-	}
+	types := viper.GetStringSlice("notifications")
 
 	legacyDelay := time.Duration(0)
 
@@ -54,13 +49,13 @@ func AppendLegacyUrls(urls []string, cmd *cobra.Command, title string) ([]string
 
 		switch t {
 		case emailType:
-			legacyNotifier = newEmailNotifier(cmd, []log.Level{})
+			legacyNotifier = newEmailNotifier()
 		case slackType:
-			legacyNotifier = newSlackNotifier(cmd, []log.Level{})
+			legacyNotifier = newSlackNotifier()
 		case msTeamsType:
-			legacyNotifier = newMsTeamsNotifier(cmd, []log.Level{})
+			legacyNotifier = newMsTeamsNotifier()
 		case gotifyType:
-			legacyNotifier = newGotifyNotifier(cmd, []log.Level{})
+			legacyNotifier = newGotifyNotifier()
 		case shoutrrrType:
 			continue
 		default:
@@ -69,7 +64,7 @@ func AppendLegacyUrls(urls []string, cmd *cobra.Command, title string) ([]string
 			continue
 		}
 
-		shoutrrrURL, err := legacyNotifier.GetURL(cmd, title)
+		shoutrrrURL, err := legacyNotifier.GetURL(title)
 		if err != nil {
 			log.Fatal("failed to create notification config: ", err)
 		}
@@ -82,17 +77,17 @@ func AppendLegacyUrls(urls []string, cmd *cobra.Command, title string) ([]string
 		log.WithField("URL", shoutrrrURL).Trace("created Shoutrrr URL from legacy notifier")
 	}
 
-	delay := GetDelay(cmd, legacyDelay)
+	delay := GetDelay(legacyDelay)
 	return urls, delay
 }
 
 // GetDelay returns the legacy delay if defined, otherwise the delay as set by args is returned
-func GetDelay(c *cobra.Command, legacyDelay time.Duration) time.Duration {
+func GetDelay(legacyDelay time.Duration) time.Duration {
 	if legacyDelay > 0 {
 		return legacyDelay
 	}
 
-	delay, _ := c.PersistentFlags().GetInt("notifications-delay")
+	delay := viper.GetInt("notifications-delay")
 	if delay > 0 {
 		return time.Duration(delay) * time.Second
 	}
@@ -109,10 +104,8 @@ func GetTitle(hostname string) string {
 }
 
 // GetHostname returns the hostname as set by args or resolved from OS
-func GetHostname(c *cobra.Command) string {
-
-	f := c.PersistentFlags()
-	hostname, _ := f.GetString("notifications-hostname")
+func GetHostname() string {
+	hostname := viper.GetString("notifications-hostname")
 
 	if hostname != "" {
 		return hostname

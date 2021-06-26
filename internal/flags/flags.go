@@ -8,7 +8,6 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
 
@@ -36,7 +35,7 @@ func RegisterSystemFlags(rootCmd *cobra.Command) {
 		DefaultInterval, // viper.GetInt("WATCHTOWER_POLL_INTERVAL"),
 		"poll interval (in seconds)")
 
-	flags.String(
+	flags.StringP(
 		"schedule",
 		"s",
 		"",
@@ -190,122 +189,6 @@ func RegisterNotificationFlags(rootCmd *cobra.Command) {
 		"Custom hostname for notification titles")
 
 	flags.String(
-		"notification-email-from",
-		"",
-		// viper.GetString("WATCHTOWER_NOTIFICATION_EMAIL_FROM"),
-		"Address to send notification emails from")
-
-	flags.String(
-		"notification-email-to",
-		"",
-		// viper.GetString("WATCHTOWER_NOTIFICATION_EMAIL_TO"),
-		"Address to send notification emails to")
-
-	flags.Int(
-		"notification-email-delay",
-		0,
-		//viper.GetInt("WATCHTOWER_NOTIFICATION_EMAIL_DELAY"),
-		"Delay before sending notifications, expressed in seconds")
-
-	flags.String(
-		"notification-email-server",
-		"",
-		// viper.GetString("WATCHTOWER_NOTIFICATION_EMAIL_SERVER"),
-		"SMTP server to send notification emails through")
-
-	flags.Int(
-		"notification-email-server-port",
-		25,
-		// viper.GetInt("WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PORT"),
-		"SMTP server port to send notification emails through")
-
-	flags.Bool(
-		"notification-email-server-tls-skip-verify",
-		false,
-		// viper.GetBool("WATCHTOWER_NOTIFICATION_EMAIL_SERVER_TLS_SKIP_VERIFY"),
-		`Controls whether watchtower verifies the SMTP server's certificate chain and host name.
-Should only be used for testing.`)
-
-	flags.String(
-		"notification-email-server-user",
-		"",
-		// viper.GetString("WATCHTOWER_NOTIFICATION_EMAIL_SERVER_USER"),
-		"SMTP server user for sending notifications")
-
-	flags.String(
-		"notification-email-server-password",
-		"",
-		// viper.GetString("WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PASSWORD"),
-		"SMTP server password for sending notifications")
-
-	flags.String(
-		"notification-email-subjecttag",
-		"",
-		// viper.GetString("WATCHTOWER_NOTIFICATION_EMAIL_SUBJECTTAG"),
-		"Subject prefix tag for notifications via mail")
-
-	flags.String(
-		"notification-slack-hook-url",
-		"",
-		// viper.GetString("WATCHTOWER_NOTIFICATION_SLACK_HOOK_URL"),
-		"The Slack Hook URL to send notifications to")
-
-	flags.String(
-		"notification-slack-identifier",
-		"watchtower",
-		// viper.GetString("WATCHTOWER_NOTIFICATION_SLACK_IDENTIFIER"),
-		"A string which will be used to identify the messages coming from this watchtower instance")
-
-	flags.String(
-		"notification-slack-channel",
-		"",
-		// viper.GetString("WATCHTOWER_NOTIFICATION_SLACK_CHANNEL"),
-		"A string which overrides the webhook's default channel. Example: #my-custom-channel")
-
-	flags.String(
-		"notification-slack-icon-emoji",
-		"",
-		// viper.GetString("WATCHTOWER_NOTIFICATION_SLACK_ICON_EMOJI"),
-		"An emoji code string to use in place of the default icon")
-
-	flags.String(
-		"notification-slack-icon-url",
-		"",
-		// viper.GetString("WATCHTOWER_NOTIFICATION_SLACK_ICON_URL"),
-		"An icon image URL string to use in place of the default icon")
-
-	flags.String(
-		"notification-msteams-hook",
-		"",
-		// viper.GetString("WATCHTOWER_NOTIFICATION_MSTEAMS_HOOK_URL"),
-		"The MSTeams WebHook URL to send notifications to")
-
-	flags.Bool(
-		"notification-msteams-data",
-		false,
-		// viper.GetBool("WATCHTOWER_NOTIFICATION_MSTEAMS_USE_LOG_DATA"),
-		"The MSTeams notifier will try to extract log entry fields as MSTeams message facts")
-
-	flags.String(
-		"notification-gotify-url",
-		"",
-		// viper.GetString("WATCHTOWER_NOTIFICATION_GOTIFY_URL"),
-		"The Gotify URL to send notifications to")
-
-	flags.String(
-		"notification-gotify-token",
-		"",
-		// viper.GetString("WATCHTOWER_NOTIFICATION_GOTIFY_TOKEN"),
-		"The Gotify Application required to query the Gotify API")
-
-	flags.Bool(
-		"notification-gotify-tls-skip-verify",
-		false,
-		// viper.GetBool("WATCHTOWER_NOTIFICATION_GOTIFY_TLS_SKIP_VERIFY"),
-		`Controls whether watchtower verifies the Gotify server's certificate chain and host name.
-Should only be used for testing.`)
-
-	flags.String(
 		"notification-template",
 		"",
 		// viper.GetString("WATCHTOWER_NOTIFICATION_TEMPLATE"),
@@ -328,6 +211,7 @@ Should only be used for testing.`)
 		// viper.GetString("WATCHTOWER_WARN_ON_HEAD_FAILURE"),
 		"When to warn about HEAD pull requests failing. Possible values: always, auto or never")
 
+	RegisterLegacyNotificationFlags(flags)
 }
 
 func mustBindEnv(flag string, env string) {
@@ -368,8 +252,8 @@ func EnvConfig() error {
 	var err error
 
 	host := viper.GetString("host")
-	tls = viper.GetBool("tlsverify")
-	version = viper.GetString("api-version")
+	tls := viper.GetBool("tlsverify")
+	version := viper.GetString("api-version")
 	if err = setEnvOptStr("DOCKER_HOST", host); err != nil {
 		return err
 	}

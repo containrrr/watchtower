@@ -19,13 +19,14 @@ var _ = Describe("notifications", func() {
 
 			command := cmd.NewRootCommand()
 			flags.RegisterNotificationFlags(command)
+			flags.BindViperFlags(command)
 
 			err := command.ParseFlags([]string{
 				"--notifications",
 				"shoutrrr",
 			})
 			Expect(err).NotTo(HaveOccurred())
-			notif := notifications.NewNotifier(command)
+			notif := notifications.NewNotifier()
 
 			Expect(notif.GetNames()).To(BeEmpty())
 		})
@@ -33,13 +34,14 @@ var _ = Describe("notifications", func() {
 			It("should use the specified hostname in the title", func() {
 				command := cmd.NewRootCommand()
 				flags.RegisterNotificationFlags(command)
+				flags.BindViperFlags(command)
 
 				err := command.ParseFlags([]string{
 					"--notifications-hostname",
 					"test.host",
 				})
 				Expect(err).NotTo(HaveOccurred())
-				hostname := notifications.GetHostname(command)
+				hostname := notifications.GetHostname()
 				title := notifications.GetTitle(hostname)
 				Expect(title).To(Equal("Watchtower updates on test.host"))
 			})
@@ -54,8 +56,9 @@ var _ = Describe("notifications", func() {
 			It("should use the default delay", func() {
 				command := cmd.NewRootCommand()
 				flags.RegisterNotificationFlags(command)
+				flags.BindViperFlags(command)
 
-				delay := notifications.GetDelay(command, time.Duration(0))
+				delay := notifications.GetDelay(time.Duration(0))
 				Expect(delay).To(Equal(time.Duration(0)))
 			})
 		})
@@ -63,13 +66,14 @@ var _ = Describe("notifications", func() {
 			It("should use the specified delay", func() {
 				command := cmd.NewRootCommand()
 				flags.RegisterNotificationFlags(command)
+				flags.BindViperFlags(command)
 
 				err := command.ParseFlags([]string{
 					"--notifications-delay",
 					"5",
 				})
 				Expect(err).NotTo(HaveOccurred())
-				delay := notifications.GetDelay(command, time.Duration(0))
+				delay := notifications.GetDelay(time.Duration(0))
 				Expect(delay).To(Equal(time.Duration(5) * time.Second))
 			})
 		})
@@ -77,7 +81,8 @@ var _ = Describe("notifications", func() {
 			It("should use the specified legacy delay", func() {
 				command := cmd.NewRootCommand()
 				flags.RegisterNotificationFlags(command)
-				delay := notifications.GetDelay(command, time.Duration(5)*time.Second)
+				flags.BindViperFlags(command)
+				delay := notifications.GetDelay(time.Duration(5) * time.Second)
 				Expect(delay).To(Equal(time.Duration(5) * time.Second))
 			})
 		})
@@ -85,13 +90,14 @@ var _ = Describe("notifications", func() {
 			It("should use the specified legacy delay and ignore the specified delay", func() {
 				command := cmd.NewRootCommand()
 				flags.RegisterNotificationFlags(command)
+				flags.BindViperFlags(command)
 
 				err := command.ParseFlags([]string{
 					"--notifications-delay",
 					"0",
 				})
 				Expect(err).NotTo(HaveOccurred())
-				delay := notifications.GetDelay(command, time.Duration(7)*time.Second)
+				delay := notifications.GetDelay(time.Duration(7) * time.Second)
 				Expect(delay).To(Equal(time.Duration(7) * time.Second))
 			})
 		})
@@ -100,9 +106,6 @@ var _ = Describe("notifications", func() {
 		// builderFn := notifications.NewSlackNotifier
 
 		When("passing a discord url to the slack notifier", func() {
-			command := cmd.NewRootCommand()
-			flags.RegisterNotificationFlags()
-
 			channel := "123456789"
 			token := "abvsihdbau"
 			color := notifications.ColorInt
@@ -135,7 +138,7 @@ var _ = Describe("notifications", func() {
 			tokenB := "BBBBBBBBB"
 			tokenC := "123456789123456789123456"
 			color := url.QueryEscape(notifications.ColorHex)
-			hostname := notifications.GetHostname(command)
+			hostname := notifications.GetHostname()
 			title := url.QueryEscape(notifications.GetTitle(hostname))
 			iconURL := "https://containrrr.dev/watchtower-sq180.png"
 			iconEmoji := "whale"
@@ -189,9 +192,6 @@ var _ = Describe("notifications", func() {
 	Describe("the gotify notifier", func() {
 		When("converting a gotify service config into a shoutrrr url", func() {
 			It("should return the expected URL", func() {
-				command := cmd.NewRootCommand()
-				flags.RegisterNotificationFlags()
-
 				token := "aaa"
 				host := "shoutrrr.local"
 				hostname := notifications.GetHostname()
@@ -216,14 +216,11 @@ var _ = Describe("notifications", func() {
 	Describe("the teams notifier", func() {
 		When("converting a teams service config into a shoutrrr url", func() {
 			It("should return the expected URL", func() {
-				command := cmd.NewRootCommand()
-				flags.RegisterNotificationFlags(command)
-
 				tokenA := "11111111-4444-4444-8444-cccccccccccc@22222222-4444-4444-8444-cccccccccccc"
 				tokenB := "33333333012222222222333333333344"
 				tokenC := "44444444-4444-4444-8444-cccccccccccc"
 				color := url.QueryEscape(notifications.ColorHex)
-				hostname := notifications.GetHostname(command)
+				hostname := notifications.GetHostname()
 				title := url.QueryEscape(notifications.GetTitle(hostname))
 
 				hookURL := fmt.Sprintf("https://outlook.office.com/webhook/%s/IncomingWebhook/%s/%s", tokenA, tokenB, tokenC)
@@ -318,16 +315,17 @@ func testURL(args []string, expectedURL string, expectedDelay time.Duration) {
 
 	command := cmd.NewRootCommand()
 	flags.RegisterNotificationFlags(command)
+	flags.BindViperFlags(command)
 
 	err := command.ParseFlags(args)
-	Expect(err).NotTo(HaveOccurred())
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
-	hostname := notifications.GetHostname(command)
+	hostname := notifications.GetHostname()
 	title := notifications.GetTitle(hostname)
-	urls, delay := notifications.AppendLegacyUrls([]string{}, command, title)
+	urls, delay := notifications.AppendLegacyUrls([]string{}, title)
 
-	Expect(err).NotTo(HaveOccurred())
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
-	Expect(urls).To(ContainElement(expectedURL))
-	Expect(delay).To(Equal(expectedDelay))
+	ExpectWithOffset(1, urls).To(ContainElement(expectedURL))
+	ExpectWithOffset(1, delay).To(Equal(expectedDelay))
 }

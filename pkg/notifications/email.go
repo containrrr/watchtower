@@ -1,9 +1,8 @@
 package notifications
 
 import (
+	"github.com/spf13/viper"
 	"time"
-
-	"github.com/spf13/cobra"
 
 	shoutrrrSmtp "github.com/containrrr/shoutrrr/pkg/services/smtp"
 	t "github.com/containrrr/watchtower/pkg/types"
@@ -25,18 +24,16 @@ type emailTypeNotifier struct {
 	delay                              time.Duration
 }
 
-func newEmailNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.ConvertibleNotifier {
-	flags := c.PersistentFlags()
-
-	from, _ := flags.GetString("notification-email-from")
-	to, _ := flags.GetString("notification-email-to")
-	server, _ := flags.GetString("notification-email-server")
-	user, _ := flags.GetString("notification-email-server-user")
-	password, _ := flags.GetString("notification-email-server-password")
-	port, _ := flags.GetInt("notification-email-server-port")
-	tlsSkipVerify, _ := flags.GetBool("notification-email-server-tls-skip-verify")
-	delay, _ := flags.GetInt("notification-email-delay")
-	subjecttag, _ := flags.GetString("notification-email-subjecttag")
+func newEmailNotifier() t.ConvertibleNotifier {
+	from := viper.GetString("notification-email-from")
+	to := viper.GetString("notification-email-to")
+	server := viper.GetString("notification-email-server")
+	user := viper.GetString("notification-email-server-user")
+	password := viper.GetString("notification-email-server-password")
+	port := viper.GetInt("notification-email-server-port")
+	tlsSkipVerify := viper.GetBool("notification-email-server-tls-skip-verify")
+	delay := viper.GetInt("notification-email-delay")
+	subjecttag := viper.GetString("notification-email-subjecttag")
 
 	n := &emailTypeNotifier{
 		entries:       []*log.Entry{},
@@ -47,7 +44,6 @@ func newEmailNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.Convert
 		Password:      password,
 		Port:          port,
 		tlsSkipVerify: tlsSkipVerify,
-		logLevels:     acceptedLogLevels,
 		delay:         time.Duration(delay) * time.Second,
 		SubjectTag:    subjecttag,
 	}
@@ -55,14 +51,14 @@ func newEmailNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.Convert
 	return n
 }
 
-func (e *emailTypeNotifier) GetURL(c *cobra.Command, title string) (string, error) {
+func (e *emailTypeNotifier) GetURL(title string) (string, error) {
 	conf := &shoutrrrSmtp.Config{
 		FromAddress: e.From,
 		FromName:    "Watchtower",
 		ToAddresses: []string{e.To},
 		Port:        uint16(e.Port),
 		Host:        e.Server,
-		Subject:     e.getSubject(c, title),
+		Subject:     e.getSubject(title),
 		Username:    e.User,
 		Password:    e.Password,
 		UseStartTLS: !e.tlsSkipVerify,
@@ -86,7 +82,7 @@ func (e *emailTypeNotifier) GetDelay() time.Duration {
 	return e.delay
 }
 
-func (e *emailTypeNotifier) getSubject(_ *cobra.Command, title string) string {
+func (e *emailTypeNotifier) getSubject(title string) string {
 	if e.SubjectTag != "" {
 		return e.SubjectTag + " " + title
 	}

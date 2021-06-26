@@ -6,16 +6,17 @@ import (
 	"testing"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestEnvConfig_Defaults(t *testing.T) {
 	cmd := new(cobra.Command)
-	SetDefaults()
 	RegisterDockerFlags(cmd)
+	BindViperFlags(cmd)
 
-	err := EnvConfig(cmd)
+	err := EnvConfig()
 	require.NoError(t, err)
 
 	assert.Equal(t, "unix:///var/run/docker.sock", os.Getenv("DOCKER_HOST"))
@@ -26,13 +27,13 @@ func TestEnvConfig_Defaults(t *testing.T) {
 
 func TestEnvConfig_Custom(t *testing.T) {
 	cmd := new(cobra.Command)
-	SetDefaults()
 	RegisterDockerFlags(cmd)
+	BindViperFlags(cmd)
 
 	err := cmd.ParseFlags([]string{"--host", "some-custom-docker-host", "--tlsverify", "--api-version", "1.99"})
 	require.NoError(t, err)
 
-	err = EnvConfig(cmd)
+	err = EnvConfig()
 	require.NoError(t, err)
 
 	assert.Equal(t, "some-custom-docker-host", os.Getenv("DOCKER_HOST"))
@@ -56,7 +57,10 @@ func TestGetSecretsFromFilesWithFile(t *testing.T) {
 	// Create the temporary file which will contain a secret.
 	file, err := ioutil.TempFile(os.TempDir(), "watchtower-")
 	require.NoError(t, err)
-	defer os.Remove(file.Name()) // Make sure to remove the temporary file later.
+	defer func() {
+		// Make sure to remove the temporary file later.
+		_ = os.Remove(file.Name())
+	}()
 
 	// Write the secret to the temporary file.
 	secret := []byte(value)
@@ -71,11 +75,11 @@ func TestGetSecretsFromFilesWithFile(t *testing.T) {
 
 func testGetSecretsFromFiles(t *testing.T, flagName string, expected string) {
 	cmd := new(cobra.Command)
-	SetDefaults()
 	RegisterNotificationFlags(cmd)
-	GetSecretsFromFiles(cmd)
-	value, err := cmd.PersistentFlags().GetString(flagName)
-	require.NoError(t, err)
+	BindViperFlags(cmd)
+	SetEnvBindings()
+	GetSecretsFromFiles()
+	value := viper.GetString(flagName)
 
 	assert.Equal(t, expected, value)
 }

@@ -22,10 +22,9 @@ require (
 	github.com/prometheus/client_golang v1.7.1
 	github.com/robfig/cron v0.0.0-20180505203441-b41be1df6967
 	github.com/sirupsen/logrus v1.8.1
-	github.com/spf13/cobra v1.0.0
+	github.com/spf13/cobra v1.4.0
 	github.com/spf13/pflag v1.0.5
-	github.com/spf13/viper v1.6.3
-	github.com/stretchr/testify v1.6.1
-	golang.org/x/net v0.0.0-20210226172049-e18ecbb05110
-	golang.org/x/sys v0.0.0-20210831042530-f4d43177bf5e // indirect
+	github.com/spf13/viper v1.10.1
+	github.com/stretchr/testify v1.7.0
+	golang.org/x/net v0.0.0-20210813160813-60bc85c4be6d
 )

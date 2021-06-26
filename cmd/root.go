@@ -1,8 +1,8 @@
 package cmd
 
 import (
+	"fmt"
 	"math"
-	"net/http"
 	"os"
 	"os/signal"
 	"strconv"
@@ -30,7 +30,7 @@ import (
 
 var (
 	client   container.Client
-	notifier *notifications.Notifier
+	notifier t.Notifier
 	c        flags.WatchConfig
 )
 
@@ -66,7 +66,7 @@ func Execute() {
 }
 
 // PreRun is a lifecycle hook that runs before the command is executed.
-func PreRun(cmd *cobra.Command, _ []string) {
+func PreRun(_ *cobra.Command, _ []string) {
 
 	// First apply all the settings that affect the output
 	if viper.GetBool("no-color") {
@@ -158,10 +158,10 @@ func Run(_ *cobra.Command, names []string) {
 	if c.EnableUpdateAPI {
 		updateHandler := update.New(func() { runUpdatesWithNotifications(filter) }, updateLock)
 		httpAPI.RegisterFunc(updateHandler.Path, updateHandler.Handle)
-		// If polling isn't enabled the scheduler is never started and
+		// If polling isn't enabled the scheduler is never started, and
 		// we need to trigger the startup messages manually.
 		if !c.UpdateAPIWithScheduler {
-			writeStartupMessage(c, time.Time{}, filterDesc)
+			writeStartupMessage(time.Time{}, filterDesc)
 		}
 	}
 
@@ -231,7 +231,7 @@ func formatDuration(d time.Duration) string {
 	return sb.String()
 }
 
-func writeStartupMessage(c *cobra.Command, sched time.Time, filtering string) {
+func writeStartupMessage(sched time.Time, filtering string) {
 	var startupLog *log.Entry
 	if c.NoStartupMessage {
 		startupLog = notifications.LocalLog
@@ -256,8 +256,8 @@ func writeStartupMessage(c *cobra.Command, sched time.Time, filtering string) {
 		until := formatDuration(time.Until(sched))
 		startupLog.Info("Scheduling first run: " + sched.Format("2006-01-02 15:04:05 -0700 MST"))
 		startupLog.Info("Note that the first check will be performed in " + until)
-	} else if runOnce, _ := c.PersistentFlags().GetBool("run-once"); runOnce {
-			startupLog.Info("Running a one time update.")
+	} else if c.RunOnce {
+		startupLog.Info("Running a one time update.")
 	} else {
 		startupLog.Info("Periodic runs are not enabled.")
 	}
