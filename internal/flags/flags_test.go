@@ -82,7 +82,7 @@ func testGetSecretsFromFiles(t *testing.T, flagName string, expected string) {
 
 func TestHTTPAPIPeriodicPollsFlag(t *testing.T) {
 	cmd := new(cobra.Command)
-	SetDefaults()
+
 	RegisterDockerFlags(cmd)
 	RegisterSystemFlags(cmd)
 

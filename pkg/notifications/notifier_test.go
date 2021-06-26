@@ -101,12 +101,12 @@ var _ = Describe("notifications", func() {
 
 		When("passing a discord url to the slack notifier", func() {
 			command := cmd.NewRootCommand()
-			flags.RegisterNotificationFlags(command)
+			flags.RegisterNotificationFlags()
 
 			channel := "123456789"
 			token := "abvsihdbau"
 			color := notifications.ColorInt
-			hostname := notifications.GetHostname(command)
+			hostname := notifications.GetHostname()
 			title := url.QueryEscape(notifications.GetTitle(hostname))
 			expected := fmt.Sprintf("discord://%s@%s?color=0x%x&colordebug=0x0&colorerror=0x0&colorinfo=0x0&colorwarn=0x0&title=%s&username=watchtower", token, channel, color, title)
 			buildArgs := func(url string) []string {
@@ -190,11 +190,11 @@ var _ = Describe("notifications", func() {
 		When("converting a gotify service config into a shoutrrr url", func() {
 			It("should return the expected URL", func() {
 				command := cmd.NewRootCommand()
-				flags.RegisterNotificationFlags(command)
+				flags.RegisterNotificationFlags()
 
 				token := "aaa"
 				host := "shoutrrr.local"
-				hostname := notifications.GetHostname(command)
+				hostname := notifications.GetHostname()
 				title := url.QueryEscape(notifications.GetTitle(hostname))
 
 				expectedOutput := fmt.Sprintf("gotify://%s/%s?title=%s", host, token, title)
