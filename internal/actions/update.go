@@ -1,6 +1,7 @@
 package actions
 
 import (
+	"errors"
 	"github.com/containrrr/watchtower/internal/util"
 	"github.com/containrrr/watchtower/pkg/container"
 	"github.com/containrrr/watchtower/pkg/lifecycle"
@@ -82,8 +83,10 @@ func Update(client container.Client, params types.UpdateParams) (types.Report, e
 	if params.RollingRestart {
 		progress.UpdateFailed(performRollingRestart(containersToUpdate, client, params))
 	} else {
-		progress.UpdateFailed(stopContainersInReversedOrder(containersToUpdate, client, params))
-		progress.UpdateFailed(restartContainersInSortedOrder(containersToUpdate, client, params))
+		failedStop, imageIDsOfStoppedContainers := stopContainersInReversedOrder(containersToUpdate, client, params))
+		progress.UpdateFailed(failedStop)
+		failedStart := restartContainersInSortedOrder(containersToUpdate, client, params)
+		progress.UpdateFailed(failedStart)
 	}
 
 	if params.LifecycleHooks {
@@ -98,13 +101,15 @@ func performRollingRestart(containers []container.Container, client container.Cl
 
 	for i := len(containers) - 1; i >= 0; i-- {
 		if containers[i].ToRestart() {
-			if err := stopStaleContainer(containers[i], client, params); err != nil {
+			err := stopStaleContainer(containers[i], client, params)
+			if err != nil {
 				failed[containers[i].ID()] = err
-			}
-			if err := restartStaleContainer(containers[i], client, params); err != nil {
+			} else {
+				if err := restartStaleContainer(containers[i], client, params); err != nil {
 				failed[containers[i].ID()] = err
+				}
+				cleanupImageIDs[containers[i].ImageID()] = true
 			}
-			cleanupImageIDs[containers[i].ImageID()] = true
 		}
 	}
 
@@ -114,14 +119,18 @@ func performRollingRestart(containers []container.Container, client container.Cl
 	return failed
 }
 
-func stopContainersInReversedOrder(containers []container.Container, client container.Client, params types.UpdateParams) map[string]error {
-	failed := make(map[string]error, len(containers))
+func stopContainersInReversedOrder(containers []container.Container, client container.Client, params types.UpdateParams) (failed map[string]error, stopped map[string]bool) {
+	failed = make(map[string]error, len(containers))
+	stopped = make(map[string]bool, len(containers))
 	for i := len(containers) - 1; i >= 0; i-- {
 		if err := stopStaleContainer(containers[i], client, params); err != nil {
 			failed[containers[i].ID()] = err
+		} else {
+			stopped[containers[i].ImageID()] = true
 		}
+
 	}
-	return failed
+	return
 }
 
 func stopStaleContainer(container container.Container, client container.Client, params types.UpdateParams) error {
@@ -134,10 +143,15 @@ func stopStaleContainer(container container.Container, client container.Client, 
 		return nil
 	}
 	if params.LifecycleHooks {
-		if err := lifecycle.ExecutePreUpdateCommand(client, container); err != nil {
+		skipUpdate, err := lifecycle.ExecutePreUpdateCommand(client, container)
+		if err != nil {
 			log.Error(err)
 			log.Info("Skipping container as the pre-update command failed")
 			return err
+		}
+		if skipUpdate {
+			log.Debug("Skipping container as the pre-update command returned exit code 75 (EX_TEMPFAIL)")
+			return errors.New("skipping container as the pre-update command returned exit code 75 (EX_TEMPFAIL)")
 		}
 	}
 
@@ -148,7 +162,7 @@ func stopStaleContainer(container container.Container, client container.Client, 
 	return nil
 }
 
-func restartContainersInSortedOrder(containers []container.Container, client container.Client, params types.UpdateParams) map[string]error {
+func restartContainersInSortedOrder(containers []container.Container, client container.Client, params types.UpdateParams, imageIDsOfStoppedContainers map[string]bool) map[string]error {
 	cleanupImageIDs := make(map[string]bool, len(containers))
 	failed := make(map[string]error, len(containers))
 
@@ -156,10 +170,12 @@ func restartContainersInSortedOrder(containers []container.Container, client con
 		if !c.ToRestart() {
 			continue
 		}
-		if err := restartStaleContainer(c, client, params); err != nil {
-			failed[c.ID()] = err
+		if imageIDsOfStoppedContainers[c.ImageID()] {
+			if err := restartStaleContainer(c, client, params); err != nil {
+				failed[c.ID()] = err
+			}
+			cleanupImageIDs[c.ImageID()] = true
 		}
-		cleanupImageIDs[c.ImageID()] = true
 	}
 
 	if params.Cleanup {

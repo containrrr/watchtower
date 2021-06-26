@@ -7,6 +7,7 @@ import (
 	"github.com/containrrr/watchtower/pkg/types"
 	container2 "github.com/docker/docker/api/types/container"
 	cli "github.com/docker/docker/client"
+	"github.com/docker/go-connections/nat"
 	"time"
 
 	. "github.com/containrrr/watchtower/internal/actions/mocks"
@@ -106,6 +107,8 @@ var _ = Describe("the update action", func() {
 								"test-container-02",
 								"test-container-02",
 								"fake-image2:latest",
+								false,
+								false,
 								time.Now(),
 								&container2.Config{
 									Labels: map[string]string{
@@ -155,6 +158,189 @@ var _ = Describe("the update action", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(client.TestData.TriedToRemoveImageCount).To(Equal(0))
 			})
+		})
+
+	})
+
+	When("watchtower has been instructed to run lifecycle hooks", func() {
+
+		When("prupddate script returns 1", func() {
+			BeforeEach(func() {
+				client = CreateMockClient(
+					&TestData{
+						//NameOfContainerToKeep: "test-container-02",
+						Containers: []container.Container{
+							CreateMockContainerWithConfig(
+								"test-container-02",
+								"test-container-02",
+								"fake-image2:latest",
+								true,
+								false,
+								time.Now(),
+								&container2.Config{
+									Labels: map[string]string{
+										"com.centurylinklabs.watchtower.lifecycle.pre-update-timeout": "190",
+										"com.centurylinklabs.watchtower.lifecycle.pre-update":         "/PreUpdateReturn1.sh",
+									},
+									ExposedPorts: map[nat.Port]struct{}{},
+								}),
+						},
+					},
+					dockerClient,
+					false,
+					false,
+				)
+			})
+
+			It("should not update those containers", func() {
+				_, err := actions.Update(client, types.UpdateParams{Cleanup: true, LifecycleHooks: true})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(client.TestData.TriedToRemoveImageCount).To(Equal(0))
+			})
+
+		})
+
+		When("prupddate script returns 75", func() {
+			BeforeEach(func() {
+				client = CreateMockClient(
+					&TestData{
+						//NameOfContainerToKeep: "test-container-02",
+						Containers: []container.Container{
+							CreateMockContainerWithConfig(
+								"test-container-02",
+								"test-container-02",
+								"fake-image2:latest",
+								true,
+								false,
+								time.Now(),
+								&container2.Config{
+									Labels: map[string]string{
+										"com.centurylinklabs.watchtower.lifecycle.pre-update-timeout": "190",
+										"com.centurylinklabs.watchtower.lifecycle.pre-update":         "/PreUpdateReturn75.sh",
+									},
+									ExposedPorts: map[nat.Port]struct{}{},
+								}),
+						},
+					},
+					dockerClient,
+					false,
+					false,
+				)
+			})
+
+			It("should not update those containers", func() {
+				_, err := actions.Update(client, types.UpdateParams{Cleanup: true, LifecycleHooks: true})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(client.TestData.TriedToRemoveImageCount).To(Equal(0))
+			})
+
+		})
+
+		When("prupddate script returns 0", func() {
+			BeforeEach(func() {
+				client = CreateMockClient(
+					&TestData{
+						//NameOfContainerToKeep: "test-container-02",
+						Containers: []container.Container{
+							CreateMockContainerWithConfig(
+								"test-container-02",
+								"test-container-02",
+								"fake-image2:latest",
+								true,
+								false,
+								time.Now(),
+								&container2.Config{
+									Labels: map[string]string{
+										"com.centurylinklabs.watchtower.lifecycle.pre-update-timeout": "190",
+										"com.centurylinklabs.watchtower.lifecycle.pre-update":         "/PreUpdateReturn0.sh",
+									},
+									ExposedPorts: map[nat.Port]struct{}{},
+								}),
+						},
+					},
+					dockerClient,
+					false,
+					false,
+				)
+			})
+
+			It("should update those containers", func() {
+				_, err := actions.Update(client, types.UpdateParams{Cleanup: true, LifecycleHooks: true})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(client.TestData.TriedToRemoveImageCount).To(Equal(1))
+			})
+		})
+
+		When("container is not running", func() {
+			BeforeEach(func() {
+				client = CreateMockClient(
+					&TestData{
+						//NameOfContainerToKeep: "test-container-02",
+						Containers: []container.Container{
+							CreateMockContainerWithConfig(
+								"test-container-02",
+								"test-container-02",
+								"fake-image2:latest",
+								false,
+								false,
+								time.Now(),
+								&container2.Config{
+									Labels: map[string]string{
+										"com.centurylinklabs.watchtower.lifecycle.pre-update-timeout": "190",
+										"com.centurylinklabs.watchtower.lifecycle.pre-update":         "/PreUpdateReturn1.sh",
+									},
+									ExposedPorts: map[nat.Port]struct{}{},
+								}),
+						},
+					},
+					dockerClient,
+					false,
+					false,
+				)
+			})
+
+			It("skip running preupdate", func() {
+				_, err := actions.Update(client, types.UpdateParams{Cleanup: true, LifecycleHooks: true})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(client.TestData.TriedToRemoveImageCount).To(Equal(1))
+			})
+
+		})
+
+		When("container is restarting", func() {
+			BeforeEach(func() {
+				client = CreateMockClient(
+					&TestData{
+						//NameOfContainerToKeep: "test-container-02",
+						Containers: []container.Container{
+							CreateMockContainerWithConfig(
+								"test-container-02",
+								"test-container-02",
+								"fake-image2:latest",
+								false,
+								true,
+								time.Now(),
+								&container2.Config{
+									Labels: map[string]string{
+										"com.centurylinklabs.watchtower.lifecycle.pre-update-timeout": "190",
+										"com.centurylinklabs.watchtower.lifecycle.pre-update":         "/PreUpdateReturn1.sh",
+									},
+									ExposedPorts: map[nat.Port]struct{}{},
+								}),
+						},
+					},
+					dockerClient,
+					false,
+					false,
+				)
+			})
+
+			It("skip running preupdate", func() {
+				_, err := actions.Update(client, types.UpdateParams{Cleanup: true, LifecycleHooks: true})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(client.TestData.TriedToRemoveImageCount).To(Equal(1))
+			})
+
 		})
 
 	})

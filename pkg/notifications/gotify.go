@@ -67,7 +67,7 @@ func getGotifyURL(flags *pflag.FlagSet) string {
 	return gotifyURL
 }
 
-func (n *gotifyTypeNotifier) GetURL() (string, error) {
+func (n *gotifyTypeNotifier) GetURL(c *cobra.Command) (string, error) {
 	apiURL, err := url.Parse(n.gotifyURL)
 	if err != nil {
 		return "", err
@@ -77,7 +77,7 @@ func (n *gotifyTypeNotifier) GetURL() (string, error) {
 		Host:       apiURL.Host,
 		Path:       apiURL.Path,
 		DisableTLS: apiURL.Scheme == "http",
-		Title:      GetTitle(),
+		Title:      GetTitle(c),
 		Token:      n.gotifyAppToken,
 	}
 

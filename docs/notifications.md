@@ -25,6 +25,7 @@ comma-separated list of values to the `--notifications` option
 ## Settings
 
 - `--notifications-level` (env. `WATCHTOWER_NOTIFICATIONS_LEVEL`): Controls the log level which is used for the notifications. If omitted, the default log level is `info`. Possible values are: `panic`, `fatal`, `error`, `warn`, `info`, `debug` or `trace`.
+- `--notifications-hostname` (env. `WATCHTOWER_NOTIFICATIONS_HOSTNAME`): Custom hostname specified in subject/title. Useful to override the operating system hostname.
 - Watchtower will post a notification every time it is started. This behavior [can be changed](https://containrrr.github.io/watchtower/arguments/#without_sending_a_startup_message) with an argument.
 
 ## Available services
