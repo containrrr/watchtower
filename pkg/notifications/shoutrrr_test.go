@@ -129,7 +129,7 @@ var _ = Describe("Shoutrrr", func() {
 - updt1 (mock/updt1:latest): 01d110000000 updated to d0a110000000
 - updt2 (mock/updt2:latest): 01d120000000 updated to d0a120000000
 - frsh1 (mock/frsh1:latest): Fresh
-- skip1 (mock/skip1:latest): Skipped: unpossible!
+- skip1 (mock/skip1:latest): Skipped: unpossible
 - fail1 (mock/fail1:latest): Failed: accidentally the whole container
 `
 				data := mockDataFromStates(s.UpdatedState, s.FreshState, s.FailedState, s.SkippedState, s.UpdatedState)

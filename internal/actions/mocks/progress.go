@@ -20,7 +20,7 @@ func CreateMockProgressReport(states ...session.State) wt.Report {
 		switch state {
 		case session.SkippedState:
 			c, _ := CreateContainerForProgress(index, 41, "skip%d")
-			progress.AddSkipped(c, errors.New("unpossible!"))
+			progress.AddSkipped(c, errors.New("unpossible"))
 			break
 		case session.FreshState:
 			c, _ := CreateContainerForProgress(index, 31, "frsh%d")
