@@ -12,10 +12,8 @@ import (
 )
 
 func TestShoutrrrDefaultTemplate(t *testing.T) {
-	cmd := new(cobra.Command)
-
 	shoutrrr := &shoutrrrTypeNotifier{
-		template: getShoutrrrTemplate(cmd),
+		template: getShoutrrrTemplate(),
 	}
 
 	entries := []*log.Entry{
@@ -38,7 +36,7 @@ func TestShoutrrrTemplate(t *testing.T) {
 	require.NoError(t, err)
 
 	shoutrrr := &shoutrrrTypeNotifier{
-		template: getShoutrrrTemplate(cmd),
+		template: getShoutrrrTemplate(),
 	}
 
 	entries := []*log.Entry{
@@ -62,7 +60,7 @@ func TestShoutrrrStringFunctions(t *testing.T) {
 	require.NoError(t, err)
 
 	shoutrrr := &shoutrrrTypeNotifier{
-		template: getShoutrrrTemplate(cmd),
+		template: getShoutrrrTemplate(),
 	}
 
 	entries := []*log.Entry{
@@ -86,7 +84,7 @@ func TestShoutrrrInvalidTemplateUsesTemplate(t *testing.T) {
 	require.NoError(t, err)
 
 	shoutrrr := &shoutrrrTypeNotifier{
-		template: getShoutrrrTemplate(cmd),
+		template: getShoutrrrTemplate(),
 	}
 
 	shoutrrrDefault := &shoutrrrTypeNotifier{
@@ -143,15 +141,13 @@ func TestSlowNotificationSent(t *testing.T) {
 }
 
 func sendNotificationsWithBlockingRouter() (*shoutrrrTypeNotifier, *blockingRouter) {
-	cmd := new(cobra.Command)
-
 	router := &blockingRouter{
 		unlock: make(chan bool, 1),
 		sent:   make(chan bool, 1),
 	}
 
 	shoutrrr := &shoutrrrTypeNotifier{
-		template: getShoutrrrTemplate(cmd),
+		template: getShoutrrrTemplate(),
 		messages: make(chan string, 1),
 		done:     make(chan bool),
 		Router:   router,
