@@ -4,6 +4,9 @@
     These are shell commands executed with `sh`, and therefore require the container to provide the `sh`
     executable.
 
+> **DO NOTE**: If the container is not running then lifecycle hooks can not run and therefore 
+> the update is executed without running any lifecycle hooks.
+
 It is possible to execute _pre/post\-check_ and _pre/post\-update_ commands
 **inside** every container updated by watchtower.
 
@@ -63,5 +66,5 @@ If the label value is explicitly set to `0`, the timeout will be disabled.
 ### Execution failure
 
 The failure of a command to execute, identified by an exit code different than
-0, will not prevent watchtower from updating the container. Only an error
+0 or 75 (EX_TEMPFAIL), will not prevent watchtower from updating the container. Only an error
 log statement containing the exit code will be reported.

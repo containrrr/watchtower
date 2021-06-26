@@ -42,7 +42,7 @@ func newMsTeamsNotifier(cmd *cobra.Command, acceptedLogLevels []log.Level) t.Con
 	return n
 }
 
-func (n *msTeamsTypeNotifier) GetURL() (string, error) {
+func (n *msTeamsTypeNotifier) GetURL(c *cobra.Command) (string, error) {
 	webhookURL, err := url.Parse(n.webHookURL)
 	if err != nil {
 		return "", err
@@ -54,7 +54,7 @@ func (n *msTeamsTypeNotifier) GetURL() (string, error) {
 	}
 
 	config.Color = ColorHex
-	config.Title = GetTitle()
+	config.Title = GetTitle(c)
 
 	return config.GetURL().String(), nil
 }

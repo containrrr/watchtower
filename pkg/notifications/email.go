@@ -60,14 +60,14 @@ func newEmailNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.Convert
 	return n
 }
 
-func (e *emailTypeNotifier) GetURL() (string, error) {
+func (e *emailTypeNotifier) GetURL(c *cobra.Command) (string, error) {
 	conf := &shoutrrrSmtp.Config{
 		FromAddress: e.From,
 		FromName:    "Watchtower",
 		ToAddresses: []string{e.To},
 		Port:        uint16(e.Port),
 		Host:        e.Server,
-		Subject:     e.getSubject(),
+		Subject:     e.getSubject(c),
 		Username:    e.User,
 		Password:    e.Password,
 		UseStartTLS: !e.tlsSkipVerify,
@@ -87,8 +87,8 @@ func (e *emailTypeNotifier) GetURL() (string, error) {
 	return conf.GetURL().String(), nil
 }
 
-func (e *emailTypeNotifier) getSubject() string {
-	subject := GetTitle()
+func (e *emailTypeNotifier) getSubject(c *cobra.Command) string {
+	subject := GetTitle(c)
 
 	if e.SubjectTag != "" {
 		subject = e.SubjectTag + " " + subject

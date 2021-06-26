@@ -65,13 +65,20 @@ func CreateMockContainerWithDigest(id string, name string, image string, created
 }
 
 // CreateMockContainerWithConfig creates a container substitute valid for testing
-func CreateMockContainerWithConfig(id string, name string, image string, created time.Time, config *container2.Config) container.Container {
+func CreateMockContainerWithConfig(id string, name string, image string, running bool, restarting bool, created time.Time, config *container2.Config) container.Container {
 	content := types.ContainerJSON{
 		ContainerJSONBase: &types.ContainerJSONBase{
-			ID:      id,
-			Image:   image,
-			Name:    name,
+			ID:    id,
+			Image: image,
+			Name:  name,
+			State: &types.ContainerState{
+				Running: running,
+				Restarting: restarting,
+			},
 			Created: created.String(),
+			HostConfig: &container2.HostConfig{
+				PortBindings: map[nat.Port][]nat.PortBinding{},
+			},
 		},
 		Config: config,
 	}
