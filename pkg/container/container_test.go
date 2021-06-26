@@ -204,8 +204,8 @@ var _ = Describe("the container", func() {
 		It("should return its ID on calls to .ID()", func() {
 			id := c.ID()
 
-			Expect(id).To(Equal("container_id"))
-			Expect(id).NotTo(Equal("wrong-id"))
+			Expect(id).To(BeEquivalentTo("container_id"))
+			Expect(id).NotTo(BeEquivalentTo("wrong-id"))
 		})
 		It("should return true, true if enabled on calls to .Enabled()", func() {
 			enabled, exists := c.Enabled()

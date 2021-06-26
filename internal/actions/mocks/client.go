@@ -54,7 +54,7 @@ func (client MockClient) StopContainer(c container.Container, _ time.Duration) e
 }
 
 // StartContainer is a mock method
-func (client MockClient) StartContainer(_ container.Container) (string, error) {
+func (client MockClient) StartContainer(_ container.Container) (t.ContainerID, error) {
 	return "", nil
 }
 
@@ -64,18 +64,18 @@ func (client MockClient) RenameContainer(_ container.Container, _ string) error 
 }
 
 // RemoveImageByID increments the TriedToRemoveImageCount on being called
-func (client MockClient) RemoveImageByID(_ string) error {
+func (client MockClient) RemoveImageByID(_ t.ImageID) error {
 	client.TestData.TriedToRemoveImageCount++
 	return nil
 }
 
 // GetContainer is a mock method
-func (client MockClient) GetContainer(_ string) (container.Container, error) {
+func (client MockClient) GetContainer(_ t.ContainerID) (container.Container, error) {
 	return client.TestData.Containers[0], nil
 }
 
 // ExecuteCommand is a mock method
-func (client MockClient) ExecuteCommand(_ string, command string, _ int) (SkipUpdate bool, err error) {
+func (client MockClient) ExecuteCommand(_ t.ContainerID, command string, _ int) (SkipUpdate bool, err error) {
 	switch command {
 	case "/PreUpdateReturn0.sh":
 		return false, nil
@@ -89,7 +89,7 @@ func (client MockClient) ExecuteCommand(_ string, command string, _ int) (SkipUp
 }
 
 // IsContainerStale is always true for the mock client
-func (client MockClient) IsContainerStale(_ container.Container) (bool, string, error) {
+func (client MockClient) IsContainerStale(_ container.Container) (bool, t.ImageID, error) {
 	return true, "", nil
 }
 

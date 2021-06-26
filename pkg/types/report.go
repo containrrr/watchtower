@@ -12,10 +12,10 @@ type Report interface {
 
 // ContainerReport represents a container that was included in watchtower session
 type ContainerReport interface {
-	ID() string
+	ID() ContainerID
 	Name() string
-	OldImageID() string
-	NewImageID() string
+	OldImageID() ImageID
+	NewImageID() ImageID
 	ImageName() string
 	Error() string
 	State() string

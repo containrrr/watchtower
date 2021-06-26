@@ -5,7 +5,7 @@ import (
 	"github.com/containrrr/watchtower/pkg/container"
 	"github.com/containrrr/watchtower/pkg/container/mocks"
 	"github.com/containrrr/watchtower/pkg/types"
-	container2 "github.com/docker/docker/api/types/container"
+	dockerContainer "github.com/docker/docker/api/types/container"
 	cli "github.com/docker/docker/client"
 	"github.com/docker/go-connections/nat"
 	"time"
@@ -110,7 +110,7 @@ var _ = Describe("the update action", func() {
 								false,
 								false,
 								time.Now(),
-								&container2.Config{
+								&dockerContainer.Config{
 									Labels: map[string]string{
 										"com.centurylinklabs.watchtower.monitor-only": "true",
 									},
@@ -177,7 +177,7 @@ var _ = Describe("the update action", func() {
 								true,
 								false,
 								time.Now(),
-								&container2.Config{
+								&dockerContainer.Config{
 									Labels: map[string]string{
 										"com.centurylinklabs.watchtower.lifecycle.pre-update-timeout": "190",
 										"com.centurylinklabs.watchtower.lifecycle.pre-update":         "/PreUpdateReturn1.sh",
@@ -213,7 +213,7 @@ var _ = Describe("the update action", func() {
 								true,
 								false,
 								time.Now(),
-								&container2.Config{
+								&dockerContainer.Config{
 									Labels: map[string]string{
 										"com.centurylinklabs.watchtower.lifecycle.pre-update-timeout": "190",
 										"com.centurylinklabs.watchtower.lifecycle.pre-update":         "/PreUpdateReturn75.sh",
@@ -249,7 +249,7 @@ var _ = Describe("the update action", func() {
 								true,
 								false,
 								time.Now(),
-								&container2.Config{
+								&dockerContainer.Config{
 									Labels: map[string]string{
 										"com.centurylinklabs.watchtower.lifecycle.pre-update-timeout": "190",
 										"com.centurylinklabs.watchtower.lifecycle.pre-update":         "/PreUpdateReturn0.sh",
@@ -284,7 +284,7 @@ var _ = Describe("the update action", func() {
 								false,
 								false,
 								time.Now(),
-								&container2.Config{
+								&dockerContainer.Config{
 									Labels: map[string]string{
 										"com.centurylinklabs.watchtower.lifecycle.pre-update-timeout": "190",
 										"com.centurylinklabs.watchtower.lifecycle.pre-update":         "/PreUpdateReturn1.sh",
@@ -320,7 +320,7 @@ var _ = Describe("the update action", func() {
 								false,
 								true,
 								time.Now(),
-								&container2.Config{
+								&dockerContainer.Config{
 									Labels: map[string]string{
 										"com.centurylinklabs.watchtower.lifecycle.pre-update-timeout": "190",
 										"com.centurylinklabs.watchtower.lifecycle.pre-update":         "/PreUpdateReturn1.sh",

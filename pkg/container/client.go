@@ -26,13 +26,13 @@ const defaultStopSignal = "SIGTERM"
 // Docker API.
 type Client interface {
 	ListContainers(t.Filter) ([]Container, error)
-	GetContainer(containerID string) (Container, error)
+	GetContainer(containerID t.ContainerID) (Container, error)
 	StopContainer(Container, time.Duration) error
-	StartContainer(Container) (string, error)
+	StartContainer(Container) (t.ContainerID, error)
 	RenameContainer(Container, string) error
-	IsContainerStale(Container) (stale bool, newestImage string, err error)
-	ExecuteCommand(containerID string, command string, timeout int) (SkipUpdate bool, err error)
-	RemoveImageByID(string) error
+	IsContainerStale(Container) (stale bool, newestImage t.ImageID, err error)
+	ExecuteCommand(containerID t.ContainerID, command string, timeout int) (SkipUpdate bool, err error)
+	RemoveImageByID(t.ImageID) error
 	WarnOnHeadPullFailed(container Container) bool
 }
 
@@ -108,7 +108,7 @@ func (client dockerClient) ListContainers(fn t.Filter) ([]Container, error) {
 
 	for _, runningContainer := range containers {
 
-		c, err := client.GetContainer(runningContainer.ID)
+		c, err := client.GetContainer(t.ContainerID(runningContainer.ID))
 		if err != nil {
 			return nil, err
 		}
@@ -137,10 +137,10 @@ func (client dockerClient) createListFilter() filters.Args {
 	return filterArgs
 }
 
-func (client dockerClient) GetContainer(containerID string) (Container, error) {
+func (client dockerClient) GetContainer(containerID t.ContainerID) (Container, error) {
 	bg := context.Background()
 
-	containerInfo, err := client.api.ContainerInspect(bg, containerID)
+	containerInfo, err := client.api.ContainerInspect(bg, string(containerID))
 	if err != nil {
 		return Container{}, err
 	}
@@ -161,11 +161,12 @@ func (client dockerClient) StopContainer(c Container, timeout time.Duration) err
 		signal = defaultStopSignal
 	}
 
-	shortID := ShortID(c.ID())
+	idStr := string(c.ID())
+	shortID := c.ID().ShortID()
 
 	if c.IsRunning() {
 		log.Infof("Stopping %s (%s) with %s", c.Name(), shortID, signal)
-		if err := client.api.ContainerKill(bg, c.ID(), signal); err != nil {
+		if err := client.api.ContainerKill(bg, idStr, signal); err != nil {
 			return err
 		}
 	}
@@ -178,7 +179,7 @@ func (client dockerClient) StopContainer(c Container, timeout time.Duration) err
 	} else {
 		log.Debugf("Removing container %s", shortID)
 
-		if err := client.api.ContainerRemove(bg, c.ID(), types.ContainerRemoveOptions{Force: true, RemoveVolumes: client.removeVolumes}); err != nil {
+		if err := client.api.ContainerRemove(bg, idStr, types.ContainerRemoveOptions{Force: true, RemoveVolumes: client.removeVolumes}); err != nil {
 			return err
 		}
 	}
@@ -191,7 +192,7 @@ func (client dockerClient) StopContainer(c Container, timeout time.Duration) err
 	return nil
 }
 
-func (client dockerClient) StartContainer(c Container) (string, error) {
+func (client dockerClient) StartContainer(c Container) (t.ContainerID, error) {
 	bg := context.Background()
 	config := c.runtimeConfig()
 	hostConfig := c.hostConfig()
@@ -234,18 +235,19 @@ func (client dockerClient) StartContainer(c Container) (string, error) {
 
 	}
 
+	createdContainerID := t.ContainerID(createdContainer.ID)
 	if !c.IsRunning() && !client.reviveStopped {
-		return createdContainer.ID, nil
+		return createdContainerID, nil
 	}
 
-	return createdContainer.ID, client.doStartContainer(bg, c, createdContainer)
+	return createdContainerID, client.doStartContainer(bg, c, createdContainer)
 
 }
 
 func (client dockerClient) doStartContainer(bg context.Context, c Container, creation container.ContainerCreateCreatedBody) error {
 	name := c.Name()
 
-	log.Debugf("Starting container %s (%s)", name, ShortID(creation.ID))
+	log.Debugf("Starting container %s (%s)", name, t.ContainerID(creation.ID).ShortID())
 	err := client.api.ContainerStart(bg, creation.ID, types.ContainerStartOptions{})
 	if err != nil {
 		return err
@@ -255,11 +257,11 @@ func (client dockerClient) doStartContainer(bg context.Context, c Container, cre
 
 func (client dockerClient) RenameContainer(c Container, newName string) error {
 	bg := context.Background()
-	log.Debugf("Renaming container %s (%s) to %s", c.Name(), ShortID(c.ID()), newName)
-	return client.api.ContainerRename(bg, c.ID(), newName)
+	log.Debugf("Renaming container %s (%s) to %s", c.Name(), c.ID().ShortID(), newName)
+	return client.api.ContainerRename(bg, string(c.ID()), newName)
 }
 
-func (client dockerClient) IsContainerStale(container Container) (stale bool, newestImage string, err error) {
+func (client dockerClient) IsContainerStale(container Container) (stale bool, newestImage t.ImageID, err error) {
 	ctx := context.Background()
 
 	if !client.pullImages {
@@ -271,8 +273,8 @@ func (client dockerClient) IsContainerStale(container Container) (stale bool, ne
 	return client.HasNewImage(ctx, container)
 }
 
-func (client dockerClient) HasNewImage(ctx context.Context, container Container) (hasNew bool, newestImage string, err error) {
-	oldImageID := container.containerInfo.ContainerJSONBase.Image
+func (client dockerClient) HasNewImage(ctx context.Context, container Container) (hasNew bool, newestImage t.ImageID, err error) {
+	oldImageID := t.ImageID(container.containerInfo.ContainerJSONBase.Image)
 	imageName := container.ImageName()
 
 	newImageInfo, _, err := client.api.ImageInspectWithRaw(ctx, imageName)
@@ -280,13 +282,14 @@ func (client dockerClient) HasNewImage(ctx context.Context, container Container)
 		return false, oldImageID, err
 	}
 
-	if newImageInfo.ID == oldImageID {
+	newImageID := t.ImageID(newImageInfo.ID)
+	if newImageID == oldImageID {
 		log.Debugf("No new images found for %s", container.Name())
 		return false, oldImageID, nil
 	}
 
-	log.Infof("Found new %s image (%s)", imageName, ShortID(newImageInfo.ID))
-	return true, newImageInfo.ID, nil
+	log.Infof("Found new %s image (%s)", imageName, newImageID.ShortID())
+	return true, newImageID, nil
 }
 
 // PullImage pulls the latest image for the supplied container, optionally skipping if it's digest can be confirmed
@@ -343,12 +346,12 @@ func (client dockerClient) PullImage(ctx context.Context, container Container) e
 	return nil
 }
 
-func (client dockerClient) RemoveImageByID(id string) error {
-	log.Infof("Removing image %s", ShortID(id))
+func (client dockerClient) RemoveImageByID(id t.ImageID) error {
+	log.Infof("Removing image %s", id.ShortID())
 
 	_, err := client.api.ImageRemove(
 		context.Background(),
-		id,
+		string(id),
 		types.ImageRemoveOptions{
 			Force: true,
 		})
@@ -356,7 +359,7 @@ func (client dockerClient) RemoveImageByID(id string) error {
 	return err
 }
 
-func (client dockerClient) ExecuteCommand(containerID string, command string, timeout int) (SkipUpdate bool, err error) {
+func (client dockerClient) ExecuteCommand(containerID t.ContainerID, command string, timeout int) (SkipUpdate bool, err error) {
 	bg := context.Background()
 
 	// Create the exec
@@ -366,7 +369,7 @@ func (client dockerClient) ExecuteCommand(containerID string, command string, ti
 		Cmd:    []string{"sh", "-c", command},
 	}
 
-	exec, err := client.api.ContainerExecCreate(bg, containerID, execConfig)
+	exec, err := client.api.ContainerExecCreate(bg, string(containerID), execConfig)
 	if err != nil {
 		return false, err
 	}
@@ -462,7 +465,7 @@ func (client dockerClient) waitForStopOrTimeout(c Container, waitTime time.Durat
 		case <-timeout:
 			return nil
 		default:
-			if ci, err := client.api.ContainerInspect(bg, c.ID()); err != nil {
+			if ci, err := client.api.ContainerInspect(bg, string(c.ID())); err != nil {
 				return err
 			} else if !ci.State.Running {
 				return nil

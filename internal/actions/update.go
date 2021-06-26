@@ -83,9 +83,9 @@ func Update(client container.Client, params types.UpdateParams) (types.Report, e
 	if params.RollingRestart {
 		progress.UpdateFailed(performRollingRestart(containersToUpdate, client, params))
 	} else {
-		failedStop, imageIDsOfStoppedContainers := stopContainersInReversedOrder(containersToUpdate, client, params))
+		failedStop, stoppedImages := stopContainersInReversedOrder(containersToUpdate, client, params)
 		progress.UpdateFailed(failedStop)
-		failedStart := restartContainersInSortedOrder(containersToUpdate, client, params)
+		failedStart := restartContainersInSortedOrder(containersToUpdate, client, params, stoppedImages)
 		progress.UpdateFailed(failedStart)
 	}
 
@@ -95,9 +95,9 @@ func Update(client container.Client, params types.UpdateParams) (types.Report, e
 	return progress.Report(), nil
 }
 
-func performRollingRestart(containers []container.Container, client container.Client, params types.UpdateParams) map[string]error {
-	cleanupImageIDs := make(map[string]bool, len(containers))
-	failed := make(map[string]error, len(containers))
+func performRollingRestart(containers []container.Container, client container.Client, params types.UpdateParams) map[types.ContainerID]error {
+	cleanupImageIDs := make(map[types.ImageID]bool, len(containers))
+	failed := make(map[types.ContainerID]error, len(containers))
 
 	for i := len(containers) - 1; i >= 0; i-- {
 		if containers[i].ToRestart() {
@@ -106,7 +106,7 @@ func performRollingRestart(containers []container.Container, client container.Cl
 				failed[containers[i].ID()] = err
 			} else {
 				if err := restartStaleContainer(containers[i], client, params); err != nil {
-				failed[containers[i].ID()] = err
+					failed[containers[i].ID()] = err
 				}
 				cleanupImageIDs[containers[i].ImageID()] = true
 			}
@@ -119,9 +119,9 @@ func performRollingRestart(containers []container.Container, client container.Cl
 	return failed
 }
 
-func stopContainersInReversedOrder(containers []container.Container, client container.Client, params types.UpdateParams) (failed map[string]error, stopped map[string]bool) {
-	failed = make(map[string]error, len(containers))
-	stopped = make(map[string]bool, len(containers))
+func stopContainersInReversedOrder(containers []container.Container, client container.Client, params types.UpdateParams) (failed map[types.ContainerID]error, stopped map[types.ImageID]bool) {
+	failed = make(map[types.ContainerID]error, len(containers))
+	stopped = make(map[types.ImageID]bool, len(containers))
 	for i := len(containers) - 1; i >= 0; i-- {
 		if err := stopStaleContainer(containers[i], client, params); err != nil {
 			failed[containers[i].ID()] = err
@@ -162,15 +162,15 @@ func stopStaleContainer(container container.Container, client container.Client, 
 	return nil
 }
 
-func restartContainersInSortedOrder(containers []container.Container, client container.Client, params types.UpdateParams, imageIDsOfStoppedContainers map[string]bool) map[string]error {
-	cleanupImageIDs := make(map[string]bool, len(containers))
-	failed := make(map[string]error, len(containers))
+func restartContainersInSortedOrder(containers []container.Container, client container.Client, params types.UpdateParams, stoppedImages map[types.ImageID]bool) map[types.ContainerID]error {
+	cleanupImageIDs := make(map[types.ImageID]bool, len(containers))
+	failed := make(map[types.ContainerID]error, len(containers))
 
 	for _, c := range containers {
 		if !c.ToRestart() {
 			continue
 		}
-		if imageIDsOfStoppedContainers[c.ImageID()] {
+		if stoppedImages[c.ImageID()] {
 			if err := restartStaleContainer(c, client, params); err != nil {
 				failed[c.ID()] = err
 			}
@@ -185,7 +185,7 @@ func restartContainersInSortedOrder(containers []container.Container, client con
 	return failed
 }
 
-func cleanupImages(client container.Client, imageIDs map[string]bool) {
+func cleanupImages(client container.Client, imageIDs map[types.ImageID]bool) {
 	for imageID := range imageIDs {
 		if err := client.RemoveImageByID(imageID); err != nil {
 			log.Error(err)
