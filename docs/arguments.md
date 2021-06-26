@@ -258,7 +258,7 @@ Environment Variable: WATCHTOWER_HTTP_API_TOKEN
 ## HTTP API periodic polls
 Keep running periodic updates if the HTTP API mode is enabled, otherwise the HTTP API would prevent periodic polls.  
 
-```
+```text
             Argument: --http-api-periodic-polls
 Environment Variable: WATCHTOWER_HTTP_API_PERIODIC_POLLS
                 Type: Boolean

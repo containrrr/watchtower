@@ -10,10 +10,10 @@
 It is possible to execute _pre/post\-check_ and _pre/post\-update_ commands
 **inside** every container updated by watchtower.
 
-- The _pre-check_ command is executed for each container prior to every update cycle.
-- The _pre-update_ command is executed before stopping the container when an update is about to start.
-- The _post-update_ command is executed after restarting the updated container
-- The _post-check_ command is executed for each container post every update cycle.
+-   The _pre-check_ command is executed for each container prior to every update cycle.
+-   The _pre-update_ command is executed before stopping the container when an update is about to start.
+-   The _post-update_ command is executed after restarting the updated container
+-   The _post-check_ command is executed for each container post every update cycle.
 
 This feature is disabled by default. To enable it, you need to set the option
 `--enable-lifecycle-hooks` on the command line, or set the environment variable

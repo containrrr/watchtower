@@ -5,8 +5,8 @@ environment, watchtower needs to know the credentials to access the registry.
 The credentials can be provided to watchtower in a configuration file called `config.json`.
 There are two ways to generate this configuration file:
 
-* The configuration file can be created manually.
-* Call `docker login <REGISTRY_NAME>` and share the resulting configuration file.
+*   The configuration file can be created manually.
+*   Call `docker login <REGISTRY_NAME>` and share the resulting configuration file.
 
 ### Create the configuration file manually
 Create a new configuration file with the following syntax and a base64 encoded username and
@@ -87,7 +87,6 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
 ```
 
-
 ## Credential helpers
 Some private Docker registries (the most prominent probably being AWS ECR) use non-standard ways of authentication.
 To be able to use this together with watchtower, we need to use a credential helper.
@@ -97,7 +96,6 @@ helper in a separate container and mount it using volumes.
 
 ### Example
 Example implementation for use with [amazon-ecr-credential-helper](https://github.com/awslabs/amazon-ecr-credential-helper):
-
 
 Use the dockerfile below to build the [amazon-ecr-credential-helper](https://github.com/awslabs/amazon-ecr-credential-helper),
 in a volume that may be mounted onto your watchtower container.
@@ -175,9 +173,12 @@ A few additional notes:
 
 1.  With docker-compose the volume (helper, in this case) MUST be set to `external: true`, otherwise docker-compose 
     will preface it with the directory name.
+
 2.  Note that "credsStore" : "ecr-login" is needed - and in theory if you have that you can remove the 
-    credHelpers section 
+    credHelpers section
+
 3.  I have this running on an EC2 instance that has credentials assigned to it - so no keys are needed; however, 
     you may need to include the `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` environment variables as well.
+
 4.  An alternative to adding the various variables is to create a ~/.aws/config and ~/.aws/credentials files and 
     place the settings there, then mount the ~/.aws directory to / in the container.
