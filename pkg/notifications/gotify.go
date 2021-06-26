@@ -22,11 +22,6 @@ type gotifyTypeNotifier struct {
 	logLevels                []log.Level
 }
 
-// NewGotifyNotifier is a factory method creating a new gotify notifier instance
-func NewGotifyNotifier(c *cobra.Command, levels []log.Level) t.ConvertibleNotifier {
-	return newGotifyNotifier(c, levels)
-}
-
 func newGotifyNotifier(c *cobra.Command, levels []log.Level) t.ConvertibleNotifier {
 	flags := c.PersistentFlags()
 

@@ -19,11 +19,6 @@ type slackTypeNotifier struct {
 	slackrus.SlackrusHook
 }
 
-// NewSlackNotifier is a factory function used to generate new instance of the slack notifier type
-func NewSlackNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.ConvertibleNotifier {
-	return newSlackNotifier(c, acceptedLogLevels)
-}
-
 func newSlackNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.ConvertibleNotifier {
 	flags := c.PersistentFlags()
 
