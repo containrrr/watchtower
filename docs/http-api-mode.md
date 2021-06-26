@@ -1,6 +1,6 @@
 Watchtower provides an HTTP API mode that enables an HTTP endpoint that can be requested to trigger container updating. The current available endpoint list is:
 
-- `/v1/update` - triggers an update for all of the containers monitored by this Watchtower instance.
+-   `/v1/update` - triggers an update for all of the containers monitored by this Watchtower instance.
 
 ---
 
