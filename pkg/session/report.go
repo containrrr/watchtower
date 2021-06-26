@@ -2,6 +2,7 @@ package session
 
 import (
 	"github.com/containrrr/watchtower/pkg/types"
+	"sort"
 )
 
 type report struct {
@@ -65,8 +66,26 @@ func NewReport(progress Progress) types.Report {
 			update.state = StaleState
 			report.stale = append(report.stale, update)
 		}
-
 	}
+
+	sort.Sort(sortableContainers(report.scanned))
+	sort.Sort(sortableContainers(report.scanned))
+	sort.Sort(sortableContainers(report.updated))
+	sort.Sort(sortableContainers(report.failed))
+	sort.Sort(sortableContainers(report.skipped))
+	sort.Sort(sortableContainers(report.stale))
+	sort.Sort(sortableContainers(report.fresh))
 
 	return report
 }
+
+type sortableContainers []types.ContainerReport
+
+// Len implements sort.Interface.Len
+func (s sortableContainers) Len() int { return len(s) }
+
+// Less implements sort.Interface.Less
+func (s sortableContainers) Less(i, j int) bool { return s[i].ID() < s[j].ID() }
+
+// Swap implements sort.Interface.Swap
+func (s sortableContainers) Swap(i, j int) { s[i], s[j] = s[j], s[i] }

@@ -1,10 +1,14 @@
 package mocks
 
 import (
+	"fmt"
 	"github.com/containrrr/watchtower/pkg/container"
+	wt "github.com/containrrr/watchtower/pkg/types"
 	"github.com/docker/docker/api/types"
 	dockerContainer "github.com/docker/docker/api/types/container"
 	"github.com/docker/go-connections/nat"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -72,7 +76,7 @@ func CreateMockContainerWithConfig(id string, name string, image string, running
 			Image: image,
 			Name:  name,
 			State: &types.ContainerState{
-				Running: running,
+				Running:    running,
 				Restarting: restarting,
 			},
 			Created: created.String(),
@@ -88,4 +92,19 @@ func CreateMockContainerWithConfig(id string, name string, image string, running
 			ID: image,
 		},
 	)
+}
+
+func CreateContainerForProgress(index int, idPrefix int, nameFormat string) (container.Container, wt.ImageID) {
+	indexStr := strconv.Itoa(idPrefix + index)
+	mockID := indexStr + strings.Repeat("0", 61-len(indexStr))
+	contID := "c79" + mockID
+	contName := fmt.Sprintf(nameFormat, index+1)
+	oldImgID := "01d" + mockID
+	newImgID := "d0a" + mockID
+	imageName := fmt.Sprintf("mock/%s:latest", contName)
+	config := &dockerContainer.Config{
+		Image: imageName,
+	}
+	c := CreateMockContainerWithConfig(contID, contName, oldImgID, true, false, time.Now(), config)
+	return c, wt.ImageID(newImgID)
 }
