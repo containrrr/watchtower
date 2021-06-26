@@ -18,7 +18,7 @@ const (
 	shoutrrrDefaultTemplate       = `{{- with .Report -}}
 {{len .Scanned}} Scanned, {{len .Updated}} Updated, {{len .Failed}} Failed
 {{range .Updated -}}
-- {{.Name}} ({{.ImageName}}): {{.OldImageID.ShortID}} updated to {{.NewImageID.ShortID}}
+- {{.Name}} ({{.ImageName}}): {{.CurrentImageID.ShortID}} updated to {{.LatestImageID.ShortID}}
 {{end -}}
 {{range .Fresh -}}
 - {{.Name}} ({{.ImageName}}): {{.State}}

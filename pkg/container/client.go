@@ -30,7 +30,7 @@ type Client interface {
 	StopContainer(Container, time.Duration) error
 	StartContainer(Container) (t.ContainerID, error)
 	RenameContainer(Container, string) error
-	IsContainerStale(Container) (stale bool, newestImage t.ImageID, err error)
+	IsContainerStale(Container) (stale bool, latestImage t.ImageID, err error)
 	ExecuteCommand(containerID t.ContainerID, command string, timeout int) (SkipUpdate bool, err error)
 	RemoveImageByID(t.ImageID) error
 	WarnOnHeadPullFailed(container Container) bool
@@ -261,7 +261,7 @@ func (client dockerClient) RenameContainer(c Container, newName string) error {
 	return client.api.ContainerRename(bg, string(c.ID()), newName)
 }
 
-func (client dockerClient) IsContainerStale(container Container) (stale bool, newestImage t.ImageID, err error) {
+func (client dockerClient) IsContainerStale(container Container) (stale bool, latestImage t.ImageID, err error) {
 	ctx := context.Background()
 
 	if !client.pullImages {
@@ -273,19 +273,19 @@ func (client dockerClient) IsContainerStale(container Container) (stale bool, ne
 	return client.HasNewImage(ctx, container)
 }
 
-func (client dockerClient) HasNewImage(ctx context.Context, container Container) (hasNew bool, newestImage t.ImageID, err error) {
-	oldImageID := t.ImageID(container.containerInfo.ContainerJSONBase.Image)
+func (client dockerClient) HasNewImage(ctx context.Context, container Container) (hasNew bool, latestImage t.ImageID, err error) {
+	currentImageID := t.ImageID(container.containerInfo.ContainerJSONBase.Image)
 	imageName := container.ImageName()
 
 	newImageInfo, _, err := client.api.ImageInspectWithRaw(ctx, imageName)
 	if err != nil {
-		return false, oldImageID, err
+		return false, currentImageID, err
 	}
 
 	newImageID := t.ImageID(newImageInfo.ID)
-	if newImageID == oldImageID {
+	if newImageID == currentImageID {
 		log.Debugf("No new images found for %s", container.Name())
-		return false, oldImageID, nil
+		return false, currentImageID, nil
 	}
 
 	log.Infof("Found new %s image (%s)", imageName, newImageID.ShortID())

@@ -14,8 +14,8 @@ type Report interface {
 type ContainerReport interface {
 	ID() ContainerID
 	Name() string
-	OldImageID() ImageID
-	NewImageID() ImageID
+	CurrentImageID() ImageID
+	LatestImageID() ImageID
 	ImageName() string
 	Error() string
 	State() string

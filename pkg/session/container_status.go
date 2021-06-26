@@ -38,13 +38,13 @@ func (u *ContainerStatus) Name() string {
 	return u.containerName
 }
 
-// OldImageID returns the image ID that the container used when the session started
-func (u *ContainerStatus) OldImageID() wt.ImageID {
+// CurrentImageID returns the image ID that the container used when the session started
+func (u *ContainerStatus) CurrentImageID() wt.ImageID {
 	return u.oldImage
 }
 
-// NewImageID returns the newest image ID found during the session
-func (u *ContainerStatus) NewImageID() wt.ImageID {
+// LatestImageID returns the newest image ID found during the session
+func (u *ContainerStatus) LatestImageID() wt.ImageID {
 	return u.newImage
 }
 

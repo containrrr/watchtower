@@ -69,7 +69,6 @@ func NewReport(progress Progress) types.Report {
 	}
 
 	sort.Sort(sortableContainers(report.scanned))
-	sort.Sort(sortableContainers(report.scanned))
 	sort.Sort(sortableContainers(report.updated))
 	sort.Sort(sortableContainers(report.failed))
 	sort.Sort(sortableContainers(report.skipped))
