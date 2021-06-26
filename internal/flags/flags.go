@@ -315,9 +315,8 @@ Should only be used for testing.`)
 		"",
 		"The shoutrrr text/template for the messages")
 
-	flags.StringArrayP(
+	flags.StringArray(
 		"notification-url",
-		"",
 		[]string{},
 		"The shoutrrr URL to send notifications to")
 

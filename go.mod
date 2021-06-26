@@ -47,15 +47,13 @@ require (
 	github.com/prometheus/client_golang v0.9.3
 	github.com/robfig/cron v0.0.0-20180505203441-b41be1df6967
 	github.com/sirupsen/logrus v1.4.2
-	github.com/spf13/cobra v0.0.7
-	github.com/spf13/pflag v1.0.5
-	github.com/spf13/viper v1.6.3
-	github.com/stretchr/testify v1.4.0
+	github.com/spf13/cobra v1.1.3
+	github.com/spf13/viper v1.8.1
+	github.com/stretchr/testify v1.7.0
 	github.com/theupdateframework/notary v0.6.1 // indirect
 	github.com/zmap/zlint v1.0.2 // indirect
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9 // indirect
-	golang.org/x/net v0.0.0-20200520004742-59133d7f0dd7
-	golang.org/x/text v0.3.4 // indirect
+	golang.org/x/net v0.0.0-20210405180319-a5a99cb37ef4
 	gopkg.in/dancannon/gorethink.v3 v3.0.5 // indirect
 	gopkg.in/fatih/pool.v2 v2.0.0 // indirect
 	gopkg.in/gorethink/gorethink.v3 v3.0.5 // indirect

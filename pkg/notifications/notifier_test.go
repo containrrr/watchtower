@@ -26,6 +26,7 @@ var _ = Describe("notifications", func() {
 
 			command := cmd.NewRootCommand()
 			flags.RegisterNotificationFlags(command)
+			flags.BindViperFlags(command)
 
 			err := command.ParseFlags([]string{
 				"--notifications",
@@ -218,6 +219,7 @@ func testURL(builder builderFn, args []string, expectedURL string) {
 
 	command := cmd.NewRootCommand()
 	flags.RegisterNotificationFlags(command)
+	flags.BindViperFlags(command)
 
 	err := command.ParseFlags(args)
 	Expect(err).NotTo(HaveOccurred())
