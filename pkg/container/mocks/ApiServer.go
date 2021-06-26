@@ -25,13 +25,13 @@ func NewMockAPIServer() *httptest.Server {
 
 				Filters := r.URL.Query().Get("filters")
 				var result map[string]interface{}
-				json.Unmarshal([]byte(Filters), &result)
+				_ = json.Unmarshal([]byte(Filters), &result)
 				status := result["status"].(map[string]interface{})
 
 				response = getMockJSONFromDisk("./mocks/data/containers.json")
 				var x2 []types.Container
 				var containers []types.Container
-				json.Unmarshal([]byte(response), &containers)
+				_ = json.Unmarshal([]byte(response), &containers)
 				for _, v := range containers {
 					for key := range status {
 						if v.State == key {
@@ -56,7 +56,7 @@ func NewMockAPIServer() *httptest.Server {
 			} else if isRequestFor("sha256:4dbc5f9c07028a985e14d1393e849ea07f68804c4293050d5a641b138db72daa", r) {
 				response = getMockJSONFromDisk("./mocks/data/image02.json")
 			}
-			fmt.Fprintln(w, response)
+			_, _ = fmt.Fprintln(w, response)
 		},
 	))
 }
@@ -67,10 +67,9 @@ func isRequestFor(urlPart string, r *http.Request) bool {
 
 func getMockJSONFromDisk(relPath string) string {
 	absPath, _ := filepath.Abs(relPath)
-	logrus.Error(absPath)
 	buf, err := ioutil.ReadFile(absPath)
 	if err != nil {
-		logrus.Error(err)
+		logrus.WithError(err).WithField("file", absPath).Error(err)
 		return ""
 	}
 	return string(buf)

@@ -3,7 +3,7 @@ package mocks
 import (
 	"github.com/containrrr/watchtower/pkg/container"
 	"github.com/docker/docker/api/types"
-	container2 "github.com/docker/docker/api/types/container"
+	dockerContainer "github.com/docker/docker/api/types/container"
 	"github.com/docker/go-connections/nat"
 	"time"
 )
@@ -16,11 +16,11 @@ func CreateMockContainer(id string, name string, image string, created time.Time
 			Image:   image,
 			Name:    name,
 			Created: created.String(),
-			HostConfig: &container2.HostConfig{
+			HostConfig: &dockerContainer.HostConfig{
 				PortBindings: map[nat.Port][]nat.PortBinding{},
 			},
 		},
-		Config: &container2.Config{
+		Config: &dockerContainer.Config{
 			Image:        image,
 			Labels:       make(map[string]string),
 			ExposedPorts: map[nat.Port]struct{}{},
@@ -46,7 +46,7 @@ func CreateMockContainerWithImageInfo(id string, name string, image string, crea
 			Name:    name,
 			Created: created.String(),
 		},
-		Config: &container2.Config{
+		Config: &dockerContainer.Config{
 			Image:  image,
 			Labels: make(map[string]string),
 		},
@@ -65,7 +65,7 @@ func CreateMockContainerWithDigest(id string, name string, image string, created
 }
 
 // CreateMockContainerWithConfig creates a container substitute valid for testing
-func CreateMockContainerWithConfig(id string, name string, image string, running bool, restarting bool, created time.Time, config *container2.Config) container.Container {
+func CreateMockContainerWithConfig(id string, name string, image string, running bool, restarting bool, created time.Time, config *dockerContainer.Config) container.Container {
 	content := types.ContainerJSON{
 		ContainerJSONBase: &types.ContainerJSONBase{
 			ID:    id,
@@ -76,7 +76,7 @@ func CreateMockContainerWithConfig(id string, name string, image string, running
 				Restarting: restarting,
 			},
 			Created: created.String(),
-			HostConfig: &container2.HostConfig{
+			HostConfig: &dockerContainer.HostConfig{
 				PortBindings: map[nat.Port][]nat.PortBinding{},
 			},
 		},
