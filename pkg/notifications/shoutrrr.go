@@ -49,6 +49,7 @@ type shoutrrrTypeNotifier struct {
 	legacyTemplate bool
 }
 
+// GetScheme returns the scheme part of a Shoutrrr URL
 func GetScheme(url string) string {
 	schemeEnd := strings.Index(url, ":")
 	if schemeEnd <= 0 {

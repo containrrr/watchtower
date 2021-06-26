@@ -6,6 +6,8 @@ import (
 	wt "github.com/containrrr/watchtower/pkg/types"
 )
 
+// CreateMockProgressReport creates a mock report from a given set of container states
+// All containers will be given a unique ID and name based on its state and index
 func CreateMockProgressReport(states ...session.State) wt.Report {
 
 	stateNums := make(map[session.State]int)

@@ -94,6 +94,7 @@ func CreateMockContainerWithConfig(id string, name string, image string, running
 	)
 }
 
+// CreateContainerForProgress creates a container substitute for tracking session/update progress
 func CreateContainerForProgress(index int, idPrefix int, nameFormat string) (container.Container, wt.ImageID) {
 	indexStr := strconv.Itoa(idPrefix + index)
 	mockID := indexStr + strings.Repeat("0", 61-len(indexStr))
