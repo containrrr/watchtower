@@ -8,10 +8,11 @@ import (
 
 // CreateMockProgressReport creates a mock report from a given set of container states
 // All containers will be given a unique ID and name based on its state and index
-func CreateMockProgressReport(states ...session.State) wt.Report {
+func CreateMockProgressReport(states ...session.State) *session.Report {
 
 	stateNums := make(map[session.State]int)
-	progress := session.Progress{}
+	mockSession := session.New(session.SchedulerTrigger)
+	progress := mockSession.Progress
 	failed := make(map[wt.ContainerID]error)
 
 	for _, state := range states {
@@ -41,6 +42,6 @@ func CreateMockProgressReport(states ...session.State) wt.Report {
 	}
 	progress.UpdateFailed(failed)
 
-	return progress.Report()
+	return mockSession.Report()
 
 }

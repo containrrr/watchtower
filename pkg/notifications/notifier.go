@@ -1,6 +1,7 @@
 package notifications
 
 import (
+	"github.com/containrrr/watchtower/pkg/session"
 	ty "github.com/containrrr/watchtower/pkg/types"
 	"github.com/johntdyer/slackrus"
 	log "github.com/sirupsen/logrus"
@@ -8,8 +9,16 @@ import (
 	"os"
 )
 
+// Notifier is the interface that all notification services have in common
+type Notifier interface {
+	StartNotification()
+	SendNotification(report *session.Report)
+	GetNames() []string
+	Close()
+}
+
 // NewNotifier creates and returns a new Notifier, using global configuration.
-func NewNotifier(c *cobra.Command) ty.Notifier {
+func NewNotifier(c *cobra.Command) Notifier {
 	f := c.PersistentFlags()
 
 	level, _ := f.GetString("notifications-level")

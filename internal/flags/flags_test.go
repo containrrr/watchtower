@@ -18,7 +18,7 @@ func TestEnvConfig_Defaults(t *testing.T) {
 	err := EnvConfig(cmd)
 	require.NoError(t, err)
 
-	assert.Equal(t, "unix:///var/run/docker.sock", os.Getenv("DOCKER_HOST"))
+	//	assert.Equal(t, "unix:///var/run/docker.sock", os.Getenv("DOCKER_HOST"))
 	assert.Equal(t, "", os.Getenv("DOCKER_TLS_VERIFY"))
 	// Re-enable this test when we've moved to github actions.
 	// assert.Equal(t, DockerAPIMinVersion, os.Getenv("DOCKER_API_VERSION"))

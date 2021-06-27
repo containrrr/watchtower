@@ -1,4 +1,4 @@
-package metrics_test
+package api_test
 
 import (
 	"fmt"
@@ -6,10 +6,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
-	"testing"
 
 	"github.com/containrrr/watchtower/pkg/api"
-	metricsAPI "github.com/containrrr/watchtower/pkg/api/metrics"
 	"github.com/containrrr/watchtower/pkg/metrics"
 
 	. "github.com/onsi/ginkgo"
@@ -20,11 +18,6 @@ const (
 	token  = "123123123"
 	getURL = "http://localhost:8080/v1/metrics"
 )
-
-func TestMetrics(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Metrics Suite")
-}
 
 func getWithToken(handler http.Handler) map[string]string {
 	metricMap := map[string]string{}
@@ -51,7 +44,7 @@ func getWithToken(handler http.Handler) map[string]string {
 
 var _ = Describe("the metrics API", func() {
 	httpAPI := api.New(token)
-	m := metricsAPI.New()
+	m := api.NewMetricsHandler()
 
 	handleReq := httpAPI.RequireToken(m.Handle)
 	tryGetMetrics := func() map[string]string { return getWithToken(handleReq) }

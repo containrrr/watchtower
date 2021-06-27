@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"github.com/containrrr/watchtower/pkg/session"
 	log "github.com/sirupsen/logrus"
 	"net/http"
 )
@@ -10,8 +11,9 @@ const tokenMissingMsg = "api token is empty or has not been set. exiting"
 
 // API is the http server responsible for serving the HTTP API endpoints
 type API struct {
-	Token       string
-	hasHandlers bool
+	Token        string
+	hasHandlers  bool
+	latestReport session.Report
 }
 
 // New is a factory function creating a new API instance
@@ -73,4 +75,8 @@ func (api *API) Start(block bool) error {
 func runHTTPServer() {
 	log.Info("Serving HTTP")
 	log.Fatal(http.ListenAndServe(":8080", nil))
+}
+
+func (api *API) UpdateReport(report session.Report) {
+	api.latestReport = report
 }

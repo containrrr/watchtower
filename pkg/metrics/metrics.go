@@ -1,7 +1,7 @@
 package metrics
 
 import (
-	"github.com/containrrr/watchtower/pkg/types"
+	"github.com/containrrr/watchtower/pkg/session"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
@@ -26,12 +26,12 @@ type Metrics struct {
 }
 
 // NewMetric returns a Metric with the counts taken from the appropriate types.Report fields
-func NewMetric(report types.Report) *Metric {
+func NewMetric(report *session.Report) *Metric {
 	return &Metric{
-		Scanned: len(report.Scanned()),
+		Scanned: len(report.Scanned),
 		// Note: This is for backwards compatibility. ideally, stale containers should be counted separately
-		Updated: len(report.Updated()) + len(report.Stale()),
-		Failed:  len(report.Failed()),
+		Updated: len(report.Updated) + len(report.Stale),
+		Failed:  len(report.Failed),
 	}
 }
 

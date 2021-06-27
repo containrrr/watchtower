@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/containrrr/watchtower/internal/meta"
+	"github.com/containrrr/watchtower/pkg/session"
 	"math"
 	"os"
 	"os/signal"
@@ -9,9 +10,6 @@ import (
 	"strings"
 	"syscall"
 	"time"
-
-	apiMetrics "github.com/containrrr/watchtower/pkg/api/metrics"
-	"github.com/containrrr/watchtower/pkg/api/update"
 
 	"github.com/containrrr/watchtower/internal/actions"
 	"github.com/containrrr/watchtower/internal/flags"
@@ -34,12 +32,12 @@ var (
 	noRestart      bool
 	monitorOnly    bool
 	enableLabel    bool
-	notifier       t.Notifier
+	notifier       notifications.Notifier
 	timeout        time.Duration
 	lifecycleHooks bool
 	rollingRestart bool
 	scope          string
-	// Set on build using ldflags
+	latestReport   *session.Report
 )
 
 var rootCmd = NewRootCommand()
@@ -156,6 +154,7 @@ func Run(c *cobra.Command, names []string) {
 	runOnce, _ := c.PersistentFlags().GetBool("run-once")
 	enableUpdateAPI, _ := c.PersistentFlags().GetBool("http-api-update")
 	enableMetricsAPI, _ := c.PersistentFlags().GetBool("http-api-metrics")
+	enableReportAPI := true
 	unblockHTTPAPI, _ := c.PersistentFlags().GetBool("http-api-periodic-polls")
 	apiToken, _ := c.PersistentFlags().GetString("http-api-token")
 
@@ -171,7 +170,7 @@ func Run(c *cobra.Command, names []string) {
 
 	if runOnce {
 		writeStartupMessage(c, time.Time{}, filterDesc)
-		runUpdatesWithNotifications(filter)
+		runUpdatesWithNotifications(filter, session.StartupTrigger)
 		notifier.Close()
 		os.Exit(0)
 		return
@@ -188,13 +187,17 @@ func Run(c *cobra.Command, names []string) {
 	httpAPI := api.New(apiToken)
 
 	if enableUpdateAPI {
-		updateHandler := update.New(func() { runUpdatesWithNotifications(filter) }, updateLock)
-		httpAPI.RegisterFunc(updateHandler.Path, updateHandler.Handle)
+		httpAPI.RegisterFunc(api.UpdateEndpoint(func() *metrics.Metric {
+			return runUpdatesWithNotifications(filter, session.APITrigger)
+		}, updateLock))
 	}
 
 	if enableMetricsAPI {
-		metricsHandler := apiMetrics.New()
-		httpAPI.RegisterHandler(metricsHandler.Path, metricsHandler.Handle)
+		httpAPI.RegisterHandler(api.MetricsEndpoint())
+	}
+
+	if enableReportAPI {
+		httpAPI.RegisterHandler(api.ReportEndpoint(&latestReport))
 	}
 
 	if err := httpAPI.Start(enableUpdateAPI && !unblockHTTPAPI); err != nil {
@@ -293,7 +296,7 @@ func runUpgradesOnSchedule(c *cobra.Command, filter t.Filter, filtering string, 
 			select {
 			case v := <-lock:
 				defer func() { lock <- v }()
-				metric := runUpdatesWithNotifications(filter)
+				metric := runUpdatesWithNotifications(filter, session.SchedulerTrigger)
 				metrics.RegisterScan(metric)
 			default:
 				// Update was skipped
@@ -327,7 +330,7 @@ func runUpgradesOnSchedule(c *cobra.Command, filter t.Filter, filtering string, 
 	return nil
 }
 
-func runUpdatesWithNotifications(filter t.Filter) *metrics.Metric {
+func runUpdatesWithNotifications(filter t.Filter, trigger session.Trigger) *metrics.Metric {
 	notifier.StartNotification()
 	updateParams := t.UpdateParams{
 		Filter:         filter,
@@ -338,10 +341,11 @@ func runUpdatesWithNotifications(filter t.Filter) *metrics.Metric {
 		LifecycleHooks: lifecycleHooks,
 		RollingRestart: rollingRestart,
 	}
-	result, err := actions.Update(client, updateParams)
+	result, err := actions.Update(client, updateParams, trigger)
 	if err != nil {
 		log.Error(err)
 	}
+	latestReport = result
 	notifier.SendNotification(result)
 	metricResults := metrics.NewMetric(result)
 	log.Debugf("Session done: %v scanned, %v updated, %v failed",

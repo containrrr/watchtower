@@ -3,13 +3,13 @@ package notifications
 import (
 	"bytes"
 	"fmt"
+	"github.com/containrrr/watchtower/pkg/session"
 	stdlog "log"
 	"strings"
 	"text/template"
 
 	"github.com/containrrr/shoutrrr"
 	"github.com/containrrr/shoutrrr/pkg/types"
-	t "github.com/containrrr/watchtower/pkg/types"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -18,7 +18,7 @@ const (
 	shoutrrrDefaultTemplate       = `{{- with .Report -}}
 {{len .Scanned}} Scanned, {{len .Updated}} Updated, {{len .Failed}} Failed
 {{range .Updated -}}
-- {{.Name}} ({{.ImageName}}): {{.CurrentImageID.ShortID}} updated to {{.LatestImageID.ShortID}}
+- {{.Name}} ({{.ImageName}}): {{.OldImageID.ShortID}} updated to {{.NewImageID.ShortID}}
 {{end -}}
 {{range .Fresh -}}
 - {{.Name}} ({{.ImageName}}): {{.State}}
@@ -66,7 +66,7 @@ func (n *shoutrrrTypeNotifier) GetNames() []string {
 	return names
 }
 
-func newShoutrrrNotifier(tplString string, acceptedLogLevels []log.Level, legacy bool, urls ...string) t.Notifier {
+func newShoutrrrNotifier(tplString string, acceptedLogLevels []log.Level, legacy bool, urls ...string) Notifier {
 
 	notifier := createNotifier(urls, acceptedLogLevels, tplString, legacy)
 	log.AddHook(notifier)
@@ -129,7 +129,7 @@ func (n *shoutrrrTypeNotifier) buildMessage(data Data) string {
 	return body.String()
 }
 
-func (n *shoutrrrTypeNotifier) sendEntries(entries []*log.Entry, report t.Report) {
+func (n *shoutrrrTypeNotifier) sendEntries(entries []*log.Entry, report *session.Report) {
 	msg := n.buildMessage(Data{entries, report})
 	n.messages <- msg
 }
@@ -140,11 +140,7 @@ func (n *shoutrrrTypeNotifier) StartNotification() {
 	}
 }
 
-func (n *shoutrrrTypeNotifier) SendNotification(report t.Report) {
-	//if n.entries == nil || len(n.entries) <= 0 {
-	//	return
-	//}
-
+func (n *shoutrrrTypeNotifier) SendNotification(report *session.Report) {
 	n.sendEntries(n.entries, report)
 	n.entries = nil
 }
@@ -205,5 +201,5 @@ func getShoutrrrTemplate(tplString string, legacy bool) (tpl *template.Template,
 // Data is the notification template data model
 type Data struct {
 	Entries []*log.Entry
-	Report  t.Report
+	Report  *session.Report
 }

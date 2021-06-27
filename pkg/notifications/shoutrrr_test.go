@@ -223,5 +223,7 @@ func getTemplatedResult(tplString string, legacy bool, data Data) (string, error
 	if err != nil {
 		return "", err
 	}
-	return notifier.buildMessage(data), err
+	msg := notifier.buildMessage(data)
+	println(msg)
+	return msg, err
 }

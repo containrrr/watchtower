@@ -15,9 +15,10 @@ import (
 // used to start those containers have been updated. If a change is detected in
 // any of the images, the associated containers are stopped and restarted with
 // the new image.
-func Update(client container.Client, params types.UpdateParams) (types.Report, error) {
+func Update(client container.Client, params types.UpdateParams, trigger session.Trigger) (*session.Report, error) {
 	log.Debug("Checking containers for updated images")
-	progress := &session.Progress{}
+	updateSession := session.New(trigger)
+	progress := updateSession.Progress
 	staleCount := 0
 
 	if params.LifecycleHooks {
@@ -92,7 +93,7 @@ func Update(client container.Client, params types.UpdateParams) (types.Report, e
 	if params.LifecycleHooks {
 		lifecycle.ExecutePostChecks(client, params)
 	}
-	return progress.Report(), nil
+	return updateSession.Report(), nil
 }
 
 func performRollingRestart(containers []container.Container, client container.Client, params types.UpdateParams) map[types.ContainerID]error {
