@@ -34,7 +34,7 @@ var (
 	noRestart      bool
 	monitorOnly    bool
 	enableLabel    bool
-	notifier       *notifications.Notifier
+	notifier       t.Notifier
 	timeout        time.Duration
 	lifecycleHooks bool
 	rollingRestart bool
@@ -268,9 +268,9 @@ func writeStartupMessage(c *cobra.Command, sched time.Time, filtering string) {
 		}
 
 		notifs := "Using no notifications"
-		notifList := notifier.String()
-		if len(notifList) > 0 {
-			notifs = "Using notifications: " + notifList
+		notifierNames := notifier.GetNames()
+		if len(notifierNames) > 0 {
+			notifs = "Using notifications: " + strings.Join(notifierNames, ", ")
 		}
 
 		log.Info("Watchtower ", meta.Version, "\n", notifs, "\n", filtering, "\n", schedMessage)
@@ -338,11 +338,12 @@ func runUpdatesWithNotifications(filter t.Filter) *metrics.Metric {
 		LifecycleHooks: lifecycleHooks,
 		RollingRestart: rollingRestart,
 	}
-	metricResults, err := actions.Update(client, updateParams)
+	result, err := actions.Update(client, updateParams)
 	if err != nil {
 		log.Error(err)
 	}
-	notifier.SendNotification()
+	notifier.SendNotification(result)
+	metricResults := metrics.NewMetric(result)
 	log.Debugf("Session done: %v scanned, %v updated, %v failed",
 		metricResults.Scanned, metricResults.Updated, metricResults.Failed)
 	return metricResults

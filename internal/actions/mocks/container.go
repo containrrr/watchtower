@@ -1,10 +1,14 @@
 package mocks
 
 import (
+	"fmt"
 	"github.com/containrrr/watchtower/pkg/container"
+	wt "github.com/containrrr/watchtower/pkg/types"
 	"github.com/docker/docker/api/types"
-	container2 "github.com/docker/docker/api/types/container"
+	dockerContainer "github.com/docker/docker/api/types/container"
 	"github.com/docker/go-connections/nat"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -16,11 +20,11 @@ func CreateMockContainer(id string, name string, image string, created time.Time
 			Image:   image,
 			Name:    name,
 			Created: created.String(),
-			HostConfig: &container2.HostConfig{
+			HostConfig: &dockerContainer.HostConfig{
 				PortBindings: map[nat.Port][]nat.PortBinding{},
 			},
 		},
-		Config: &container2.Config{
+		Config: &dockerContainer.Config{
 			Image:        image,
 			Labels:       make(map[string]string),
 			ExposedPorts: map[nat.Port]struct{}{},
@@ -46,7 +50,7 @@ func CreateMockContainerWithImageInfo(id string, name string, image string, crea
 			Name:    name,
 			Created: created.String(),
 		},
-		Config: &container2.Config{
+		Config: &dockerContainer.Config{
 			Image:  image,
 			Labels: make(map[string]string),
 		},
@@ -65,18 +69,18 @@ func CreateMockContainerWithDigest(id string, name string, image string, created
 }
 
 // CreateMockContainerWithConfig creates a container substitute valid for testing
-func CreateMockContainerWithConfig(id string, name string, image string, running bool, restarting bool, created time.Time, config *container2.Config) container.Container {
+func CreateMockContainerWithConfig(id string, name string, image string, running bool, restarting bool, created time.Time, config *dockerContainer.Config) container.Container {
 	content := types.ContainerJSON{
 		ContainerJSONBase: &types.ContainerJSONBase{
 			ID:    id,
 			Image: image,
 			Name:  name,
 			State: &types.ContainerState{
-				Running: running,
+				Running:    running,
 				Restarting: restarting,
 			},
 			Created: created.String(),
-			HostConfig: &container2.HostConfig{
+			HostConfig: &dockerContainer.HostConfig{
 				PortBindings: map[nat.Port][]nat.PortBinding{},
 			},
 		},
@@ -88,4 +92,20 @@ func CreateMockContainerWithConfig(id string, name string, image string, running
 			ID: image,
 		},
 	)
+}
+
+// CreateContainerForProgress creates a container substitute for tracking session/update progress
+func CreateContainerForProgress(index int, idPrefix int, nameFormat string) (container.Container, wt.ImageID) {
+	indexStr := strconv.Itoa(idPrefix + index)
+	mockID := indexStr + strings.Repeat("0", 61-len(indexStr))
+	contID := "c79" + mockID
+	contName := fmt.Sprintf(nameFormat, index+1)
+	oldImgID := "01d" + mockID
+	newImgID := "d0a" + mockID
+	imageName := fmt.Sprintf("mock/%s:latest", contName)
+	config := &dockerContainer.Config{
+		Image: imageName,
+	}
+	c := CreateMockContainerWithConfig(contID, contName, oldImgID, true, false, time.Now(), config)
+	return c, wt.ImageID(newImgID)
 }

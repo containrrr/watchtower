@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/containrrr/watchtower/internal/util"
+	wt "github.com/containrrr/watchtower/pkg/types"
 
 	"github.com/docker/docker/api/types"
 	dockercontainer "github.com/docker/docker/api/types/container"
@@ -35,8 +36,8 @@ func (c Container) ContainerInfo() *types.ContainerJSON {
 }
 
 // ID returns the Docker container ID.
-func (c Container) ID() string {
-	return c.containerInfo.ID
+func (c Container) ID() wt.ContainerID {
+	return wt.ContainerID(c.containerInfo.ID)
 }
 
 // IsRunning returns a boolean flag indicating whether or not the current
@@ -59,9 +60,18 @@ func (c Container) Name() string {
 }
 
 // ImageID returns the ID of the Docker image that was used to start the
-// container.
-func (c Container) ImageID() string {
-	return c.imageInfo.ID
+// container. May cause nil dereference if imageInfo is not set!
+func (c Container) ImageID() wt.ImageID {
+	return wt.ImageID(c.imageInfo.ID)
+}
+
+// SafeImageID returns the ID of the Docker image that was used to start the container if available,
+// otherwise returns an empty string
+func (c Container) SafeImageID() wt.ImageID {
+	if c.imageInfo == nil {
+		return ""
+	}
+	return wt.ImageID(c.imageInfo.ID)
 }
 
 // ImageName returns the name of the Docker image that was used to start the

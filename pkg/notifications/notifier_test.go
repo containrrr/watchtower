@@ -4,23 +4,13 @@ import (
 	"fmt"
 	"net/url"
 	"os"
-	"testing"
 
 	"github.com/containrrr/watchtower/cmd"
 	"github.com/containrrr/watchtower/internal/flags"
 	"github.com/containrrr/watchtower/pkg/notifications"
-	"github.com/containrrr/watchtower/pkg/types"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	log "github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
 )
-
-func TestActions(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Notifier Suite")
-}
 
 var _ = Describe("notifications", func() {
 	Describe("the notifier", func() {
@@ -36,11 +26,11 @@ var _ = Describe("notifications", func() {
 			Expect(err).NotTo(HaveOccurred())
 			notif := notifications.NewNotifier(command)
 
-			Expect(notif.String()).To(Equal("none"))
+			Expect(notif.GetNames()).To(BeEmpty())
 		})
 	})
 	Describe("the slack notifier", func() {
-		builderFn := notifications.NewSlackNotifier
+		// builderFn := notifications.NewSlackNotifier
 
 		When("passing a discord url to the slack notifier", func() {
 			command := cmd.NewRootCommand()
@@ -62,11 +52,11 @@ var _ = Describe("notifications", func() {
 
 			It("should return a discord url when using a hook url with the domain discord.com", func() {
 				hookURL := fmt.Sprintf("https://%s/api/webhooks/%s/%s/slack", "discord.com", channel, token)
-				testURL(builderFn, buildArgs(hookURL), expected)
+				testURL(buildArgs(hookURL), expected)
 			})
 			It("should return a discord url when using a hook url with the domain discordapp.com", func() {
 				hookURL := fmt.Sprintf("https://%s/api/webhooks/%s/%s/slack", "discordapp.com", channel, token)
-				testURL(builderFn, buildArgs(hookURL), expected)
+				testURL(buildArgs(hookURL), expected)
 			})
 		})
 		When("converting a slack service config into a shoutrrr url", func() {
@@ -86,21 +76,21 @@ var _ = Describe("notifications", func() {
 				expectedOutput := fmt.Sprintf("slack://%s@%s/%s/%s?color=%s&title=%s", username, tokenA, tokenB, tokenC, color, title)
 
 				args := []string{
+					"--notifications",
+					"slack",
 					"--notification-slack-hook-url",
 					hookURL,
 					"--notification-slack-identifier",
 					username,
 				}
 
-				testURL(builderFn, args, expectedOutput)
+				testURL(args, expectedOutput)
 			})
 		})
 	})
 
 	Describe("the gotify notifier", func() {
 		When("converting a gotify service config into a shoutrrr url", func() {
-			builderFn := notifications.NewGotifyNotifier
-
 			It("should return the expected URL", func() {
 				command := cmd.NewRootCommand()
 				flags.RegisterNotificationFlags(command)
@@ -112,21 +102,21 @@ var _ = Describe("notifications", func() {
 				expectedOutput := fmt.Sprintf("gotify://%s/%s?title=%s", host, token, title)
 
 				args := []string{
+					"--notifications",
+					"gotify",
 					"--notification-gotify-url",
 					fmt.Sprintf("https://%s", host),
 					"--notification-gotify-token",
 					token,
 				}
 
-				testURL(builderFn, args, expectedOutput)
+				testURL(args, expectedOutput)
 			})
 		})
 	})
 
 	Describe("the teams notifier", func() {
 		When("converting a teams service config into a shoutrrr url", func() {
-			builderFn := notifications.NewMsTeamsNotifier
-
 			It("should return the expected URL", func() {
 				command := cmd.NewRootCommand()
 				flags.RegisterNotificationFlags(command)
@@ -141,24 +131,25 @@ var _ = Describe("notifications", func() {
 				expectedOutput := fmt.Sprintf("teams://%s/%s/%s?color=%s&title=%s", tokenA, tokenB, tokenC, color, title)
 
 				args := []string{
+					"--notifications",
+					"msteams",
 					"--notification-msteams-hook",
 					hookURL,
 				}
 
-				testURL(builderFn, args, expectedOutput)
+				testURL(args, expectedOutput)
 			})
 		})
 	})
 
 	Describe("the email notifier", func() {
-
-		builderFn := notifications.NewEmailNotifier
-
 		When("converting an email service config into a shoutrrr url", func() {
 			It("should set the from address in the URL", func() {
 				fromAddress := "lala@example.com"
 				expectedOutput := buildExpectedURL("containrrrbot", "secret-password", "mail.containrrr.dev", 25, fromAddress, "mail@example.com", "Plain")
 				args := []string{
+					"--notifications",
+					"email",
 					"--notification-email-from",
 					fromAddress,
 					"--notification-email-to",
@@ -170,7 +161,7 @@ var _ = Describe("notifications", func() {
 					"--notification-email-server",
 					"mail.containrrr.dev",
 				}
-				testURL(builderFn, args, expectedOutput)
+				testURL(args, expectedOutput)
 			})
 
 			It("should return the expected URL", func() {
@@ -180,6 +171,8 @@ var _ = Describe("notifications", func() {
 				expectedOutput := buildExpectedURL("containrrrbot", "secret-password", "mail.containrrr.dev", 25, fromAddress, toAddress, "Plain")
 
 				args := []string{
+					"--notifications",
+					"email",
 					"--notification-email-from",
 					fromAddress,
 					"--notification-email-to",
@@ -192,7 +185,7 @@ var _ = Describe("notifications", func() {
 					"mail.containrrr.dev",
 				}
 
-				testURL(builderFn, args, expectedOutput)
+				testURL(args, expectedOutput)
 			})
 		})
 	})
@@ -214,9 +207,7 @@ func buildExpectedURL(username string, password string, host string, port int, f
 		url.QueryEscape(to))
 }
 
-type builderFn = func(c *cobra.Command, acceptedLogLevels []log.Level) types.ConvertibleNotifier
-
-func testURL(builder builderFn, args []string, expectedURL string) {
+func testURL(args []string, expectedURL string) {
 
 	command := cmd.NewRootCommand()
 	flags.RegisterNotificationFlags(command)
@@ -224,10 +215,9 @@ func testURL(builder builderFn, args []string, expectedURL string) {
 	err := command.ParseFlags(args)
 	Expect(err).NotTo(HaveOccurred())
 
-	notifier := builder(command, []log.Level{})
-	actualURL, err := notifier.GetURL(command)
+	urls := notifications.AppendLegacyUrls([]string{}, command)
 
 	Expect(err).NotTo(HaveOccurred())
 
-	Expect(actualURL).To(Equal(expectedURL))
+	Expect(urls).To(ContainElement(expectedURL))
 }

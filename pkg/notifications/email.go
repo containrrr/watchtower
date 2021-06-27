@@ -25,11 +25,6 @@ type emailTypeNotifier struct {
 	delay                              time.Duration
 }
 
-// NewEmailNotifier is a factory method creating a new email notifier instance
-func NewEmailNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.ConvertibleNotifier {
-	return newEmailNotifier(c, acceptedLogLevels)
-}
-
 func newEmailNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.ConvertibleNotifier {
 	flags := c.PersistentFlags()
 

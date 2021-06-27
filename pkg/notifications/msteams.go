@@ -18,11 +18,6 @@ type msTeamsTypeNotifier struct {
 	data       bool
 }
 
-// NewMsTeamsNotifier is a factory method creating a new teams notifier instance
-func NewMsTeamsNotifier(cmd *cobra.Command, acceptedLogLevels []log.Level) t.ConvertibleNotifier {
-	return newMsTeamsNotifier(cmd, acceptedLogLevels)
-}
-
 func newMsTeamsNotifier(cmd *cobra.Command, acceptedLogLevels []log.Level) t.ConvertibleNotifier {
 
 	flags := cmd.PersistentFlags()

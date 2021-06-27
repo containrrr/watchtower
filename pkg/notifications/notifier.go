@@ -6,18 +6,10 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"os"
-	"strings"
 )
 
-// Notifier can send log output as notification to admins, with optional batching.
-type Notifier struct {
-	types []ty.Notifier
-}
-
 // NewNotifier creates and returns a new Notifier, using global configuration.
-func NewNotifier(c *cobra.Command) *Notifier {
-	n := &Notifier{}
-
+func NewNotifier(c *cobra.Command) ty.Notifier {
 	f := c.PersistentFlags()
 
 	level, _ := f.GetString("notifications-level")
@@ -32,53 +24,25 @@ func NewNotifier(c *cobra.Command) *Notifier {
 		log.Fatalf("Unsupported notification log level provided: %s", level)
 	}
 
+	reportTemplate, _ := f.GetBool("notification-report")
+	tplString, _ := f.GetString("notification-template")
+	urls, _ := f.GetStringArray("notification-url")
+
+	urls = AppendLegacyUrls(urls, c)
+
+	return newShoutrrrNotifier(tplString, acceptedLogLevels, !reportTemplate, urls...)
+}
+
+// AppendLegacyUrls creates shoutrrr equivalent URLs from legacy notification flags
+func AppendLegacyUrls(urls []string, cmd *cobra.Command) []string {
+
 	// Parse types and create notifiers.
-	types, err := f.GetStringSlice("notifications")
+	types, err := cmd.Flags().GetStringSlice("notifications")
 	if err != nil {
-		log.WithField("could not read notifications argument", log.Fields{"Error": err}).Fatal()
+		log.WithError(err).Fatal("could not read notifications argument")
 	}
-
-	n.types = n.getNotificationTypes(c, acceptedLogLevels, types)
-
-	return n
-}
-
-func (n *Notifier) String() string {
-	if len(n.types) < 1 {
-		return ""
-	}
-
-	sb := strings.Builder{}
-	for _, notif := range n.types {
-		for _, name := range notif.GetNames() {
-			sb.WriteString(name)
-			sb.WriteString(", ")
-		}
-	}
-
-	if sb.Len() < 2 {
-		// No notification services are configured, return early as the separator strip is not applicable
-		return "none"
-	}
-
-	names := sb.String()
-
-	// remove the last separator
-	names = names[:len(names)-2]
-
-	return names
-}
-
-// getNotificationTypes produces an array of notifiers from a list of types
-func (n *Notifier) getNotificationTypes(cmd *cobra.Command, levels []log.Level, types []string) []ty.Notifier {
-	output := make([]ty.Notifier, 0)
 
 	for _, t := range types {
-
-		if t == shoutrrrType {
-			output = append(output, newShoutrrrNotifier(cmd, levels))
-			continue
-		}
 
 		var legacyNotifier ty.ConvertibleNotifier
 		var err error
@@ -89,9 +53,11 @@ func (n *Notifier) getNotificationTypes(cmd *cobra.Command, levels []log.Level, 
 		case slackType:
 			legacyNotifier = newSlackNotifier(cmd, []log.Level{})
 		case msTeamsType:
-			legacyNotifier = newMsTeamsNotifier(cmd, levels)
+			legacyNotifier = newMsTeamsNotifier(cmd, []log.Level{})
 		case gotifyType:
 			legacyNotifier = newGotifyNotifier(cmd, []log.Level{})
+		case shoutrrrType:
+			continue
 		default:
 			log.Fatalf("Unknown notification type %q", t)
 			// Not really needed, used for nil checking static analysis
@@ -102,40 +68,11 @@ func (n *Notifier) getNotificationTypes(cmd *cobra.Command, levels []log.Level, 
 		if err != nil {
 			log.Fatal("failed to create notification config:", err)
 		}
+		urls = append(urls, shoutrrrURL)
 
 		log.WithField("URL", shoutrrrURL).Trace("created Shoutrrr URL from legacy notifier")
-
-		notifier := newShoutrrrNotifierFromURL(
-			cmd,
-			shoutrrrURL,
-			levels,
-		)
-
-		output = append(output, notifier)
 	}
-
-	return output
-}
-
-// StartNotification starts a log batch. Notifications will be accumulated after this point and only sent when SendNotification() is called.
-func (n *Notifier) StartNotification() {
-	for _, t := range n.types {
-		t.StartNotification()
-	}
-}
-
-// SendNotification sends any notifications accumulated since StartNotification() was called.
-func (n *Notifier) SendNotification() {
-	for _, t := range n.types {
-		t.SendNotification()
-	}
-}
-
-// Close closes all notifiers.
-func (n *Notifier) Close() {
-	for _, t := range n.types {
-		t.Close()
-	}
+	return urls
 }
 
 // GetTitle returns a common notification title with hostname appended

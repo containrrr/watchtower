@@ -179,9 +179,8 @@ func RegisterNotificationFlags(rootCmd *cobra.Command) {
 		viper.GetStringSlice("WATCHTOWER_NOTIFICATIONS"),
 		" notification types to send (valid: email, slack, msteams, gotify, shoutrrr)")
 
-	flags.StringP(
+	flags.String(
 		"notifications-level",
-		"",
 		viper.GetString("WATCHTOWER_NOTIFICATIONS_LEVEL"),
 		"The log level used for sending notifications. Possible values: panic, fatal, error, warn, info or debug")
 
@@ -307,17 +306,19 @@ Should only be used for testing.`)
 		`Controls whether watchtower verifies the Gotify server's certificate chain and host name.
 Should only be used for testing.`)
 
-	flags.StringP(
+	flags.String(
 		"notification-template",
-		"",
 		viper.GetString("WATCHTOWER_NOTIFICATION_TEMPLATE"),
 		"The shoutrrr text/template for the messages")
 
-	flags.StringArrayP(
+	flags.StringArray(
 		"notification-url",
-		"",
 		viper.GetStringSlice("WATCHTOWER_NOTIFICATION_URL"),
 		"The shoutrrr URL to send notifications to")
+
+	flags.Bool("notification-report",
+		viper.GetBool("WATCHTOWER_NOTIFICATION_REPORT"),
+		"Use the session report as the notification template data")
 
 	flags.String(
 		"warn-on-head-failure",

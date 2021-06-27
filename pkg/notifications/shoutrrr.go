@@ -11,12 +11,26 @@ import (
 	"github.com/containrrr/shoutrrr/pkg/types"
 	t "github.com/containrrr/watchtower/pkg/types"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
 )
 
 const (
-	shoutrrrDefaultTemplate = "{{range .}}{{.Message}}{{println}}{{end}}"
-	shoutrrrType            = "shoutrrr"
+	shoutrrrDefaultLegacyTemplate = "{{range .}}{{.Message}}{{println}}{{end}}"
+	shoutrrrDefaultTemplate       = `{{- with .Report -}}
+{{len .Scanned}} Scanned, {{len .Updated}} Updated, {{len .Failed}} Failed
+{{range .Updated -}}
+- {{.Name}} ({{.ImageName}}): {{.CurrentImageID.ShortID}} updated to {{.LatestImageID.ShortID}}
+{{end -}}
+{{range .Fresh -}}
+- {{.Name}} ({{.ImageName}}): {{.State}}
+{{end -}}
+{{range .Skipped -}}
+- {{.Name}} ({{.ImageName}}): {{.State}}: {{.Error}}
+{{end -}}
+{{range .Failed -}}
+- {{.Name}} ({{.ImageName}}): {{.State}}: {{.Error}}
+{{end -}}
+{{end -}}`
+	shoutrrrType = "shoutrrr"
 )
 
 type router interface {
@@ -25,41 +39,49 @@ type router interface {
 
 // Implements Notifier, logrus.Hook
 type shoutrrrTypeNotifier struct {
-	Urls      []string
-	Router    router
-	entries   []*log.Entry
-	logLevels []log.Level
-	template  *template.Template
-	messages  chan string
-	done      chan bool
+	Urls           []string
+	Router         router
+	entries        []*log.Entry
+	logLevels      []log.Level
+	template       *template.Template
+	messages       chan string
+	done           chan bool
+	legacyTemplate bool
+}
+
+// GetScheme returns the scheme part of a Shoutrrr URL
+func GetScheme(url string) string {
+	schemeEnd := strings.Index(url, ":")
+	if schemeEnd <= 0 {
+		return "invalid"
+	}
+	return url[:schemeEnd]
 }
 
 func (n *shoutrrrTypeNotifier) GetNames() []string {
 	names := make([]string, len(n.Urls))
 	for i, u := range n.Urls {
-		schemeEnd := strings.Index(u, ":")
-		if schemeEnd <= 0 {
-			names[i] = "invalid"
-			continue
-		}
-		names[i] = u[:schemeEnd]
+		names[i] = GetScheme(u)
 	}
 	return names
 }
 
-func newShoutrrrNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.Notifier {
-	flags := c.PersistentFlags()
-	urls, _ := flags.GetStringArray("notification-url")
-	tpl := getShoutrrrTemplate(c)
-	return createSender(urls, acceptedLogLevels, tpl)
+func newShoutrrrNotifier(tplString string, acceptedLogLevels []log.Level, legacy bool, urls ...string) t.Notifier {
+
+	notifier := createNotifier(urls, acceptedLogLevels, tplString, legacy)
+	log.AddHook(notifier)
+
+	// Do the sending in a separate goroutine so we don't block the main process.
+	go sendNotifications(notifier)
+
+	return notifier
 }
 
-func newShoutrrrNotifierFromURL(c *cobra.Command, url string, levels []log.Level) t.Notifier {
-	tpl := getShoutrrrTemplate(c)
-	return createSender([]string{url}, levels, tpl)
-}
-
-func createSender(urls []string, levels []log.Level, template *template.Template) t.Notifier {
+func createNotifier(urls []string, levels []log.Level, tplString string, legacy bool) *shoutrrrTypeNotifier {
+	tpl, err := getShoutrrrTemplate(tplString, legacy)
+	if err != nil {
+		log.Errorf("Could not use configured notification template: %s. Using default template", err)
+	}
 
 	traceWriter := log.StandardLogger().WriterLevel(log.TraceLevel)
 	r, err := shoutrrr.NewSender(stdlog.New(traceWriter, "Shoutrrr: ", 0), urls...)
@@ -67,21 +89,15 @@ func createSender(urls []string, levels []log.Level, template *template.Template
 		log.Fatalf("Failed to initialize Shoutrrr notifications: %s\n", err.Error())
 	}
 
-	n := &shoutrrrTypeNotifier{
-		Urls:      urls,
-		Router:    r,
-		messages:  make(chan string, 1),
-		done:      make(chan bool),
-		logLevels: levels,
-		template:  template,
+	return &shoutrrrTypeNotifier{
+		Urls:           urls,
+		Router:         r,
+		messages:       make(chan string, 1),
+		done:           make(chan bool),
+		logLevels:      levels,
+		template:       tpl,
+		legacyTemplate: legacy,
 	}
-
-	log.AddHook(n)
-
-	// Do the sending in a separate goroutine so we don't block the main process.
-	go sendNotifications(n)
-
-	return n
 }
 
 func sendNotifications(n *shoutrrrTypeNotifier) {
@@ -90,8 +106,9 @@ func sendNotifications(n *shoutrrrTypeNotifier) {
 
 		for i, err := range errs {
 			if err != nil {
+				scheme := GetScheme(n.Urls[i])
 				// Use fmt so it doesn't trigger another notification.
-				fmt.Println("Failed to send notification via shoutrrr (url="+n.Urls[i]+"): ", err)
+				fmt.Printf("Failed to send shoutrrr notification (#%d, %s): %v\n", i, scheme, err)
 			}
 		}
 	}
@@ -99,17 +116,21 @@ func sendNotifications(n *shoutrrrTypeNotifier) {
 	n.done <- true
 }
 
-func (n *shoutrrrTypeNotifier) buildMessage(entries []*log.Entry) string {
+func (n *shoutrrrTypeNotifier) buildMessage(data Data) string {
 	var body bytes.Buffer
-	if err := n.template.Execute(&body, entries); err != nil {
+	var templateData interface{} = data
+	if n.legacyTemplate {
+		templateData = data.Entries
+	}
+	if err := n.template.Execute(&body, templateData); err != nil {
 		fmt.Printf("Failed to execute Shoutrrrr template: %s\n", err.Error())
 	}
 
 	return body.String()
 }
 
-func (n *shoutrrrTypeNotifier) sendEntries(entries []*log.Entry) {
-	msg := n.buildMessage(entries)
+func (n *shoutrrrTypeNotifier) sendEntries(entries []*log.Entry, report t.Report) {
+	msg := n.buildMessage(Data{entries, report})
 	n.messages <- msg
 }
 
@@ -119,12 +140,12 @@ func (n *shoutrrrTypeNotifier) StartNotification() {
 	}
 }
 
-func (n *shoutrrrTypeNotifier) SendNotification() {
-	if n.entries == nil || len(n.entries) <= 0 {
-		return
-	}
+func (n *shoutrrrTypeNotifier) SendNotification(report t.Report) {
+	//if n.entries == nil || len(n.entries) <= 0 {
+	//	return
+	//}
 
-	n.sendEntries(n.entries)
+	n.sendEntries(n.entries, report)
 	n.entries = nil
 }
 
@@ -146,36 +167,23 @@ func (n *shoutrrrTypeNotifier) Fire(entry *log.Entry) error {
 		n.entries = append(n.entries, entry)
 	} else {
 		// Log output generated outside a cycle is sent immediately.
-		n.sendEntries([]*log.Entry{entry})
+		n.sendEntries([]*log.Entry{entry}, nil)
 	}
 	return nil
 }
 
-func getShoutrrrTemplate(c *cobra.Command) *template.Template {
-	var tpl *template.Template
-
-	flags := c.PersistentFlags()
-
-	tplString, err := flags.GetString("notification-template")
-
+func getShoutrrrTemplate(tplString string, legacy bool) (tpl *template.Template, err error) {
 	funcs := template.FuncMap{
 		"ToUpper": strings.ToUpper,
 		"ToLower": strings.ToLower,
 		"Title":   strings.Title,
 	}
+	tplBase := template.New("").Funcs(funcs)
 
 	// If we succeed in getting a non-empty template configuration
 	// try to parse the template string.
-	if tplString != "" && err == nil {
-		tpl, err = template.New("").Funcs(funcs).Parse(tplString)
-	}
-
-	// In case of errors (either from parsing the template string
-	// or from getting the template configuration) log an error
-	// message about this and the fact that we'll use the default
-	// template instead.
-	if err != nil {
-		log.Errorf("Could not use configured notification template: %s. Using default template", err)
+	if tplString != "" {
+		tpl, err = tplBase.Parse(tplString)
 	}
 
 	// If we had an error (either from parsing the template string
@@ -183,8 +191,19 @@ func getShoutrrrTemplate(c *cobra.Command) *template.Template {
 	// template wasn't configured (the empty template string)
 	// fallback to using the default template.
 	if err != nil || tplString == "" {
-		tpl = template.Must(template.New("").Funcs(funcs).Parse(shoutrrrDefaultTemplate))
+		defaultTemplate := shoutrrrDefaultTemplate
+		if legacy {
+			defaultTemplate = shoutrrrDefaultLegacyTemplate
+		}
+
+		tpl = template.Must(tplBase.Parse(defaultTemplate))
 	}
 
-	return tpl
+	return
+}
+
+// Data is the notification template data model
+type Data struct {
+	Entries []*log.Entry
+	Report  t.Report
 }
