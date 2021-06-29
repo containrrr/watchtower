@@ -178,9 +178,10 @@ Will only monitor for new images, send notifications and invoke
 the [pre-check/post-check hooks](https://containrrr.dev/watchtower/lifecycle-hooks/), but will __not__ update the
 containers.
 
-!!! note Due to Docker API limitations the latest image will still be pulled from the registry.  
-The HEAD digest checks allows watchtower to skip pulling when there are no changes, but to know _what_ has changed it
-will still do a pull whenever the repository digest doesn't match the local image digest.
+!!! note
+    Due to Docker API limitations the latest image will still be pulled from the registry.
+    The HEAD digest checks allows watchtower to skip pulling when there are no changes, but to know _what_ has changed it
+    will still do a pull whenever the repository digest doesn't match the local image digest.
 
 ```text
             Argument: --monitor-only
