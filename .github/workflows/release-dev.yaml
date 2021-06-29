@@ -16,7 +16,7 @@ jobs:
         with:
           go-version: 1.15
       - name: Build
-        run: go build -v ./...
+        run: ./build.sh
   test:
     runs-on: ubuntu-latest
     steps:
