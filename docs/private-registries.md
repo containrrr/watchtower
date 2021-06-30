@@ -104,8 +104,9 @@ in a volume that may be mounted onto your watchtower container.
 
 1.  Create the Dockerfile (contents below):
     ```Dockerfile
-    FROM golang:1.15
+    FROM golang:1.16
     
+    ENV GO111MODULE off
     ENV CGO_ENABLED 0
     ENV REPO github.com/awslabs/amazon-ecr-credential-helper/ecr-login/cli/docker-credential-ecr-login
     
