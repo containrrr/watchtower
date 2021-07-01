@@ -22,6 +22,23 @@ var legacyMockData = Data{
 	},
 }
 
+var mockDataMultipleEntries = Data{
+	Entries: []*logrus.Entry{
+		{
+			Level:   logrus.InfoLevel,
+			Message: "The situation is under control",
+		},
+		{
+			Level:   logrus.WarnLevel,
+			Message: "All the smoke might be covering up some problems",
+		},
+		{
+			Level:   logrus.ErrorLevel,
+			Message: "Turns out everything is on fire",
+		},
+	},
+}
+
 var mockDataAllFresh = Data{
 	Entries: []*logrus.Entry{},
 	Report:  mocks.CreateMockProgressReport(s.FreshState),
@@ -180,7 +197,11 @@ var _ = Describe("Shoutrrr", func() {
 			})
 			When("the report is nil", func() {
 				It("should return the logged entries", func() {
-					Expect(getTemplatedResult(``, false, legacyMockData)).To(Equal("foo Bar\n"))
+					expected := `The situation is under control
+All the smoke might be covering up some problems
+Turns out everything is on fire
+`
+					Expect(getTemplatedResult(``, false, mockDataMultipleEntries)).To(Equal(expected))
 				})
 			})
 		})

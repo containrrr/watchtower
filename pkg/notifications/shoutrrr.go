@@ -37,8 +37,8 @@ const (
     {{- end -}}
   {{- end -}}
 {{- else -}}
-  {{range .Entries}}{{.Message}}{{end}}
-{{end -}}`
+  {{range .Entries -}}{{.Message}}{{"\n"}}{{- end -}}
+{{- end -}}`
 	shoutrrrType = "shoutrrr"
 )
 
