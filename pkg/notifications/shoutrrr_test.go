@@ -22,6 +22,11 @@ var legacyMockData = Data{
 	},
 }
 
+var mockDataAllFresh = Data{
+	Entries: []*logrus.Entry{},
+	Report:  mocks.CreateMockProgressReport(s.FreshState),
+}
+
 func mockDataFromStates(states ...s.State) Data {
 	return Data{
 		Entries: legacyMockData.Entries,
@@ -56,7 +61,8 @@ var _ = Describe("Shoutrrr", func() {
 					},
 				}
 
-				s := shoutrrr.buildMessage(Data{Entries: entries})
+				s, err := shoutrrr.buildMessage(Data{Entries: entries})
+				Expect(err).NotTo(HaveOccurred())
 
 				Expect(s).To(Equal("foo bar\n"))
 			})
@@ -80,9 +86,18 @@ var _ = Describe("Shoutrrr", func() {
 					},
 				}
 
-				s := shoutrrr.buildMessage(Data{Entries: entries})
+				s, err := shoutrrr.buildMessage(Data{Entries: entries})
+				Expect(err).NotTo(HaveOccurred())
 
 				Expect(s).To(Equal("info: foo bar\n"))
+			})
+		})
+
+		Describe("the default template", func() {
+			When("all containers are fresh", func() {
+				It("should return an empty string", func() {
+					Expect(getTemplatedResult(``, true, mockDataAllFresh)).To(Equal(""))
+				})
 			})
 		})
 
@@ -90,11 +105,15 @@ var _ = Describe("Shoutrrr", func() {
 			It("should format the messages using the default template", func() {
 				invNotif, err := createNotifierWithTemplate(`{{ intentionalSyntaxError`, true)
 				Expect(err).To(HaveOccurred())
+				invMsg, err := invNotif.buildMessage(legacyMockData)
+				Expect(err).NotTo(HaveOccurred())
 
 				defNotif, err := createNotifierWithTemplate(``, true)
 				Expect(err).ToNot(HaveOccurred())
+				defMsg, err := defNotif.buildMessage(legacyMockData)
+				Expect(err).ToNot(HaveOccurred())
 
-				Expect(invNotif.buildMessage(legacyMockData)).To(Equal(defNotif.buildMessage(legacyMockData)))
+				Expect(invMsg).To(Equal(defMsg))
 			})
 		})
 
@@ -130,18 +149,39 @@ var _ = Describe("Shoutrrr", func() {
 - updt2 (mock/updt2:latest): 01d120000000 updated to d0a120000000
 - frsh1 (mock/frsh1:latest): Fresh
 - skip1 (mock/skip1:latest): Skipped: unpossible
-- fail1 (mock/fail1:latest): Failed: accidentally the whole container
-`
+- fail1 (mock/fail1:latest): Failed: accidentally the whole container`
 				data := mockDataFromStates(s.UpdatedState, s.FreshState, s.FailedState, s.SkippedState, s.UpdatedState)
 				Expect(getTemplatedResult(``, false, data)).To(Equal(expected))
 			})
 
-			It("should format the messages using the default template", func() {
-				expected := `1 Scanned, 0 Updated, 0 Failed
-- frsh1 (mock/frsh1:latest): Fresh
-`
-				data := mockDataFromStates(s.FreshState)
-				Expect(getTemplatedResult(``, false, data)).To(Equal(expected))
+		})
+
+		Describe("the default template", func() {
+			When("all containers are fresh", func() {
+				It("should return an empty string", func() {
+					Expect(getTemplatedResult(``, false, mockDataAllFresh)).To(Equal(""))
+				})
+			})
+			When("at least one container was updated", func() {
+				It("should send a report", func() {
+					expected := `1 Scanned, 1 Updated, 0 Failed
+- updt1 (mock/updt1:latest): 01d110000000 updated to d0a110000000`
+					data := mockDataFromStates(s.UpdatedState)
+					Expect(getTemplatedResult(``, false, data)).To(Equal(expected))
+				})
+			})
+			When("at least one container failed to update", func() {
+				It("should send a report", func() {
+					expected := `1 Scanned, 0 Updated, 1 Failed
+- fail1 (mock/fail1:latest): Failed: accidentally the whole container`
+					data := mockDataFromStates(s.FailedState)
+					Expect(getTemplatedResult(``, false, data)).To(Equal(expected))
+				})
+			})
+			When("the report is nil", func() {
+				It("should return the logged entries", func() {
+					Expect(getTemplatedResult(``, false, legacyMockData)).To(Equal("foo Bar\n"))
+				})
 			})
 		})
 	})
@@ -218,10 +258,10 @@ func createNotifierWithTemplate(tplString string, legacy bool) (*shoutrrrTypeNot
 	}, err
 }
 
-func getTemplatedResult(tplString string, legacy bool, data Data) (string, error) {
+func getTemplatedResult(tplString string, legacy bool, data Data) (msg string) {
 	notifier, err := createNotifierWithTemplate(tplString, legacy)
-	if err != nil {
-		return "", err
-	}
-	return notifier.buildMessage(data), err
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
+	msg, err = notifier.buildMessage(data)
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
+	return msg
 }

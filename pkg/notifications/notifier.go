@@ -30,7 +30,8 @@ func NewNotifier(c *cobra.Command) ty.Notifier {
 
 	urls = AppendLegacyUrls(urls, c)
 
-	return newShoutrrrNotifier(tplString, acceptedLogLevels, !reportTemplate, urls...)
+	title := GetTitle(c)
+	return newShoutrrrNotifier(tplString, acceptedLogLevels, !reportTemplate, title, urls...)
 }
 
 // AppendLegacyUrls creates shoutrrr equivalent URLs from legacy notification flags
