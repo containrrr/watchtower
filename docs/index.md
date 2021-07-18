@@ -17,9 +17,6 @@
   <a href="https://godoc.org/github.com/containrrr/watchtower">
     <img alt="GoDoc" src="https://godoc.org/github.com/containrrr/watchtower?status.svg" />
   </a>
-  <a href="https://microbadger.com/images/containrrr/watchtower">
-    <img alt="Microbadger" src="https://images.microbadger.com/badges/image/containrrr/watchtower.svg" />
-  </a>
   <a href="https://goreportcard.com/report/github.com/containrrr/watchtower">
     <img alt="Go Report Card" src="https://goreportcard.com/badge/github.com/containrrr/watchtower" />
   </a>
@@ -58,8 +55,8 @@ the following command:
     ```yaml
     version: "3"
     services:
-    watchtower:
-    image: containrrr/watchtower 
-    volumes:
-    - /var/run/docker.sock:/var/run/docker.sock
+      watchtower:
+        image: containrrr/watchtower
+        volumes:
+          - /var/run/docker.sock:/var/run/docker.sock
     ```

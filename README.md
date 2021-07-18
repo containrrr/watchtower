@@ -9,7 +9,6 @@
   [![Circle CI](https://circleci.com/gh/containrrr/watchtower.svg?style=shield)](https://circleci.com/gh/containrrr/watchtower)
   [![codecov](https://codecov.io/gh/containrrr/watchtower/branch/main/graph/badge.svg)](https://codecov.io/gh/containrrr/watchtower)
   [![GoDoc](https://godoc.org/github.com/containrrr/watchtower?status.svg)](https://godoc.org/github.com/containrrr/watchtower)
-  [![Microbadger](https://images.microbadger.com/badges/image/containrrr/watchtower.svg)](https://microbadger.com/images/containrrr/watchtower)
   [![Go Report Card](https://goreportcard.com/badge/github.com/containrrr/watchtower)](https://goreportcard.com/report/github.com/containrrr/watchtower)
   [![latest version](https://img.shields.io/github/tag/containrrr/watchtower.svg)](https://github.com/containrrr/watchtower/releases)
   [![Apache-2.0 License](https://img.shields.io/github/license/containrrr/watchtower.svg)](https://www.apache.org/licenses/LICENSE-2.0)
