@@ -58,5 +58,5 @@ the following command:
       watchtower:
         image: containrrr/watchtower
         volumes:
-        - /var/run/docker.sock:/var/run/docker.sock
+          - /var/run/docker.sock:/var/run/docker.sock
     ```
