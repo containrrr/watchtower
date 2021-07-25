@@ -2,6 +2,7 @@ package container
 
 import (
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	"strconv"
 	"strings"
 
@@ -82,6 +83,24 @@ func (c Container) ImageName() string {
 	imageName, ok := c.getLabelValue(zodiacLabel)
 	if !ok {
 		imageName = c.containerInfo.Config.Image
+	}
+
+	if strings.HasPrefix(imageName, "sha256:") {
+		var tags []string
+		if c.imageInfo != nil {
+			tags = c.imageInfo.RepoTags
+		}
+
+		if len(tags) == 1 {
+			// image has a single repo tag
+			return tags[0]
+		} else if len(tags) < 1 {
+			log.Warn("hash container image with no image info")
+			return ""
+		} else {
+			log.WithField("tags", tags).Warn("hash container image with multiple tags in image info")
+			return ""
+		}
 	}
 
 	if !strings.Contains(imageName, ":") {
