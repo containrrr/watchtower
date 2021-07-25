@@ -59,6 +59,8 @@ var _ = Describe("Digests", func() {
 		mockCreated,
 		mockDigest)
 
+	mockContainerNoImage := mocks.CreateMockContainerWithImageInfoP(mockId, mockName, mockImage, mockCreated, nil)
+
 	When("a digest comparison is done", func() {
 		It("should return true if digests match",
 			SkipIfCredentialsEmpty(GHCRCredentials, func() {
@@ -74,6 +76,11 @@ var _ = Describe("Digests", func() {
 		})
 		It("should return an error if the registry isn't available", func() {
 
+		})
+		It("should return an error when container contains no image info", func() {
+			matches, err := digest.CompareDigest(mockContainerNoImage, `user:pass`)
+			Expect(err).To(HaveOccurred())
+			Expect(matches).To(Equal(false))
 		})
 	})
 	When("using different registries", func() {
