@@ -8,10 +8,11 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
-
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
+
+var allButTrace = logrus.AllLevels[0:logrus.TraceLevel]
 
 var legacyMockData = Data{
 	Entries: []*logrus.Entry{
@@ -57,6 +58,7 @@ var _ = Describe("Shoutrrr", func() {
 	BeforeEach(func() {
 		logBuffer = gbytes.NewBuffer()
 		logrus.SetOutput(logBuffer)
+		logrus.SetLevel(logrus.TraceLevel)
 		logrus.SetFormatter(&logrus.TextFormatter{
 			DisableColors:    true,
 			DisableTimestamp: true,
@@ -203,6 +205,26 @@ Turns out everything is on fire
 `
 					Expect(getTemplatedResult(``, false, mockDataMultipleEntries)).To(Equal(expected))
 				})
+			})
+		})
+	})
+
+	When("batching notifications", func() {
+		When("no messages are queued", func() {
+			It("should not send any notification", func() {
+				shoutrrr := newShoutrrrNotifier("", allButTrace, true, "", "logger://")
+				shoutrrr.StartNotification()
+				shoutrrr.SendNotification(nil)
+				Consistently(logBuffer).ShouldNot(gbytes.Say(`Shoutrrr:`))
+			})
+		})
+		When("at least one message is queued", func() {
+			It("should send a notification", func() {
+				shoutrrr := newShoutrrrNotifier("", allButTrace, true, "", "logger://")
+				shoutrrr.StartNotification()
+				logrus.Info("This log message is sponsored by ContainrrrVPN")
+				shoutrrr.SendNotification(nil)
+				Eventually(logBuffer).Should(gbytes.Say(`Shoutrrr: This log message is sponsored by ContainrrrVPN`))
 			})
 		})
 	})
