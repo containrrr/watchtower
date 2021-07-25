@@ -3,6 +3,7 @@ package mocks
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/onsi/ginkgo"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -55,6 +56,22 @@ func NewMockAPIServer() *httptest.Server {
 				response = getMockJSONFromDisk("./mocks/data/image01.json")
 			} else if isRequestFor("sha256:4dbc5f9c07028a985e14d1393e849ea07f68804c4293050d5a641b138db72daa", r) {
 				response = getMockJSONFromDisk("./mocks/data/image02.json")
+			} else if isRequestFor("containers/ex-cont-id/exec", r) {
+				response = `{"Id": "ex-exec-id"}`
+			} else if isRequestFor("exec/ex-exec-id/start", r) {
+				response = `{"Id": "ex-exec-id"}`
+			} else if isRequestFor("exec/ex-exec-id/json", r) {
+				response = `{
+    				"ExecID": "ex-exec-id",
+					"ContainerID": "ex-cont-id",
+					"Running": false,
+					"ExitCode": 0,
+					"Pid": 0
+				}`
+			} else {
+				// Allow ginkgo to correctly capture the failed assertion, even though this is called from a go func
+				defer ginkgo.GinkgoRecover()
+				ginkgo.Fail(fmt.Sprintf("mock API server endpoint not supported: %q", r.URL.String()))
 			}
 			_, _ = fmt.Fprintln(w, response)
 		},
