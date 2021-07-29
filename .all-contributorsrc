@@ -767,6 +767,15 @@
       "contributions": [
         "doc"
       ]
+    },
+    {
+      "login": "djquan",
+      "name": "Dan Quan",
+      "avatar_url": "https://avatars.githubusercontent.com/u/3526705?v=4",
+      "profile": "https://quan.io",
+      "contributions": [
+        "doc"
+      ]
     }
   ],
   "contributorsPerLine": 7,
