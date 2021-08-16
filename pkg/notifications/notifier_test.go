@@ -60,31 +60,56 @@ var _ = Describe("notifications", func() {
 			})
 		})
 		When("converting a slack service config into a shoutrrr url", func() {
+			command := cmd.NewRootCommand()
+			flags.RegisterNotificationFlags(command)
+			username := "containrrrbot"
+			tokenA := "AAAAAAAAA"
+			tokenB := "BBBBBBBBB"
+			tokenC := "123456789123456789123456"
+			color := url.QueryEscape(notifications.ColorHex)
+			title := url.QueryEscape(notifications.GetTitle(command))
+			iconURL := "https://containrrr.dev/watchtower-sq180.png"
+			iconEmoji := "whale"
 
-			It("should return the expected URL", func() {
-				command := cmd.NewRootCommand()
-				flags.RegisterNotificationFlags(command)
+			When("icon URL is specified", func() {
+				It("should return the expected URL", func() {
 
-				username := "containrrrbot"
-				tokenA := "AAAAAAAAA"
-				tokenB := "BBBBBBBBB"
-				tokenC := "123456789123456789123456"
-				color := url.QueryEscape(notifications.ColorHex)
-				title := url.QueryEscape(notifications.GetTitle(command))
+					hookURL := fmt.Sprintf("https://hooks.slack.com/services/%s/%s/%s", tokenA, tokenB, tokenC)
+					expectedOutput := fmt.Sprintf("slack://hook:%s-%s-%s@webhook?botname=%s&color=%s&icon=%s&title=%s", tokenA, tokenB, tokenC, username, color, url.QueryEscape(iconURL), title)
 
-				hookURL := fmt.Sprintf("https://hooks.slack.com/services/%s/%s/%s", tokenA, tokenB, tokenC)
-				expectedOutput := fmt.Sprintf("slack://hook:%s-%s-%s@webhook?botname=%s&color=%s&title=%s", tokenA, tokenB, tokenC, username, color, title)
+					args := []string{
+						"--notifications",
+						"slack",
+						"--notification-slack-hook-url",
+						hookURL,
+						"--notification-slack-identifier",
+						username,
+						"--notification-slack-icon-url",
+						iconURL,
+					}
 
-				args := []string{
-					"--notifications",
-					"slack",
-					"--notification-slack-hook-url",
-					hookURL,
-					"--notification-slack-identifier",
-					username,
-				}
+					testURL(args, expectedOutput)
+				})
+			})
 
-				testURL(args, expectedOutput)
+			When("icon emoji is specified", func() {
+				It("should return the expected URL", func() {
+					hookURL := fmt.Sprintf("https://hooks.slack.com/services/%s/%s/%s", tokenA, tokenB, tokenC)
+					expectedOutput := fmt.Sprintf("slack://hook:%s-%s-%s@webhook?botname=%s&color=%s&icon=%s&title=%s", tokenA, tokenB, tokenC, username, color, iconEmoji, title)
+
+					args := []string{
+						"--notifications",
+						"slack",
+						"--notification-slack-hook-url",
+						hookURL,
+						"--notification-slack-identifier",
+						username,
+						"--notification-slack-icon-emoji",
+						iconEmoji,
+					}
+
+					testURL(args, expectedOutput)
+				})
 			})
 		})
 	})
