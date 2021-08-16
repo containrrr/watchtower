@@ -64,7 +64,14 @@ func (s *slackTypeNotifier) GetURL(c *cobra.Command) (string, error) {
 	conf := &shoutrrrSlack.Config{
 		BotName: s.Username,
 		Color:   ColorHex,
+		Channel: "webhook",
 		Title:   GetTitle(c),
+	}
+
+	if s.IconURL != "" {
+		conf.Icon = s.IconURL
+	} else if s.IconEmoji != "" {
+		conf.Icon = s.IconEmoji
 	}
 
 	if err := conf.Token.SetFromProp(webhookToken); err != nil {

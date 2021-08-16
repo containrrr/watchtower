@@ -66,14 +66,14 @@ var _ = Describe("notifications", func() {
 				flags.RegisterNotificationFlags(command)
 
 				username := "containrrrbot"
-				tokenA := "aaa"
-				tokenB := "bbb"
-				tokenC := "ccc"
+				tokenA := "AAAAAAAAA"
+				tokenB := "BBBBBBBBB"
+				tokenC := "123456789123456789123456"
 				color := url.QueryEscape(notifications.ColorHex)
 				title := url.QueryEscape(notifications.GetTitle(command))
 
 				hookURL := fmt.Sprintf("https://hooks.slack.com/services/%s/%s/%s", tokenA, tokenB, tokenC)
-				expectedOutput := fmt.Sprintf("slack://%s@%s/%s/%s?color=%s&title=%s", username, tokenA, tokenB, tokenC, color, title)
+				expectedOutput := fmt.Sprintf("slack://hook:%s-%s-%s@webhook?botname=%s&color=%s&title=%s", tokenA, tokenB, tokenC, username, color, title)
 
 				args := []string{
 					"--notifications",
@@ -208,6 +208,7 @@ func buildExpectedURL(username string, password string, host string, port int, f
 }
 
 func testURL(args []string, expectedURL string) {
+	defer GinkgoRecover()
 
 	command := cmd.NewRootCommand()
 	flags.RegisterNotificationFlags(command)
