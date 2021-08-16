@@ -40,7 +40,7 @@ var _ = Describe("notifications", func() {
 			token := "abvsihdbau"
 			color := notifications.ColorInt
 			title := url.QueryEscape(notifications.GetTitle(command))
-			expected := fmt.Sprintf("discord://%s@%s?color=0x%x&colordebug=0x0&colorerror=0x0&colorinfo=0x0&colorwarn=0x0&splitlines=Yes&title=%s&username=watchtower", token, channel, color, title)
+			expected := fmt.Sprintf("discord://%s@%s?color=0x%x&colordebug=0x0&colorerror=0x0&colorinfo=0x0&colorwarn=0x0&title=%s&username=watchtower", token, channel, color, title)
 			buildArgs := func(url string) []string {
 				return []string{
 					"--notifications",
