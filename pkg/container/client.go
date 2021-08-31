@@ -212,7 +212,7 @@ func (client dockerClient) StartContainer(c Container) (t.ContainerID, error) {
 	name := c.Name()
 
 	log.Infof("Creating %s", name)
-	createdContainer, err := client.api.ContainerCreate(bg, config, hostConfig, simpleNetworkConfig, name)
+	createdContainer, err := client.api.ContainerCreate(bg, config, hostConfig, simpleNetworkConfig, nil, name)
 	if err != nil {
 		return "", err
 	}

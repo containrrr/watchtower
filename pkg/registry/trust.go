@@ -1,16 +1,17 @@
 package registry
 
 import (
+	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"os"
 	"strings"
 
-	"github.com/docker/cli/cli/command"
 	cliconfig "github.com/docker/cli/cli/config"
 	"github.com/docker/cli/cli/config/configfile"
 	"github.com/docker/cli/cli/config/credentials"
+	"github.com/docker/cli/cli/config/types"
 	"github.com/docker/distribution/reference"
-	"github.com/docker/docker/api/types"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -96,6 +97,10 @@ func CredentialsStore(configFile configfile.ConfigFile) credentials.Store {
 }
 
 // EncodeAuth Base64 encode an AuthConfig struct for transmission over HTTP
-func EncodeAuth(auth types.AuthConfig) (string, error) {
-	return command.EncodeAuthToBase64(auth)
+func EncodeAuth(authConfig types.AuthConfig) (string, error) {
+	buf, err := json.Marshal(authConfig)
+	if err != nil {
+		return "", err
+	}
+	return base64.URLEncoding.EncodeToString(buf), nil
 }
