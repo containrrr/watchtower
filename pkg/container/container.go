@@ -244,7 +244,10 @@ func (c Container) runtimeConfig() *dockercontainer.Config {
 		}
 	}
 	for p := range c.containerInfo.HostConfig.PortBindings {
-		config.ExposedPorts[p] = struct{}{}
+		// config.ExposedPorts isn't reliably in sync with HostConfig.PortBindings, so we can't assign directly to map without checking
+		if _, ok := config.ExposedPorts[p]; ok {
+			config.ExposedPorts[p] = struct{}{}
+		}
 	}
 
 	config.Image = c.ImageName()
@@ -296,10 +299,6 @@ func (c Container) VerifyConfiguration() error {
 	hostConfig := containerInfo.HostConfig
 	if hostConfig == nil {
 		return errorInvalidConfig
-	}
-
-	if len(hostConfig.PortBindings) > 0 && containerConfig.ExposedPorts == nil {
-		return errorNoExposedPorts
 	}
 
 	return nil
