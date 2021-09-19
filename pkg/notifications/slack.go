@@ -49,7 +49,7 @@ func (s *slackTypeNotifier) GetURL(c *cobra.Command) (string, error) {
 	if parts[0] == "discord.com" || parts[0] == "discordapp.com" {
 		log.Debug("Detected a discord slack wrapper URL, using shoutrrr discord service")
 		conf := &shoutrrrDisco.Config{
-			Channel:    parts[len(parts)-3],
+			WebhookID:  parts[len(parts)-3],
 			Token:      parts[len(parts)-2],
 			Color:      ColorInt,
 			Title:      GetTitle(c),
@@ -59,14 +59,23 @@ func (s *slackTypeNotifier) GetURL(c *cobra.Command) (string, error) {
 		return conf.GetURL().String(), nil
 	}
 
-	rawTokens := strings.Replace(s.HookURL, "https://hooks.slack.com/services/", "", 1)
-	tokens := strings.Split(rawTokens, "/")
+	webhookToken := strings.Replace(s.HookURL, "https://hooks.slack.com/services/", "", 1)
 
 	conf := &shoutrrrSlack.Config{
 		BotName: s.Username,
-		Token:   tokens,
 		Color:   ColorHex,
+		Channel: "webhook",
 		Title:   GetTitle(c),
+	}
+
+	if s.IconURL != "" {
+		conf.Icon = s.IconURL
+	} else if s.IconEmoji != "" {
+		conf.Icon = s.IconEmoji
+	}
+
+	if err := conf.Token.SetFromProp(webhookToken); err != nil {
+		return "", err
 	}
 
 	return conf.GetURL().String(), nil

@@ -52,6 +52,10 @@ github.com/containerd/continuity v0.0.0-20181203112020-004b46473808 h1:4BX8f882b
 github.com/containerd/continuity v0.0.0-20181203112020-004b46473808/go.mod h1:GL3xCUCBDV3CZiTSEKksMWbLE66hEyuu9qyDOOqM47Y=
 github.com/containrrr/shoutrrr v0.4.4 h1:vHZ4E/76pKVY+Jyn/qhBz3X540Bn8NI5ppPHK4PyILY=
 github.com/containrrr/shoutrrr v0.4.4/go.mod h1:zqL2BvfC1W4FujrT4b3/ZCLxvD+uoeEpBL7rg9Dqpbg=
+github.com/containrrr/shoutrrr v0.5.0 h1:befKPRMqSvEsHYgxYJq4nuGmSWYvjbhVvb0nNk5OR5Q=
+github.com/containrrr/shoutrrr v0.5.0/go.mod h1:XSU8tOIZ1JG8m6OuPozfGLpj6Ed+S8ZrRJaEodQhbzw=
+github.com/containrrr/shoutrrr v0.5.1 h1:who87ACg0spQdbImaFMsOSh3g2FWyeN5nmO8tCg3llQ=
+github.com/containrrr/shoutrrr v0.5.1/go.mod h1:XSU8tOIZ1JG8m6OuPozfGLpj6Ed+S8ZrRJaEodQhbzw=
 github.com/coreos/bbolt v1.3.2/go.mod h1:iRUV2dpdMOn7Bo10OQBFzIJO9kkE559Wcmn+qkEiiKk=
 github.com/coreos/etcd v3.3.10+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
 github.com/coreos/etcd v3.3.13+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
