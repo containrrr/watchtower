@@ -3,6 +3,7 @@ package cmd
 import (
 	"github.com/containrrr/watchtower/internal/meta"
 	"math"
+	"net/http"
 	"os"
 	"os/signal"
 	"strconv"
@@ -197,7 +198,7 @@ func Run(c *cobra.Command, names []string) {
 		httpAPI.RegisterHandler(metricsHandler.Path, metricsHandler.Handle)
 	}
 
-	if err := httpAPI.Start(enableUpdateAPI && !unblockHTTPAPI); err != nil {
+	if err := httpAPI.Start(enableUpdateAPI && !unblockHTTPAPI); err != nil && err != http.ErrServerClosed {
 		log.Error("failed to start API", err)
 	}
 
@@ -259,24 +260,43 @@ func formatDuration(d time.Duration) string {
 }
 
 func writeStartupMessage(c *cobra.Command, sched time.Time, filtering string) {
-	if noStartupMessage, _ := c.PersistentFlags().GetBool("no-startup-message"); !noStartupMessage {
-		schedMessage := "Running a one time update."
-		if !sched.IsZero() {
-			until := formatDuration(time.Until(sched))
-			schedMessage = "Scheduling first run: " + sched.Format("2006-01-02 15:04:05 -0700 MST") +
-				"\nNote that the first check will be performed in " + until
-		}
+	noStartupMessage, _ := c.PersistentFlags().GetBool("no-startup-message")
 
-		notifs := "Using no notifications"
-		notifierNames := notifier.GetNames()
-		if len(notifierNames) > 0 {
-			notifs = "Using notifications: " + strings.Join(notifierNames, ", ")
-		}
+	var startupLog *log.Entry
+	if noStartupMessage {
+		startupLog = notifications.LocalLog
+	} else {
+		startupLog = log.NewEntry(log.StandardLogger())
+		// Batch up startup messages to send them as a single notification
+		notifier.StartNotification()
+	}
 
-		log.Info("Watchtower ", meta.Version, "\n", notifs, "\n", filtering, "\n", schedMessage)
-		if log.IsLevelEnabled(log.TraceLevel) {
-			log.Warn("trace level enabled: log will include sensitive information as credentials and tokens")
-		}
+	startupLog.Info("Watchtower ", meta.Version)
+
+	notifierNames := notifier.GetNames()
+	if len(notifierNames) > 0 {
+		startupLog.Info("Using notifications: " + strings.Join(notifierNames, ", "))
+	} else {
+		startupLog.Info("Using no notifications")
+	}
+
+	startupLog.Info(filtering)
+
+	if !sched.IsZero() {
+		until := formatDuration(time.Until(sched))
+		startupLog.Info("Scheduling first run: " + sched.Format("2006-01-02 15:04:05 -0700 MST"))
+		startupLog.Info("Note that the first check will be performed in " + until)
+	} else {
+		startupLog.Info("Running a one time update.")
+	}
+
+	if !noStartupMessage {
+		// Send the queued up startup messages, not including the trace warning below (to make sure it's noticed)
+		notifier.SendNotification(nil)
+	}
+
+	if log.IsLevelEnabled(log.TraceLevel) {
+		startupLog.Warn("Trace level enabled: log will include sensitive information as credentials and tokens")
 	}
 }
 

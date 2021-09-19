@@ -8,10 +8,11 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
-
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
+
+var allButTrace = logrus.AllLevels[0:logrus.TraceLevel]
 
 var legacyMockData = Data{
 	Entries: []*logrus.Entry{
@@ -20,6 +21,28 @@ var legacyMockData = Data{
 			Message: "foo Bar",
 		},
 	},
+}
+
+var mockDataMultipleEntries = Data{
+	Entries: []*logrus.Entry{
+		{
+			Level:   logrus.InfoLevel,
+			Message: "The situation is under control",
+		},
+		{
+			Level:   logrus.WarnLevel,
+			Message: "All the smoke might be covering up some problems",
+		},
+		{
+			Level:   logrus.ErrorLevel,
+			Message: "Turns out everything is on fire",
+		},
+	},
+}
+
+var mockDataAllFresh = Data{
+	Entries: []*logrus.Entry{},
+	Report:  mocks.CreateMockProgressReport(s.FreshState),
 }
 
 func mockDataFromStates(states ...s.State) Data {
@@ -35,6 +58,7 @@ var _ = Describe("Shoutrrr", func() {
 	BeforeEach(func() {
 		logBuffer = gbytes.NewBuffer()
 		logrus.SetOutput(logBuffer)
+		logrus.SetLevel(logrus.TraceLevel)
 		logrus.SetFormatter(&logrus.TextFormatter{
 			DisableColors:    true,
 			DisableTimestamp: true,
@@ -56,7 +80,8 @@ var _ = Describe("Shoutrrr", func() {
 					},
 				}
 
-				s := shoutrrr.buildMessage(Data{Entries: entries})
+				s, err := shoutrrr.buildMessage(Data{Entries: entries})
+				Expect(err).NotTo(HaveOccurred())
 
 				Expect(s).To(Equal("foo bar\n"))
 			})
@@ -80,9 +105,18 @@ var _ = Describe("Shoutrrr", func() {
 					},
 				}
 
-				s := shoutrrr.buildMessage(Data{Entries: entries})
+				s, err := shoutrrr.buildMessage(Data{Entries: entries})
+				Expect(err).NotTo(HaveOccurred())
 
 				Expect(s).To(Equal("info: foo bar\n"))
+			})
+		})
+
+		Describe("the default template", func() {
+			When("all containers are fresh", func() {
+				It("should return an empty string", func() {
+					Expect(getTemplatedResult(``, true, mockDataAllFresh)).To(Equal(""))
+				})
 			})
 		})
 
@@ -90,11 +124,15 @@ var _ = Describe("Shoutrrr", func() {
 			It("should format the messages using the default template", func() {
 				invNotif, err := createNotifierWithTemplate(`{{ intentionalSyntaxError`, true)
 				Expect(err).To(HaveOccurred())
+				invMsg, err := invNotif.buildMessage(legacyMockData)
+				Expect(err).NotTo(HaveOccurred())
 
 				defNotif, err := createNotifierWithTemplate(``, true)
 				Expect(err).ToNot(HaveOccurred())
+				defMsg, err := defNotif.buildMessage(legacyMockData)
+				Expect(err).ToNot(HaveOccurred())
 
-				Expect(invNotif.buildMessage(legacyMockData)).To(Equal(defNotif.buildMessage(legacyMockData)))
+				Expect(invMsg).To(Equal(defMsg))
 			})
 		})
 
@@ -130,18 +168,63 @@ var _ = Describe("Shoutrrr", func() {
 - updt2 (mock/updt2:latest): 01d120000000 updated to d0a120000000
 - frsh1 (mock/frsh1:latest): Fresh
 - skip1 (mock/skip1:latest): Skipped: unpossible
-- fail1 (mock/fail1:latest): Failed: accidentally the whole container
-`
+- fail1 (mock/fail1:latest): Failed: accidentally the whole container`
 				data := mockDataFromStates(s.UpdatedState, s.FreshState, s.FailedState, s.SkippedState, s.UpdatedState)
 				Expect(getTemplatedResult(``, false, data)).To(Equal(expected))
 			})
 
-			It("should format the messages using the default template", func() {
-				expected := `1 Scanned, 0 Updated, 0 Failed
-- frsh1 (mock/frsh1:latest): Fresh
+		})
+
+		Describe("the default template", func() {
+			When("all containers are fresh", func() {
+				It("should return an empty string", func() {
+					Expect(getTemplatedResult(``, false, mockDataAllFresh)).To(Equal(""))
+				})
+			})
+			When("at least one container was updated", func() {
+				It("should send a report", func() {
+					expected := `1 Scanned, 1 Updated, 0 Failed
+- updt1 (mock/updt1:latest): 01d110000000 updated to d0a110000000`
+					data := mockDataFromStates(s.UpdatedState)
+					Expect(getTemplatedResult(``, false, data)).To(Equal(expected))
+				})
+			})
+			When("at least one container failed to update", func() {
+				It("should send a report", func() {
+					expected := `1 Scanned, 0 Updated, 1 Failed
+- fail1 (mock/fail1:latest): Failed: accidentally the whole container`
+					data := mockDataFromStates(s.FailedState)
+					Expect(getTemplatedResult(``, false, data)).To(Equal(expected))
+				})
+			})
+			When("the report is nil", func() {
+				It("should return the logged entries", func() {
+					expected := `The situation is under control
+All the smoke might be covering up some problems
+Turns out everything is on fire
 `
-				data := mockDataFromStates(s.FreshState)
-				Expect(getTemplatedResult(``, false, data)).To(Equal(expected))
+					Expect(getTemplatedResult(``, false, mockDataMultipleEntries)).To(Equal(expected))
+				})
+			})
+		})
+	})
+
+	When("batching notifications", func() {
+		When("no messages are queued", func() {
+			It("should not send any notification", func() {
+				shoutrrr := newShoutrrrNotifier("", allButTrace, true, "", "logger://")
+				shoutrrr.StartNotification()
+				shoutrrr.SendNotification(nil)
+				Consistently(logBuffer).ShouldNot(gbytes.Say(`Shoutrrr:`))
+			})
+		})
+		When("at least one message is queued", func() {
+			It("should send a notification", func() {
+				shoutrrr := newShoutrrrNotifier("", allButTrace, true, "", "logger://")
+				shoutrrr.StartNotification()
+				logrus.Info("This log message is sponsored by ContainrrrVPN")
+				shoutrrr.SendNotification(nil)
+				Eventually(logBuffer).Should(gbytes.Say(`Shoutrrr: This log message is sponsored by ContainrrrVPN`))
 			})
 		})
 	})
@@ -218,10 +301,10 @@ func createNotifierWithTemplate(tplString string, legacy bool) (*shoutrrrTypeNot
 	}, err
 }
 
-func getTemplatedResult(tplString string, legacy bool, data Data) (string, error) {
+func getTemplatedResult(tplString string, legacy bool, data Data) (msg string) {
 	notifier, err := createNotifierWithTemplate(tplString, legacy)
-	if err != nil {
-		return "", err
-	}
-	return notifier.buildMessage(data), err
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
+	msg, err = notifier.buildMessage(data)
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
+	return msg
 }
