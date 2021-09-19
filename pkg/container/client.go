@@ -361,6 +361,7 @@ func (client dockerClient) RemoveImageByID(id t.ImageID) error {
 
 func (client dockerClient) ExecuteCommand(containerID t.ContainerID, command string, timeout int) (SkipUpdate bool, err error) {
 	bg := context.Background()
+	clog := log.WithField("containerID", containerID)
 
 	// Create the exec
 	execConfig := types.ExecConfig{
@@ -379,7 +380,7 @@ func (client dockerClient) ExecuteCommand(containerID t.ContainerID, command str
 		Detach: false,
 	})
 	if attachErr != nil {
-		log.Errorf("Failed to extract command exec logs: %v", attachErr)
+		clog.Errorf("Failed to extract command exec logs: %v", attachErr)
 	}
 
 	// Run the exec
@@ -395,7 +396,7 @@ func (client dockerClient) ExecuteCommand(containerID t.ContainerID, command str
 		var writer bytes.Buffer
 		written, err := writer.ReadFrom(response.Reader)
 		if err != nil {
-			log.Error(err)
+			clog.Error(err)
 		} else if written > 0 {
 			output = strings.TrimSpace(writer.String())
 		}
@@ -428,9 +429,10 @@ func (client dockerClient) waitForExecOrTimeout(bg context.Context, ID string, e
 
 		//goland:noinspection GoNilness
 		log.WithFields(log.Fields{
-			"exit-code": execInspect.ExitCode,
-			"exec-id":   execInspect.ExecID,
-			"running":   execInspect.Running,
+			"exit-code":    execInspect.ExitCode,
+			"exec-id":      execInspect.ExecID,
+			"running":      execInspect.Running,
+			"container-id": execInspect.ContainerID,
 		}).Debug("Awaiting timeout or completion")
 
 		if err != nil {

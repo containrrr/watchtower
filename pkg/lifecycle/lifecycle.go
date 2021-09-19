@@ -30,31 +30,33 @@ func ExecutePostChecks(client container.Client, params types.UpdateParams) {
 
 // ExecutePreCheckCommand tries to run the pre-check lifecycle hook for a single container.
 func ExecutePreCheckCommand(client container.Client, container container.Container) {
+	clog := log.WithField("container", container.Name())
 	command := container.GetLifecyclePreCheckCommand()
 	if len(command) == 0 {
-		log.Debug("No pre-check command supplied. Skipping")
+		clog.Debug("No pre-check command supplied. Skipping")
 		return
 	}
 
-	log.Debug("Executing pre-check command.")
+	clog.Debug("Executing pre-check command.")
 	_, err := client.ExecuteCommand(container.ID(), command, 1)
 	if err != nil {
-		log.Error(err)
+		clog.Error(err)
 	}
 }
 
 // ExecutePostCheckCommand tries to run the post-check lifecycle hook for a single container.
 func ExecutePostCheckCommand(client container.Client, container container.Container) {
+	clog := log.WithField("container", container.Name())
 	command := container.GetLifecyclePostCheckCommand()
 	if len(command) == 0 {
-		log.Debug("No post-check command supplied. Skipping")
+		clog.Debug("No post-check command supplied. Skipping")
 		return
 	}
 
-	log.Debug("Executing post-check command.")
+	clog.Debug("Executing post-check command.")
 	_, err := client.ExecuteCommand(container.ID(), command, 1)
 	if err != nil {
-		log.Error(err)
+		clog.Error(err)
 	}
 }
 
@@ -62,38 +64,42 @@ func ExecutePostCheckCommand(client container.Client, container container.Contai
 func ExecutePreUpdateCommand(client container.Client, container container.Container) (SkipUpdate bool, err error) {
 	timeout := container.PreUpdateTimeout()
 	command := container.GetLifecyclePreUpdateCommand()
+	clog := log.WithField("container", container.Name())
+
 	if len(command) == 0 {
-		log.Debug("No pre-update command supplied. Skipping")
+		clog.Debug("No pre-update command supplied. Skipping")
 		return false, nil
 	}
 
 	if !container.IsRunning() || container.IsRestarting() {
-		log.Debug("Container is not running. Skipping pre-update command.")
+		clog.Debug("Container is not running. Skipping pre-update command.")
 		return false, nil
 	}
 
-	log.Debug("Executing pre-update command.")
+	clog.Debug("Executing pre-update command.")
 	return client.ExecuteCommand(container.ID(), command, timeout)
 }
 
 // ExecutePostUpdateCommand tries to run the post-update lifecycle hook for a single container.
 func ExecutePostUpdateCommand(client container.Client, newContainerID types.ContainerID) {
 	newContainer, err := client.GetContainer(newContainerID)
+
 	if err != nil {
-		log.Error(err)
+		log.WithField("containerID", newContainerID.ShortID()).Error(err)
 		return
 	}
+	clog := log.WithField("container", newContainer.Name())
 
 	command := newContainer.GetLifecyclePostUpdateCommand()
 	if len(command) == 0 {
-		log.Debug("No post-update command supplied. Skipping")
+		clog.Debug("No post-update command supplied. Skipping")
 		return
 	}
 
-	log.Debug("Executing post-update command.")
+	clog.Debug("Executing post-update command.")
 	_, err = client.ExecuteCommand(newContainerID, command, 1)
 
 	if err != nil {
-		log.Error(err)
+		clog.Error(err)
 	}
 }
