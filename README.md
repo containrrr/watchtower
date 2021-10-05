@@ -148,6 +148,7 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
     <td align="center"><a href="https://github.com/DasSkelett"><img src="https://avatars.githubusercontent.com/u/28812678?v=4?s=100" width="100px;" alt=""/><br /><sub><b>DasSkelett</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=DasSkelett" title="Code">💻</a></td>
     <td align="center"><a href="https://github.com/zenjabba"><img src="https://avatars.githubusercontent.com/u/679864?v=4?s=100" width="100px;" alt=""/><br /><sub><b>zenjabba</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=zenjabba" title="Documentation">📖</a></td>
     <td align="center"><a href="https://quan.io"><img src="https://avatars.githubusercontent.com/u/3526705?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Dan Quan</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=djquan" title="Documentation">📖</a></td>
+    <td align="center"><a href="https://github.com/modem7"><img src="https://avatars.githubusercontent.com/u/4349962?v=4?s=100" width="100px;" alt=""/><br /><sub><b>modem7</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=modem7" title="Documentation">📖</a></td>
   </tr>
 </table>
 
