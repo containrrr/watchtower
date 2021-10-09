@@ -1,4 +1,5 @@
 watchtower
+watchtower.exe
 vendor
 .glide
 dist
@@ -6,3 +7,4 @@ dist
 .DS_Store
 /site
 coverage.out
+*.coverprofile
