@@ -62,4 +62,8 @@ type Container interface {
 	GetLifecyclePostCheckCommand() string
 	GetLifecyclePreUpdateCommand() string
 	GetLifecyclePostUpdateCommand() string
+	GetLifecyclePreCheckUser() string
+	GetLifecyclePostCheckUser() string
+	GetLifecyclePreUpdateUser() string
+	GetLifecyclePostUpdateUser() string
 }

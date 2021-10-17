@@ -31,7 +31,7 @@ type Client interface {
 	StartContainer(Container) (t.ContainerID, error)
 	RenameContainer(Container, string) error
 	IsContainerStale(Container) (stale bool, latestImage t.ImageID, err error)
-	ExecuteCommand(containerID t.ContainerID, command string, timeout int) (SkipUpdate bool, err error)
+	ExecuteCommand(containerID t.ContainerID, command string, user string, timeout int) (SkipUpdate bool, err error)
 	RemoveImageByID(t.ImageID) error
 	WarnOnHeadPullFailed(container Container) bool
 }
@@ -359,7 +359,7 @@ func (client dockerClient) RemoveImageByID(id t.ImageID) error {
 	return err
 }
 
-func (client dockerClient) ExecuteCommand(containerID t.ContainerID, command string, timeout int) (SkipUpdate bool, err error) {
+func (client dockerClient) ExecuteCommand(containerID t.ContainerID, command string, user string, timeout int) (SkipUpdate bool, err error) {
 	bg := context.Background()
 	clog := log.WithField("containerID", containerID)
 
@@ -368,6 +368,10 @@ func (client dockerClient) ExecuteCommand(containerID t.ContainerID, command str
 		Tty:    true,
 		Detach: false,
 		Cmd:    []string{"sh", "-c", command},
+	}
+
+	if user!="" {
+		execConfig.User=user
 	}
 
 	exec, err := client.api.ContainerExecCreate(bg, string(containerID), execConfig)
