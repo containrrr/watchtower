@@ -12,8 +12,14 @@ const (
 	postCheckLabel        = "com.centurylinklabs.watchtower.lifecycle.post-check"
 	preUpdateLabel        = "com.centurylinklabs.watchtower.lifecycle.pre-update"
 	postUpdateLabel       = "com.centurylinklabs.watchtower.lifecycle.post-update"
+	preCheckUserLabel     = "com.centurylinklabs.watchtower.lifecycle.pre-check.user"	
+	postCheckUserLabel    = "com.centurylinklabs.watchtower.lifecycle.post-check.user"
 	preUpdateTimeoutLabel = "com.centurylinklabs.watchtower.lifecycle.pre-update-timeout"
+	preUpdateUserLabel	  = "com.centurylinklabs.watchtower.lifecycle.pre-update.user"
+	postUpdateUserLabel   = "com.centurylinklabs.watchtower.lifecycle.post-update.user"
+	
 )
+
 
 // GetLifecyclePreCheckCommand returns the pre-check command set in the container metadata or an empty string
 func (c Container) GetLifecyclePreCheckCommand() string {
@@ -34,6 +40,29 @@ func (c Container) GetLifecyclePreUpdateCommand() string {
 func (c Container) GetLifecyclePostUpdateCommand() string {
 	return c.getLabelValueOrEmpty(postUpdateLabel)
 }
+
+
+// GetPreCheckUserLabel returns the pre-check command set in the container metadata or an empty string
+func (c Container) GetLifecyclePreCheckUser() string {
+	return c.getLabelValueOrEmpty(preCheckUserLabel)
+}
+
+// GetPreCheckUserLabel returns the pre-check command set in the container metadata or an empty string
+func (c Container) GetLifecyclePostCheckUser() string {
+	return c.getLabelValueOrEmpty(postCheckUserLabel)
+}
+
+// GetPreCheckUserLabel returns the pre-check command set in the container metadata or an empty string
+func (c Container) GetLifecyclePreUpdateUser() string {
+	return c.getLabelValueOrEmpty(preUpdateUserLabel)
+}
+
+// GetPreCheckUserLabel returns the pre-check command set in the container metadata or an empty string
+func (c Container) GetLifecyclePostUpdateUser() string {
+	return c.getLabelValueOrEmpty(postUpdateUserLabel)
+}
+
+
 
 // ContainsWatchtowerLabel takes a map of labels and values and tells
 // the consumer whether it contains a valid watchtower instance label
