@@ -30,9 +30,13 @@ func ExecutePostChecks(client container.Client, params types.UpdateParams) {
 
 // ExecutePreCheckCommand tries to run the pre-check lifecycle hook for a single container.
 func ExecutePreCheckCommand(client container.Client, container container.Container) {
-	clog := log.WithField("container", container.Name())
 	command := container.GetLifecyclePreCheckCommand()
 	user	:= container.GetLifecyclePreCheckUser()
+	fields := log.Fields{
+		"user":     user,
+		"container": container.Name(),
+	}
+	clog := log.WithFields(fields)
 	if len(command) == 0 {
 		clog.Debug("No pre-check command supplied. Skipping")
 		return
@@ -47,9 +51,13 @@ func ExecutePreCheckCommand(client container.Client, container container.Contain
 
 // ExecutePostCheckCommand tries to run the post-check lifecycle hook for a single container.
 func ExecutePostCheckCommand(client container.Client, container container.Container) {
-	clog := log.WithField("container", container.Name())
 	command := container.GetLifecyclePostCheckCommand()
 	user	:= container.GetLifecyclePostCheckUser()
+	fields := log.Fields{
+		"user":     user,
+		"container": container.Name(),
+	}
+	clog := log.WithFields(fields)
 	if len(command) == 0 {
 		clog.Debug("No post-check command supplied. Skipping")
 		return
@@ -67,8 +75,12 @@ func ExecutePreUpdateCommand(client container.Client, container container.Contai
 	timeout := container.PreUpdateTimeout()
 	command := container.GetLifecyclePreUpdateCommand()
 	user	:= container.GetLifecyclePreUpdateUser()
-	clog := log.WithField("container", container.Name())
-
+	fields := log.Fields{
+		"user":     user,
+		"container": container.Name(),
+	}
+	clog := log.WithFields(fields)
+	
 	if len(command) == 0 {
 		clog.Debug("No pre-update command supplied. Skipping")
 		return false, nil
@@ -91,10 +103,16 @@ func ExecutePostUpdateCommand(client container.Client, newContainerID types.Cont
 		log.WithField("containerID", newContainerID.ShortID()).Error(err)
 		return
 	}
-	clog := log.WithField("container", newContainer.Name())
 
 	command := newContainer.GetLifecyclePostUpdateCommand()
 	user	:= newContainer.GetLifecyclePostUpdateUser()
+	fields := log.Fields{
+		"user":     user,
+		"container": newContainer.Name(),
+	}
+	clog := log.WithFields(fields)
+	
+
 	if len(command) == 0 {
 		clog.Debug("No post-update command supplied. Skipping")
 		return
