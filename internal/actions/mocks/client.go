@@ -75,7 +75,7 @@ func (client MockClient) GetContainer(_ t.ContainerID) (container.Container, err
 }
 
 // ExecuteCommand is a mock method
-func (client MockClient) ExecuteCommand(_ t.ContainerID, command string, _ int) (SkipUpdate bool, err error) {
+func (client MockClient) ExecuteCommand(_ t.ContainerID, command string, user string, _ int) (SkipUpdate bool, err error) {
 	switch command {
 	case "/PreUpdateReturn0.sh":
 		return false, nil

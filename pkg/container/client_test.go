@@ -137,7 +137,7 @@ var _ = Describe("the client", func() {
 				defer logrus.SetOutput(origOut)
 				logrus.SetOutput(logbuf)
 
-				_, err := client.ExecuteCommand("ex-cont-id", "exec-cmd", 1)
+				_, err := client.ExecuteCommand("ex-cont-id", "exec-cmd", "", 1)
 				Expect(err).NotTo(HaveOccurred())
 				// Note: Since Execute requires opening up a raw TCP stream to the daemon for the output, this will fail
 				// when using the mock API server. Regardless of the outcome, the log should include the container ID
