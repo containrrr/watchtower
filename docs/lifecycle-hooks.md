@@ -50,6 +50,12 @@ the `docker run` command line:
     someimage --label=com.centurylinklabs.watchtower.lifecycle.post-check="/send-heartbeat.sh" \
     ```
 
+### Specifying a user for lifecycle hooks
+
+The lifecycle hooks all support a '.user' extension to specify a user to run the command with, for example:""
+
+com.centurylinklabs.watchtower.lifecycle.pre-check.user="myuser"
+
 ### Timeouts
 The timeout for all lifecycle commands is 60 seconds. After that, a timeout will
 occur, forcing Watchtower to continue the update loop.
