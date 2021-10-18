@@ -42,22 +42,22 @@ func (c Container) GetLifecyclePostUpdateCommand() string {
 }
 
 
-// GetPreCheckUserLabel returns the pre-check command set in the container metadata or an empty string
+// GetLifecyclePreCheckUser returns the pre-check user set in the container metadata or an empty string
 func (c Container) GetLifecyclePreCheckUser() string {
 	return c.getLabelValueOrEmpty(preCheckUserLabel)
 }
 
-// GetPreCheckUserLabel returns the pre-check command set in the container metadata or an empty string
+// GetLifecyclePostCheckUser returns the post-check user in the container metadata or an empty string
 func (c Container) GetLifecyclePostCheckUser() string {
 	return c.getLabelValueOrEmpty(postCheckUserLabel)
 }
 
-// GetPreCheckUserLabel returns the pre-check command set in the container metadata or an empty string
+// GetLifecyclePreUpdateUser returns the pre-update user set in the container metadata or an empty string
 func (c Container) GetLifecyclePreUpdateUser() string {
 	return c.getLabelValueOrEmpty(preUpdateUserLabel)
 }
 
-// GetPreCheckUserLabel returns the pre-check command set in the container metadata or an empty string
+// GetLifecyclePostUpdateUser returns the post-update set in the container metadata or an empty string
 func (c Container) GetLifecyclePostUpdateUser() string {
 	return c.getLabelValueOrEmpty(postUpdateUserLabel)
 }
