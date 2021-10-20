@@ -370,8 +370,8 @@ func (client dockerClient) ExecuteCommand(containerID t.ContainerID, command str
 		Cmd:    []string{"sh", "-c", command},
 	}
 
-	if user!="" {
-		execConfig.User=user
+	if user != "" {
+		execConfig.User = user
 	}
 
 	exec, err := client.api.ContainerExecCreate(bg, string(containerID), execConfig)
