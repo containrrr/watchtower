@@ -294,7 +294,7 @@ func writeStartupMessage(c *cobra.Command, sched time.Time, filtering string) {
 		startupLog.Info("Scheduling first run: " + sched.Format("2006-01-02 15:04:05 -0700 MST"))
 		startupLog.Info("Note that the first check will be performed in " + until)
 	} else {
-		startupLog.Info("Running a one time update.")
+		startupLog.Info("Periodic runs are not enabled.")
 	}
 
 	if enableUpdateAPI {
