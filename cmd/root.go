@@ -261,6 +261,7 @@ func formatDuration(d time.Duration) string {
 
 func writeStartupMessage(c *cobra.Command, sched time.Time, filtering string) {
 	noStartupMessage, _ := c.PersistentFlags().GetBool("no-startup-message")
+	enableUpdateAPI, _ := c.PersistentFlags().GetBool("http-api-update")
 
 	var startupLog *log.Entry
 	if noStartupMessage {
@@ -288,6 +289,11 @@ func writeStartupMessage(c *cobra.Command, sched time.Time, filtering string) {
 		startupLog.Info("Note that the first check will be performed in " + until)
 	} else {
 		startupLog.Info("Running a one time update.")
+	}
+
+	if enableUpdateAPI {
+		// TODO: make listen port configurable
+		startupLog.Info("The HTTP API is enabled at :8080.")
 	}
 
 	if !noStartupMessage {
