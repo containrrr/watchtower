@@ -159,6 +159,7 @@ func Run(c *cobra.Command, names []string) {
 	enableMetricsAPI, _ := c.PersistentFlags().GetBool("http-api-metrics")
 	unblockHTTPAPI, _ := c.PersistentFlags().GetBool("http-api-periodic-polls")
 	apiToken, _ := c.PersistentFlags().GetString("http-api-token")
+	enableAPIPeriodicPolls, _ := c.PersistentFlags().GetBool("http-api-periodic-polls")
 
 	if rollingRestart && monitorOnly {
 		log.Fatal("Rolling restarts is not compatible with the global monitor only flag")
@@ -191,6 +192,11 @@ func Run(c *cobra.Command, names []string) {
 	if enableUpdateAPI {
 		updateHandler := update.New(func() { runUpdatesWithNotifications(filter) }, updateLock)
 		httpAPI.RegisterFunc(updateHandler.Path, updateHandler.Handle)
+		// If polling isn't enabled the scheduler is never started and
+		// we need to trigger the startup messages manually.
+		if !enableAPIPeriodicPolls {
+			writeStartupMessage(c, time.Time{}, filterDesc)
+		}
 	}
 
 	if enableMetricsAPI {
