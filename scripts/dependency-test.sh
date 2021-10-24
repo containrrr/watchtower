@@ -4,8 +4,8 @@
 # Note that this test does not verify the results in any way
 
 set -e
-SCRIPT_ROOT=$(dirname $(readlink -m $( type -p ${0} )))
-source $SCRIPT_ROOT/docker-util.sh
+SCRIPT_ROOT=$(dirname "$(readlink -m "$(type -p "$0")")")
+source "$SCRIPT_ROOT/docker-util.sh"
 
 DepArgs=""
 if [ -z "$1" ] || [ "$1" == "depends-on" ]; then

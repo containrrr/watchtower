@@ -69,7 +69,7 @@ func Update(client container.Client, params types.UpdateParams) (types.Report, e
 		return nil, err
 	}
 
-	updateImplicitRestart(containers)
+	UpdateImplicitRestart(containers)
 
 	var containersToUpdate []container.Container
 	if !params.MonitorOnly {
@@ -217,9 +217,9 @@ func restartStaleContainer(container container.Container, client container.Clien
 	return nil
 }
 
-// updateImplicitRestart iterates through the passed containers, setting the
+// UpdateImplicitRestart iterates through the passed containers, setting the
 // `LinkedToRestarting` flag if any of it's linked containers are marked for restart
-func updateImplicitRestart(containers []container.Container) {
+func UpdateImplicitRestart(containers []container.Container) {
 
 	for ci, c := range containers {
 		if c.ToRestart() {
