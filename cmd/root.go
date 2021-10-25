@@ -159,7 +159,6 @@ func Run(c *cobra.Command, names []string) {
 	enableMetricsAPI, _ := c.PersistentFlags().GetBool("http-api-metrics")
 	unblockHTTPAPI, _ := c.PersistentFlags().GetBool("http-api-periodic-polls")
 	apiToken, _ := c.PersistentFlags().GetString("http-api-token")
-	enableAPIPeriodicPolls, _ := c.PersistentFlags().GetBool("http-api-periodic-polls")
 
 	if rollingRestart && monitorOnly {
 		log.Fatal("Rolling restarts is not compatible with the global monitor only flag")
@@ -194,7 +193,7 @@ func Run(c *cobra.Command, names []string) {
 		httpAPI.RegisterFunc(updateHandler.Path, updateHandler.Handle)
 		// If polling isn't enabled the scheduler is never started and
 		// we need to trigger the startup messages manually.
-		if !enableAPIPeriodicPolls {
+		if !unblockHTTPAPI {
 			writeStartupMessage(c, time.Time{}, filterDesc)
 		}
 	}
@@ -293,6 +292,8 @@ func writeStartupMessage(c *cobra.Command, sched time.Time, filtering string) {
 		until := formatDuration(time.Until(sched))
 		startupLog.Info("Scheduling first run: " + sched.Format("2006-01-02 15:04:05 -0700 MST"))
 		startupLog.Info("Note that the first check will be performed in " + until)
+	} else if runOnce, _ := c.PersistentFlags().GetBool("run-once"); runOnce {
+			startupLog.Info("Running a one time update.")
 	} else {
 		startupLog.Info("Periodic runs are not enabled.")
 	}
