@@ -70,6 +70,5 @@ func (api *API) Start(block bool) error {
 }
 
 func runHTTPServer() {
-	log.Debug("Serving HTTP")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
