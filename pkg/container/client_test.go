@@ -143,7 +143,7 @@ var _ = Describe("the client", func() {
 				// when using the mock API server. Regardless of the outcome, the log should include the container ID
 				Eventually(logbuf).Should(gbytes.Say(`containerID="?ex-cont-id"?`))
 
-				_, err := client.ExecuteCommand("ex-cont-id", "exec-cmd", "myuser", 1)
+				_, err = client.ExecuteCommand("ex-cont-id", "exec-cmd", "myuser", 1)
 				Expect(err).NotTo(HaveOccurred())
 				Eventually(logbuf).Should(gbytes.Say(`containerID="?ex-cont-id"?`))
 
