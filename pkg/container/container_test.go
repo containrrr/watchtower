@@ -23,7 +23,7 @@ var _ = Describe("the container", func() {
 				c := mockContainerWithPortBindings()
 				c.containerInfo = nil
 				err := c.VerifyConfiguration()
-				Expect(err).To(Equal(errorInvalidConfig))
+				Expect(err).To(Equal(errorNoContainerInfo))
 			})
 		})
 		When("verifying a container with no config", func() {
