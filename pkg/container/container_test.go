@@ -213,6 +213,25 @@ var _ = Describe("the container", func() {
 					Expect(links).To(SatisfyAll(ContainElement("redis"), ContainElement("postgres"), HaveLen(2)))
 				})
 			})
+			When("there is a pre or post update timeout", func() {
+				It("should return minute values", func() {
+					c = mockContainerWithLabels(map[string]string{
+						"com.centurylinklabs.watchtower.lifecycle.pre-update-timeout": "3",
+						"com.centurylinklabs.watchtower.lifecycle.post-update-timeout": "5",
+						"com.centurylinklabs.watchtower.lifecycle.pre-update.user": "user1",
+						"com.centurylinklabs.watchtower.lifecycle.post-update.user": "user2",
+					})
+					preUser := c.GetLifecyclePreUpdateUser()
+					Expect(preUser).To(Equal("user1"))
+					postUser := c.GetLifecyclePostUpdateUser()
+					Expect(postUser).To(Equal("user2"))
+					preTimeout := c.PreUpdateTimeout()
+					Expect(preTimeout).To(Equal(3))
+					postTimeout := c.PostUpdateTimeout()
+					Expect(postTimeout).To(Equal(5))
+				})
+			})
+
 		})
 	})
 })

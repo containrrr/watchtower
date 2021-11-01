@@ -25,7 +25,7 @@ func CompareDigest(container types.Container, registryAuth string) (bool, error)
 	if !container.HasImageInfo() {
 		return false, errors.New("container image info missing")
 	}
-	
+
 	var digest string
 
 	registryAuth = TransformAuth(registryAuth)
