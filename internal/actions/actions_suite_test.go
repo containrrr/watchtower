@@ -1,6 +1,7 @@
 package actions_test
 
 import (
+	"github.com/sirupsen/logrus"
 	"testing"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 
 func TestActions(t *testing.T) {
 	RegisterFailHandler(Fail)
+	logrus.SetOutput(GinkgoWriter)
 	RunSpecs(t, "Actions Suite")
 }
 

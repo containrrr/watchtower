@@ -117,7 +117,6 @@ var _ = Describe("Digests", func() {
 				),
 			)
 			dig, err := digest.GetDigest(server.URL(), "token")
-			println(dig)
 			Expect(server.ReceivedRequests()).Should(HaveLen(1))
 			Expect(err).NotTo(HaveOccurred())
 			Expect(dig).To(Equal(mockDigest))
