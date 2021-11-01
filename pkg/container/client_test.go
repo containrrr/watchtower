@@ -146,8 +146,15 @@ var _ = Describe("the client", func() {
 	Describe(`ExecuteCommand`, func() {
 		When(`logging`, func() {
 			It("should include container id field", func() {
+				server := ghttp.NewServer()
+				apiClient, err := cli.NewClientWithOpts(
+					cli.WithHost(server.URL()),
+					cli.WithHTTPClient(server.HTTPTestServer.Client()),
+				)
+				Expect(err).ShouldNot(HaveOccurred())
+
 				client := dockerClient{
-					api:        docker,
+					api:        apiClient,
 					pullImages: false,
 				}
 
@@ -162,7 +169,7 @@ var _ = Describe("the client", func() {
 				execID := "ex-exec-id"
 				cmd := "exec-cmd"
 
-				mockServer.AppendHandlers(
+				server.AppendHandlers(
 					// API.ContainerExecCreate
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("POST", HaveSuffix("containers/%v/exec", containerID)),
@@ -204,7 +211,7 @@ var _ = Describe("the client", func() {
 					),
 				)
 
-				_, err := client.ExecuteCommand(containerID, cmd, user, 1)
+				_, err = client.ExecuteCommand(containerID, cmd, user, 1)
 				Expect(err).NotTo(HaveOccurred())
 				// Note: Since Execute requires opening up a raw TCP stream to the daemon for the output, this will fail
 				// when using the mock API server. Regardless of the outcome, the log should include the container ID
