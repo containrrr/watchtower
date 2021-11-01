@@ -157,7 +157,7 @@ var _ = Describe("the client", func() {
 				defer logrus.SetOutput(origOut)
 				logrus.SetOutput(logbuf)
 
-				user := ""
+				user := "exec-user"
 				containerID := t.ContainerID("ex-cont-id")
 				execID := "ex-exec-id"
 				cmd := "exec-cmd"
