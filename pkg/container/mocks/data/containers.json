@@ -2,7 +2,55 @@
   {
     "Id": "ae8964ba86c7cd7522cf84e09781343d88e0e3543281c747d88b27e246578b65",
     "Names": [
-      "/watchtower-test"
+      "/watchtower-stopped"
+    ],
+    "Image": "containrrr/watchtower:latest",
+    "ImageID": "sha256:4dbc5f9c07028a985e14d1393e849ea07f68804c4293050d5a641b138db72daa",
+    "Command": "/watchtower",
+    "Created": 1554925882,
+    "Ports": [],
+    "Labels": {
+      "com.centurylinklabs.watchtower": "true"
+    },
+    "State": "exited",
+    "Status": "Exited (1) 6 days ago",
+    "HostConfig": {
+      "NetworkMode": "default"
+    },
+    "NetworkSettings": {
+      "Networks": {
+        "bridge": {
+          "IPAMConfig": null,
+          "Links": null,
+          "Aliases": null,
+          "NetworkID": "8fcfd56fa9203bafa98510abb08bff66ad05bef5b6e97d158cbae3397e1e065e",
+          "EndpointID": "",
+          "Gateway": "",
+          "IPAddress": "",
+          "IPPrefixLen": 0,
+          "IPv6Gateway": "",
+          "GlobalIPv6Address": "",
+          "GlobalIPv6PrefixLen": 0,
+          "MacAddress": "",
+          "DriverOpts": null
+        }
+      }
+    },
+    "Mounts": [
+      {
+        "Type": "bind",
+        "Source": "/var/run/docker.sock",
+        "Destination": "/var/run/docker.sock",
+        "Mode": "",
+        "RW": true,
+        "Propagation": "rprivate"
+      }
+    ]
+  },
+  {
+    "Id": "3d88e0e3543281c747d88b27e246578b65ae8964ba86c7cd7522cf84e0978134",
+    "Names": [
+      "/watchtower-running"
     ],
     "Image": "containrrr/watchtower:latest",
     "ImageID": "sha256:4dbc5f9c07028a985e14d1393e849ea07f68804c4293050d5a641b138db72daa",
@@ -13,7 +61,7 @@
       "com.centurylinklabs.watchtower": "true"
     },
     "State": "running",
-    "Status": "Exited (1) 6 days ago",
+    "Status": "Up 3 days",
     "HostConfig": {
       "NetworkMode": "default"
     },

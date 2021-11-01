@@ -7,13 +7,11 @@ import (
 	"time"
 
 	t "github.com/containrrr/watchtower/pkg/types"
-	cli "github.com/docker/docker/client"
 )
 
 // MockClient is a mock that passes as a watchtower Client
 type MockClient struct {
 	TestData      *TestData
-	api           cli.CommonAPIClient
 	pullImages    bool
 	removeVolumes bool
 }
@@ -31,10 +29,9 @@ func (testdata *TestData) TriedToRemoveImage() bool {
 }
 
 // CreateMockClient creates a mock watchtower Client for usage in tests
-func CreateMockClient(data *TestData, api cli.CommonAPIClient, pullImages bool, removeVolumes bool) MockClient {
+func CreateMockClient(data *TestData, pullImages bool, removeVolumes bool) MockClient {
 	return MockClient{
 		data,
-		api,
 		pullImages,
 		removeVolumes,
 	}
