@@ -3,10 +3,8 @@ package actions_test
 import (
 	"github.com/containrrr/watchtower/internal/actions"
 	"github.com/containrrr/watchtower/pkg/container"
-	"github.com/containrrr/watchtower/pkg/container/mocks"
 	"github.com/containrrr/watchtower/pkg/types"
 	dockerContainer "github.com/docker/docker/api/types/container"
-	cli "github.com/docker/docker/client"
 	"github.com/docker/go-connections/nat"
 	"time"
 
@@ -16,15 +14,7 @@ import (
 )
 
 var _ = Describe("the update action", func() {
-	var dockerClient cli.CommonAPIClient
 	var client MockClient
-
-	BeforeEach(func() {
-		server := mocks.NewMockAPIServer()
-		dockerClient, _ = cli.NewClientWithOpts(
-			cli.WithHost(server.URL),
-			cli.WithHTTPClient(server.Client()))
-	})
 
 	When("watchtower has been instructed to clean up", func() {
 		BeforeEach(func() {
@@ -51,7 +41,6 @@ var _ = Describe("the update action", func() {
 							time.Now()),
 					},
 				},
-				dockerClient,
 				pullImages,
 				removeVolumes,
 			)
@@ -117,7 +106,6 @@ var _ = Describe("the update action", func() {
 								}),
 						},
 					},
-					dockerClient,
 					false,
 					false,
 				)
@@ -147,7 +135,6 @@ var _ = Describe("the update action", func() {
 								time.Now()),
 						},
 					},
-					dockerClient,
 					false,
 					false,
 				)
@@ -186,7 +173,6 @@ var _ = Describe("the update action", func() {
 								}),
 						},
 					},
-					dockerClient,
 					false,
 					false,
 				)
@@ -222,7 +208,6 @@ var _ = Describe("the update action", func() {
 								}),
 						},
 					},
-					dockerClient,
 					false,
 					false,
 				)
@@ -258,7 +243,6 @@ var _ = Describe("the update action", func() {
 								}),
 						},
 					},
-					dockerClient,
 					false,
 					false,
 				)
@@ -293,7 +277,6 @@ var _ = Describe("the update action", func() {
 								}),
 						},
 					},
-					dockerClient,
 					false,
 					false,
 				)
@@ -329,7 +312,6 @@ var _ = Describe("the update action", func() {
 								}),
 						},
 					},
-					dockerClient,
 					false,
 					false,
 				)
