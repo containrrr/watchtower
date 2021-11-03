@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
-	. "github.com/onsi/gomega"
+	O "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
 	"io/ioutil"
 	"net/http"
@@ -23,9 +23,10 @@ func getMockJSONFile(relPath string) ([]byte, error) {
 	return buf, nil
 }
 
+// RespondWithJSONFile handles a request by returning the contents of the supplied file
 func RespondWithJSONFile(relPath string, statusCode int, optionalHeader ...http.Header) http.HandlerFunc {
 	handler, err := respondWithJSONFile(relPath, statusCode, optionalHeader...)
-	ExpectWithOffset(1, err).ShouldNot(HaveOccurred())
+	O.ExpectWithOffset(1, err).ShouldNot(O.HaveOccurred())
 	return handler
 }
 
@@ -37,6 +38,7 @@ func respondWithJSONFile(relPath string, statusCode int, optionalHeader ...http.
 	return ghttp.RespondWith(statusCode, buf, optionalHeader...), nil
 }
 
+// GetContainerHandlers returns the handlers serving lookups for the supplied container mock files
 func GetContainerHandlers(containerFiles ...string) []http.HandlerFunc {
 	handlers := make([]http.HandlerFunc, 0, len(containerFiles)*2)
 	for _, file := range containerFiles {
@@ -77,31 +79,32 @@ func getContainerHandler(file string) http.HandlerFunc {
 	id, ok := containerFileIds[file]
 	failTestUnless(ok)
 	return ghttp.CombineHandlers(
-		ghttp.VerifyRequest("GET", HaveSuffix("/containers/%v/json", id)),
+		ghttp.VerifyRequest("GET", O.HaveSuffix("/containers/%v/json", id)),
 		RespondWithJSONFile(fmt.Sprintf("./mocks/data/container_%v.json", file), http.StatusOK),
 	)
 }
 
+// ListContainersHandler mocks the GET containers/json endpoint, filtering the returned containers based on statuses
 func ListContainersHandler(statuses ...string) http.HandlerFunc {
 	filterArgs := createFilterArgs(statuses)
 	bytes, err := filterArgs.MarshalJSON()
-	ExpectWithOffset(1, err).ShouldNot(HaveOccurred())
+	O.ExpectWithOffset(1, err).ShouldNot(O.HaveOccurred())
 	query := url.Values{
 		"limit":   []string{"0"},
 		"filters": []string{string(bytes)},
 	}
 	return ghttp.CombineHandlers(
-		ghttp.VerifyRequest("GET", HaveSuffix("containers/json"), query.Encode()),
+		ghttp.VerifyRequest("GET", O.HaveSuffix("containers/json"), query.Encode()),
 		respondWithFilteredContainers(filterArgs),
 	)
 }
 
 func respondWithFilteredContainers(filters filters.Args) http.HandlerFunc {
-	containersJson, err := getMockJSONFile("./mocks/data/containers.json")
-	ExpectWithOffset(2, err).ShouldNot(HaveOccurred())
+	containersJSON, err := getMockJSONFile("./mocks/data/containers.json")
+	O.ExpectWithOffset(2, err).ShouldNot(O.HaveOccurred())
 	var filteredContainers []types.Container
 	var containers []types.Container
-	ExpectWithOffset(2, json.Unmarshal(containersJson, &containers)).To(Succeed())
+	O.ExpectWithOffset(2, json.Unmarshal(containersJSON, &containers)).To(O.Succeed())
 	for _, v := range containers {
 		for _, key := range filters.Get("status") {
 			if v.State == key {
@@ -115,11 +118,11 @@ func respondWithFilteredContainers(filters filters.Args) http.HandlerFunc {
 
 func getImageHandler(index int) http.HandlerFunc {
 	return ghttp.CombineHandlers(
-		ghttp.VerifyRequest("GET", HaveSuffix("/images/%v/json", imageIds[index])),
+		ghttp.VerifyRequest("GET", O.HaveSuffix("/images/%v/json", imageIds[index])),
 		RespondWithJSONFile(fmt.Sprintf("./mocks/data/image%02d.json", index+1), http.StatusOK),
 	)
 }
 
 func failTestUnless(ok bool) {
-	ExpectWithOffset(2, ok).To(BeTrue(), "test setup failed")
+	O.ExpectWithOffset(2, ok).To(O.BeTrue(), "test setup failed")
 }

@@ -22,14 +22,14 @@ import (
 var _ = Describe("the client", func() {
 	var docker *cli.Client
 	var mockServer *ghttp.Server
-	BeforeSuite(func() {
+	BeforeEach(func() {
 		mockServer = ghttp.NewServer()
 		docker, _ = cli.NewClientWithOpts(
 			cli.WithHost(mockServer.URL()),
 			cli.WithHTTPClient(mockServer.HTTPTestServer.Client()))
 	})
 	AfterEach(func() {
-		mockServer.Reset()
+		mockServer.Close()
 	})
 	Describe("WarnOnHeadPullFailed", func() {
 		containerUnknown := *mockContainerWithImageName("unknown.repo/prefix/imagename:latest")
