@@ -1,16 +1,12 @@
 package actions_test
 
 import (
+	"github.com/sirupsen/logrus"
 	"testing"
 	"time"
 
 	"github.com/containrrr/watchtower/internal/actions"
-
 	"github.com/containrrr/watchtower/pkg/container"
-	"github.com/containrrr/watchtower/pkg/container/mocks"
-
-	"github.com/docker/docker/api/types"
-	cli "github.com/docker/docker/client"
 
 	. "github.com/containrrr/watchtower/internal/actions/mocks"
 	. "github.com/onsi/ginkgo"
@@ -19,55 +15,47 @@ import (
 
 func TestActions(t *testing.T) {
 	RegisterFailHandler(Fail)
+	logrus.SetOutput(GinkgoWriter)
 	RunSpecs(t, "Actions Suite")
 }
 
 var _ = Describe("the actions package", func() {
-	var dockerClient cli.CommonAPIClient
-	var client MockClient
-	BeforeSuite(func() {
-		server := mocks.NewMockAPIServer()
-		dockerClient, _ = cli.NewClientWithOpts(
-			cli.WithHost(server.URL),
-			cli.WithHTTPClient(server.Client()))
-	})
-	BeforeEach(func() {
-		pullImages := false
-		removeVolumes := false
-
-		client = CreateMockClient(
-			&TestData{},
-			dockerClient,
-			pullImages,
-			removeVolumes,
-		)
-	})
-
 	Describe("the check prerequisites method", func() {
 		When("given an empty array", func() {
 			It("should not do anything", func() {
-				client.TestData.Containers = []container.Container{}
-				err := actions.CheckForMultipleWatchtowerInstances(client, false, "")
-				Expect(err).NotTo(HaveOccurred())
+				client := CreateMockClient(
+					&TestData{},
+					// pullImages:
+					false,
+					// removeVolumes:
+					false,
+				)
+				Expect(actions.CheckForMultipleWatchtowerInstances(client, false, "")).To(Succeed())
 			})
 		})
 		When("given an array of one", func() {
 			It("should not do anything", func() {
-				client.TestData.Containers = []container.Container{
-					CreateMockContainer(
-						"test-container",
-						"test-container",
-						"watchtower",
-						time.Now()),
-				}
-				err := actions.CheckForMultipleWatchtowerInstances(client, false, "")
-				Expect(err).NotTo(HaveOccurred())
+				client := CreateMockClient(
+					&TestData{
+						Containers: []container.Container{
+							CreateMockContainer(
+								"test-container",
+								"test-container",
+								"watchtower",
+								time.Now()),
+						},
+					},
+					// pullImages:
+					false,
+					// removeVolumes:
+					false,
+				)
+				Expect(actions.CheckForMultipleWatchtowerInstances(client, false, "")).To(Succeed())
 			})
 		})
 		When("given multiple containers", func() {
+			var client MockClient
 			BeforeEach(func() {
-				pullImages := false
-				removeVolumes := false
 				client = CreateMockClient(
 					&TestData{
 						NameOfContainerToKeep: "test-container-02",
@@ -84,9 +72,10 @@ var _ = Describe("the actions package", func() {
 								time.Now()),
 						},
 					},
-					dockerClient,
-					pullImages,
-					removeVolumes,
+					// pullImages:
+					false,
+					// removeVolumes:
+					false,
 				)
 			})
 
@@ -96,10 +85,8 @@ var _ = Describe("the actions package", func() {
 			})
 		})
 		When("deciding whether to cleanup images", func() {
+			var client MockClient
 			BeforeEach(func() {
-				pullImages := false
-				removeVolumes := false
-
 				client = CreateMockClient(
 					&TestData{
 						Containers: []container.Container{
@@ -115,9 +102,10 @@ var _ = Describe("the actions package", func() {
 								time.Now()),
 						},
 					},
-					dockerClient,
-					pullImages,
-					removeVolumes,
+					// pullImages:
+					false,
+					// removeVolumes:
+					false,
 				)
 			})
 			It("should try to delete the image if the cleanup flag is true", func() {
@@ -133,15 +121,3 @@ var _ = Describe("the actions package", func() {
 		})
 	})
 })
-
-func createMockContainer(id string, name string, image string, created time.Time) container.Container {
-	content := types.ContainerJSON{
-		ContainerJSONBase: &types.ContainerJSONBase{
-			ID:      id,
-			Image:   image,
-			Name:    name,
-			Created: created.String(),
-		},
-	}
-	return *container.NewContainer(&content, nil)
-}
