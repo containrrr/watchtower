@@ -189,6 +189,27 @@ func (c Container) PreUpdateTimeout() int {
 	return minutes
 }
 
+// PostUpdateTimeout checks whether a container has a specific timeout set
+// for how long the post-update command is allowed to run. This value is expressed
+ // either as an integer, in minutes, or as 0 which will allow the command/script
+ // to run indefinitely. Users should be cautious with the 0 option, as that
+ // could result in watchtower waiting forever.
+ func (c Container) PostUpdateTimeout() int {
+ 	var minutes int
+ 	var err error
+
+ 	val := c.getLabelValueOrEmpty(postUpdateTimeoutLabel)
+
+ 	minutes, err = strconv.Atoi(val)
+ 	if err != nil || val == "" {
+ 		return 1
+ 	}
+
+ 	return minutes
+ }
+
+
+
 // StopSignal returns the custom stop signal (if any) that is encoded in the
 // container's metadata. If the container has not specified a custom stop
 // signal, the empty string "" is returned.
