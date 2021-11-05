@@ -3,28 +3,33 @@ package container
 import (
 	"github.com/containrrr/watchtower/pkg/container/mocks"
 	"github.com/containrrr/watchtower/pkg/filters"
+	t "github.com/containrrr/watchtower/pkg/types"
+
+	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/backend"
 	cli "github.com/docker/docker/client"
+	"github.com/onsi/gomega/gbytes"
+	"github.com/onsi/gomega/ghttp"
+	"github.com/sirupsen/logrus"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/gbytes"
-	"github.com/sirupsen/logrus"
+	. "github.com/onsi/gomega/types"
+
+	"net/http"
 )
 
 var _ = Describe("the client", func() {
 	var docker *cli.Client
-	var client Client
-	BeforeSuite(func() {
-		server := mocks.NewMockAPIServer()
+	var mockServer *ghttp.Server
+	BeforeEach(func() {
+		mockServer = ghttp.NewServer()
 		docker, _ = cli.NewClientWithOpts(
-			cli.WithHost(server.URL),
-			cli.WithHTTPClient(server.Client()))
-		client = dockerClient{
-			api:        docker,
-			pullImages: false,
-		}
+			cli.WithHost(mockServer.URL()),
+			cli.WithHTTPClient(mockServer.HTTPTestServer.Client()))
 	})
-	It("should return a client for the api", func() {
-		Expect(client).NotTo(BeNil())
+	AfterEach(func() {
+		mockServer.Close()
 	})
 	Describe("WarnOnHeadPullFailed", func() {
 		containerUnknown := *mockContainerWithImageName("unknown.repo/prefix/imagename:latest")
@@ -54,90 +59,152 @@ var _ = Describe("the client", func() {
 			})
 		})
 	})
-
-	When("listing containers without any filter", func() {
-		It("should return all available containers", func() {
-			containers, err := client.ListContainers(filters.NoFilter)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(len(containers) == 2).To(BeTrue())
-		})
-	})
-	When("listing containers with a filter matching nothing", func() {
-		It("should return an empty array", func() {
-			filter := filters.FilterByNames([]string{"lollercoaster"}, filters.NoFilter)
-			containers, err := client.ListContainers(filter)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(len(containers) == 0).To(BeTrue())
-		})
-	})
-	When("listing containers with a watchtower filter", func() {
-		It("should return only the watchtower container", func() {
-			containers, err := client.ListContainers(filters.WatchtowerContainersFilter)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(len(containers) == 1).To(BeTrue())
-			Expect(containers[0].ImageName()).To(Equal("containrrr/watchtower:latest"))
-		})
-	})
-	When(`listing containers with the "include stopped" option`, func() {
-		It("should return both stopped and running containers", func() {
-			client = dockerClient{
-				api:            docker,
-				pullImages:     false,
-				includeStopped: true,
-			}
-			containers, err := client.ListContainers(filters.NoFilter)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(len(containers) > 0).To(BeTrue())
-		})
-	})
-	When(`listing containers with the "include restart" option`, func() {
-		It("should return both stopped, restarting and running containers", func() {
-			client = dockerClient{
-				api:               docker,
-				pullImages:        false,
-				includeRestarting: true,
-			}
-			containers, err := client.ListContainers(filters.NoFilter)
-			Expect(err).NotTo(HaveOccurred())
-			RestartingContainerFound := false
-			for _, ContainerRunning := range containers {
-				if ContainerRunning.containerInfo.State.Restarting {
-					RestartingContainerFound = true
+	When("listing containers", func() {
+		When("no filter is provided", func() {
+			It("should return all available containers", func() {
+				mockServer.AppendHandlers(mocks.ListContainersHandler("running"))
+				mockServer.AppendHandlers(mocks.GetContainerHandlers("watchtower", "running")...)
+				client := dockerClient{
+					api:        docker,
+					pullImages: false,
 				}
-			}
-			Expect(RestartingContainerFound).To(BeTrue())
-			Expect(RestartingContainerFound).NotTo(BeFalse())
+				containers, err := client.ListContainers(filters.NoFilter)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(containers).To(HaveLen(2))
+			})
 		})
-	})
-	When(`listing containers without restarting ones`, func() {
-		It("should not return restarting containers", func() {
-			client = dockerClient{
-				api:               docker,
-				pullImages:        false,
-				includeRestarting: false,
-			}
-			containers, err := client.ListContainers(filters.NoFilter)
-			Expect(err).NotTo(HaveOccurred())
-			RestartingContainerFound := false
-			for _, ContainerRunning := range containers {
-				if ContainerRunning.containerInfo.State.Restarting {
-					RestartingContainerFound = true
+		When("a filter matching nothing", func() {
+			It("should return an empty array", func() {
+				mockServer.AppendHandlers(mocks.ListContainersHandler("running"))
+				mockServer.AppendHandlers(mocks.GetContainerHandlers("watchtower", "running")...)
+				filter := filters.FilterByNames([]string{"lollercoaster"}, filters.NoFilter)
+				client := dockerClient{
+					api:        docker,
+					pullImages: false,
 				}
-			}
-			Expect(RestartingContainerFound).To(BeFalse())
-			Expect(RestartingContainerFound).NotTo(BeTrue())
+				containers, err := client.ListContainers(filter)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(containers).To(BeEmpty())
+			})
+		})
+		When("a watchtower filter is provided", func() {
+			It("should return only the watchtower container", func() {
+				mockServer.AppendHandlers(mocks.ListContainersHandler("running"))
+				mockServer.AppendHandlers(mocks.GetContainerHandlers("watchtower", "running")...)
+				client := dockerClient{
+					api:        docker,
+					pullImages: false,
+				}
+				containers, err := client.ListContainers(filters.WatchtowerContainersFilter)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(containers).To(ConsistOf(withContainerImageName(Equal("containrrr/watchtower:latest"))))
+			})
+		})
+		When(`include stopped is enabled`, func() {
+			It("should return both stopped and running containers", func() {
+				mockServer.AppendHandlers(mocks.ListContainersHandler("running", "exited", "created"))
+				mockServer.AppendHandlers(mocks.GetContainerHandlers("stopped", "watchtower", "running")...)
+				client := dockerClient{
+					api:            docker,
+					pullImages:     false,
+					includeStopped: true,
+				}
+				containers, err := client.ListContainers(filters.NoFilter)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(containers).To(ContainElement(havingRunningState(false)))
+			})
+		})
+		When(`include restarting is enabled`, func() {
+			It("should return both restarting and running containers", func() {
+				mockServer.AppendHandlers(mocks.ListContainersHandler("running", "restarting"))
+				mockServer.AppendHandlers(mocks.GetContainerHandlers("watchtower", "running", "restarting")...)
+				client := dockerClient{
+					api:               docker,
+					pullImages:        false,
+					includeRestarting: true,
+				}
+				containers, err := client.ListContainers(filters.NoFilter)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(containers).To(ContainElement(havingRestartingState(true)))
+			})
+		})
+		When(`include restarting is disabled`, func() {
+			It("should not return restarting containers", func() {
+				mockServer.AppendHandlers(mocks.ListContainersHandler("running"))
+				mockServer.AppendHandlers(mocks.GetContainerHandlers("watchtower", "running")...)
+				client := dockerClient{
+					api:               docker,
+					pullImages:        false,
+					includeRestarting: false,
+				}
+				containers, err := client.ListContainers(filters.NoFilter)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(containers).NotTo(ContainElement(havingRestartingState(true)))
+			})
 		})
 	})
 	Describe(`ExecuteCommand`, func() {
 		When(`logging`, func() {
 			It("should include container id field", func() {
+				client := dockerClient{
+					api:        docker,
+					pullImages: false,
+				}
+
 				// Capture logrus output in buffer
 				logbuf := gbytes.NewBuffer()
 				origOut := logrus.StandardLogger().Out
 				defer logrus.SetOutput(origOut)
 				logrus.SetOutput(logbuf)
 
-				_, err := client.ExecuteCommand("ex-cont-id", "exec-cmd", 1)
+				user := ""
+				containerID := t.ContainerID("ex-cont-id")
+				execID := "ex-exec-id"
+				cmd := "exec-cmd"
+
+				mockServer.AppendHandlers(
+					// API.ContainerExecCreate
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("POST", HaveSuffix("containers/%v/exec", containerID)),
+						ghttp.VerifyJSONRepresenting(types.ExecConfig{
+							User:   user,
+							Detach: false,
+							Tty:    true,
+							Cmd: []string{
+								"sh",
+								"-c",
+								cmd,
+							},
+						}),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, types.IDResponse{ID: execID}),
+					),
+					// API.ContainerExecStart
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("POST", HaveSuffix("exec/%v/start", execID)),
+						ghttp.VerifyJSONRepresenting(types.ExecStartCheck{
+							Detach: false,
+							Tty:    true,
+						}),
+						ghttp.RespondWith(http.StatusOK, nil),
+					),
+					// API.ContainerExecInspect
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", HaveSuffix("exec/ex-exec-id/json")),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, backend.ExecInspect{
+							ID:       execID,
+							Running:  false,
+							ExitCode: nil,
+							ProcessConfig: &backend.ExecProcessConfig{
+								Entrypoint: "sh",
+								Arguments:  []string{"-c", cmd},
+								User:       user,
+							},
+							ContainerID: string(containerID),
+						}),
+					),
+				)
+
+				_, err := client.ExecuteCommand(containerID, cmd, 1)
 				Expect(err).NotTo(HaveOccurred())
 				// Note: Since Execute requires opening up a raw TCP stream to the daemon for the output, this will fail
 				// when using the mock API server. Regardless of the outcome, the log should include the container ID
@@ -146,3 +213,25 @@ var _ = Describe("the client", func() {
 		})
 	})
 })
+
+// Gomega matcher helpers
+
+func withContainerImageName(matcher GomegaMatcher) GomegaMatcher {
+	return WithTransform(containerImageName, matcher)
+}
+
+func containerImageName(container Container) string {
+	return container.ImageName()
+}
+
+func havingRestartingState(expected bool) GomegaMatcher {
+	return WithTransform(func(container Container) bool {
+		return container.containerInfo.State.Restarting
+	}, Equal(expected))
+}
+
+func havingRunningState(expected bool) GomegaMatcher {
+	return WithTransform(func(container Container) bool {
+		return container.containerInfo.State.Running
+	}, Equal(expected))
+}
