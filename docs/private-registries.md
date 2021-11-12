@@ -25,6 +25,18 @@ password `auth` string:
 `<REGISTRY_NAME>` needs to be replaced by the name of your private registry
 (e.g., `my-private-registry.example.org`)
 
+!!! important "Using private images on docker hub"
+    When using private images on docker hub, the containers beeing watched needs to use the full image name, including the repository prefix `index.docker.io`.
+    So instead of
+    ```
+    docker run -d myuser/myimage
+    ```
+    you would run it as
+    ```
+    docker run -d index.docker.io/myuser/myimage
+    ```
+
+
 The required `auth` string can be generated as follows:
 
 ```bash
