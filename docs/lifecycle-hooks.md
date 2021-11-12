@@ -62,7 +62,7 @@ occur, forcing Watchtower to continue the update loop.
 
 #### Pre-update timeouts
 
-For the `pre-update` the lifecycle command, it is possible to override this timeout to
+For the `pre-update` lifecycle command, it is possible to override this timeout to
 allow the script to finish before forcefully killing it. This is done by adding the
 label `com.centurylinklabs.watchtower.lifecycle.pre-update-timeout` followed by
 the timeout expressed in minutes.
