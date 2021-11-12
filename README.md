@@ -150,6 +150,9 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
     <td align="center"><a href="https://quan.io"><img src="https://avatars.githubusercontent.com/u/3526705?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Dan Quan</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=djquan" title="Documentation">📖</a></td>
     <td align="center"><a href="https://github.com/modem7"><img src="https://avatars.githubusercontent.com/u/4349962?v=4?s=100" width="100px;" alt=""/><br /><sub><b>modem7</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=modem7" title="Documentation">📖</a></td>
   </tr>
+  <tr>
+    <td align="center"><a href="https://github.com/hypnoglow"><img src="https://avatars.githubusercontent.com/u/4853075?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Igor Zibarev</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=hypnoglow" title="Code">💻</a></td>
+  </tr>
 </table>
 
 <!-- markdownlint-restore -->
