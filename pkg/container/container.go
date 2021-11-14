@@ -285,7 +285,7 @@ func (c Container) VerifyConfiguration() error {
 
 	containerInfo := c.ContainerInfo()
 	if containerInfo == nil {
-		return errorInvalidConfig
+		return errorNoContainerInfo
 	}
 
 	containerConfig := containerInfo.Config

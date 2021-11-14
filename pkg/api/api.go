@@ -25,9 +25,12 @@ func New(token string) *API {
 // RequireToken is wrapper around http.HandleFunc that checks token validity
 func (api *API) RequireToken(fn http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Header.Get("Authorization") != fmt.Sprintf("Bearer %s", api.Token) {
-			log.Tracef("Invalid token \"%s\"", r.Header.Get("Authorization"))
-			log.Tracef("Expected token to be \"%s\"", api.Token)
+		auth := r.Header.Get("Authorization")
+		want := fmt.Sprintf("Bearer %s", api.Token)
+		if auth != want {
+			log.Tracef("Invalid Authorization header \"%s\"", auth)
+			log.Tracef("Expected Authorization header to be \"%s\"", want)
+			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 		log.Debug("Valid token found.")

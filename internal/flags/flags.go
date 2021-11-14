@@ -31,31 +31,31 @@ func RegisterSystemFlags(rootCmd *cobra.Command) {
 		"interval",
 		"i",
 		viper.GetInt("WATCHTOWER_POLL_INTERVAL"),
-		"poll interval (in seconds)")
+		"Poll interval (in seconds)")
 
 	flags.StringP(
 		"schedule",
 		"s",
 		viper.GetString("WATCHTOWER_SCHEDULE"),
-		"the cron expression which defines when to update")
+		"The cron expression which defines when to update")
 
 	flags.DurationP(
 		"stop-timeout",
 		"t",
 		viper.GetDuration("WATCHTOWER_TIMEOUT"),
-		"timeout before a container is forcefully stopped")
+		"Timeout before a container is forcefully stopped")
 
 	flags.BoolP(
 		"no-pull",
 		"",
 		viper.GetBool("WATCHTOWER_NO_PULL"),
-		"do not pull any new images")
+		"Do not pull any new images")
 
 	flags.BoolP(
 		"no-restart",
 		"",
 		viper.GetBool("WATCHTOWER_NO_RESTART"),
-		"do not restart any containers")
+		"Do not restart any containers")
 
 	flags.BoolP(
 		"no-startup-message",
@@ -67,31 +67,31 @@ func RegisterSystemFlags(rootCmd *cobra.Command) {
 		"cleanup",
 		"c",
 		viper.GetBool("WATCHTOWER_CLEANUP"),
-		"remove previously used images after updating")
+		"Remove previously used images after updating")
 
 	flags.BoolP(
 		"remove-volumes",
 		"",
 		viper.GetBool("WATCHTOWER_REMOVE_VOLUMES"),
-		"remove attached volumes before updating")
+		"Remove attached volumes before updating")
 
 	flags.BoolP(
 		"label-enable",
 		"e",
 		viper.GetBool("WATCHTOWER_LABEL_ENABLE"),
-		"watch containers where the com.centurylinklabs.watchtower.enable label is true")
+		"Watch containers where the com.centurylinklabs.watchtower.enable label is true")
 
 	flags.BoolP(
 		"debug",
 		"d",
 		viper.GetBool("WATCHTOWER_DEBUG"),
-		"enable debug mode with verbose logging")
+		"Enable debug mode with verbose logging")
 
 	flags.BoolP(
 		"trace",
 		"",
 		viper.GetBool("WATCHTOWER_TRACE"),
-		"enable trace mode with very verbose logging - caution, exposes credentials")
+		"Enable trace mode with very verbose logging - caution, exposes credentials")
 
 	flags.BoolP(
 		"monitor-only",
@@ -177,7 +177,7 @@ func RegisterNotificationFlags(rootCmd *cobra.Command) {
 		"notifications",
 		"n",
 		viper.GetStringSlice("WATCHTOWER_NOTIFICATIONS"),
-		" notification types to send (valid: email, slack, msteams, gotify, shoutrrr)")
+		" Notification types to send (valid: email, slack, msteams, gotify, shoutrrr)")
 
 	flags.String(
 		"notifications-level",
