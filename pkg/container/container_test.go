@@ -219,6 +219,8 @@ var _ = Describe("the container", func() {
 						"com.centurylinklabs.watchtower.lifecycle.pre-update-timeout": "3",
 						"com.centurylinklabs.watchtower.lifecycle.pre-update.user":    "user1",
 						"com.centurylinklabs.watchtower.lifecycle.post-update.user":   "user2",
+						"com.centurylinklabs.watchtower.lifecycle.pre-check.user":   "user3",
+						"com.centurylinklabs.watchtower.lifecycle.post-check.user":   "user4",
 					})
 					preUser := c.GetLifecyclePreUpdateUser()
 					Expect(preUser).To(Equal("user1"))
@@ -226,6 +228,10 @@ var _ = Describe("the container", func() {
 					Expect(postUser).To(Equal("user2"))
 					preTimeout := c.PreUpdateTimeout()
 					Expect(preTimeout).To(Equal(3))
+					preCheckUser := c.GetLifecyclePreCheckUser()
+					Expect(preCheckUser).To(Equal("user3"))
+					postCheckUser := c.GetLifecyclePostCheckUser()
+					Expect(postCheckUser).To(Equal("user4"))
 				})
 			})
 
