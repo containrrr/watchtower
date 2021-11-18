@@ -364,7 +364,10 @@ func runUpdatesWithNotifications(filter t.Filter) *metrics.Metric {
 	}
 	notifier.SendNotification(result)
 	metricResults := metrics.NewMetric(result)
-	log.Debugf("Session done: %v scanned, %v updated, %v failed",
-		metricResults.Scanned, metricResults.Updated, metricResults.Failed)
+	notifications.LocalLog.WithFields(log.Fields{
+		"Scanned": metricResults.Scanned,
+		"Updated": metricResults.Updated,
+		"Failed":  metricResults.Failed,
+	}).Info("Session done")
 	return metricResults
 }

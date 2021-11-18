@@ -152,7 +152,7 @@ func (n *shoutrrrTypeNotifier) sendEntries(entries []*log.Entry, report t.Report
 		go func() {
 			if err != nil {
 				LocalLog.WithError(err).Fatal("Notification template error")
-			} else {
+			} else if len(n.Urls) > 1 {
 				LocalLog.Info("Skipping notification due to empty message")
 			}
 		}()
