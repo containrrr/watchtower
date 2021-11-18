@@ -152,6 +152,7 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
   </tr>
   <tr>
     <td align="center"><a href="https://github.com/hypnoglow"><img src="https://avatars.githubusercontent.com/u/4853075?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Igor Zibarev</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=hypnoglow" title="Code">💻</a></td>
+    <td align="center"><a href="https://github.com/patricegautier"><img src="https://avatars.githubusercontent.com/u/38435239?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Patrice</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=patricegautier" title="Code">💻</a></td>
   </tr>
 </table>
 
