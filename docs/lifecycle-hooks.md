@@ -54,11 +54,11 @@ the `docker run` command line:
 The timeout for all lifecycle commands is 60 seconds. After that, a timeout will
 occur, forcing Watchtower to continue the update loop.
 
-#### Pre-update timeouts
+#### Pre- or Post-update timeouts
 
-For the `pre-update` lifecycle command, it is possible to override this timeout to
+For the `pre-update` or `post-update` lifecycle command, it is possible to override this timeout to
 allow the script to finish before forcefully killing it. This is done by adding the
-label `com.centurylinklabs.watchtower.lifecycle.pre-update-timeout` followed by
+label `com.centurylinklabs.watchtower.lifecycle.pre-update-timeout` or post-update-timeout respectively followed by
 the timeout expressed in minutes.
 
 If the label value is explicitly set to `0`, the timeout will be disabled.  
