@@ -1,12 +1,13 @@
 package notifications
 
 import (
+	"os"
+	"time"
+
 	ty "github.com/containrrr/watchtower/pkg/types"
 	"github.com/johntdyer/slackrus"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"os"
-	"time"
 )
 
 // NewNotifier creates and returns a new Notifier, using global configuration.
@@ -28,7 +29,7 @@ func NewNotifier(c *cobra.Command) ty.Notifier {
 	reportTemplate, _ := f.GetBool("notification-report")
 	tplString, _ := f.GetString("notification-template")
 	urls, _ := f.GetStringArray("notification-url")
-	
+
 	urls, delay := AppendLegacyUrls(urls, c)
 
 	title := GetTitle(c)
@@ -74,9 +75,8 @@ func AppendLegacyUrls(urls []string, cmd *cobra.Command) ([]string, time.Duratio
 		}
 		urls = append(urls, shoutrrrURL)
 
-		
 		if delayNotifier, ok := legacyNotifier.(ty.DelayNotifier); ok {
-			delay = delayNotifier.Delay()
+			delay = delayNotifier.GetDelay()
 		}
 
 		log.WithField("URL", shoutrrrURL).Trace("created Shoutrrr URL from legacy notifier")

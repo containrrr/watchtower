@@ -241,7 +241,7 @@ func testURL(args []string, expectedURL string) {
 	err := command.ParseFlags(args)
 	Expect(err).NotTo(HaveOccurred())
 
-	urls := notifications.AppendLegacyUrls([]string{}, command)
+	urls, _ := notifications.AppendLegacyUrls([]string{}, command)
 
 	Expect(err).NotTo(HaveOccurred())
 
