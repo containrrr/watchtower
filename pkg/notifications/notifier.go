@@ -6,6 +6,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"os"
+	"time"
 )
 
 // NewNotifier creates and returns a new Notifier, using global configuration.
@@ -74,7 +75,7 @@ func AppendLegacyUrls(urls []string, cmd *cobra.Command) ([]string, time.Duratio
 		urls = append(urls, shoutrrrURL)
 
 		
-		if delayNotifier, ok := legacyNotifier.(DelayNotifier); ok {
+		if delayNotifier, ok := legacyNotifier.(ty.DelayNotifier); ok {
 			delay = delayNotifier.Delay()
 		}
 
