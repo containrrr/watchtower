@@ -5,6 +5,7 @@ import (
 	stdlog "log"
 	"strings"
 	"text/template"
+	"time"
 
 	"github.com/containrrr/shoutrrr"
 	"github.com/containrrr/shoutrrr/pkg/types"
@@ -77,14 +78,14 @@ func (n *shoutrrrTypeNotifier) GetNames() []string {
 	return names
 }
 
-func newShoutrrrNotifier(tplString string, acceptedLogLevels []log.Level, legacy bool, title string, urls ...string) t.Notifier {
+func newShoutrrrNotifier(tplString string, acceptedLogLevels []log.Level, legacy bool, title string, delay time.Duration, urls []string) t.Notifier {
 
 	notifier := createNotifier(urls, acceptedLogLevels, tplString, legacy)
 	notifier.params = &types.Params{"title": title}
 	log.AddHook(notifier)
 
 	// Do the sending in a separate goroutine so we don't block the main process.
-	go sendNotifications(notifier)
+	go sendNotifications(notifier, delay)
 
 	return notifier
 }
@@ -109,11 +110,13 @@ func createNotifier(urls []string, levels []log.Level, tplString string, legacy 
 		logLevels:      levels,
 		template:       tpl,
 		legacyTemplate: legacy,
+		delays:         delays,
 	}
 }
 
-func sendNotifications(n *shoutrrrTypeNotifier) {
+func sendNotifications(n *shoutrrrTypeNotifier, delay time.Duration) {
 	for msg := range n.messages {
+		time.Sleep(delay)
 		errs := n.Router.Send(msg, n.params)
 
 		for i, err := range errs {

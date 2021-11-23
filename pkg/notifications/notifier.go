@@ -27,21 +27,23 @@ func NewNotifier(c *cobra.Command) ty.Notifier {
 	reportTemplate, _ := f.GetBool("notification-report")
 	tplString, _ := f.GetString("notification-template")
 	urls, _ := f.GetStringArray("notification-url")
-
-	urls = AppendLegacyUrls(urls, c)
+	
+	urls, delay := AppendLegacyUrls(urls, c)
 
 	title := GetTitle(c)
-	return newShoutrrrNotifier(tplString, acceptedLogLevels, !reportTemplate, title, urls...)
+	return newShoutrrrNotifier(tplString, acceptedLogLevels, !reportTemplate, title, delay, urls...)
 }
 
 // AppendLegacyUrls creates shoutrrr equivalent URLs from legacy notification flags
-func AppendLegacyUrls(urls []string, cmd *cobra.Command) []string {
+func AppendLegacyUrls(urls []string, delays []time.Duration, cmd *cobra.Command) ([]string, time.Duration) {
 
 	// Parse types and create notifiers.
 	types, err := cmd.Flags().GetStringSlice("notifications")
 	if err != nil {
 		log.WithError(err).Fatal("could not read notifications argument")
 	}
+
+	delay := time.Duration(0)
 
 	for _, t := range types {
 
@@ -71,9 +73,14 @@ func AppendLegacyUrls(urls []string, cmd *cobra.Command) []string {
 		}
 		urls = append(urls, shoutrrrURL)
 
+		
+		if delayNotifier, ok := legacyNotifier.(DelayNotifier); ok {
+			delay = delayNotifier.Delay()
+		}
+
 		log.WithField("URL", shoutrrrURL).Trace("created Shoutrrr URL from legacy notifier")
 	}
-	return urls
+	return urls, delay
 }
 
 // GetTitle returns a common notification title with hostname appended

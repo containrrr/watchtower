@@ -82,6 +82,10 @@ func (e *emailTypeNotifier) GetURL(c *cobra.Command) (string, error) {
 	return conf.GetURL().String(), nil
 }
 
+func (e *emailTypeNotifier) GetDelay() time.Duration {
+	return e.delay
+}
+
 func (e *emailTypeNotifier) getSubject(c *cobra.Command) string {
 	subject := GetTitle(c)
 
