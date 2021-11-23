@@ -78,7 +78,7 @@ func (n *shoutrrrTypeNotifier) GetNames() []string {
 	return names
 }
 
-func newShoutrrrNotifier(tplString string, acceptedLogLevels []log.Level, legacy bool, title string, delay time.Duration, urls []string) t.Notifier {
+func newShoutrrrNotifier(tplString string, acceptedLogLevels []log.Level, legacy bool, title string, delay time.Duration, urls ...string) t.Notifier {
 
 	notifier := createNotifier(urls, acceptedLogLevels, tplString, legacy)
 	notifier.params = &types.Params{"title": title}

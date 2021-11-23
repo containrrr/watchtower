@@ -35,7 +35,7 @@ func NewNotifier(c *cobra.Command) ty.Notifier {
 }
 
 // AppendLegacyUrls creates shoutrrr equivalent URLs from legacy notification flags
-func AppendLegacyUrls(urls []string, delays []time.Duration, cmd *cobra.Command) ([]string, time.Duration) {
+func AppendLegacyUrls(urls []string, cmd *cobra.Command) ([]string, time.Duration) {
 
 	// Parse types and create notifiers.
 	types, err := cmd.Flags().GetStringSlice("notifications")
