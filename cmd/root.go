@@ -191,6 +191,11 @@ func Run(c *cobra.Command, names []string) {
 	if enableUpdateAPI {
 		updateHandler := update.New(func() { runUpdatesWithNotifications(filter) }, updateLock)
 		httpAPI.RegisterFunc(updateHandler.Path, updateHandler.Handle)
+		// If polling isn't enabled the scheduler is never started and
+		// we need to trigger the startup messages manually.
+		if !unblockHTTPAPI {
+			writeStartupMessage(c, time.Time{}, filterDesc)
+		}
 	}
 
 	if enableMetricsAPI {
@@ -261,6 +266,7 @@ func formatDuration(d time.Duration) string {
 
 func writeStartupMessage(c *cobra.Command, sched time.Time, filtering string) {
 	noStartupMessage, _ := c.PersistentFlags().GetBool("no-startup-message")
+	enableUpdateAPI, _ := c.PersistentFlags().GetBool("http-api-update")
 
 	var startupLog *log.Entry
 	if noStartupMessage {
@@ -286,8 +292,15 @@ func writeStartupMessage(c *cobra.Command, sched time.Time, filtering string) {
 		until := formatDuration(time.Until(sched))
 		startupLog.Info("Scheduling first run: " + sched.Format("2006-01-02 15:04:05 -0700 MST"))
 		startupLog.Info("Note that the first check will be performed in " + until)
+	} else if runOnce, _ := c.PersistentFlags().GetBool("run-once"); runOnce {
+			startupLog.Info("Running a one time update.")
 	} else {
-		startupLog.Info("Running a one time update.")
+		startupLog.Info("Periodic runs are not enabled.")
+	}
+
+	if enableUpdateAPI {
+		// TODO: make listen port configurable
+		startupLog.Info("The HTTP API is enabled at :8080.")
 	}
 
 	if !noStartupMessage {

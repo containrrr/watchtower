@@ -62,7 +62,6 @@ func (api *API) Start(block bool) error {
 		log.Fatal(tokenMissingMsg)
 	}
 
-	log.Info("Watchtower HTTP API started.")
 	if block {
 		runHTTPServer()
 	} else {
@@ -74,6 +73,5 @@ func (api *API) Start(block bool) error {
 }
 
 func runHTTPServer() {
-	log.Info("Serving HTTP")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
