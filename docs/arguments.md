@@ -237,7 +237,7 @@ Environment Variable: WATCHTOWER_RUN_ONCE
 
 ## HTTP API Mode
 Runs Watchtower in HTTP API mode, only allowing image updates to be triggered by an HTTP request. 
-For details see [HTTP API](https://containrrr.github.io/watchtower/http-api-mode).
+For details see [HTTP API](https://containrrr.dev/watchtower/http-api-mode).
 
 ```text
             Argument: --http-api-update
@@ -268,7 +268,7 @@ Environment Variable: WATCHTOWER_HTTP_API_PERIODIC_POLLS
 
 ## Filter by scope
 Update containers that have a `com.centurylinklabs.watchtower.scope` label set with the same value as the given argument. 
-This enables [running multiple instances](https://containrrr.github.io/watchtower/running-multiple-instances).
+This enables [running multiple instances](https://containrrr.dev/watchtower/running-multiple-instances).
 
 ```text
             Argument: --scope
