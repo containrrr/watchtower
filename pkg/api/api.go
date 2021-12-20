@@ -2,8 +2,9 @@ package api
 
 import (
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"net/http"
+
+	log "github.com/sirupsen/logrus"
 )
 
 const tokenMissingMsg = "api token is empty or has not been set. exiting"
@@ -28,8 +29,10 @@ func (api *API) RequireToken(fn http.HandlerFunc) http.HandlerFunc {
 		auth := r.Header.Get("Authorization")
 		want := fmt.Sprintf("Bearer %s", api.Token)
 		if auth != want {
-			log.Tracef("Invalid Authorization header \"%s\"", auth)
-			log.Tracef("Expected Authorization header to be \"%s\"", want)
+			log.WithFields(log.Fields{
+				"got":      auth,
+				"expected": want,
+			}).Tracef("Invalid Authorization header")
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
