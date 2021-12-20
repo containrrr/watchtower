@@ -2,8 +2,11 @@ module github.com/containrrr/watchtower
 
 go 1.12
 
+// Use non-vulnerable runc (until github.com/containerd/containerd v1.6.0 is stable)
+replace github.com/opencontainers/runc => github.com/opencontainers/runc v1.0.3
+
 require (
-	github.com/containerd/containerd v1.5.7 // indirect
+	github.com/containerd/containerd v1.5.8 // indirect
 	github.com/containrrr/shoutrrr v0.5.2
 	github.com/docker/cli v20.10.8+incompatible
 	github.com/docker/distribution v2.7.1+incompatible
