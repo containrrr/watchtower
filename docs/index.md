@@ -46,20 +46,20 @@ the following command:
 
 === "docker run"
 
-  ```bash
-  $ docker run -d \
-  --name watchtower \
-  -v /var/run/docker.sock:/var/run/docker.sock \
-  containrrr/watchtower
-  ```
+    ```bash
+    $ docker run -d \
+    --name watchtower \
+    -v /var/run/docker.sock:/var/run/docker.sock \
+    containrrr/watchtower
+    ```
 
 === "docker-compose.yml"
 
-  ```yaml
-  version: "3"
-  services:
-    watchtower:
-      image: containrrr/watchtower
-      volumes:
-        - /var/run/docker.sock:/var/run/docker.sock
-  ```
+    ```yaml
+    version: "3"
+    services:
+      watchtower:
+        image: containrrr/watchtower
+        volumes:
+          - /var/run/docker.sock:/var/run/docker.sock
+    ```
