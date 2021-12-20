@@ -48,10 +48,12 @@ var mockDataAllFresh = Data{
 }
 
 func mockDataFromStates(states ...s.State) Data {
+	hostname := "Mock"
 	return Data{
 		Entries: legacyMockData.Entries,
 		Report:  mocks.CreateMockProgressReport(states...),
-		Title:   "Updates on Mock",
+		Title:   GetTitle(hostname),
+		Host:    hostname,
 	}
 }
 
@@ -180,9 +182,17 @@ var _ = Describe("Shoutrrr", func() {
 
 		When("using a template referencing Title", func() {
 			It("should contain the title in the output", func() {
-				expected := `Updates on Mock`
+				expected := `Watchtower updates on Mock`
 				data := mockDataFromStates(s.UpdatedState)
 				Expect(getTemplatedResult(`{{ .Title }}`, false, data)).To(Equal(expected))
+			})
+		})
+
+		When("using a template referencing Host", func() {
+			It("should contain the hostname in the output", func() {
+				expected := `Mock`
+				data := mockDataFromStates(s.UpdatedState)
+				Expect(getTemplatedResult(`{{ .Host }}`, false, data)).To(Equal(expected))
 			})
 		})
 
