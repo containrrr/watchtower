@@ -28,6 +28,27 @@ var _ = Describe("notifications", func() {
 
 			Expect(notif.GetNames()).To(BeEmpty())
 		})
+		When("title is overriden in flag", func() {
+			It("should use the specified hostname in the title", func() {
+				command := cmd.NewRootCommand()
+				flags.RegisterNotificationFlags(command)
+
+				err := command.ParseFlags([]string{
+					"--notifications-hostname",
+					"test.host",
+				})
+				Expect(err).NotTo(HaveOccurred())
+				hostname := notifications.GetHostname(command)
+				title := notifications.GetTitle(hostname)
+				Expect(title).To(Equal("Watchtower updates on test.host"))
+			})
+		})
+		When("no hostname can be resolved", func() {
+			It("should use the default simple title", func() {
+				title := notifications.GetTitle("")
+				Expect(title).To(Equal("Watchtower updates"))
+			})
+		})
 	})
 	Describe("the slack notifier", func() {
 		// builderFn := notifications.NewSlackNotifier
