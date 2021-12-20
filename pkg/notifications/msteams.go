@@ -1,11 +1,12 @@
 package notifications
 
 import (
+	"net/url"
+
 	shoutrrrTeams "github.com/containrrr/shoutrrr/pkg/services/teams"
 	t "github.com/containrrr/watchtower/pkg/types"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"net/url"
 )
 
 const (
@@ -37,7 +38,7 @@ func newMsTeamsNotifier(cmd *cobra.Command, acceptedLogLevels []log.Level) t.Con
 	return n
 }
 
-func (n *msTeamsTypeNotifier) GetURL(c *cobra.Command) (string, error) {
+func (n *msTeamsTypeNotifier) GetURL(c *cobra.Command, title string) (string, error) {
 	webhookURL, err := url.Parse(n.webHookURL)
 	if err != nil {
 		return "", err
@@ -49,7 +50,7 @@ func (n *msTeamsTypeNotifier) GetURL(c *cobra.Command) (string, error) {
 	}
 
 	config.Color = ColorHex
-	config.Title = GetTitle(c)
+	config.Title = title
 
 	return config.GetURL().String(), nil
 }

@@ -39,7 +39,8 @@ var _ = Describe("notifications", func() {
 			channel := "123456789"
 			token := "abvsihdbau"
 			color := notifications.ColorInt
-			title := url.QueryEscape(notifications.GetTitle(command))
+			hostname := notifications.GetHostname(command)
+			title := url.QueryEscape(notifications.GetTitle(hostname))
 			expected := fmt.Sprintf("discord://%s@%s?color=0x%x&colordebug=0x0&colorerror=0x0&colorinfo=0x0&colorwarn=0x0&title=%s&username=watchtower", token, channel, color, title)
 			buildArgs := func(url string) []string {
 				return []string{
@@ -67,7 +68,8 @@ var _ = Describe("notifications", func() {
 			tokenB := "BBBBBBBBB"
 			tokenC := "123456789123456789123456"
 			color := url.QueryEscape(notifications.ColorHex)
-			title := url.QueryEscape(notifications.GetTitle(command))
+			hostname := notifications.GetHostname(command)
+			title := url.QueryEscape(notifications.GetTitle(hostname))
 			iconURL := "https://containrrr.dev/watchtower-sq180.png"
 			iconEmoji := "whale"
 
@@ -122,7 +124,8 @@ var _ = Describe("notifications", func() {
 
 				token := "aaa"
 				host := "shoutrrr.local"
-				title := url.QueryEscape(notifications.GetTitle(command))
+				hostname := notifications.GetHostname(command)
+				title := url.QueryEscape(notifications.GetTitle(hostname))
 
 				expectedOutput := fmt.Sprintf("gotify://%s/%s?title=%s", host, token, title)
 
@@ -150,7 +153,8 @@ var _ = Describe("notifications", func() {
 				tokenB := "33333333012222222222333333333344"
 				tokenC := "44444444-4444-4444-8444-cccccccccccc"
 				color := url.QueryEscape(notifications.ColorHex)
-				title := url.QueryEscape(notifications.GetTitle(command))
+				hostname := notifications.GetHostname(command)
+				title := url.QueryEscape(notifications.GetTitle(hostname))
 
 				hookURL := fmt.Sprintf("https://outlook.office.com/webhook/%s/IncomingWebhook/%s/%s", tokenA, tokenB, tokenC)
 				expectedOutput := fmt.Sprintf("teams://%s/%s/%s?color=%s&title=%s", tokenA, tokenB, tokenC, color, title)
@@ -241,7 +245,9 @@ func testURL(args []string, expectedURL string) {
 	err := command.ParseFlags(args)
 	Expect(err).NotTo(HaveOccurred())
 
-	urls, _ := notifications.AppendLegacyUrls([]string{}, command)
+	hostname := notifications.GetHostname(command)
+	title := notifications.GetTitle(hostname)
+	urls, _ := notifications.AppendLegacyUrls([]string{}, command, title)
 
 	Expect(err).NotTo(HaveOccurred())
 
