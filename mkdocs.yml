@@ -23,7 +23,8 @@ markdown_extensions:
         user: containrrr
         repo: watchtower
     - pymdownx.saneheaders
-    - pymdownx.tabbed
+    - pymdownx.tabbed:
+        alternate_style: true 
 nav:
    - 'Home': 'index.md'
    - 'Introduction': 'introduction.md'

@@ -45,13 +45,16 @@ and restart it with the same options that were used when it was deployed initial
 the following command:
 
 === "docker run"
+
     ```bash
     $ docker run -d \
     --name watchtower \
     -v /var/run/docker.sock:/var/run/docker.sock \
     containrrr/watchtower
     ```
+
 === "docker-compose.yml"
+
     ```yaml
     version: "3"
     services:
