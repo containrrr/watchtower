@@ -48,9 +48,12 @@ var mockDataAllFresh = Data{
 }
 
 func mockDataFromStates(states ...s.State) Data {
+	hostname := "Mock"
 	return Data{
 		Entries: legacyMockData.Entries,
 		Report:  mocks.CreateMockProgressReport(states...),
+		Title:   GetTitle(hostname),
+		Host:    hostname,
 	}
 }
 
@@ -177,6 +180,22 @@ var _ = Describe("Shoutrrr", func() {
 
 		})
 
+		When("using a template referencing Title", func() {
+			It("should contain the title in the output", func() {
+				expected := `Watchtower updates on Mock`
+				data := mockDataFromStates(s.UpdatedState)
+				Expect(getTemplatedResult(`{{ .Title }}`, false, data)).To(Equal(expected))
+			})
+		})
+
+		When("using a template referencing Host", func() {
+			It("should contain the hostname in the output", func() {
+				expected := `Mock`
+				data := mockDataFromStates(s.UpdatedState)
+				Expect(getTemplatedResult(`{{ .Host }}`, false, data)).To(Equal(expected))
+			})
+		})
+
 		Describe("the default template", func() {
 			When("all containers are fresh", func() {
 				It("should return an empty string", func() {
@@ -278,6 +297,7 @@ func sendNotificationsWithBlockingRouter(legacy bool) (*shoutrrrTypeNotifier, *b
 		done:           make(chan bool),
 		Router:         router,
 		legacyTemplate: legacy,
+		params:         &types.Params{},
 	}
 
 	entry := &logrus.Entry{

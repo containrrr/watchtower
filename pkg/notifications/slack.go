@@ -41,7 +41,7 @@ func newSlackNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.Convert
 	return n
 }
 
-func (s *slackTypeNotifier) GetURL(c *cobra.Command) (string, error) {
+func (s *slackTypeNotifier) GetURL(c *cobra.Command, title string) (string, error) {
 	trimmedURL := strings.TrimRight(s.HookURL, "/")
 	trimmedURL = strings.TrimLeft(trimmedURL, "https://")
 	parts := strings.Split(trimmedURL, "/")
@@ -52,7 +52,7 @@ func (s *slackTypeNotifier) GetURL(c *cobra.Command) (string, error) {
 			WebhookID:  parts[len(parts)-3],
 			Token:      parts[len(parts)-2],
 			Color:      ColorInt,
-			Title:      GetTitle(c),
+			Title:      title,
 			SplitLines: true,
 			Username:   s.Username,
 		}
@@ -65,7 +65,7 @@ func (s *slackTypeNotifier) GetURL(c *cobra.Command) (string, error) {
 		BotName: s.Username,
 		Color:   ColorHex,
 		Channel: "webhook",
-		Title:   GetTitle(c),
+		Title:   title,
 	}
 
 	if s.IconURL != "" {
