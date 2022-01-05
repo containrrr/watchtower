@@ -1,6 +1,8 @@
 package notifications
 
 import (
+	"time"
+
 	"github.com/containrrr/shoutrrr/pkg/types"
 	"github.com/containrrr/watchtower/internal/actions/mocks"
 	"github.com/containrrr/watchtower/internal/flags"
@@ -212,7 +214,7 @@ Turns out everything is on fire
 	When("batching notifications", func() {
 		When("no messages are queued", func() {
 			It("should not send any notification", func() {
-				shoutrrr := newShoutrrrNotifier("", allButTrace, true, "", "logger://")
+				shoutrrr := newShoutrrrNotifier("", allButTrace, true, "", time.Duration(0), "logger://")
 				shoutrrr.StartNotification()
 				shoutrrr.SendNotification(nil)
 				Consistently(logBuffer).ShouldNot(gbytes.Say(`Shoutrrr:`))
@@ -220,7 +222,7 @@ Turns out everything is on fire
 		})
 		When("at least one message is queued", func() {
 			It("should send a notification", func() {
-				shoutrrr := newShoutrrrNotifier("", allButTrace, true, "", "logger://")
+				shoutrrr := newShoutrrrNotifier("", allButTrace, true, "", time.Duration(0), "logger://")
 				shoutrrr.StartNotification()
 				logrus.Info("This log message is sponsored by ContainrrrVPN")
 				shoutrrr.SendNotification(nil)
@@ -282,7 +284,7 @@ func sendNotificationsWithBlockingRouter(legacy bool) (*shoutrrrTypeNotifier, *b
 		Message: "foo bar",
 	}
 
-	go sendNotifications(shoutrrr)
+	go sendNotifications(shoutrrr, time.Duration(0))
 
 	shoutrrr.StartNotification()
 	_ = shoutrrr.Fire(entry)
