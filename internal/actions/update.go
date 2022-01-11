@@ -9,6 +9,7 @@ import (
 	"github.com/containrrr/watchtower/pkg/sorter"
 	"github.com/containrrr/watchtower/pkg/types"
 	log "github.com/sirupsen/logrus"
+	"strings"
 )
 
 // Update looks at the running Docker containers to see if any of the images
@@ -68,7 +69,7 @@ func Update(client container.Client, params types.UpdateParams) (types.Report, e
 		return nil, err
 	}
 
-	checkDependencies(containers)
+	UpdateImplicitRestart(containers)
 
 	var containersToUpdate []container.Container
 	if !params.MonitorOnly {
@@ -216,24 +217,41 @@ func restartStaleContainer(container container.Container, client container.Clien
 	return nil
 }
 
-func checkDependencies(containers []container.Container) {
+// UpdateImplicitRestart iterates through the passed containers, setting the
+// `LinkedToRestarting` flag if any of it's linked containers are marked for restart
+func UpdateImplicitRestart(containers []container.Container) {
 
-	for _, c := range containers {
+	for ci, c := range containers {
 		if c.ToRestart() {
+			// The container is already marked for restart, no need to check
 			continue
 		}
 
-	LinkLoop:
-		for _, linkName := range c.Links() {
-			for _, candidate := range containers {
-				if candidate.Name() != linkName {
-					continue
-				}
-				if candidate.ToRestart() {
-					c.LinkedToRestarting = true
-					break LinkLoop
-				}
+		if link := linkedContainerMarkedForRestart(c.Links(), containers); link != "" {
+			log.WithFields(log.Fields{
+				"restarting": link,
+				"linked":     c.Name(),
+			}).Debug("container is linked to restarting")
+			// NOTE: To mutate the array, the `c` variable cannot be used as it's a copy
+			containers[ci].LinkedToRestarting = true
+		}
+
+	}
+}
+
+// linkedContainerMarkedForRestart returns the name of the first link that matches a
+// container marked for restart
+func linkedContainerMarkedForRestart(links []string, containers []container.Container) string {
+	for _, linkName := range links {
+		// Since the container names need to start with '/', let's prepend it if it's missing
+		if !strings.HasPrefix(linkName, "/") {
+			linkName = "/" + linkName
+		}
+		for _, candidate := range containers {
+			if candidate.Name() == linkName && candidate.ToRestart() {
+				return linkName
 			}
 		}
 	}
+	return ""
 }

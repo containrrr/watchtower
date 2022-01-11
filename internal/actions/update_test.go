@@ -20,6 +20,7 @@ var _ = Describe("the update action", func() {
 		BeforeEach(func() {
 			pullImages := false
 			removeVolumes := false
+			//goland:noinspection GoBoolExpressions
 			client = CreateMockClient(
 				&TestData{
 					NameOfContainerToKeep: "test-container-02",
@@ -253,6 +254,54 @@ var _ = Describe("the update action", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(client.TestData.TriedToRemoveImageCount).To(Equal(1))
 			})
+		})
+
+		When("container is linked to restarting containers", func() {
+			It("should be marked for restart", func() {
+
+				provider := CreateMockContainerWithConfig(
+					"test-container-provider",
+					"/test-container-provider",
+					"fake-image2:latest",
+					true,
+					false,
+					time.Now(),
+					&dockerContainer.Config{
+						Labels:       map[string]string{},
+						ExposedPorts: map[nat.Port]struct{}{},
+					})
+
+				provider.Stale = true
+
+				consumer := CreateMockContainerWithConfig(
+					"test-container-consumer",
+					"/test-container-consumer",
+					"fake-image3:latest",
+					true,
+					false,
+					time.Now(),
+					&dockerContainer.Config{
+						Labels: map[string]string{
+							"com.centurylinklabs.watchtower.depends-on": "test-container-provider",
+						},
+						ExposedPorts: map[nat.Port]struct{}{},
+					})
+
+				containers := []container.Container{
+					provider,
+					consumer,
+				}
+
+				Expect(provider.ToRestart()).To(BeTrue())
+				Expect(consumer.ToRestart()).To(BeFalse())
+
+				actions.UpdateImplicitRestart(containers)
+
+				Expect(containers[0].ToRestart()).To(BeTrue())
+				Expect(containers[1].ToRestart()).To(BeTrue())
+
+			})
+
 		})
 
 		When("container is not running", func() {
