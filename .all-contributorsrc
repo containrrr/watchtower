@@ -803,6 +803,15 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "jamesmacwhite",
+      "name": "James White",
+      "avatar_url": "https://avatars.githubusercontent.com/u/8067792?v=4",
+      "profile": "http://jamesw.link/me",
+      "contributions": [
+        "doc"
+      ]
     }
   ],
   "contributorsPerLine": 7,
