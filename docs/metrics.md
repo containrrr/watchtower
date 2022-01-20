@@ -7,6 +7,8 @@ Metrics can be used to track how Watchtower behaves over time.
 To use this feature, you have to set an [API token](arguments.md#http-api-token) and [enable the metrics API](arguments.md#http-api-metrics),
 as well as creating a port mapping for your container for port `8080`.
 
+The metrics API endpoint is `/v1/metrics`.
+
 ## Available Metrics 
 
 | Name                            | Type    | Description                                                                 |
@@ -16,6 +18,21 @@ as well as creating a port mapping for your container for port `8080`.
 | `watchtower_containers_failed`  | Gauge   | Number of containers where update failed during the last scan               |
 | `watchtower_scans_total`        | Counter | Number of scans since the watchtower started                                |
 | `watchtower_scans_skipped`      | Counter | Number of skipped scans since watchtower started                            |
+
+## Example Prometheus `scrape_config`
+
+```yaml
+scrape_configs:
+  - job_name: watchtower
+    scrape_interval: 5s
+    metrics_path: /v1/metrics
+    bearer_token: demotoken
+    static_configs:
+      - targets:
+        - 'watchtower:8080'
+```
+
+Replace `demotoken` with the Bearer token you have set accordingly.
 
 ## Demo
 
