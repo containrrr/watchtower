@@ -153,6 +153,7 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
   <tr>
     <td align="center"><a href="https://github.com/hypnoglow"><img src="https://avatars.githubusercontent.com/u/4853075?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Igor Zibarev</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=hypnoglow" title="Code">💻</a></td>
     <td align="center"><a href="https://github.com/patricegautier"><img src="https://avatars.githubusercontent.com/u/38435239?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Patrice</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=patricegautier" title="Code">💻</a></td>
+    <td align="center"><a href="http://jamesw.link/me"><img src="https://avatars.githubusercontent.com/u/8067792?v=4?s=100" width="100px;" alt=""/><br /><sub><b>James White</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=jamesmacwhite" title="Documentation">📖</a></td>
   </tr>
 </table>
 
