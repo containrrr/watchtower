@@ -257,6 +257,10 @@ Environment Variable: WATCHTOWER_HTTP_API_TOKEN
 ```
 
 ## HTTP API periodic polls
+
+!!! warning
+This argument is not currently available in the 1.3.0 release.
+
 Keep running periodic updates if the HTTP API mode is enabled, otherwise the HTTP API would prevent periodic polls.  
 
 ```text
