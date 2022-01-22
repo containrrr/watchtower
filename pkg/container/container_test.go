@@ -50,11 +50,13 @@ var _ = Describe("the container", func() {
 			})
 		})
 		When("verifying a container with port bindings, but no exposed ports", func() {
-			It("should return an error", func() {
+			It("should make the config compatible with updating", func() {
 				c := mockContainerWithPortBindings("80/tcp")
 				c.containerInfo.Config.ExposedPorts = nil
-				err := c.VerifyConfiguration()
-				Expect(err).To(Equal(errorNoExposedPorts))
+				Expect(c.VerifyConfiguration()).To(Succeed())
+
+				Expect(c.containerInfo.Config.ExposedPorts).ToNot(BeNil())
+				Expect(c.containerInfo.Config.ExposedPorts).To(BeEmpty())
 			})
 		})
 		When("verifying a container with port bindings and exposed ports is non-nil", func() {
