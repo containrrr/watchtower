@@ -241,7 +241,7 @@ For details see [HTTP API](https://containrrr.dev/watchtower/http-api-mode).
 
 ```text
             Argument: --http-api-update
-Environment Variable: WATCHTOWER_HTTP_API
+Environment Variable: WATCHTOWER_HTTP_API_UPDATE
                 Type: Boolean
              Default: false
 ```
