@@ -29,10 +29,6 @@ func (api *API) RequireToken(fn http.HandlerFunc) http.HandlerFunc {
 		auth := r.Header.Get("Authorization")
 		want := fmt.Sprintf("Bearer %s", api.Token)
 		if auth != want {
-			log.WithFields(log.Fields{
-				"got":      fmt.Sprintf("%q", auth),
-				"expected": want,
-			}).Tracef("Invalid Authorization header")
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
