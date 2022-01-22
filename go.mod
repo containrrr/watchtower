@@ -6,7 +6,7 @@ go 1.12
 replace github.com/opencontainers/runc => github.com/opencontainers/runc v1.0.3
 
 require (
-	github.com/containerd/containerd v1.5.8 // indirect
+	github.com/containerd/containerd v1.5.9 // indirect
 	github.com/containrrr/shoutrrr v0.5.2
 	github.com/docker/cli v20.10.8+incompatible
 	github.com/docker/distribution v2.7.1+incompatible
