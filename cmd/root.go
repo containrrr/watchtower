@@ -134,6 +134,7 @@ func PreRun(cmd *cobra.Command, _ []string) {
 	reviveStopped, _ := f.GetBool("revive-stopped")
 	removeVolumes, _ := f.GetBool("remove-volumes")
 	warnOnHeadPullFailed, _ := f.GetString("warn-on-head-failure")
+	updateDelay, _ := f.GetDuration("update-delay")
 
 	if monitorOnly && noPull {
 		log.Warn("Using `WATCHTOWER_NO_PULL` and `WATCHTOWER_MONITOR_ONLY` simultaneously might lead to no action being taken at all. If this is intentional, you may safely ignore this message.")
@@ -146,6 +147,7 @@ func PreRun(cmd *cobra.Command, _ []string) {
 		removeVolumes,
 		includeRestarting,
 		warnOnHeadPullFailed,
+		updateDelay,
 	)
 
 	notifier = notifications.NewNotifier(cmd)

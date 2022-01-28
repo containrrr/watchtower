@@ -26,6 +26,7 @@ func NewContainer(containerInfo *types.ContainerJSON, imageInfo *types.ImageInsp
 type Container struct {
 	LinkedToRestarting bool
 	Stale              bool
+	OldEnoughImage     bool
 
 	containerInfo *types.ContainerJSON
 	imageInfo     *types.ImageInspect

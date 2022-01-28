@@ -34,6 +34,7 @@ type Client interface {
 	ExecuteCommand(containerID t.ContainerID, command string, timeout int) (SkipUpdate bool, err error)
 	RemoveImageByID(t.ImageID) error
 	WarnOnHeadPullFailed(container Container) bool
+	OldEnoughImage(container Container, latestImage t.ImageID) bool
 }
 
 // NewClient returns a new Client instance which can be used to interact with
@@ -42,7 +43,7 @@ type Client interface {
 //  * DOCKER_HOST			the docker-engine host to send api requests to
 //  * DOCKER_TLS_VERIFY		whether to verify tls certificates
 //  * DOCKER_API_VERSION	the minimum docker api version to work with
-func NewClient(pullImages, includeStopped, reviveStopped, removeVolumes, includeRestarting bool, warnOnHeadFailed string) Client {
+func NewClient(pullImages, includeStopped, reviveStopped, removeVolumes, includeRestarting bool, warnOnHeadFailed string, updateDelay time.Duration) Client {
 	cli, err := sdkClient.NewClientWithOpts(sdkClient.FromEnv)
 
 	if err != nil {
@@ -57,6 +58,7 @@ func NewClient(pullImages, includeStopped, reviveStopped, removeVolumes, include
 		reviveStopped:     reviveStopped,
 		includeRestarting: includeRestarting,
 		warnOnHeadFailed:  warnOnHeadFailed,
+		updateDelay:       updateDelay,
 	}
 }
 
@@ -68,6 +70,7 @@ type dockerClient struct {
 	reviveStopped     bool
 	includeRestarting bool
 	warnOnHeadFailed  string
+	updateDelay       time.Duration
 }
 
 func (client dockerClient) WarnOnHeadPullFailed(container Container) bool {
@@ -290,6 +293,39 @@ func (client dockerClient) HasNewImage(ctx context.Context, container Container)
 
 	log.Infof("Found new %s image (%s)", imageName, newImageID.ShortID())
 	return true, newImageID, nil
+}
+
+func (client dockerClient) OldEnoughImage(container Container, latestImage t.ImageID) bool {
+	ctx := context.Background()
+
+	updateDelay := client.updateDelay
+	if containerDelay, ok := container.getLabelValue(updateDelayLabel); ok {
+		labelDelay, err := time.ParseDuration(containerDelay)
+
+		// Should we return false or true here?
+		if err != nil {
+			log.Debugf("Update Delay label is invalid for %s", container.Name())
+			return false
+		}
+		updateDelay = labelDelay
+	}
+
+	newImageInfo, _, err := client.api.ImageInspectWithRaw(ctx, string(latestImage))
+	if err != nil {
+		return true
+	}
+
+	created, err := time.Parse(time.RFC3339, newImageInfo.Created)
+
+	// Not sure if we should return true here?
+	if err != nil {
+		log.Debugf("Unable to parse created time date for %s", container.Name())
+		return true
+	}
+
+	durationSinceCreated := time.Until(created)
+
+	return durationSinceCreated > updateDelay
 }
 
 // PullImage pulls the latest image for the supplied container, optionally skipping if it's digest can be confirmed

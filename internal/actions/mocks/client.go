@@ -94,3 +94,8 @@ func (client MockClient) IsContainerStale(_ container.Container) (bool, t.ImageI
 func (client MockClient) WarnOnHeadPullFailed(_ container.Container) bool {
 	return true
 }
+
+// always return true in the mock
+func (client MockClient) OldEnoughImage(_ container.Container, _ t.ImageID) bool {
+	return true
+}
