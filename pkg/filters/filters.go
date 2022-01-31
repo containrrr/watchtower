@@ -3,6 +3,7 @@ package filters
 import (
 	t "github.com/containrrr/watchtower/pkg/types"
 	"strings"
+	"regexp"
 )
 
 // WatchtowerContainersFilter filters only watchtower containers
@@ -19,7 +20,9 @@ func FilterByNames(names []string, baseFilter t.Filter) t.Filter {
 
 	return func(c t.FilterableContainer) bool {
 		for _, name := range names {
-			if (name == c.Name()) || (name == c.Name()[1:]) {
+			match, _ := (regexp.MatchString(name, c.Name()))
+			match1, _ := (regexp.MatchString(name, c.Name()[1:]))
+			if (name == c.Name()) || (name == c.Name()[1:]) || match || match1 {
 				return baseFilter(c)
 			}
 		}
