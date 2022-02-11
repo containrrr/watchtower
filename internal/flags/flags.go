@@ -320,6 +320,16 @@ Should only be used for testing.`)
 		viper.GetBool("WATCHTOWER_NOTIFICATION_REPORT"),
 		"Use the session report as the notification template data")
 
+	flags.StringP(
+		"notification-title-tag",
+		"",
+		viper.GetString("WATCHTOWER_NOTIFICATION_TITLE_TAG"),
+		"Title prefix tag for notifications")
+
+	flags.Bool("notification-skip-title",
+		viper.GetBool("WATCHTOWER_NOTIFICATION_SKIP_TITLE"),
+		"Do not pass the title param to notifications")
+
 	flags.String(
 		"warn-on-head-failure",
 		viper.GetString("WATCHTOWER_WARN_ON_HEAD_FAILURE"),
