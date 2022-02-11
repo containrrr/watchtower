@@ -147,6 +147,14 @@ func stopStaleContainer(container container.Container, client container.Client, 
 	if !container.ToRestart() {
 		return nil
 	}
+
+	// Perform an additional check here to prevent us from stopping a linked container we cannot restart
+	if container.LinkedToRestarting {
+		if err := container.VerifyConfiguration(); err != nil {
+			return err
+		}
+	}
+
 	if params.LifecycleHooks {
 		skipUpdate, err := lifecycle.ExecutePreUpdateCommand(client, container)
 		if err != nil {
