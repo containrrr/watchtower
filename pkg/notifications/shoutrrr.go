@@ -102,6 +102,11 @@ func createNotifier(urls []string, levels []log.Level, tplString string, legacy 
 		log.Fatalf("Failed to initialize Shoutrrr notifications: %s\n", err.Error())
 	}
 
+	params := &types.Params{}
+	if data.Title != "" {
+		params.SetTitle(data.Title)
+	}
+
 	return &shoutrrrTypeNotifier{
 		Urls:           urls,
 		Router:         r,
@@ -111,9 +116,7 @@ func createNotifier(urls []string, levels []log.Level, tplString string, legacy 
 		template:       tpl,
 		legacyTemplate: legacy,
 		data:           data,
-		params: &types.Params{
-			"title": data.Title,
-		},
+		params:         params,
 	}
 }
 

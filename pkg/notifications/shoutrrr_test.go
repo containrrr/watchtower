@@ -253,6 +253,17 @@ Turns out everything is on fire
 		})
 	})
 
+	When("the title data field is empty", func() {
+		It("should not have set the title param", func() {
+			shoutrrr := createNotifier([]string{"logger://"}, allButTrace, "", true, StaticData{
+				Host:  "test.host",
+				Title: "",
+			})
+			_, found := shoutrrr.params.Title()
+			Expect(found).ToNot(BeTrue())
+		})
+	})
+
 	When("sending notifications", func() {
 
 		It("SlowNotificationNotSent", func() {
