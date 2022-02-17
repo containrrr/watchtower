@@ -8,14 +8,14 @@
       
       
       
-        <link rel="canonical" href="https://containrrr.dev/watchtower/remote-hosts/">
+        <link rel="canonical" href="https://containrrr.dev/watchtower/updating/">
       
       <link rel="icon" href="../images/favicon.ico">
       <meta name="generator" content="mkdocs-1.2.3, mkdocs-material-8.1.11">
     
     
       
-        <title>Remote hosts - Watchtower</title>
+        <title>Updating - Watchtower</title>
       
     
     
@@ -61,6 +61,11 @@
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
       
+        
+        <a href="#updating_watchtower" class="md-skip">
+          Skip to content
+        </a>
+      
     </div>
     <div data-md-component="announce">
       
@@ -89,7 +94,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Remote hosts
+              Updating
             
           </span>
         </div>
@@ -316,19 +321,11 @@
 
   
   
-    
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
-      
-      
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../remote-hosts/" class="md-nav__link">
         Remote hosts
       </a>
-      
     </li>
   
 
@@ -415,30 +412,54 @@
               </div>
             
             
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#updating_watchtower" class="md-nav__link">
+    Updating Watchtower
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
           
           <div class="md-content" data-md-component="content">
             <article class="md-content__inner md-typeset">
               
                 
-<a href="https://github.com/containrrr/watchtower/edit/main/docs/remote-hosts.md" title="Edit this page" class="md-content__button md-icon">
+<a href="https://github.com/containrrr/watchtower/edit/main/docs/updating.md" title="Edit this page" class="md-content__button md-icon">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25z"/></svg>
 </a>
 
 
-  <h1>Remote hosts</h1>
+  <h1>Updating</h1>
 
-<p>By default, watchtower is set-up to monitor the local Docker daemon (the same daemon running the watchtower container itself). However, it is possible to configure watchtower to monitor a remote Docker endpoint. When starting the watchtower container you can specify a remote Docker endpoint with either the <code>--host</code> flag or the <code>DOCKER_HOST</code> environment variable:</p>
-<div class="highlight"><pre><span></span><code>docker run -d <span class="se">\</span>
-  --name watchtower <span class="se">\</span>
-  containrrr/watchtower --host <span class="s2">&quot;tcp://10.0.1.2:2375&quot;</span>
-</code></pre></div>
-<p>or</p>
-<div class="highlight"><pre><span></span><code>docker run -d <span class="se">\</span>
-  --name watchtower <span class="se">\</span>
-  -e <span class="nv">DOCKER_HOST</span><span class="o">=</span><span class="s2">&quot;tcp://10.0.1.2:2375&quot;</span> <span class="se">\</span>
-  containrrr/watchtower
-</code></pre></div>
-<p>Note in both of the examples above that it is unnecessary to mount the <em>/var/run/docker.sock</em> into the watchtower container.</p>
+<h2 id="updating_watchtower">Updating Watchtower<a class="headerlink" href="#updating_watchtower" title="Permanent link">&para;</a></h2>
+<p>If watchtower is monitoring the same Docker daemon under which the watchtower container itself is running (i.e. if you 
+volume-mounted <code>/var/run/docker.sock</code> into the watchtower container) then it has the ability to update itself.<br />
+If a new version of the <code>containrrr/watchtower</code> image is pushed to the Docker Hub, your watchtower will pull down the 
+new image and restart itself automatically.</p>
 
               
             </article>
@@ -448,41 +469,6 @@
       </main>
       
         <footer class="md-footer">
-  
-    <nav class="md-footer__inner md-grid" aria-label="Footer">
-      
-        
-        <a href="../linked-containers/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Linked containers" rel="prev">
-          <div class="md-footer__button md-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
-          </div>
-          <div class="md-footer__title">
-            <div class="md-ellipsis">
-              <span class="md-footer__direction">
-                Previous
-              </span>
-              Linked containers
-            </div>
-          </div>
-        </a>
-      
-      
-        
-        <a href="../secure-connections/" class="md-footer__link md-footer__link--next" aria-label="Next: Secure connections" rel="next">
-          <div class="md-footer__title">
-            <div class="md-ellipsis">
-              <span class="md-footer__direction">
-                Next
-              </span>
-              Secure connections
-            </div>
-          </div>
-          <div class="md-footer__button md-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11H4z"/></svg>
-          </div>
-        </a>
-      
-    </nav>
   
   <div class="md-footer-meta md-typeset">
     <div class="md-footer-meta__inner md-grid">
