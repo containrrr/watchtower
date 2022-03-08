@@ -45,7 +45,7 @@ func AppendLegacyUrls(urls []string, cmd *cobra.Command, title string) ([]string
 		log.WithError(err).Fatal("could not read notifications argument")
 	}
 
-	delay := time.Duration(0)
+	delay := GetDelay(cmd)
 
 	for _, t := range types {
 
@@ -76,12 +76,25 @@ func AppendLegacyUrls(urls []string, cmd *cobra.Command, title string) ([]string
 		urls = append(urls, shoutrrrURL)
 
 		if delayNotifier, ok := legacyNotifier.(ty.DelayNotifier); ok {
-			delay = delayNotifier.GetDelay()
+			// overwrite with legacy delay only if defined
+			if delayNotifier.GetDelay() > 0 {
+				delay = delayNotifier.GetDelay()
+			}
 		}
 
 		log.WithField("URL", shoutrrrURL).Trace("created Shoutrrr URL from legacy notifier")
 	}
 	return urls, delay
+}
+
+// GetDelay returns the delay as set by args
+func GetDelay(c *cobra.Command) time.Duration {
+	delay, _ := c.PersistentFlags().GetInt("notifications-delay")
+	if delay > 0 {
+		return time.Duration(delay) * time.Second
+	} else {
+		return time.Duration(0)
+	}
 }
 
 // GetTitle returns a common notification title with hostname appended
