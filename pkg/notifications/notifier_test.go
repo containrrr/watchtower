@@ -55,7 +55,7 @@ var _ = Describe("notifications", func() {
 				command := cmd.NewRootCommand()
 				flags.RegisterNotificationFlags(command)
 
-				delay := notifications.GetDelay(command)
+				delay := notifications.GetDelay(command, time.Duration(0))
 				Expect(delay).To(Equal(time.Duration(0)))
 			})
 		})
@@ -69,8 +69,30 @@ var _ = Describe("notifications", func() {
 					"5",
 				})
 				Expect(err).NotTo(HaveOccurred())
-				delay := notifications.GetDelay(command)
+				delay := notifications.GetDelay(command, time.Duration(0))
 				Expect(delay).To(Equal(time.Duration(5) * time.Second))
+			})
+		})
+		When("legacy delay is defined", func() {
+			It("should use the specified legacy delay", func() {
+				command := cmd.NewRootCommand()
+				flags.RegisterNotificationFlags(command)
+				delay := notifications.GetDelay(command, time.Duration(5)*time.Second)
+				Expect(delay).To(Equal(time.Duration(5) * time.Second))
+			})
+		})
+		When("legacy delay and delay is defined", func() {
+			It("should use the specified legacy delay", func() {
+				command := cmd.NewRootCommand()
+				flags.RegisterNotificationFlags(command)
+
+				err := command.ParseFlags([]string{
+					"--notifications-delay",
+					"5",
+				})
+				Expect(err).NotTo(HaveOccurred())
+				delay := notifications.GetDelay(command, time.Duration(7)*time.Second)
+				Expect(delay).To(Equal(time.Duration(7) * time.Second))
 			})
 		})
 	})
