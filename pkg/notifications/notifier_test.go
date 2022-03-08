@@ -82,13 +82,13 @@ var _ = Describe("notifications", func() {
 			})
 		})
 		When("legacy delay and delay is defined", func() {
-			It("should use the specified legacy delay", func() {
+			It("should use the specified legacy delay and ignore the specified delay", func() {
 				command := cmd.NewRootCommand()
 				flags.RegisterNotificationFlags(command)
 
 				err := command.ParseFlags([]string{
 					"--notifications-delay",
-					"5",
+					"0",
 				})
 				Expect(err).NotTo(HaveOccurred())
 				delay := notifications.GetDelay(command, time.Duration(7)*time.Second)

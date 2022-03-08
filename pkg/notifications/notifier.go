@@ -95,9 +95,8 @@ func GetDelay(c *cobra.Command, legacyDelay time.Duration) time.Duration {
 	delay, _ := c.PersistentFlags().GetInt("notifications-delay")
 	if delay > 0 {
 		return time.Duration(delay) * time.Second
-	} else {
-		return time.Duration(0)
 	}
+	return time.Duration(0)
 }
 
 // GetTitle returns a common notification title with hostname appended
