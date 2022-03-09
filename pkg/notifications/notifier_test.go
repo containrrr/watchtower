@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"time"
 
 	"github.com/containrrr/watchtower/cmd"
 	"github.com/containrrr/watchtower/internal/flags"
@@ -49,6 +50,51 @@ var _ = Describe("notifications", func() {
 				Expect(title).To(Equal("Watchtower updates"))
 			})
 		})
+		When("no delay is defined", func() {
+			It("should use the default delay", func() {
+				command := cmd.NewRootCommand()
+				flags.RegisterNotificationFlags(command)
+
+				delay := notifications.GetDelay(command, time.Duration(0))
+				Expect(delay).To(Equal(time.Duration(0)))
+			})
+		})
+		When("delay is defined", func() {
+			It("should use the specified delay", func() {
+				command := cmd.NewRootCommand()
+				flags.RegisterNotificationFlags(command)
+
+				err := command.ParseFlags([]string{
+					"--notifications-delay",
+					"5",
+				})
+				Expect(err).NotTo(HaveOccurred())
+				delay := notifications.GetDelay(command, time.Duration(0))
+				Expect(delay).To(Equal(time.Duration(5) * time.Second))
+			})
+		})
+		When("legacy delay is defined", func() {
+			It("should use the specified legacy delay", func() {
+				command := cmd.NewRootCommand()
+				flags.RegisterNotificationFlags(command)
+				delay := notifications.GetDelay(command, time.Duration(5)*time.Second)
+				Expect(delay).To(Equal(time.Duration(5) * time.Second))
+			})
+		})
+		When("legacy delay and delay is defined", func() {
+			It("should use the specified legacy delay and ignore the specified delay", func() {
+				command := cmd.NewRootCommand()
+				flags.RegisterNotificationFlags(command)
+
+				err := command.ParseFlags([]string{
+					"--notifications-delay",
+					"0",
+				})
+				Expect(err).NotTo(HaveOccurred())
+				delay := notifications.GetDelay(command, time.Duration(7)*time.Second)
+				Expect(delay).To(Equal(time.Duration(7) * time.Second))
+			})
+		})
 	})
 	Describe("the slack notifier", func() {
 		// builderFn := notifications.NewSlackNotifier
@@ -74,11 +120,11 @@ var _ = Describe("notifications", func() {
 
 			It("should return a discord url when using a hook url with the domain discord.com", func() {
 				hookURL := fmt.Sprintf("https://%s/api/webhooks/%s/%s/slack", "discord.com", channel, token)
-				testURL(buildArgs(hookURL), expected)
+				testURL(buildArgs(hookURL), expected, time.Duration(0))
 			})
 			It("should return a discord url when using a hook url with the domain discordapp.com", func() {
 				hookURL := fmt.Sprintf("https://%s/api/webhooks/%s/%s/slack", "discordapp.com", channel, token)
-				testURL(buildArgs(hookURL), expected)
+				testURL(buildArgs(hookURL), expected, time.Duration(0))
 			})
 		})
 		When("converting a slack service config into a shoutrrr url", func() {
@@ -99,6 +145,7 @@ var _ = Describe("notifications", func() {
 
 					hookURL := fmt.Sprintf("https://hooks.slack.com/services/%s/%s/%s", tokenA, tokenB, tokenC)
 					expectedOutput := fmt.Sprintf("slack://hook:%s-%s-%s@webhook?botname=%s&color=%s&icon=%s&title=%s", tokenA, tokenB, tokenC, username, color, url.QueryEscape(iconURL), title)
+					expectedDelay := time.Duration(7) * time.Second
 
 					args := []string{
 						"--notifications",
@@ -109,9 +156,11 @@ var _ = Describe("notifications", func() {
 						username,
 						"--notification-slack-icon-url",
 						iconURL,
+						"--notifications-delay",
+						fmt.Sprint(expectedDelay.Seconds()),
 					}
 
-					testURL(args, expectedOutput)
+					testURL(args, expectedOutput, expectedDelay)
 				})
 			})
 
@@ -131,7 +180,7 @@ var _ = Describe("notifications", func() {
 						iconEmoji,
 					}
 
-					testURL(args, expectedOutput)
+					testURL(args, expectedOutput, time.Duration(0))
 				})
 			})
 		})
@@ -159,7 +208,7 @@ var _ = Describe("notifications", func() {
 					token,
 				}
 
-				testURL(args, expectedOutput)
+				testURL(args, expectedOutput, time.Duration(0))
 			})
 		})
 	})
@@ -187,7 +236,7 @@ var _ = Describe("notifications", func() {
 					hookURL,
 				}
 
-				testURL(args, expectedOutput)
+				testURL(args, expectedOutput, time.Duration(0))
 			})
 		})
 	})
@@ -197,6 +246,8 @@ var _ = Describe("notifications", func() {
 			It("should set the from address in the URL", func() {
 				fromAddress := "lala@example.com"
 				expectedOutput := buildExpectedURL("containrrrbot", "secret-password", "mail.containrrr.dev", 25, fromAddress, "mail@example.com", "Plain")
+				expectedDelay := time.Duration(7) * time.Second
+
 				args := []string{
 					"--notifications",
 					"email",
@@ -210,8 +261,10 @@ var _ = Describe("notifications", func() {
 					"secret-password",
 					"--notification-email-server",
 					"mail.containrrr.dev",
+					"--notifications-delay",
+					fmt.Sprint(expectedDelay.Seconds()),
 				}
-				testURL(args, expectedOutput)
+				testURL(args, expectedOutput, expectedDelay)
 			})
 
 			It("should return the expected URL", func() {
@@ -219,6 +272,7 @@ var _ = Describe("notifications", func() {
 				fromAddress := "sender@example.com"
 				toAddress := "receiver@example.com"
 				expectedOutput := buildExpectedURL("containrrrbot", "secret-password", "mail.containrrr.dev", 25, fromAddress, toAddress, "Plain")
+				expectedDelay := time.Duration(7) * time.Second
 
 				args := []string{
 					"--notifications",
@@ -233,9 +287,11 @@ var _ = Describe("notifications", func() {
 					"secret-password",
 					"--notification-email-server",
 					"mail.containrrr.dev",
+					"--notification-email-delay",
+					fmt.Sprint(expectedDelay.Seconds()),
 				}
 
-				testURL(args, expectedOutput)
+				testURL(args, expectedOutput, expectedDelay)
 			})
 		})
 	})
@@ -257,7 +313,7 @@ func buildExpectedURL(username string, password string, host string, port int, f
 		url.QueryEscape(to))
 }
 
-func testURL(args []string, expectedURL string) {
+func testURL(args []string, expectedURL string, expectedDelay time.Duration) {
 	defer GinkgoRecover()
 
 	command := cmd.NewRootCommand()
@@ -268,9 +324,10 @@ func testURL(args []string, expectedURL string) {
 
 	hostname := notifications.GetHostname(command)
 	title := notifications.GetTitle(hostname)
-	urls, _ := notifications.AppendLegacyUrls([]string{}, command, title)
+	urls, delay := notifications.AppendLegacyUrls([]string{}, command, title)
 
 	Expect(err).NotTo(HaveOccurred())
 
 	Expect(urls).To(ContainElement(expectedURL))
+	Expect(delay).To(Equal(expectedDelay))
 }
