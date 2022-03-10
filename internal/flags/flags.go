@@ -1,6 +1,7 @@
 package flags
 
 import (
+	"errors"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -458,9 +459,13 @@ func getSecretFromFile(flags *pflag.FlagSet, secret string) {
 }
 
 func isFile(s string) bool {
-	_, err := os.Stat(s)
-	if os.IsNotExist(err) {
+	firstColon := strings.IndexRune(s, ':')
+	if firstColon != 1 && firstColon != -1 {
+		// If the string contains a ':', but it's not the second character, it's probably not a file
+		// and will cause a fatal error on windows if stat'ed
+		// This still allows for paths that start with 'c:\' etc.
 		return false
 	}
-	return true
+	_, err := os.Stat(s)
+	return !errors.Is(err, os.ErrNotExist)
 }
