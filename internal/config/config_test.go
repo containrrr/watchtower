@@ -1,4 +1,4 @@
-package flags
+package config
 
 import (
 	"io/ioutil"
@@ -13,7 +13,7 @@ import (
 
 func TestEnvConfig_Defaults(t *testing.T) {
 	cmd := new(cobra.Command)
-	RegisterDockerFlags(cmd)
+	RegisterDockerOptions(cmd)
 	BindViperFlags(cmd)
 
 	err := EnvConfig()
@@ -27,7 +27,7 @@ func TestEnvConfig_Defaults(t *testing.T) {
 
 func TestEnvConfig_Custom(t *testing.T) {
 	cmd := new(cobra.Command)
-	RegisterDockerFlags(cmd)
+	RegisterDockerOptions(cmd)
 	BindViperFlags(cmd)
 
 	err := cmd.ParseFlags([]string{"--host", "some-custom-docker-host", "--tlsverify", "--api-version", "1.99"})
@@ -75,9 +75,9 @@ func TestGetSecretsFromFilesWithFile(t *testing.T) {
 
 func testGetSecretsFromFiles(t *testing.T, flagName string, expected string) {
 	cmd := new(cobra.Command)
-	RegisterNotificationFlags(cmd)
+	RegisterNotificationOptions(cmd)
 	BindViperFlags(cmd)
-	SetEnvBindings()
+
 	GetSecretsFromFiles()
 	value := viper.GetString(flagName)
 
@@ -87,8 +87,8 @@ func testGetSecretsFromFiles(t *testing.T, flagName string, expected string) {
 func TestHTTPAPIPeriodicPollsFlag(t *testing.T) {
 	cmd := new(cobra.Command)
 
-	RegisterDockerFlags(cmd)
-	RegisterSystemFlags(cmd)
+	RegisterDockerOptions(cmd)
+	RegisterSystemOptions(cmd)
 
 	err := cmd.ParseFlags([]string{"--http-api-periodic-polls"})
 	require.NoError(t, err)
@@ -97,4 +97,33 @@ func TestHTTPAPIPeriodicPollsFlag(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, true, periodicPolls)
+}
+
+func TestEnvVariablesMapToFlags(t *testing.T) {
+
+	viper.Reset()
+	cmd := new(cobra.Command)
+
+	RegisterDockerOptions(cmd)
+	RegisterSystemOptions(cmd)
+	RegisterNotificationOptions(cmd)
+	BindViperFlags(cmd)
+
+	//for _, opt := range stringConfOpts {
+	//	value := opt.key
+	//	assert.Nil(t, os.Setenv(opt.env, value))
+	//	assert.Equal(t, value, viper.GetString(opt.key))
+	//}
+	//
+	//for _, opt := range intConfOpts {
+	//	value := len(opt.key)
+	//	assert.Nil(t, os.Setenv(opt.env, fmt.Sprint(value)))
+	//	assert.Equal(t, value, viper.GetInt(opt.key))
+	//}
+	//
+	//for _, opt := range boolConfOpts {
+	//	assert.Nil(t, os.Setenv(opt.env, fmt.Sprint(true)))
+	//	assert.True(t, viper.GetBool(opt.key))
+	//}
+
 }

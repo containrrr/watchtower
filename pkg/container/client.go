@@ -3,11 +3,11 @@ package container
 import (
 	"bytes"
 	"fmt"
+	"github.com/containrrr/watchtower/internal/config"
 	"io/ioutil"
 	"strings"
 	"time"
 
-	"github.com/containrrr/watchtower/internal/flags"
 	"github.com/containrrr/watchtower/pkg/registry"
 	"github.com/containrrr/watchtower/pkg/registry/digest"
 	t "github.com/containrrr/watchtower/pkg/types"
@@ -43,7 +43,7 @@ type Client interface {
 //  * DOCKER_HOST			the docker-engine host to send api requests to
 //  * DOCKER_TLS_VERIFY		whether to verify tls certificates
 //  * DOCKER_API_VERSION	the minimum docker api version to work with
-func NewClient(c *flags.WatchConfig) Client {
+func NewClient(c *config.WatchConfig) Client {
 	cli, err := sdkClient.NewClientWithOpts(sdkClient.FromEnv)
 
 	if err != nil {

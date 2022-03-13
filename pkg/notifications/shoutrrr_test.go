@@ -1,11 +1,11 @@
 package notifications
 
 import (
+	"github.com/containrrr/watchtower/internal/config"
 	"time"
 
 	"github.com/containrrr/shoutrrr/pkg/types"
 	"github.com/containrrr/watchtower/internal/actions/mocks"
-	"github.com/containrrr/watchtower/internal/flags"
 	s "github.com/containrrr/watchtower/pkg/session"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -75,7 +75,7 @@ var _ = Describe("Shoutrrr", func() {
 		When("no custom template is provided", func() {
 			It("should format the messages using the default template", func() {
 				cmd := new(cobra.Command)
-				flags.RegisterNotificationFlags(cmd)
+				config.RegisterNotificationOptions(cmd)
 
 				shoutrrr := createNotifier([]string{}, logrus.AllLevels, "", true)
 

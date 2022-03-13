@@ -2,12 +2,12 @@ package notifications_test
 
 import (
 	"fmt"
+	"github.com/containrrr/watchtower/internal/config"
 	"net/url"
 	"os"
 	"time"
 
 	"github.com/containrrr/watchtower/cmd"
-	"github.com/containrrr/watchtower/internal/flags"
 	"github.com/containrrr/watchtower/pkg/notifications"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -17,30 +17,20 @@ var _ = Describe("notifications", func() {
 	Describe("the notifier", func() {
 		When("only empty notifier types are provided", func() {
 
-			command := cmd.NewRootCommand()
-			flags.RegisterNotificationFlags(command)
-			flags.BindViperFlags(command)
-
-			err := command.ParseFlags([]string{
+			parseCommandLine(
 				"--notifications",
 				"shoutrrr",
-			})
-			Expect(err).NotTo(HaveOccurred())
+			)
 			notif := notifications.NewNotifier()
-
 			Expect(notif.GetNames()).To(BeEmpty())
 		})
 		When("title is overriden in flag", func() {
 			It("should use the specified hostname in the title", func() {
-				command := cmd.NewRootCommand()
-				flags.RegisterNotificationFlags(command)
-				flags.BindViperFlags(command)
-
-				err := command.ParseFlags([]string{
+				parseCommandLine(
 					"--notifications-hostname",
 					"test.host",
-				})
-				Expect(err).NotTo(HaveOccurred())
+				)
+
 				hostname := notifications.GetHostname()
 				title := notifications.GetTitle(hostname)
 				Expect(title).To(Equal("Watchtower updates on test.host"))
@@ -54,9 +44,7 @@ var _ = Describe("notifications", func() {
 		})
 		When("no delay is defined", func() {
 			It("should use the default delay", func() {
-				command := cmd.NewRootCommand()
-				flags.RegisterNotificationFlags(command)
-				flags.BindViperFlags(command)
+				parseCommandLine()
 
 				delay := notifications.GetDelay(time.Duration(0))
 				Expect(delay).To(Equal(time.Duration(0)))
@@ -64,39 +52,25 @@ var _ = Describe("notifications", func() {
 		})
 		When("delay is defined", func() {
 			It("should use the specified delay", func() {
-				command := cmd.NewRootCommand()
-				flags.RegisterNotificationFlags(command)
-				flags.BindViperFlags(command)
-
-				err := command.ParseFlags([]string{
+				parseCommandLine(
 					"--notifications-delay",
 					"5",
-				})
-				Expect(err).NotTo(HaveOccurred())
+				)
 				delay := notifications.GetDelay(time.Duration(0))
 				Expect(delay).To(Equal(time.Duration(5) * time.Second))
 			})
 		})
 		When("legacy delay is defined", func() {
 			It("should use the specified legacy delay", func() {
-				command := cmd.NewRootCommand()
-				flags.RegisterNotificationFlags(command)
-				flags.BindViperFlags(command)
+				parseCommandLine()
 				delay := notifications.GetDelay(time.Duration(5) * time.Second)
 				Expect(delay).To(Equal(time.Duration(5) * time.Second))
 			})
 		})
 		When("legacy delay and delay is defined", func() {
 			It("should use the specified legacy delay and ignore the specified delay", func() {
-				command := cmd.NewRootCommand()
-				flags.RegisterNotificationFlags(command)
-				flags.BindViperFlags(command)
+				parseCommandLine("--notifications-delay", "0")
 
-				err := command.ParseFlags([]string{
-					"--notifications-delay",
-					"0",
-				})
-				Expect(err).NotTo(HaveOccurred())
 				delay := notifications.GetDelay(time.Duration(7) * time.Second)
 				Expect(delay).To(Equal(time.Duration(7) * time.Second))
 			})
@@ -132,7 +106,7 @@ var _ = Describe("notifications", func() {
 		})
 		When("converting a slack service config into a shoutrrr url", func() {
 			command := cmd.NewRootCommand()
-			flags.RegisterNotificationFlags(command)
+			config.RegisterNotificationOptions(command)
 			username := "containrrrbot"
 			tokenA := "AAAAAAAAA"
 			tokenB := "BBBBBBBBB"
@@ -294,6 +268,14 @@ var _ = Describe("notifications", func() {
 	})
 })
 
+func parseCommandLine(args ...string) {
+	command := cmd.NewRootCommand()
+	config.RegisterNotificationOptions(command)
+	config.BindViperFlags(command)
+
+	ExpectWithOffset(1, command.ParseFlags(args)).To(Succeed())
+}
+
 func buildExpectedURL(username string, password string, host string, port int, from string, to string, auth string) string {
 	hostname, err := os.Hostname()
 	Expect(err).NotTo(HaveOccurred())
@@ -313,18 +295,11 @@ func buildExpectedURL(username string, password string, host string, port int, f
 func testURL(args []string, expectedURL string, expectedDelay time.Duration) {
 	defer GinkgoRecover()
 
-	command := cmd.NewRootCommand()
-	flags.RegisterNotificationFlags(command)
-	flags.BindViperFlags(command)
-
-	err := command.ParseFlags(args)
-	ExpectWithOffset(1, err).NotTo(HaveOccurred())
+	parseCommandLine(args...)
 
 	hostname := notifications.GetHostname()
 	title := notifications.GetTitle(hostname)
 	urls, delay := notifications.AppendLegacyUrls([]string{}, title)
-
-	ExpectWithOffset(1, err).NotTo(HaveOccurred())
 
 	ExpectWithOffset(1, urls).To(ContainElement(expectedURL))
 	ExpectWithOffset(1, delay).To(Equal(expectedDelay))

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/containrrr/watchtower/internal/config"
 	"math"
 	"os"
 	"os/signal"
@@ -11,7 +12,6 @@ import (
 	"time"
 
 	"github.com/containrrr/watchtower/internal/actions"
-	"github.com/containrrr/watchtower/internal/flags"
 	"github.com/containrrr/watchtower/internal/meta"
 	"github.com/containrrr/watchtower/pkg/api"
 	apiMetrics "github.com/containrrr/watchtower/pkg/api/metrics"
@@ -31,7 +31,7 @@ import (
 var (
 	client   container.Client
 	notifier t.Notifier
-	c        flags.WatchConfig
+	c        config.WatchConfig
 )
 
 var rootCmd = NewRootCommand()
@@ -51,11 +51,10 @@ func NewRootCommand() *cobra.Command {
 }
 
 func init() {
-	flags.RegisterDockerFlags(rootCmd)
-	flags.RegisterSystemFlags(rootCmd)
-	flags.RegisterNotificationFlags(rootCmd)
-	flags.SetEnvBindings()
-	flags.BindViperFlags(rootCmd)
+	config.RegisterDockerOptions(rootCmd)
+	config.RegisterSystemOptions(rootCmd)
+	config.RegisterNotificationOptions(rootCmd)
+	config.BindViperFlags(rootCmd)
 }
 
 // Execute the root func and exit in case of errors
@@ -69,7 +68,7 @@ func Execute() {
 func PreRun(_ *cobra.Command, _ []string) {
 
 	// First apply all the settings that affect the output
-	if viper.GetBool("no-color") {
+	if config.GetBool(config.NoColor) {
 		log.SetFormatter(&log.TextFormatter{
 			DisableColors: true,
 		})
@@ -80,19 +79,19 @@ func PreRun(_ *cobra.Command, _ []string) {
 		})
 	}
 
-	if viper.GetBool("debug") {
+	if config.GetBool(config.Debug) {
 		log.SetLevel(log.DebugLevel)
 	}
-	if viper.GetBool("trace") {
+	if config.GetBool(config.Trace) {
 		log.SetLevel(log.TraceLevel)
 	}
 
-	interval := viper.GetInt("interval")
+	interval := config.GetInt(config.Interval)
 
 	// If empty, set schedule using interval helper value
-	if viper.GetString("schedule") == "" {
-		viper.Set("schedule", fmt.Sprintf("@every %ds", interval))
-	} else if interval != flags.DefaultInterval {
+	if config.GetString(config.Schedule) == "" {
+		viper.Set(string(config.Schedule), fmt.Sprintf("@every %ds", interval))
+	} else if interval != config.DefaultInterval {
 		log.Fatal("only schedule or interval can be defined, not both")
 	}
 
@@ -102,7 +101,7 @@ func PreRun(_ *cobra.Command, _ []string) {
 		log.Fatalf("unable to decode into struct, %v", err)
 	}
 
-	flags.GetSecretsFromFiles()
+	config.GetSecretsFromFiles()
 
 	if c.Timeout <= 0 {
 		log.Fatal("Please specify a positive value for timeout value.")
@@ -110,7 +109,7 @@ func PreRun(_ *cobra.Command, _ []string) {
 
 	log.Debugf("Using scope %v", c.Scope)
 
-	if err = flags.EnvConfig(); err != nil {
+	if err = config.EnvConfig(); err != nil {
 		log.Fatalf("failed to setup environment variables: %v", err)
 	}
 

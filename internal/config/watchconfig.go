@@ -1,4 +1,4 @@
-package flags
+package config
 
 import (
 	"time"
@@ -8,12 +8,12 @@ import (
 type WatchConfig struct {
 	Interval               int
 	Schedule               string
-	NoPull                 bool   `mapstructure:"no-pull"`
-	NoRestart              bool   `mapstructure:"no-restart"`
-	NoStartupMessage       bool   `mapstructure:"no-startup-message"`
+	NoPull                 bool `mapstructure:"no-pull"`
+	NoRestart              bool `mapstructure:"no-restart"`
+	NoStartupMessage       bool `mapstructure:"no-startup-message"`
 	Cleanup                bool
-	RemoveVolumes          bool   `mapstructure:"remove-volumes"`
-	EnableLabel            bool   `mapstructure:"label-enable"`
+	RemoveVolumes          bool `mapstructure:"remove-volumes"`
+	EnableLabel            bool `mapstructure:"label-enable"`
 	Debug                  bool
 	Trace                  bool
 	MonitorOnly            bool   `mapstructure:"monitor-only"`
@@ -25,10 +25,10 @@ type WatchConfig struct {
 	RollingRestart         bool   `mapstructure:"rolling-restart"`
 	HTTPAPIToken           string `mapstructure:"http-api-token"`
 	Scope                  string
-	EnableUpdateAPI        bool   `mapstructure:"http-api-update"`
-	EnableMetricsAPI       bool   `mapstructure:"http-api-metrics"`
-	UpdateAPIWithScheduler bool   `mapstructure:"http-api-periodic-polls"`
-	WarnOnHeadFailed       string `mapstructure:"warn-on-head-failure"`
-	NoColor                bool   `mapstructure:"no-color"`
+	EnableUpdateAPI        bool          `mapstructure:"http-api-update"`
+	EnableMetricsAPI       bool          `mapstructure:"http-api-metrics"`
+	UpdateAPIWithScheduler bool          `mapstructure:"http-api-periodic-polls"`
+	WarnOnHeadFailed       string        `mapstructure:"warn-on-head-failure"`
+	NoColor                bool          `mapstructure:"no-color"`
 	Timeout                time.Duration `mapstructure:"stop-timeout"`
 }
