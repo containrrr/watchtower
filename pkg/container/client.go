@@ -3,14 +3,15 @@ package container
 import (
 	"bytes"
 	"fmt"
+	"github.com/containrrr/watchtower/internal/config"
 	"io/ioutil"
 	"strings"
 	"time"
 
 	"github.com/containrrr/watchtower/pkg/registry"
 	"github.com/containrrr/watchtower/pkg/registry/digest"
-
 	t "github.com/containrrr/watchtower/pkg/types"
+
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
@@ -42,7 +43,7 @@ type Client interface {
 //  * DOCKER_HOST			the docker-engine host to send api requests to
 //  * DOCKER_TLS_VERIFY		whether to verify tls certificates
 //  * DOCKER_API_VERSION	the minimum docker api version to work with
-func NewClient(pullImages, includeStopped, reviveStopped, removeVolumes, includeRestarting bool, warnOnHeadFailed string) Client {
+func NewClient(c *config.WatchConfig) Client {
 	cli, err := sdkClient.NewClientWithOpts(sdkClient.FromEnv)
 
 	if err != nil {
@@ -51,12 +52,12 @@ func NewClient(pullImages, includeStopped, reviveStopped, removeVolumes, include
 
 	return dockerClient{
 		api:               cli,
-		pullImages:        pullImages,
-		removeVolumes:     removeVolumes,
-		includeStopped:    includeStopped,
-		reviveStopped:     reviveStopped,
-		includeRestarting: includeRestarting,
-		warnOnHeadFailed:  warnOnHeadFailed,
+		pullImages:        !c.NoPull,
+		removeVolumes:     c.RemoveVolumes,
+		includeStopped:    c.IncludeStopped,
+		reviveStopped:     c.ReviveStopped,
+		includeRestarting: c.IncludeRestarting,
+		warnOnHeadFailed:  c.WarnOnHeadFailed,
 	}
 }
 
@@ -337,7 +338,7 @@ func (client dockerClient) PullImage(ctx context.Context, container Container) e
 		return err
 	}
 
-	defer response.Close()
+	defer func() { _ = response.Close() }()
 	// the pull request will be aborted prematurely unless the response is read
 	if _, err = ioutil.ReadAll(response); err != nil {
 		log.Error(err)

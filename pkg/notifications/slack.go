@@ -8,7 +8,7 @@ import (
 	t "github.com/containrrr/watchtower/pkg/types"
 	"github.com/johntdyer/slackrus"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 const (
@@ -19,14 +19,12 @@ type slackTypeNotifier struct {
 	slackrus.SlackrusHook
 }
 
-func newSlackNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.ConvertibleNotifier {
-	flags := c.PersistentFlags()
-
-	hookURL, _ := flags.GetString("notification-slack-hook-url")
-	userName, _ := flags.GetString("notification-slack-identifier")
-	channel, _ := flags.GetString("notification-slack-channel")
-	emoji, _ := flags.GetString("notification-slack-icon-emoji")
-	iconURL, _ := flags.GetString("notification-slack-icon-url")
+func newSlackNotifier() t.ConvertibleNotifier {
+	hookURL := viper.GetString("notification-slack-hook-url")
+	userName := viper.GetString("notification-slack-identifier")
+	channel := viper.GetString("notification-slack-channel")
+	emoji := viper.GetString("notification-slack-icon-emoji")
+	iconURL := viper.GetString("notification-slack-icon-url")
 
 	n := &slackTypeNotifier{
 		SlackrusHook: slackrus.SlackrusHook{
@@ -35,13 +33,13 @@ func newSlackNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.Convert
 			Channel:        channel,
 			IconEmoji:      emoji,
 			IconURL:        iconURL,
-			AcceptedLevels: acceptedLogLevels,
+			AcceptedLevels: []log.Level{},
 		},
 	}
 	return n
 }
 
-func (s *slackTypeNotifier) GetURL(c *cobra.Command, title string) (string, error) {
+func (s *slackTypeNotifier) GetURL(title string) (string, error) {
 	trimmedURL := strings.TrimRight(s.HookURL, "/")
 	trimmedURL = strings.TrimLeft(trimmedURL, "https://")
 	parts := strings.Split(trimmedURL, "/")
