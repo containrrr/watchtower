@@ -23,17 +23,14 @@ func EnvConfig() error {
 
 	host := GetString(DockerHost)
 	tls := GetBool(DockerTlSVerify)
-	version := GetString(DockerApiVersion)
+	version := GetString(DockerAPIVersion)
 	if err = setEnvOptStr("DOCKER_HOST", host); err != nil {
 		return err
 	}
 	if err = setEnvOptBool("DOCKER_TLS_VERIFY", tls); err != nil {
 		return err
 	}
-	if err = setEnvOptStr("DOCKER_API_VERSION", version); err != nil {
-		return err
-	}
-	return nil
+	return setEnvOptStr("DOCKER_API_VERSION", version)
 }
 
 func setEnvOptStr(env string, opt string) error {
@@ -59,8 +56,8 @@ func setEnvOptBool(env string, opt bool) error {
 func GetSecretsFromFiles() {
 	secrets := []string{
 		string(NotificationEmailServerPassword),
-		string(NotificationSlackHookUrl),
-		string(NotificationMsteamsHook),
+		string(NotificationSlackHookURL),
+		string(NotificationMSTeamsHook),
 		string(NotificationGotifyToken),
 	}
 	for _, secret := range secrets {

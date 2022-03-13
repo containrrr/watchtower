@@ -25,14 +25,14 @@ const (
 	RollingRestart       boolConfKey   = "rolling-restart"
 	WarnOnHeadFailure    stringConfKey = "warn-on-head-failure"
 
-	HttpApiUpdate        boolConfKey   = "http-api-update"
-	HttpApiMetrics       boolConfKey   = "http-api-metrics"
-	HttpApiPeriodicPolls boolConfKey   = "http-api-periodic-polls"
-	HttpApiToken         stringConfKey = "HttpApiToken"
+	HTTPAPIUpdate        boolConfKey   = "http-api-update"
+	HTTPAPIMetrics       boolConfKey   = "http-api-metrics"
+	HTTPAPIPeriodicPolls boolConfKey   = "http-api-periodic-polls"
+	HTTPAPIToken         stringConfKey = "HTTPAPIToken"
 
 	NoColor boolConfKey = "no-color"
 
-	NotificationGotifyTlsSkipVerify boolConfKey = "notification-gotify-tls-skip-verify"
+	NotificationGotifyTLSSkipVerify boolConfKey = "notification-gotify-tls-skip-verify"
 
 	Schedule stringConfKey = "schedule"
 	Interval intConfKey    = "interval"
@@ -43,7 +43,7 @@ const (
 
 	/* Docker v*/
 	DockerHost       stringConfKey = "host"
-	DockerApiVersion stringConfKey = "api-version"
+	DockerAPIVersion stringConfKey = "api-version"
 	DockerTlSVerify  boolConfKey   = "tlsverify"
 
 	Notifications         sliceConfKey  = "notifications"
@@ -52,27 +52,27 @@ const (
 	NotificationsHostname stringConfKey = "notifications-hostname"
 	NotificationTemplate  stringConfKey = "notification-template"
 	NotificationReport    boolConfKey   = "notification-report"
-	NotificationUrl       sliceConfKey  = "notification-url"
+	NotificationURL       sliceConfKey  = "notification-url"
 
 	NotificationEmailFrom                stringConfKey = "notification-email-from"
 	NotificationEmailTo                  stringConfKey = "notification-email-to"
 	NotificationEmailServer              stringConfKey = "notification-email-server"
 	NotificationEmailServerUser          stringConfKey = "notification-email-server-user"
 	NotificationEmailServerPassword      stringConfKey = "notification-email-server-password"
-	NotificationEmailSubjecttag          stringConfKey = "notification-email-subjecttag"
+	NotificationEmailSubjectTag          stringConfKey = "notification-email-subjecttag"
 	NotificationEmailDelay               intConfKey    = "notification-email-delay"
 	NotificationEmailServerPort          intConfKey    = "notification-email-server-port"
-	NotificationEmailServerTlsSkipVerify boolConfKey   = "notification-email-server-tls-skip-verify"
+	NotificationEmailServerTLSSkipVerify boolConfKey   = "notification-email-server-tls-skip-verify"
 
-	NotificationSlackHookUrl    stringConfKey = "notification-slack-hook-url"
+	NotificationSlackHookURL    stringConfKey = "notification-slack-hook-url"
 	NotificationSlackIdentifier stringConfKey = "notification-slack-identifier"
 	NotificationSlackChannel    stringConfKey = "notification-slack-channel"
 	NotificationSlackIconEmoji  stringConfKey = "notification-slack-icon-emoji"
-	NotificationSlackIconUrl    stringConfKey = "notification-slack-icon-url"
+	NotificationSlackIconURL    stringConfKey = "notification-slack-icon-url"
 
-	NotificationMsteamsHook stringConfKey = "notification-msteams-hook"
-	NotificationMsteamsData boolConfKey   = "notification-msteams-data"
+	NotificationMSTeamsHook stringConfKey = "notification-msteams-hook"
+	NotificationMSTeamsData boolConfKey   = "notification-msteams-data"
 
-	NotificationGotifyUrl   stringConfKey = "notification-gotify-url"
+	NotificationGotifyURL   stringConfKey = "notification-gotify-url"
 	NotificationGotifyToken stringConfKey = "notification-gotify-token"
 )

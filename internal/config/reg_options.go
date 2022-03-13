@@ -15,7 +15,7 @@ const DefaultInterval = int(time.Hour * 24 / time.Second)
 
 // RegisterDockerOptions that are used directly by the docker api client
 func RegisterDockerOptions(rootCmd *cobra.Command) {
-	ob := OptBuilder(rootCmd.PersistentFlags())
+	ob := NewOptBuilder(rootCmd.PersistentFlags())
 
 	ob.StringP(DockerHost, "H", "unix:///var/run/docker.sock",
 		"daemon socket to connect to",
@@ -25,14 +25,14 @@ func RegisterDockerOptions(rootCmd *cobra.Command) {
 		"use TLS and verify the remote",
 		"DOCKER_TLS_VERIFY")
 
-	ob.StringP(DockerApiVersion, "a", DockerAPIMinVersion,
+	ob.StringP(DockerAPIVersion, "a", DockerAPIMinVersion,
 		"api version to use by docker client",
 		"DOCKER_API_VERSION")
 }
 
 // RegisterSystemOptions that are used by watchtower to modify the program flow
 func RegisterSystemOptions(rootCmd *cobra.Command) {
-	ob := OptBuilder(rootCmd.PersistentFlags())
+	ob := NewOptBuilder(rootCmd.PersistentFlags())
 
 	ob.IntP(Interval, "i", DefaultInterval,
 		"poll interval (in seconds)",
@@ -113,19 +113,19 @@ func RegisterSystemOptions(rootCmd *cobra.Command) {
 		"Restart containers one at a time",
 		"WATCHTOWER_ROLLING_RESTART")
 
-	ob.Bool(HttpApiUpdate, false,
+	ob.Bool(HTTPAPIUpdate, false,
 		"Runs Watchtower in HTTP API mode, so that image updates must to be triggered by a request",
 		"WATCHTOWER_HTTP_API_UPDATE")
 
-	ob.Bool(HttpApiMetrics, false,
+	ob.Bool(HTTPAPIMetrics, false,
 		"Runs Watchtower with the Prometheus metrics API enabled",
 		"WATCHTOWER_HTTP_API_METRICS")
 
-	ob.String(HttpApiToken, "",
+	ob.String(HTTPAPIToken, "",
 		"Sets an authentication token to HTTP API requests.",
 		"WATCHTOWER_HTTP_API_TOKEN")
 
-	ob.Bool(HttpApiPeriodicPolls, false,
+	ob.Bool(HTTPAPIPeriodicPolls, false,
 		"Also run periodic updates (specified with --interval and --schedule) if HTTP API is enabled",
 		"WATCHTOWER_HTTP_API_PERIODIC_POLLS")
 
@@ -141,7 +141,7 @@ func RegisterSystemOptions(rootCmd *cobra.Command) {
 
 // RegisterNotificationOptions that are used by watchtower to send notifications
 func RegisterNotificationOptions(cmd *cobra.Command) {
-	ob := OptBuilder(cmd.PersistentFlags())
+	ob := NewOptBuilder(cmd.PersistentFlags())
 
 	ob.StringSliceP(Notifications, "n", []string{},
 		" Notification types to send (valid: email, slack, msteams, gotify, shoutrrr)",
@@ -163,7 +163,7 @@ func RegisterNotificationOptions(cmd *cobra.Command) {
 		"The shoutrrr text/template for the messages",
 		"WATCHTOWER_NOTIFICATION_TEMPLATE")
 
-	ob.StringArray(NotificationUrl, []string{},
+	ob.StringArray(NotificationURL, []string{},
 		"The shoutrrr URL to send notifications to",
 		"WATCHTOWER_NOTIFICATION_URL")
 
@@ -175,5 +175,5 @@ func RegisterNotificationOptions(cmd *cobra.Command) {
 		"When to warn about HEAD pull requests failing. Possible values: always, auto or never",
 		"WATCHTOWER_WARN_ON_HEAD_FAILURE")
 
-	RegisterLegacyNotificationFlags(ob.Flags)
+	RegisterLegacyNotificationFlags(cmd)
 }

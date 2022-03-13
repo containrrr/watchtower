@@ -6,82 +6,98 @@ import (
 	"time"
 )
 
-type optBuilder struct {
+// OptBuilder is a helper for registering options to both pflags, viper and env
+type OptBuilder struct {
 	Flags *pflag.FlagSet
 	Hide  bool
 }
 
-func OptBuilder(flags *pflag.FlagSet) *optBuilder {
-	return &optBuilder{
+// NewOptBuilder returns a new OptBuilder with the supplied flags
+func NewOptBuilder(flags *pflag.FlagSet) *OptBuilder {
+	return &OptBuilder{
 		Flags: flags,
 	}
 }
 
-func (ob *optBuilder) register(key string, env string) {
+func (ob *OptBuilder) register(key string, env string) {
 	_ = viper.BindEnv(key, env)
 	if ob.Hide {
 		_ = ob.Flags.MarkHidden(key)
 	}
 }
 
-func (ob *optBuilder) StringP(key stringConfKey, short string, defaultValue string, usage string, env string) {
+// StringP registers a string option with a shorthand
+func (ob *OptBuilder) StringP(key stringConfKey, short string, defaultValue string, usage string, env string) {
 	ob.Flags.StringP(string(key), short, defaultValue, usage)
 	ob.register(string(key), env)
 }
 
-func (ob *optBuilder) BoolP(key boolConfKey, short string, defaultValue bool, usage string, env string) {
+// BoolP registers a bool option with a shorthand
+func (ob *OptBuilder) BoolP(key boolConfKey, short string, defaultValue bool, usage string, env string) {
 	ob.Flags.BoolP(string(key), short, defaultValue, usage)
 	ob.register(string(key), env)
 }
 
-func (ob *optBuilder) IntP(key intConfKey, short string, defaultValue int, usage string, env string) {
+// IntP registers an int option with a shorthand
+func (ob *OptBuilder) IntP(key intConfKey, short string, defaultValue int, usage string, env string) {
 	ob.Flags.IntP(string(key), short, defaultValue, usage)
 	ob.register(string(key), env)
 }
 
-func (ob *optBuilder) DurationP(key durationConfKey, short string, defaultValue time.Duration, usage string, env string) {
+// DurationP registers a duration option with a shorthand
+func (ob *OptBuilder) DurationP(key durationConfKey, short string, defaultValue time.Duration, usage string, env string) {
 	ob.Flags.DurationP(string(key), short, defaultValue, usage)
 	ob.register(string(key), env)
 }
 
-func (ob *optBuilder) String(key stringConfKey, defaultValue string, usage string, env string) {
+// String registers a string option
+func (ob *OptBuilder) String(key stringConfKey, defaultValue string, usage string, env string) {
 	ob.StringP(key, "", defaultValue, usage, env)
 }
 
-func (ob *optBuilder) Bool(key boolConfKey, defaultValue bool, usage string, env string) {
+// Bool registers a bool option
+func (ob *OptBuilder) Bool(key boolConfKey, defaultValue bool, usage string, env string) {
 	ob.BoolP(key, "", defaultValue, usage, env)
 }
 
-func (ob *optBuilder) Int(key intConfKey, defaultValue int, usage string, env string) {
+// Int registers a int option
+func (ob *OptBuilder) Int(key intConfKey, defaultValue int, usage string, env string) {
 	ob.IntP(key, "", defaultValue, usage, env)
 }
 
-func (ob *optBuilder) StringArray(key sliceConfKey, defaultValue []string, usage string, env string) {
+// StringArray registers a string array option
+func (ob *OptBuilder) StringArray(key sliceConfKey, defaultValue []string, usage string, env string) {
 	ob.Flags.StringArray(string(key), defaultValue, usage)
 	ob.register(string(key), env)
 }
 
-func (ob *optBuilder) StringSliceP(key sliceConfKey, short string, defaultValue []string, usage string, env string) {
+// StringSliceP registers a string slice option with a shorthand
+func (ob *OptBuilder) StringSliceP(key sliceConfKey, short string, defaultValue []string, usage string, env string) {
 	ob.Flags.StringSliceP(string(key), short, defaultValue, usage)
 	ob.register(string(key), env)
 }
 
+// GetString returns the string option value for the given key
 func GetString(key stringConfKey) string {
 	return viper.GetString(string(key))
 }
 
+// GetBool returns the bool option value for the given key
 func GetBool(key boolConfKey) bool {
 	return viper.GetBool(string(key))
 }
 
+// GetInt returns the int option value for the given key
 func GetInt(key intConfKey) int {
 	return viper.GetInt(string(key))
 }
 
+// GetDuration returns the duration option value for the given key
 func GetDuration(key durationConfKey) time.Duration {
 	return viper.GetDuration(string(key))
 }
 
+// GetSlice  returns the slice option value for the given key
 func GetSlice(key sliceConfKey) []string {
 	return viper.GetStringSlice(string(key))
 }
