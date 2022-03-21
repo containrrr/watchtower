@@ -1,6 +1,10 @@
 name: Greetings
 
-on: [issues]
+on:
+  pull_request: {}
+  issues:
+    types:
+      - opened
 
 jobs:
   greeting:

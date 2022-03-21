@@ -184,6 +184,12 @@ func RegisterNotificationFlags(rootCmd *cobra.Command) {
 		viper.GetString("WATCHTOWER_NOTIFICATIONS_LEVEL"),
 		"The log level used for sending notifications. Possible values: panic, fatal, error, warn, info or debug")
 
+	flags.IntP(
+		"notifications-delay",
+		"",
+		viper.GetInt("WATCHTOWER_NOTIFICATIONS_DELAY"),
+		"Delay before sending notifications, expressed in seconds")
+
 	flags.StringP(
 		"notifications-hostname",
 		"",
