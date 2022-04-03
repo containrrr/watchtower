@@ -8,6 +8,8 @@ import (
 )
 
 const tokenMissingMsg = "api token is empty or has not been set. exiting"
+
+// DefaultPort is the default port used for the http server
 const DefaultPort = "8080"
 
 // API is the http server responsible for serving the HTTP API endpoints
