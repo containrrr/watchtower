@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"github.com/containrrr/watchtower/internal/meta"
 	"math"
 	"net/http"
 	"os"
@@ -10,6 +9,8 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/containrrr/watchtower/internal/meta"
 
 	apiMetrics "github.com/containrrr/watchtower/pkg/api/metrics"
 	"github.com/containrrr/watchtower/pkg/api/update"
@@ -156,6 +157,8 @@ func Run(c *cobra.Command, names []string) {
 	filter, filterDesc := filters.BuildFilter(names, enableLabel, scope)
 	runOnce, _ := c.PersistentFlags().GetBool("run-once")
 	enableUpdateAPI, _ := c.PersistentFlags().GetBool("http-api-update")
+	httpAPIPort, _ := c.PersistentFlags().GetString("http-api-port")
+
 	enableMetricsAPI, _ := c.PersistentFlags().GetBool("http-api-metrics")
 	unblockHTTPAPI, _ := c.PersistentFlags().GetBool("http-api-periodic-polls")
 	apiToken, _ := c.PersistentFlags().GetString("http-api-token")
@@ -203,7 +206,7 @@ func Run(c *cobra.Command, names []string) {
 		httpAPI.RegisterHandler(metricsHandler.Path, metricsHandler.Handle)
 	}
 
-	if err := httpAPI.Start(enableUpdateAPI && !unblockHTTPAPI); err != nil && err != http.ErrServerClosed {
+	if err := httpAPI.Start(enableUpdateAPI && !unblockHTTPAPI, httpAPIPort); err != nil && err != http.ErrServerClosed {
 		log.Error("failed to start API", err)
 	}
 
@@ -267,6 +270,10 @@ func formatDuration(d time.Duration) string {
 func writeStartupMessage(c *cobra.Command, sched time.Time, filtering string) {
 	noStartupMessage, _ := c.PersistentFlags().GetBool("no-startup-message")
 	enableUpdateAPI, _ := c.PersistentFlags().GetBool("http-api-update")
+	apiPort, _ := c.PersistentFlags().GetString("http-api-port")
+	if apiPort == "" {
+		apiPort = api.DefaultPort
+	}
 
 	var startupLog *log.Entry
 	if noStartupMessage {
@@ -293,14 +300,13 @@ func writeStartupMessage(c *cobra.Command, sched time.Time, filtering string) {
 		startupLog.Info("Scheduling first run: " + sched.Format("2006-01-02 15:04:05 -0700 MST"))
 		startupLog.Info("Note that the first check will be performed in " + until)
 	} else if runOnce, _ := c.PersistentFlags().GetBool("run-once"); runOnce {
-			startupLog.Info("Running a one time update.")
+		startupLog.Info("Running a one time update.")
 	} else {
 		startupLog.Info("Periodic runs are not enabled.")
 	}
 
 	if enableUpdateAPI {
-		// TODO: make listen port configurable
-		startupLog.Info("The HTTP API is enabled at :8080.")
+		startupLog.Infof("The HTTP API is enabled at :%s.", apiPort)
 	}
 
 	if !noStartupMessage {

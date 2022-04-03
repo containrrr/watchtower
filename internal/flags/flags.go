@@ -151,6 +151,12 @@ func RegisterSystemFlags(rootCmd *cobra.Command) {
 		"",
 		viper.GetString("WATCHTOWER_HTTP_API_TOKEN"),
 		"Sets an authentication token to HTTP API requests.")
+	flags.StringP(
+		"http-api-port",
+		"",
+		viper.GetString("WATCHTOWER_HTTP_API_PORT"),
+		"Sets port to HTTP API server.")
+
 	flags.BoolP(
 		"http-api-periodic-polls",
 		"",

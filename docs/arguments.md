@@ -256,6 +256,16 @@ Environment Variable: WATCHTOWER_HTTP_API_TOKEN
              Default: -
 ```
 
+## HTTP API PORT
+Sets port to HTTP API server.
+
+```text
+            Argument: --http-api-port
+Environment Variable: WATCHTOWER_HTTP_API_PORT
+                Type: String
+             Default: 8080
+```
+
 ## HTTP API periodic polls
 Keep running periodic updates if the HTTP API mode is enabled, otherwise the HTTP API would prevent periodic polls.  
 

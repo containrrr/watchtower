@@ -5,7 +5,7 @@
 Metrics can be used to track how Watchtower behaves over time.
 
 To use this feature, you have to set an [API token](arguments.md#http-api-token) and [enable the metrics API](arguments.md#http-api-metrics),
-as well as creating a port mapping for your container for port `8080`.
+as well as creating a port mapping for your container for port [API port](arguments.md#http-api-port).
 
 The metrics API endpoint is `/v1/metrics`.
 
