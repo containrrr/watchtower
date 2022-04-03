@@ -262,7 +262,7 @@ Sets port to HTTP API server.
 ```text
             Argument: --http-api-port
 Environment Variable: WATCHTOWER_HTTP_API_PORT
-                Type: String
+                Type: Int
              Default: 8080
 ```
 

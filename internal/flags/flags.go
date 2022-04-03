@@ -151,10 +151,10 @@ func RegisterSystemFlags(rootCmd *cobra.Command) {
 		"",
 		viper.GetString("WATCHTOWER_HTTP_API_TOKEN"),
 		"Sets an authentication token to HTTP API requests.")
-	flags.StringP(
+	flags.IntP(
 		"http-api-port",
 		"",
-		viper.GetString("WATCHTOWER_HTTP_API_PORT"),
+		viper.GetInt("WATCHTOWER_HTTP_API_PORT"),
 		"Sets port to HTTP API server.")
 
 	flags.BoolP(
@@ -352,6 +352,7 @@ func SetDefaults() {
 	viper.SetDefault("WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PORT", 25)
 	viper.SetDefault("WATCHTOWER_NOTIFICATION_EMAIL_SUBJECTTAG", "")
 	viper.SetDefault("WATCHTOWER_NOTIFICATION_SLACK_IDENTIFIER", "watchtower")
+	viper.SetDefault("WATCHTOWER_HTTP_API_PORT", 8080)
 }
 
 // EnvConfig translates the command-line options into environment variables

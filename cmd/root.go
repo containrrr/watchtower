@@ -157,7 +157,7 @@ func Run(c *cobra.Command, names []string) {
 	filter, filterDesc := filters.BuildFilter(names, enableLabel, scope)
 	runOnce, _ := c.PersistentFlags().GetBool("run-once")
 	enableUpdateAPI, _ := c.PersistentFlags().GetBool("http-api-update")
-	httpAPIPort, _ := c.PersistentFlags().GetString("http-api-port")
+	httpAPIPort, _ := c.PersistentFlags().GetInt("http-api-port")
 
 	enableMetricsAPI, _ := c.PersistentFlags().GetBool("http-api-metrics")
 	unblockHTTPAPI, _ := c.PersistentFlags().GetBool("http-api-periodic-polls")
@@ -270,8 +270,8 @@ func formatDuration(d time.Duration) string {
 func writeStartupMessage(c *cobra.Command, sched time.Time, filtering string) {
 	noStartupMessage, _ := c.PersistentFlags().GetBool("no-startup-message")
 	enableUpdateAPI, _ := c.PersistentFlags().GetBool("http-api-update")
-	apiPort, _ := c.PersistentFlags().GetString("http-api-port")
-	if apiPort == "" {
+	apiPort, _ := c.PersistentFlags().GetInt("http-api-port")
+	if apiPort == 0 {
 		apiPort = api.DefaultPort
 	}
 
@@ -306,7 +306,7 @@ func writeStartupMessage(c *cobra.Command, sched time.Time, filtering string) {
 	}
 
 	if enableUpdateAPI {
-		startupLog.Infof("The HTTP API is enabled at :%s.", apiPort)
+		startupLog.Infof("The HTTP API is enabled at :%d.", apiPort)
 	}
 
 	if !noStartupMessage {

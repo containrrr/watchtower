@@ -10,7 +10,7 @@ import (
 const tokenMissingMsg = "api token is empty or has not been set. exiting"
 
 // DefaultPort is the default port used for the http server
-const DefaultPort = "8080"
+const DefaultPort = 8080
 
 // API is the http server responsible for serving the HTTP API endpoints
 type API struct {
@@ -53,7 +53,7 @@ func (api *API) RegisterHandler(path string, handler http.Handler) {
 }
 
 // Start the API and serve over HTTP. Requires an API Token to be set.
-func (api *API) Start(block bool, port string) error {
+func (api *API) Start(block bool, port int) error {
 
 	if !api.hasHandlers {
 		log.Debug("Watchtower HTTP API skipped.")
@@ -74,9 +74,9 @@ func (api *API) Start(block bool, port string) error {
 	return nil
 }
 
-func runHTTPServer(port string) {
-	if port == "" {
-		port = "8080"
+func runHTTPServer(port int) {
+	if port == 0 {
+		port = 8080
 	}
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", port), nil))
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), nil))
 }
