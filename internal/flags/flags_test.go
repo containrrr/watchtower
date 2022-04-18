@@ -11,6 +11,10 @@ import (
 )
 
 func TestEnvConfig_Defaults(t *testing.T) {
+	// Unset testing environments own variables, since those are not what is under test
+	os.Unsetenv("DOCKER_TLS_VERIFY")
+	os.Unsetenv("DOCKER_HOST")
+
 	cmd := new(cobra.Command)
 	SetDefaults()
 	RegisterDockerFlags(cmd)
@@ -93,4 +97,9 @@ func TestHTTPAPIPeriodicPollsFlag(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, true, periodicPolls)
+}
+
+func TestIsFile(t *testing.T) {
+	assert.False(t, isFile("https://google.com"), "an URL should never be considered a file")
+	assert.True(t, isFile(os.Args[0]), "the currently running binary path should always be considered a file")
 }
