@@ -3,8 +3,9 @@ package mocks
 import (
 	"errors"
 	"fmt"
-	"github.com/containrrr/watchtower/pkg/container"
 	"time"
+
+	"github.com/containrrr/watchtower/pkg/container"
 
 	t "github.com/containrrr/watchtower/pkg/types"
 )
@@ -21,6 +22,7 @@ type TestData struct {
 	TriedToRemoveImageCount int
 	NameOfContainerToKeep   string
 	Containers              []container.Container
+	Staleness               map[string]bool
 }
 
 // TriedToRemoveImage is a test helper function to check whether RemoveImageByID has been called
@@ -85,9 +87,13 @@ func (client MockClient) ExecuteCommand(_ t.ContainerID, command string, _ int) 
 	}
 }
 
-// IsContainerStale is always true for the mock client
-func (client MockClient) IsContainerStale(_ container.Container) (bool, t.ImageID, error) {
-	return true, "", nil
+// IsContainerStale is true if not explicitly stated in TestData for the mock client
+func (client MockClient) IsContainerStale(cont container.Container) (bool, t.ImageID, error) {
+	stale, found := client.TestData.Staleness[cont.Name()]
+	if !found {
+		stale = true
+	}
+	return stale, "", nil
 }
 
 // WarnOnHeadPullFailed is always true for the mock client

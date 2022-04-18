@@ -1,12 +1,13 @@
 package actions_test
 
 import (
+	"time"
+
 	"github.com/containrrr/watchtower/internal/actions"
 	"github.com/containrrr/watchtower/pkg/container"
 	"github.com/containrrr/watchtower/pkg/types"
 	dockerContainer "github.com/docker/docker/api/types/container"
 	"github.com/docker/go-connections/nat"
-	"time"
 
 	. "github.com/containrrr/watchtower/internal/actions/mocks"
 	. "github.com/onsi/ginkgo"
@@ -71,12 +72,73 @@ var _ = Describe("the update action", func() {
 				Expect(client.TestData.TriedToRemoveImageCount).To(Equal(2))
 			})
 		})
+		When("there are linked containers being updated", func() {
+			It("should not try to remove their images", func() {
+
+				client := CreateMockClient(
+					&TestData{
+						Staleness: map[string]bool{"/test-container-02": false},
+						Containers: []container.Container{
+							CreateMockContainer(
+								"test-container-01",
+								"/test-container-01",
+								"fake-image1:latest",
+								time.Now().AddDate(0, 0, -1)),
+							CreateMockContainerWithLinks(
+								"test-container-02",
+								"/test-container-02",
+								"fake-image2:latest",
+								time.Now(),
+								[]string{"test-container-01"},
+								CreateMockImageInfo("test-container-02")),
+						},
+					},
+					false,
+					false,
+				)
+				_, err := actions.Update(client, types.UpdateParams{Cleanup: true})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(client.TestData.TriedToRemoveImageCount).To(Equal(1))
+			})
+		})
 		When("performing a rolling restart update", func() {
 			It("should try to remove the image once", func() {
 
 				_, err := actions.Update(client, types.UpdateParams{Cleanup: true, RollingRestart: true})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(client.TestData.TriedToRemoveImageCount).To(Equal(1))
+			})
+		})
+		When("updating a linked container with missing image info", func() {
+			It("should gracefully fail", func() {
+				client := CreateMockClient(
+					&TestData{
+						Staleness: map[string]bool{"/test-container-02": false},
+						Containers: []container.Container{
+							CreateMockContainer(
+								"test-container-01",
+								"/test-container-01",
+								"fake-image1:latest",
+								time.Now().AddDate(0, 0, -1)),
+							CreateMockContainerWithLinks(
+								"test-container-02",
+								"/test-container-02",
+								"fake-image2:latest",
+								time.Now(),
+								[]string{"test-container-01"},
+								nil),
+						},
+					},
+					false,
+					false,
+				)
+
+				report, err := actions.Update(client, types.UpdateParams{})
+				Expect(err).NotTo(HaveOccurred())
+				// Note: Linked containers that were skipped for recreation is not counted in Failed
+				// If this happens, an error is emitted to the logs, so a notification should still be sent.
+				Expect(report.Updated()).To(HaveLen(1))
+				Expect(report.Fresh()).To(HaveLen(1))
 			})
 		})
 	})

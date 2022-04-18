@@ -2,14 +2,15 @@ package mocks
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/containrrr/watchtower/pkg/container"
 	wt "github.com/containrrr/watchtower/pkg/types"
 	"github.com/docker/docker/api/types"
 	dockerContainer "github.com/docker/docker/api/types/container"
 	"github.com/docker/go-connections/nat"
-	"strconv"
-	"strings"
-	"time"
 )
 
 // CreateMockContainer creates a container substitute valid for testing
@@ -32,13 +33,18 @@ func CreateMockContainer(id string, name string, image string, created time.Time
 	}
 	return *container.NewContainer(
 		&content,
-		&types.ImageInspect{
-			ID: image,
-			RepoDigests: []string{
-				image,
-			},
-		},
+		CreateMockImageInfo(image),
 	)
+}
+
+// CreateMockImageInfo returns a mock image info struct based on the passed image
+func CreateMockImageInfo(image string) *types.ImageInspect {
+	return &types.ImageInspect{
+		ID: image,
+		RepoDigests: []string{
+			image,
+		},
+	}
 }
 
 // CreateMockContainerWithImageInfo should only be used for testing
@@ -93,9 +99,7 @@ func CreateMockContainerWithConfig(id string, name string, image string, running
 	}
 	return *container.NewContainer(
 		&content,
-		&types.ImageInspect{
-			ID: image,
-		},
+		CreateMockImageInfo(image),
 	)
 }
 
@@ -113,4 +117,27 @@ func CreateContainerForProgress(index int, idPrefix int, nameFormat string) (con
 	}
 	c := CreateMockContainerWithConfig(contID, contName, oldImgID, true, false, time.Now(), config)
 	return c, wt.ImageID(newImgID)
+}
+
+// CreateMockContainerWithLinks should only be used for testing
+func CreateMockContainerWithLinks(id string, name string, image string, created time.Time, links []string, imageInfo *types.ImageInspect) container.Container {
+	content := types.ContainerJSON{
+		ContainerJSONBase: &types.ContainerJSONBase{
+			ID:      id,
+			Image:   image,
+			Name:    name,
+			Created: created.String(),
+			HostConfig: &dockerContainer.HostConfig{
+				Links: links,
+			},
+		},
+		Config: &dockerContainer.Config{
+			Image:  image,
+			Labels: make(map[string]string),
+		},
+	}
+	return *container.NewContainer(
+		&content,
+		imageInfo,
+	)
 }
