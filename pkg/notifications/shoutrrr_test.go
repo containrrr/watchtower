@@ -49,11 +49,14 @@ var mockDataAllFresh = Data{
 
 func mockDataFromStates(states ...s.State) Data {
 	hostname := "Mock"
+	prefix := ""
 	return Data{
 		Entries: legacyMockData.Entries,
 		Report:  mocks.CreateMockProgressReport(states...),
-		Title:   GetTitle(hostname),
-		Host:    hostname,
+		StaticData: StaticData{
+			Title: GetTitle(hostname, prefix),
+			Host:  hostname,
+		},
 	}
 }
 
@@ -77,7 +80,7 @@ var _ = Describe("Shoutrrr", func() {
 				cmd := new(cobra.Command)
 				flags.RegisterNotificationFlags(cmd)
 
-				shoutrrr := createNotifier([]string{}, logrus.AllLevels, "", true)
+				shoutrrr := createNotifier([]string{}, logrus.AllLevels, "", true, StaticData{})
 
 				entries := []*logrus.Entry{
 					{
@@ -233,7 +236,7 @@ Turns out everything is on fire
 	When("batching notifications", func() {
 		When("no messages are queued", func() {
 			It("should not send any notification", func() {
-				shoutrrr := newShoutrrrNotifier("", allButTrace, true, "", time.Duration(0), "logger://")
+				shoutrrr := newShoutrrrNotifier("", allButTrace, true, StaticData{}, time.Duration(0), "logger://")
 				shoutrrr.StartNotification()
 				shoutrrr.SendNotification(nil)
 				Consistently(logBuffer).ShouldNot(gbytes.Say(`Shoutrrr:`))
@@ -241,12 +244,23 @@ Turns out everything is on fire
 		})
 		When("at least one message is queued", func() {
 			It("should send a notification", func() {
-				shoutrrr := newShoutrrrNotifier("", allButTrace, true, "", time.Duration(0), "logger://")
+				shoutrrr := newShoutrrrNotifier("", allButTrace, true, StaticData{}, time.Duration(0), "logger://")
 				shoutrrr.StartNotification()
 				logrus.Info("This log message is sponsored by ContainrrrVPN")
 				shoutrrr.SendNotification(nil)
 				Eventually(logBuffer).Should(gbytes.Say(`Shoutrrr: This log message is sponsored by ContainrrrVPN`))
 			})
+		})
+	})
+
+	When("the title data field is empty", func() {
+		It("should not have set the title param", func() {
+			shoutrrr := createNotifier([]string{"logger://"}, allButTrace, "", true, StaticData{
+				Host:  "test.host",
+				Title: "",
+			})
+			_, found := shoutrrr.params.Title()
+			Expect(found).ToNot(BeTrue())
 		})
 	})
 

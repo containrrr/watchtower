@@ -2,6 +2,7 @@ package notifications
 
 import (
 	"os"
+	"strings"
 	"time"
 
 	ty "github.com/containrrr/watchtower/pkg/types"
@@ -30,10 +31,10 @@ func NewNotifier(c *cobra.Command) ty.Notifier {
 	tplString, _ := f.GetString("notification-template")
 	urls, _ := f.GetStringArray("notification-url")
 
-	hostname := GetHostname(c)
-	urls, delay := AppendLegacyUrls(urls, c, GetTitle(hostname))
+	data := GetTemplateData(c)
+	urls, delay := AppendLegacyUrls(urls, c, data.Title)
 
-	return newShoutrrrNotifier(tplString, acceptedLogLevels, !reportTemplate, hostname, delay, urls...)
+	return newShoutrrrNotifier(tplString, acceptedLogLevels, !reportTemplate, data, delay, urls...)
 }
 
 // AppendLegacyUrls creates shoutrrr equivalent URLs from legacy notification flags
@@ -99,28 +100,50 @@ func GetDelay(c *cobra.Command, legacyDelay time.Duration) time.Duration {
 	return time.Duration(0)
 }
 
-// GetTitle returns a common notification title with hostname appended
-func GetTitle(hostname string) string {
-	title := "Watchtower updates"
-	if hostname != "" {
-		title += " on " + hostname
+// GetTitle formats the title based on the passed hostname and tag
+func GetTitle(hostname string, tag string) string {
+	tb := strings.Builder{}
+
+	if tag != "" {
+		tb.WriteRune('[')
+		tb.WriteString(tag)
+		tb.WriteRune(']')
+		tb.WriteRune(' ')
 	}
-	return title
+
+	tb.WriteString("Watchtower updates")
+
+	if hostname != "" {
+		tb.WriteString(" on ")
+		tb.WriteString(hostname)
+	}
+
+	return tb.String()
 }
 
-// GetHostname returns the hostname as set by args or resolved from OS
-func GetHostname(c *cobra.Command) string {
-
+// GetTemplateData populates the static notification data from flags and environment
+func GetTemplateData(c *cobra.Command) StaticData {
 	f := c.PersistentFlags()
-	hostname, _ := f.GetString("notifications-hostname")
 
-	if hostname != "" {
-		return hostname
-	} else if hostname, err := os.Hostname(); err == nil {
-		return hostname
+	hostname, _ := f.GetString("notifications-hostname")
+	if hostname == "" {
+		hostname, _ = os.Hostname()
 	}
 
-	return ""
+	title := ""
+	if skip, _ := f.GetBool("notification-skip-title"); !skip {
+		tag, _ := f.GetString("notification-title-tag")
+		if tag == "" {
+			// For legacy email support
+			tag, _ = f.GetString("notification-email-subjecttag")
+		}
+		title = GetTitle(hostname, tag)
+	}
+
+	return StaticData{
+		Host:  hostname,
+		Title: title,
+	}
 }
 
 // ColorHex is the default notification color used for services that support it (formatted as a CSS hex string)
