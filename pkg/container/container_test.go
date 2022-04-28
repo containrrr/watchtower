@@ -282,17 +282,3 @@ func mockContainerWithLabels(labels map[string]string) *Container {
 	}
 	return NewContainer(&content, nil)
 }
-
-func newClientNoAPI(pullImages, includeStopped, reviveStopped, removeVolumes, includeRestarting bool, warnOnHeadFailed WarningStrategy) Client {
-	return dockerClient{
-		api: nil,
-		ClientOptions: ClientOptions{
-			PullImages:        pullImages,
-			RemoveVolumes:     removeVolumes,
-			IncludeStopped:    includeStopped,
-			ReviveStopped:     reviveStopped,
-			IncludeRestarting: includeRestarting,
-			WarnOnHeadFailed:  warnOnHeadFailed,
-		},
-	}
-}

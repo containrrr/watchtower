@@ -55,7 +55,7 @@ func NewClient(opts ClientOptions) Client {
 	}
 }
 
-// ClientOptions contains the options for how the dockeer client wrapper should behave
+// ClientOptions contains the options for how the docker client wrapper should behave
 type ClientOptions struct {
 	PullImages        bool
 	RemoveVolumes     bool
@@ -71,7 +71,7 @@ type WarningStrategy string
 const (
 	// WarnAlways warns whenever the problem occurs
 	WarnAlways WarningStrategy = "always"
-	// WarnNever never warns when the problum occurs
+	// WarnNever never warns when the problem occurs
 	WarnNever WarningStrategy = "never"
 	// WarnAuto skips warning when the problem was expected
 	WarnAuto WarningStrategy = "auto"

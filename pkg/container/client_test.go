@@ -36,24 +36,24 @@ var _ = Describe("the client", func() {
 		containerUnknown := *mockContainerWithImageName("unknown.repo/prefix/imagename:latest")
 		containerKnown := *mockContainerWithImageName("docker.io/prefix/imagename:latest")
 
-		When("warn on head failure is set to \"always\"", func() {
-			c := newClientNoAPI(false, false, false, false, false, "always")
+		When(`warn on head failure is set to "always"`, func() {
+			c := dockerClient{ClientOptions: ClientOptions{WarnOnHeadFailed: WarnAlways}}
 			It("should always return true", func() {
 				Expect(c.WarnOnHeadPullFailed(containerUnknown)).To(BeTrue())
 				Expect(c.WarnOnHeadPullFailed(containerKnown)).To(BeTrue())
 			})
 		})
-		When("warn on head failure is set to \"auto\"", func() {
-			c := newClientNoAPI(false, false, false, false, false, "auto")
-			It("should always return true", func() {
+		When(`warn on head failure is set to "auto"`, func() {
+			c := dockerClient{ClientOptions: ClientOptions{WarnOnHeadFailed: WarnAuto}}
+			It("should return false for unknown repos", func() {
 				Expect(c.WarnOnHeadPullFailed(containerUnknown)).To(BeFalse())
 			})
-			It("should", func() {
+			It("should return true for known repos", func() {
 				Expect(c.WarnOnHeadPullFailed(containerKnown)).To(BeTrue())
 			})
 		})
-		When("warn on head failure is set to \"never\"", func() {
-			c := newClientNoAPI(false, false, false, false, false, "never")
+		When(`warn on head failure is set to "never"`, func() {
+			c := dockerClient{ClientOptions: ClientOptions{WarnOnHeadFailed: WarnNever}}
 			It("should never return true", func() {
 				Expect(c.WarnOnHeadPullFailed(containerUnknown)).To(BeFalse())
 				Expect(c.WarnOnHeadPullFailed(containerKnown)).To(BeFalse())
