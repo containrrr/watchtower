@@ -65,8 +65,8 @@ var _ = Describe("the client", func() {
 				mockServer.AppendHandlers(mocks.ListContainersHandler("running"))
 				mockServer.AppendHandlers(mocks.GetContainerHandlers("watchtower", "running")...)
 				client := dockerClient{
-					api:        docker,
-					pullImages: false,
+					api:           docker,
+					ClientOptions: ClientOptions{PullImages: false},
 				}
 				containers, err := client.ListContainers(filters.NoFilter)
 				Expect(err).NotTo(HaveOccurred())
@@ -79,8 +79,8 @@ var _ = Describe("the client", func() {
 				mockServer.AppendHandlers(mocks.GetContainerHandlers("watchtower", "running")...)
 				filter := filters.FilterByNames([]string{"lollercoaster"}, filters.NoFilter)
 				client := dockerClient{
-					api:        docker,
-					pullImages: false,
+					api:           docker,
+					ClientOptions: ClientOptions{PullImages: false},
 				}
 				containers, err := client.ListContainers(filter)
 				Expect(err).NotTo(HaveOccurred())
@@ -92,8 +92,8 @@ var _ = Describe("the client", func() {
 				mockServer.AppendHandlers(mocks.ListContainersHandler("running"))
 				mockServer.AppendHandlers(mocks.GetContainerHandlers("watchtower", "running")...)
 				client := dockerClient{
-					api:        docker,
-					pullImages: false,
+					api:           docker,
+					ClientOptions: ClientOptions{PullImages: false},
 				}
 				containers, err := client.ListContainers(filters.WatchtowerContainersFilter)
 				Expect(err).NotTo(HaveOccurred())
@@ -105,9 +105,8 @@ var _ = Describe("the client", func() {
 				mockServer.AppendHandlers(mocks.ListContainersHandler("running", "exited", "created"))
 				mockServer.AppendHandlers(mocks.GetContainerHandlers("stopped", "watchtower", "running")...)
 				client := dockerClient{
-					api:            docker,
-					pullImages:     false,
-					includeStopped: true,
+					api:           docker,
+					ClientOptions: ClientOptions{PullImages: false, IncludeStopped: true},
 				}
 				containers, err := client.ListContainers(filters.NoFilter)
 				Expect(err).NotTo(HaveOccurred())
@@ -119,9 +118,8 @@ var _ = Describe("the client", func() {
 				mockServer.AppendHandlers(mocks.ListContainersHandler("running", "restarting"))
 				mockServer.AppendHandlers(mocks.GetContainerHandlers("watchtower", "running", "restarting")...)
 				client := dockerClient{
-					api:               docker,
-					pullImages:        false,
-					includeRestarting: true,
+					api:           docker,
+					ClientOptions: ClientOptions{PullImages: false, IncludeRestarting: true},
 				}
 				containers, err := client.ListContainers(filters.NoFilter)
 				Expect(err).NotTo(HaveOccurred())
@@ -133,9 +131,8 @@ var _ = Describe("the client", func() {
 				mockServer.AppendHandlers(mocks.ListContainersHandler("running"))
 				mockServer.AppendHandlers(mocks.GetContainerHandlers("watchtower", "running")...)
 				client := dockerClient{
-					api:               docker,
-					pullImages:        false,
-					includeRestarting: false,
+					api:           docker,
+					ClientOptions: ClientOptions{PullImages: false, IncludeRestarting: false},
 				}
 				containers, err := client.ListContainers(filters.NoFilter)
 				Expect(err).NotTo(HaveOccurred())
@@ -147,8 +144,8 @@ var _ = Describe("the client", func() {
 		When(`logging`, func() {
 			It("should include container id field", func() {
 				client := dockerClient{
-					api:        docker,
-					pullImages: false,
+					api:           docker,
+					ClientOptions: ClientOptions{PullImages: false},
 				}
 
 				// Capture logrus output in buffer

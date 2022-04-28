@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"github.com/containrrr/watchtower/internal/meta"
 	"math"
 	"net/http"
 	"os"
@@ -11,12 +10,12 @@ import (
 	"syscall"
 	"time"
 
-	apiMetrics "github.com/containrrr/watchtower/pkg/api/metrics"
-	"github.com/containrrr/watchtower/pkg/api/update"
-
 	"github.com/containrrr/watchtower/internal/actions"
 	"github.com/containrrr/watchtower/internal/flags"
+	"github.com/containrrr/watchtower/internal/meta"
 	"github.com/containrrr/watchtower/pkg/api"
+	apiMetrics "github.com/containrrr/watchtower/pkg/api/metrics"
+	"github.com/containrrr/watchtower/pkg/api/update"
 	"github.com/containrrr/watchtower/pkg/container"
 	"github.com/containrrr/watchtower/pkg/filters"
 	"github.com/containrrr/watchtower/pkg/metrics"
@@ -139,14 +138,14 @@ func PreRun(cmd *cobra.Command, _ []string) {
 		log.Warn("Using `WATCHTOWER_NO_PULL` and `WATCHTOWER_MONITOR_ONLY` simultaneously might lead to no action being taken at all. If this is intentional, you may safely ignore this message.")
 	}
 
-	client = container.NewClient(
-		!noPull,
-		includeStopped,
-		reviveStopped,
-		removeVolumes,
-		includeRestarting,
-		warnOnHeadPullFailed,
-	)
+	client = container.NewClient(container.ClientOptions{
+		PullImages:        !noPull,
+		IncludeStopped:    includeStopped,
+		ReviveStopped:     reviveStopped,
+		RemoveVolumes:     removeVolumes,
+		IncludeRestarting: includeRestarting,
+		WarnOnHeadFailed:  container.WarningStrategy(warnOnHeadPullFailed),
+	})
 
 	notifier = notifications.NewNotifier(cmd)
 }
@@ -293,7 +292,7 @@ func writeStartupMessage(c *cobra.Command, sched time.Time, filtering string) {
 		startupLog.Info("Scheduling first run: " + sched.Format("2006-01-02 15:04:05 -0700 MST"))
 		startupLog.Info("Note that the first check will be performed in " + until)
 	} else if runOnce, _ := c.PersistentFlags().GetBool("run-once"); runOnce {
-			startupLog.Info("Running a one time update.")
+		startupLog.Info("Running a one time update.")
 	} else {
 		startupLog.Info("Periodic runs are not enabled.")
 	}
