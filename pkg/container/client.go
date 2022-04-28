@@ -315,6 +315,10 @@ func (client dockerClient) PullImage(ctx context.Context, container Container) e
 		"container": containerName,
 	}
 
+	if strings.HasPrefix(imageName, "sha256:") {
+		return fmt.Errorf("container uses a pinned image, and cannot be updated by watchtower")
+	}
+
 	log.WithFields(fields).Debugf("Trying to load authentication credentials.")
 	opts, err := registry.GetPullOptions(imageName)
 	if err != nil {

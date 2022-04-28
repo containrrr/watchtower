@@ -16,6 +16,7 @@ import (
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/types"
 
+	"context"
 	"net/http"
 )
 
@@ -56,6 +57,15 @@ var _ = Describe("the client", func() {
 			It("should never return true", func() {
 				Expect(c.WarnOnHeadPullFailed(containerUnknown)).To(BeFalse())
 				Expect(c.WarnOnHeadPullFailed(containerKnown)).To(BeFalse())
+			})
+		})
+	})
+	When("pulling the latest image", func() {
+		When("the image consist of a pinned hash", func() {
+			It("should gracefully fail with a useful message", func() {
+				c := dockerClient{}
+				pinnedContainer := *mockContainerWithImageName("sha256:fa5269854a5e615e51a72b17ad3fd1e01268f278a6684c8ed3c5f0cdce3f230b")
+				c.PullImage(context.Background(), pinnedContainer)
 			})
 		})
 	})
