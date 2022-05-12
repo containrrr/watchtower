@@ -327,6 +327,7 @@ func (c Container) VerifyConfiguration() error {
 	return nil
 }
 
+// Image returns the image tag of the container as reported by the runtime config
 func (c Container) Image() string {
 	return c.runtimeConfig().Image
 }

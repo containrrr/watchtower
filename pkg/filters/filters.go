@@ -70,6 +70,7 @@ func FilterByScope(scope string, baseFilter t.Filter) t.Filter {
 	}
 }
 
+// FilterByImageTag returns all containers that have a specific image
 func FilterByImageTag(tags []string, baseFilter t.Filter) t.Filter {
 	if tags == nil {
 		return baseFilter
