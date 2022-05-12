@@ -13,7 +13,7 @@ var (
 )
 
 // New is a factory function creating a new  Handler instance
-func New(updateFn func(), updateLock chan bool) *Handler {
+func New(updateFn func(images []string), updateLock chan bool) *Handler {
 	if updateLock != nil {
 		lock = updateLock
 	} else {
@@ -29,7 +29,7 @@ func New(updateFn func(), updateLock chan bool) *Handler {
 
 // Handler is an API handler used for triggering container update scans
 type Handler struct {
-	fn   func()
+	fn   func(images []string)
 	Path string
 }
 
@@ -43,12 +43,15 @@ func (handle *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	select {
-	case chanValue := <-lock:
-		defer func() { lock <- chanValue }()
-		handle.fn()
-	default:
-		log.Debug("Skipped. Another update already running.")
+	var images []string
+	if r.URL.Query().Has("image") {
+		images = []string{r.URL.Query().Get("image")}
+	} else {
+		images = nil
 	}
+
+	chanValue := <-lock
+	defer func() { lock <- chanValue }()
+	handle.fn(images)
 
 }

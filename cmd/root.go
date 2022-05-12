@@ -189,7 +189,7 @@ func Run(c *cobra.Command, names []string) {
 	httpAPI := api.New(apiToken)
 
 	if enableUpdateAPI {
-		updateHandler := update.New(func() { runUpdatesWithNotifications(filter) }, updateLock)
+		updateHandler := update.New(func(tags []string) { runUpdatesWithNotifications(filters.FilterByImageTag(tags, filter)) }, updateLock)
 		httpAPI.RegisterFunc(updateHandler.Path, updateHandler.Handle)
 		// If polling isn't enabled the scheduler is never started and
 		// we need to trigger the startup messages manually.
@@ -293,7 +293,7 @@ func writeStartupMessage(c *cobra.Command, sched time.Time, filtering string) {
 		startupLog.Info("Scheduling first run: " + sched.Format("2006-01-02 15:04:05 -0700 MST"))
 		startupLog.Info("Note that the first check will be performed in " + until)
 	} else if runOnce, _ := c.PersistentFlags().GetBool("run-once"); runOnce {
-			startupLog.Info("Running a one time update.")
+		startupLog.Info("Running a one time update.")
 	} else {
 		startupLog.Info("Periodic runs are not enabled.")
 	}

@@ -326,3 +326,7 @@ func (c Container) VerifyConfiguration() error {
 
 	return nil
 }
+
+func (c Container) Image() string {
+	return c.runtimeConfig().Image
+}

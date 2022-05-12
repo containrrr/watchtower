@@ -70,6 +70,23 @@ func FilterByScope(scope string, baseFilter t.Filter) t.Filter {
 	}
 }
 
+func FilterByImageTag(tags []string, baseFilter t.Filter) t.Filter {
+	if tags == nil {
+		return baseFilter
+	}
+
+	return func(c t.FilterableContainer) bool {
+		image := c.Image()
+		for _, targetTag := range tags {
+			if image == targetTag {
+				return baseFilter(c)
+			}
+		}
+
+		return false
+	}
+}
+
 // BuildFilter creates the needed filter of containers
 func BuildFilter(names []string, enableLabel bool, scope string) (t.Filter, string) {
 	sb := strings.Builder{}
