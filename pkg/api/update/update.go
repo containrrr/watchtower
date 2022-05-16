@@ -4,6 +4,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strings"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -45,7 +46,7 @@ func (handle *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	var images []string
 	if r.URL.Query().Has("image") {
-		images = []string{r.URL.Query().Get("image")}
+		images = strings.Split(r.URL.Query().Get("image"), ",")
 	} else {
 		images = nil
 	}
