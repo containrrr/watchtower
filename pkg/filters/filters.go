@@ -70,16 +70,16 @@ func FilterByScope(scope string, baseFilter t.Filter) t.Filter {
 	}
 }
 
-// FilterByImageTag returns all containers that have a specific image
-func FilterByImageTag(tags []string, baseFilter t.Filter) t.Filter {
-	if tags == nil {
+// FilterByImage returns all containers that have a specific image
+func FilterByImage(images []string, baseFilter t.Filter) t.Filter {
+	if images == nil {
 		return baseFilter
 	}
 
 	return func(c t.FilterableContainer) bool {
 		image := strings.Split(c.Image(), ":")[0]
-		for _, targetTag := range tags {
-			if image == targetTag {
+		for _, targetImage := range images {
+			if image == targetImage {
 				return baseFilter(c)
 			}
 		}
