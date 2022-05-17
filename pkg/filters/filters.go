@@ -77,7 +77,7 @@ func FilterByImageTag(tags []string, baseFilter t.Filter) t.Filter {
 	}
 
 	return func(c t.FilterableContainer) bool {
-		image := c.Image()
+		image := strings.Split(c.Image(), ":")[0]
 		for _, targetTag := range tags {
 			if image == targetTag {
 				return baseFilter(c)
