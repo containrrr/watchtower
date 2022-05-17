@@ -45,8 +45,10 @@ func (handle *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var images []string
-	if r.URL.Query().Has("image") {
-		images = strings.Split(r.URL.Query().Get("image"), ",")
+	if imageQueries, found := r.URL.Query()["image"] {
+		for _, image := range imageQueries {
+			images = append(images, strings.Split(image, ","))
+		}
 	} else {
 		images = nil
 	}
