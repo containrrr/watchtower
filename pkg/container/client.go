@@ -42,7 +42,7 @@ type Client interface {
 //  * DOCKER_HOST			the docker-engine host to send api requests to
 //  * DOCKER_TLS_VERIFY		whether to verify tls certificates
 //  * DOCKER_API_VERSION	the minimum docker api version to work with
-func NewClient(pullImages, includeStopped, reviveStopped, removeVolumes, includeRestarting bool, warnOnHeadFailed string) Client {
+func NewClient(opts ClientOptions) Client {
 	cli, err := sdkClient.NewClientWithOpts(sdkClient.FromEnv)
 
 	if err != nil {
@@ -50,31 +50,43 @@ func NewClient(pullImages, includeStopped, reviveStopped, removeVolumes, include
 	}
 
 	return dockerClient{
-		api:               cli,
-		pullImages:        pullImages,
-		removeVolumes:     removeVolumes,
-		includeStopped:    includeStopped,
-		reviveStopped:     reviveStopped,
-		includeRestarting: includeRestarting,
-		warnOnHeadFailed:  warnOnHeadFailed,
+		api:           cli,
+		ClientOptions: opts,
 	}
 }
 
+// ClientOptions contains the options for how the docker client wrapper should behave
+type ClientOptions struct {
+	PullImages        bool
+	RemoveVolumes     bool
+	IncludeStopped    bool
+	ReviveStopped     bool
+	IncludeRestarting bool
+	WarnOnHeadFailed  WarningStrategy
+}
+
+// WarningStrategy is a value determining when to show warnings
+type WarningStrategy string
+
+const (
+	// WarnAlways warns whenever the problem occurs
+	WarnAlways WarningStrategy = "always"
+	// WarnNever never warns when the problem occurs
+	WarnNever WarningStrategy = "never"
+	// WarnAuto skips warning when the problem was expected
+	WarnAuto WarningStrategy = "auto"
+)
+
 type dockerClient struct {
-	api               sdkClient.CommonAPIClient
-	pullImages        bool
-	removeVolumes     bool
-	includeStopped    bool
-	reviveStopped     bool
-	includeRestarting bool
-	warnOnHeadFailed  string
+	api sdkClient.CommonAPIClient
+	ClientOptions
 }
 
 func (client dockerClient) WarnOnHeadPullFailed(container Container) bool {
-	if client.warnOnHeadFailed == "always" {
+	if client.WarnOnHeadFailed == WarnAlways {
 		return true
 	}
-	if client.warnOnHeadFailed == "never" {
+	if client.WarnOnHeadFailed == WarnNever {
 		return false
 	}
 
@@ -85,11 +97,11 @@ func (client dockerClient) ListContainers(fn t.Filter) ([]Container, error) {
 	cs := []Container{}
 	bg := context.Background()
 
-	if client.includeStopped && client.includeRestarting {
+	if client.IncludeStopped && client.IncludeRestarting {
 		log.Debug("Retrieving running, stopped, restarting and exited containers")
-	} else if client.includeStopped {
+	} else if client.IncludeStopped {
 		log.Debug("Retrieving running, stopped and exited containers")
-	} else if client.includeRestarting {
+	} else if client.IncludeRestarting {
 		log.Debug("Retrieving running and restarting containers")
 	} else {
 		log.Debug("Retrieving running containers")
@@ -125,12 +137,12 @@ func (client dockerClient) createListFilter() filters.Args {
 	filterArgs := filters.NewArgs()
 	filterArgs.Add("status", "running")
 
-	if client.includeStopped {
+	if client.IncludeStopped {
 		filterArgs.Add("status", "created")
 		filterArgs.Add("status", "exited")
 	}
 
-	if client.includeRestarting {
+	if client.IncludeRestarting {
 		filterArgs.Add("status", "restarting")
 	}
 
@@ -179,7 +191,7 @@ func (client dockerClient) StopContainer(c Container, timeout time.Duration) err
 	} else {
 		log.Debugf("Removing container %s", shortID)
 
-		if err := client.api.ContainerRemove(bg, idStr, types.ContainerRemoveOptions{Force: true, RemoveVolumes: client.removeVolumes}); err != nil {
+		if err := client.api.ContainerRemove(bg, idStr, types.ContainerRemoveOptions{Force: true, RemoveVolumes: client.RemoveVolumes}); err != nil {
 			return err
 		}
 	}
@@ -236,7 +248,7 @@ func (client dockerClient) StartContainer(c Container) (t.ContainerID, error) {
 	}
 
 	createdContainerID := t.ContainerID(createdContainer.ID)
-	if !c.IsRunning() && !client.reviveStopped {
+	if !c.IsRunning() && !client.ReviveStopped {
 		return createdContainerID, nil
 	}
 
@@ -264,7 +276,7 @@ func (client dockerClient) RenameContainer(c Container, newName string) error {
 func (client dockerClient) IsContainerStale(container Container) (stale bool, latestImage t.ImageID, err error) {
 	ctx := context.Background()
 
-	if !client.pullImages {
+	if !client.PullImages {
 		log.Debugf("Skipping image pull.")
 	} else if err := client.PullImage(ctx, container); err != nil {
 		return false, container.SafeImageID(), err
@@ -301,6 +313,10 @@ func (client dockerClient) PullImage(ctx context.Context, container Container) e
 	fields := log.Fields{
 		"image":     imageName,
 		"container": containerName,
+	}
+
+	if strings.HasPrefix(imageName, "sha256:") {
+		return fmt.Errorf("container uses a pinned image, and cannot be updated by watchtower")
 	}
 
 	log.WithFields(fields).Debugf("Trying to load authentication credentials.")

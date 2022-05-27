@@ -16,6 +16,7 @@ import (
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/types"
 
+	"context"
 	"net/http"
 )
 
@@ -35,27 +36,36 @@ var _ = Describe("the client", func() {
 		containerUnknown := *mockContainerWithImageName("unknown.repo/prefix/imagename:latest")
 		containerKnown := *mockContainerWithImageName("docker.io/prefix/imagename:latest")
 
-		When("warn on head failure is set to \"always\"", func() {
-			c := newClientNoAPI(false, false, false, false, false, "always")
+		When(`warn on head failure is set to "always"`, func() {
+			c := dockerClient{ClientOptions: ClientOptions{WarnOnHeadFailed: WarnAlways}}
 			It("should always return true", func() {
 				Expect(c.WarnOnHeadPullFailed(containerUnknown)).To(BeTrue())
 				Expect(c.WarnOnHeadPullFailed(containerKnown)).To(BeTrue())
 			})
 		})
-		When("warn on head failure is set to \"auto\"", func() {
-			c := newClientNoAPI(false, false, false, false, false, "auto")
-			It("should always return true", func() {
+		When(`warn on head failure is set to "auto"`, func() {
+			c := dockerClient{ClientOptions: ClientOptions{WarnOnHeadFailed: WarnAuto}}
+			It("should return false for unknown repos", func() {
 				Expect(c.WarnOnHeadPullFailed(containerUnknown)).To(BeFalse())
 			})
-			It("should", func() {
+			It("should return true for known repos", func() {
 				Expect(c.WarnOnHeadPullFailed(containerKnown)).To(BeTrue())
 			})
 		})
-		When("warn on head failure is set to \"never\"", func() {
-			c := newClientNoAPI(false, false, false, false, false, "never")
+		When(`warn on head failure is set to "never"`, func() {
+			c := dockerClient{ClientOptions: ClientOptions{WarnOnHeadFailed: WarnNever}}
 			It("should never return true", func() {
 				Expect(c.WarnOnHeadPullFailed(containerUnknown)).To(BeFalse())
 				Expect(c.WarnOnHeadPullFailed(containerKnown)).To(BeFalse())
+			})
+		})
+	})
+	When("pulling the latest image", func() {
+		When("the image consist of a pinned hash", func() {
+			It("should gracefully fail with a useful message", func() {
+				c := dockerClient{}
+				pinnedContainer := *mockContainerWithImageName("sha256:fa5269854a5e615e51a72b17ad3fd1e01268f278a6684c8ed3c5f0cdce3f230b")
+				c.PullImage(context.Background(), pinnedContainer)
 			})
 		})
 	})
@@ -65,8 +75,8 @@ var _ = Describe("the client", func() {
 				mockServer.AppendHandlers(mocks.ListContainersHandler("running"))
 				mockServer.AppendHandlers(mocks.GetContainerHandlers("watchtower", "running")...)
 				client := dockerClient{
-					api:        docker,
-					pullImages: false,
+					api:           docker,
+					ClientOptions: ClientOptions{PullImages: false},
 				}
 				containers, err := client.ListContainers(filters.NoFilter)
 				Expect(err).NotTo(HaveOccurred())
@@ -79,8 +89,8 @@ var _ = Describe("the client", func() {
 				mockServer.AppendHandlers(mocks.GetContainerHandlers("watchtower", "running")...)
 				filter := filters.FilterByNames([]string{"lollercoaster"}, filters.NoFilter)
 				client := dockerClient{
-					api:        docker,
-					pullImages: false,
+					api:           docker,
+					ClientOptions: ClientOptions{PullImages: false},
 				}
 				containers, err := client.ListContainers(filter)
 				Expect(err).NotTo(HaveOccurred())
@@ -92,8 +102,8 @@ var _ = Describe("the client", func() {
 				mockServer.AppendHandlers(mocks.ListContainersHandler("running"))
 				mockServer.AppendHandlers(mocks.GetContainerHandlers("watchtower", "running")...)
 				client := dockerClient{
-					api:        docker,
-					pullImages: false,
+					api:           docker,
+					ClientOptions: ClientOptions{PullImages: false},
 				}
 				containers, err := client.ListContainers(filters.WatchtowerContainersFilter)
 				Expect(err).NotTo(HaveOccurred())
@@ -105,9 +115,8 @@ var _ = Describe("the client", func() {
 				mockServer.AppendHandlers(mocks.ListContainersHandler("running", "exited", "created"))
 				mockServer.AppendHandlers(mocks.GetContainerHandlers("stopped", "watchtower", "running")...)
 				client := dockerClient{
-					api:            docker,
-					pullImages:     false,
-					includeStopped: true,
+					api:           docker,
+					ClientOptions: ClientOptions{PullImages: false, IncludeStopped: true},
 				}
 				containers, err := client.ListContainers(filters.NoFilter)
 				Expect(err).NotTo(HaveOccurred())
@@ -119,9 +128,8 @@ var _ = Describe("the client", func() {
 				mockServer.AppendHandlers(mocks.ListContainersHandler("running", "restarting"))
 				mockServer.AppendHandlers(mocks.GetContainerHandlers("watchtower", "running", "restarting")...)
 				client := dockerClient{
-					api:               docker,
-					pullImages:        false,
-					includeRestarting: true,
+					api:           docker,
+					ClientOptions: ClientOptions{PullImages: false, IncludeRestarting: true},
 				}
 				containers, err := client.ListContainers(filters.NoFilter)
 				Expect(err).NotTo(HaveOccurred())
@@ -133,9 +141,8 @@ var _ = Describe("the client", func() {
 				mockServer.AppendHandlers(mocks.ListContainersHandler("running"))
 				mockServer.AppendHandlers(mocks.GetContainerHandlers("watchtower", "running")...)
 				client := dockerClient{
-					api:               docker,
-					pullImages:        false,
-					includeRestarting: false,
+					api:           docker,
+					ClientOptions: ClientOptions{PullImages: false, IncludeRestarting: false},
 				}
 				containers, err := client.ListContainers(filters.NoFilter)
 				Expect(err).NotTo(HaveOccurred())
@@ -147,8 +154,8 @@ var _ = Describe("the client", func() {
 		When(`logging`, func() {
 			It("should include container id field", func() {
 				client := dockerClient{
-					api:        docker,
-					pullImages: false,
+					api:           docker,
+					ClientOptions: ClientOptions{PullImages: false},
 				}
 
 				// Capture logrus output in buffer

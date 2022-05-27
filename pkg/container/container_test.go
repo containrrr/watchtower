@@ -216,20 +216,20 @@ var _ = Describe("the container", func() {
 				})
 			})
 		})
-		
+
 		When("there is a pre or post update timeout", func() {
- 				It("should return minute values", func() {
- 					c = mockContainerWithLabels(map[string]string{
- 						"com.centurylinklabs.watchtower.lifecycle.pre-update-timeout":  "3",
- 						"com.centurylinklabs.watchtower.lifecycle.post-update-timeout": "5",
- 					})
- 					preTimeout := c.PreUpdateTimeout()
- 					Expect(preTimeout).To(Equal(3))
- 					postTimeout := c.PostUpdateTimeout()
- 					Expect(postTimeout).To(Equal(5))
- 				})
- 			})
-		
+			It("should return minute values", func() {
+				c = mockContainerWithLabels(map[string]string{
+					"com.centurylinklabs.watchtower.lifecycle.pre-update-timeout":  "3",
+					"com.centurylinklabs.watchtower.lifecycle.post-update-timeout": "5",
+				})
+				preTimeout := c.PreUpdateTimeout()
+				Expect(preTimeout).To(Equal(3))
+				postTimeout := c.PostUpdateTimeout()
+				Expect(postTimeout).To(Equal(5))
+			})
+		})
+
 	})
 })
 
@@ -281,16 +281,4 @@ func mockContainerWithLabels(labels map[string]string) *Container {
 		},
 	}
 	return NewContainer(&content, nil)
-}
-
-func newClientNoAPI(pullImages, includeStopped, reviveStopped, removeVolumes, includeRestarting bool, warnOnHeadFailed string) Client {
-	return dockerClient{
-		api:               nil,
-		pullImages:        pullImages,
-		removeVolumes:     removeVolumes,
-		includeStopped:    includeStopped,
-		reviveStopped:     reviveStopped,
-		includeRestarting: includeRestarting,
-		warnOnHeadFailed:  warnOnHeadFailed,
-	}
 }
