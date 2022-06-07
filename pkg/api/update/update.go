@@ -55,8 +55,18 @@ func (handle *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 		images = nil
 	}
 
-	chanValue := <-lock
-	defer func() { lock <- chanValue }()
-	handle.fn(images)
+	if len(images) > 0 {
+		chanValue := <-lock
+		defer func() { lock <- chanValue }()
+		handle.fn(images)
+	} else {
+		select {
+		case chanValue := <-lock:
+			defer func() { lock <- chanValue }()
+			handle.fn(images)
+		default:
+			log.Debug("Skipped. Another update already running.")
+		}
+	}
 
 }
