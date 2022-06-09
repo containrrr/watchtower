@@ -116,9 +116,6 @@ func TestFilterByImage(t *testing.T) {
 	assert.NotNil(t, filterSingle)
 	assert.NotNil(t, filterMultiple)
 
-	filterNil := FilterByImage(nil, NoFilter)
-	assert.Same(t, filterNil, NoFilter)
-
 	container := new(mocks.FilterableContainer)
 	container.On("Image").Return("registry:2")
 	assert.True(t, filterSingle(container))
