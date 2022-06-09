@@ -110,6 +110,41 @@ func TestFilterByDisabledLabel(t *testing.T) {
 	container.AssertExpectations(t)
 }
 
+func TestFilterByImage(t *testing.T) {
+	filterSingle := FilterByImage([]string{"registry"}, NoFilter)
+	filterMultiple := FilterByImage([]string{"registry", "bla"}, NoFilter)
+	assert.NotNil(t, filterSingle)
+	assert.NotNil(t, filterMultiple)
+
+	filterNil := FilterByImage(nil, NoFilter)
+	assert.Same(t, filterNil, NoFilter)
+
+	container := new(mocks.FilterableContainer)
+	container.On("Image").Return("registry:2")
+	assert.True(t, filterSingle(container))
+	assert.True(t, filterMultiple(container))
+	container.AssertExpectations(t)
+
+	container = new(mocks.FilterableContainer)
+	container.On("Image").Return("registry:latest")
+	assert.True(t, filterSingle(container))
+	assert.True(t, filterMultiple(container))
+	container.AssertExpectations(t)
+
+	container = new(mocks.FilterableContainer)
+	container.On("Image").Return("abcdef1234")
+	assert.False(t, filterSingle(container))
+	assert.False(t, filterMultiple(container))
+	container.AssertExpectations(t)
+
+	container = new(mocks.FilterableContainer)
+	container.On("Image").Return("bla:latest")
+	assert.False(t, filterSingle(container))
+	assert.True(t, filterMultiple(container))
+	container.AssertExpectations(t)
+
+}
+
 func TestBuildFilter(t *testing.T) {
 	var names []string
 	names = append(names, "test")
