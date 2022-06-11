@@ -77,7 +77,7 @@ func FilterByImage(images []string, baseFilter t.Filter) t.Filter {
 	}
 
 	return func(c t.FilterableContainer) bool {
-		image := strings.Split(c.Image(), ":")[0]
+		image := strings.Split(c.ImageName(), ":")[0]
 		for _, targetImage := range images {
 			if image == targetImage {
 				return baseFilter(c)

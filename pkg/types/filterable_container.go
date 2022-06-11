@@ -7,5 +7,5 @@ type FilterableContainer interface {
 	IsWatchtower() bool
 	Enabled() (bool, bool)
 	Scope() (string, bool)
-	Image() string
+	ImageName() string
 }

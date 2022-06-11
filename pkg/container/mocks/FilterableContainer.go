@@ -79,8 +79,8 @@ func (_m *FilterableContainer) Scope() (string, bool) {
 	return r0, r1
 }
 
-// Image provides a mock function with given fields:
-func (_m *FilterableContainer) Image() string {
+// ImageName provides a mock function with given fields:
+func (_m *FilterableContainer) ImageName() string {
 	ret := _m.Called()
 
 	var r0 string

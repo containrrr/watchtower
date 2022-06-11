@@ -111,31 +111,36 @@ func TestFilterByDisabledLabel(t *testing.T) {
 }
 
 func TestFilterByImage(t *testing.T) {
+	filterEmpty := FilterByImage(nil, NoFilter)
 	filterSingle := FilterByImage([]string{"registry"}, NoFilter)
 	filterMultiple := FilterByImage([]string{"registry", "bla"}, NoFilter)
 	assert.NotNil(t, filterSingle)
 	assert.NotNil(t, filterMultiple)
 
 	container := new(mocks.FilterableContainer)
-	container.On("Image").Return("registry:2")
+	container.On("ImageName").Return("registry:2")
+	assert.True(t, filterEmpty(container))
 	assert.True(t, filterSingle(container))
 	assert.True(t, filterMultiple(container))
 	container.AssertExpectations(t)
 
 	container = new(mocks.FilterableContainer)
-	container.On("Image").Return("registry:latest")
+	container.On("ImageName").Return("registry:latest")
+	assert.True(t, filterEmpty(container))
 	assert.True(t, filterSingle(container))
 	assert.True(t, filterMultiple(container))
 	container.AssertExpectations(t)
 
 	container = new(mocks.FilterableContainer)
-	container.On("Image").Return("abcdef1234")
+	container.On("ImageName").Return("abcdef1234")
+	assert.True(t, filterEmpty(container))
 	assert.False(t, filterSingle(container))
 	assert.False(t, filterMultiple(container))
 	container.AssertExpectations(t)
 
 	container = new(mocks.FilterableContainer)
-	container.On("Image").Return("bla:latest")
+	container.On("ImageName").Return("bla:latest")
+	assert.True(t, filterEmpty(container))
 	assert.False(t, filterSingle(container))
 	assert.True(t, filterMultiple(container))
 	container.AssertExpectations(t)
