@@ -813,6 +813,15 @@
       "contributions": [
         "doc"
       ]
+    },
+    {
+      "login": "Foxite",
+      "name": "Dirk Kok",
+      "avatar_url": "https://avatars.githubusercontent.com/u/20421657?v=4",
+      "profile": "https://ko-fi.com/foxite",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
