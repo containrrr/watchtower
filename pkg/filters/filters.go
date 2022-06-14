@@ -70,6 +70,24 @@ func FilterByScope(scope string, baseFilter t.Filter) t.Filter {
 	}
 }
 
+// FilterByImage returns all containers that have a specific image
+func FilterByImage(images []string, baseFilter t.Filter) t.Filter {
+	if images == nil {
+		return baseFilter
+	}
+
+	return func(c t.FilterableContainer) bool {
+		image := strings.Split(c.ImageName(), ":")[0]
+		for _, targetImage := range images {
+			if image == targetImage {
+				return baseFilter(c)
+			}
+		}
+
+		return false
+	}
+}
+
 // BuildFilter creates the needed filter of containers
 func BuildFilter(names []string, enableLabel bool, scope string) (t.Filter, string) {
 	sb := strings.Builder{}

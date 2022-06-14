@@ -4,6 +4,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strings"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -13,7 +14,7 @@ var (
 )
 
 // New is a factory function creating a new  Handler instance
-func New(updateFn func(), updateLock chan bool) *Handler {
+func New(updateFn func(images []string), updateLock chan bool) *Handler {
 	if updateLock != nil {
 		lock = updateLock
 	} else {
@@ -29,7 +30,7 @@ func New(updateFn func(), updateLock chan bool) *Handler {
 
 // Handler is an API handler used for triggering container update scans
 type Handler struct {
-	fn   func()
+	fn   func(images []string)
 	Path string
 }
 
@@ -43,12 +44,29 @@ func (handle *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	select {
-	case chanValue := <-lock:
+	var images []string
+	imageQueries, found := r.URL.Query()["image"]
+	if found {
+		for _, image := range imageQueries {
+			images = append(images, strings.Split(image, ",")...)
+		}
+
+	} else {
+		images = nil
+	}
+
+	if len(images) > 0 {
+		chanValue := <-lock
 		defer func() { lock <- chanValue }()
-		handle.fn()
-	default:
-		log.Debug("Skipped. Another update already running.")
+		handle.fn(images)
+	} else {
+		select {
+		case chanValue := <-lock:
+			defer func() { lock <- chanValue }()
+			handle.fn(images)
+		default:
+			log.Debug("Skipped. Another update already running.")
+		}
 	}
 
 }
