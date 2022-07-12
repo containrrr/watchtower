@@ -27,12 +27,12 @@ docker run -d \
 
 Also check out [this Stack Overflow answer](https://stackoverflow.com/a/30494145/7872793) for more options on how to pass environment variables.
 
-Mounting the host's docker config file:
+Alternatively if you 2FA authentication setup on Docker Hub then passing username and password will be insufficient.  Instead you can run `docker login` to store your credentials in `$HOME/.docker/config.json` and then mount this config file to make it available to the Watchtower container:
 
 ```bash
 docker run -d \
   --name watchtower \
-  -v /home/<user>/.docker/config.json:/config.json \
+  -v $HOME/.docker/config.json:/config.json \
   -v /var/run/docker.sock:/var/run/docker.sock \
   containrrr/watchtower container_to_watch --debug
 ```
