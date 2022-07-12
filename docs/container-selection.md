@@ -9,45 +9,55 @@ There are two options:
 
 If you need to exclude some containers, set the _com.centurylinklabs.watchtower.enable_ label to `false`.  For clarity this should be set **on the container(s)** you wish to be ignored, this is not set on watchtower.
 
-```docker
-LABEL com.centurylinklabs.watchtower.enable="false"
-```
+=== "dockerfile"
 
-Or, it can be specified as part of the `docker run` command line:
+    ```docker
+    LABEL com.centurylinklabs.watchtower.enable="false"
+    ```
+=== "dockerrun"
 
-```bash
-docker run -d --label=com.centurylinklabs.watchtower.enable=false someimage
-```
+    ```bash
+    docker run -d --label=com.centurylinklabs.watchtower.enable=false someimage
+    ```
 
-Or, in the docker-compose file:
-``` yaml
-services:
-  mycontainer:
-    [other fields such as container_name, entrypoint, environment, etc.]
-    labels:
-      - "com.centurylinklabs.watchtower.enable=false"
-```
+=== "docker-compose"
+
+    ``` yaml
+    version: "3" 
+    services: 
+       watchtower: 
+         image: containrrr/watchtower 
+         volumes: 
+           - /var/run/docker.sock:/var/run/docker.sock
+        labels:
+          - "com.centurylinklabs.watchtower.enable=false"
+    ```
 
 If instead you want to [only include containers with the enable label](https://containrrr.github.io/watchtower/arguments/#filter_by_enable_label), pass the `--label-enable` flag or the `WATCHTOWER_LABEL_ENABLE` environment variable on startup for watchtower and set the _com.centurylinklabs.watchtower.enable_ label with a value of `true` on the containers you want to watch.
 
-```docker
-LABEL com.centurylinklabs.watchtower.enable="true"
-```
+=== "dockerfile"
 
-Or, it can be specified as part of the `docker run` command line:
+    ```docker
+    LABEL com.centurylinklabs.watchtower.enable="true"
+    ```
+=== "dockerrun"
 
-```bash
-docker run -d --label=com.centurylinklabs.watchtower.enable=true someimage
-```
+    ```bash
+    docker run -d --label=com.centurylinklabs.watchtower.enable=true someimage
+    ```
 
-Or, in the docker-compose file:
-``` yaml
-services:
-  mycontainer:
-    [other fields such as container_name, entrypoint, environment, etc.]
-    labels:
-      - "com.centurylinklabs.watchtower.enable=true"
-```
+=== "docker-compose"
+
+    ``` yaml
+    version: "3" 
+    services: 
+       watchtower: 
+         image: containrrr/watchtower 
+         volumes: 
+           - /var/run/docker.sock:/var/run/docker.sock
+        labels:
+          - "com.centurylinklabs.watchtower.enable=true"
+    ```
 
 If you wish to create a monitoring scope, you will need to [run multiple instances and set a scope for each of them](https://containrrr.github.io/watchtower/running-multiple-instances).
 
