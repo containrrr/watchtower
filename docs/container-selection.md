@@ -23,12 +23,17 @@ If you need to exclude some containers, set the _com.centurylinklabs.watchtower.
 === "docker-compose"
 
     ``` yaml
-    version: "3" 
-    services: 
-       watchtower: 
-         image: containrrr/watchtower 
-         volumes: 
-           - /var/run/docker.sock:/var/run/docker.sock
+    version: "3"
+    services:
+      someimage:
+        command:
+          - serve
+          - --dev-addr=0.0.0.0:8000
+        container_name: someimage
+        entrypoint:
+          - somepoint
+        environment:
+          - PATH=/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
         labels:
           - "com.centurylinklabs.watchtower.enable=false"
     ```
@@ -49,12 +54,17 @@ If instead you want to [only include containers with the enable label](https://c
 === "docker-compose"
 
     ``` yaml
-    version: "3" 
-    services: 
-       watchtower: 
-         image: containrrr/watchtower 
-         volumes: 
-           - /var/run/docker.sock:/var/run/docker.sock
+    version: "3"
+    services:
+      someimage:
+        command:
+          - serve
+          - --dev-addr=0.0.0.0:8000
+        container_name: someimage
+        entrypoint:
+          - somepoint
+        environment:
+          - PATH=/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
         labels:
           - "com.centurylinklabs.watchtower.enable=true"
     ```
