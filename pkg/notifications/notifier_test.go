@@ -169,13 +169,9 @@ var _ = Describe("notifications", func() {
 				hookURL := fmt.Sprintf("https://%s/api/webhooks/%s/%s/slack", "discordapp.com", channel, token)
 				testURL(buildArgs(hookURL), expected, time.Duration(0))
 			})
-			It("should return a discord url when using a hook url with no trailing path arguments", func() {
-				hookURL := fmt.Sprintf("https://%s/api/webhooks/%s/%s", "discord.com", channel, token)
-				testURL(buildArgs(hookURL), expected, time.Duration(0))
-			})
 			When("icon URL and username are specified", func() {
 				It("should return the expected URL", func() {
-					hookURL := fmt.Sprintf("https://%s/api/webhooks/%s/%s", "discord.com", channel, token)
+					hookURL := fmt.Sprintf("https://%s/api/webhooks/%s/%s/slack", "discord.com", channel, token)
 					expectedOutput := fmt.Sprintf("discord://%s@%s?avatar=%s&color=0x%x&colordebug=0x0&colorerror=0x0&colorinfo=0x0&colorwarn=0x0&title=%s&username=%s", token, channel, url.QueryEscape(iconURL), color, title, username)
 					expectedDelay := time.Duration(7) * time.Second
 					args := []string{
