@@ -26,14 +26,7 @@ If you need to exclude some containers, set the _com.centurylinklabs.watchtower.
     version: "3"
     services:
       someimage:
-        command:
-          - serve
-          - --dev-addr=0.0.0.0:8000
         container_name: someimage
-        entrypoint:
-          - somepoint
-        environment:
-          - PATH=/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
         labels:
           - "com.centurylinklabs.watchtower.enable=false"
     ```
