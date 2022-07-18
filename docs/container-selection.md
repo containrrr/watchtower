@@ -38,7 +38,7 @@ If instead you want to [only include containers with the enable label](https://c
     ```docker
     LABEL com.centurylinklabs.watchtower.enable="true"
     ```
-=== "dockerrun"
+=== "docker run"
 
     ```bash
     docker run -d --label=com.centurylinklabs.watchtower.enable=true someimage
