@@ -14,7 +14,7 @@ If you need to exclude some containers, set the _com.centurylinklabs.watchtower.
     ```docker
     LABEL com.centurylinklabs.watchtower.enable="false"
     ```
-=== "dockerrun"
+=== "docker run"
 
     ```bash
     docker run -d --label=com.centurylinklabs.watchtower.enable=false someimage
