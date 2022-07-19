@@ -183,7 +183,7 @@ To send notifications via shoutrrr, the following command-line options, or their
 
 -   `--notification-url` (env. `WATCHTOWER_NOTIFICATION_URL`): The shoutrrr service URL to be used.
 
-Go to [containrrr.dev/shoutrrr/v0.5/services/overview](https://containrrr.dev/shoutrrr/v0.5/services/overview) to
+Go to [containrrr.dev/shoutrrr/v0.6/services/overview](https://containrrr.dev/shoutrrr/v0.6/services/overview) to
 learn more about the different service URLs you can use. You can define multiple services by space separating the
 URLs. (See example below)
 
