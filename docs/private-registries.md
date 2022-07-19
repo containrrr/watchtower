@@ -145,7 +145,7 @@ in a volume that may be mounted onto your watchtower container.
     ```
 
 3.  Create a configuration file for docker, and store it in $HOME/.docker/config.json (replace the <AWS_ACCOUNT_ID>
-   placeholders with your AWS Account ID):
+   placeholders with your AWS Account ID and <AWS_ECR_REGION> with your AWS ECR Region):
     ```json
     {
        "credsStore" : "ecr-login",
@@ -153,10 +153,10 @@ in a volume that may be mounted onto your watchtower container.
          "User-Agent" : "Docker-Client/19.03.1 (XXXXXX)"
        },
        "auths" : {
-         "<AWS_ACCOUNT_ID>.dkr.ecr.us-west-1.amazonaws.com" : {}
+         "<AWS_ACCOUNT_ID>.dkr.ecr.<AWS_ECR_REGION>.amazonaws.com" : {}
        },
        "credHelpers": {
-         "<AWS_ACCOUNT_ID>.dkr.ecr.us-west-1.amazonaws.com" : "ecr-login"
+         "<AWS_ACCOUNT_ID>.dkr.ecr.<AWS_ECR_REGION>.amazonaws.com" : "ecr-login"
        }
     }
     ```
