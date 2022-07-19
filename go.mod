@@ -3,7 +3,7 @@ module github.com/containrrr/watchtower
 go 1.12
 
 require (
-	github.com/containrrr/shoutrrr v0.5.3
+	github.com/containrrr/shoutrrr v0.6.1
 	github.com/docker/cli v20.10.17+incompatible
 	github.com/docker/distribution v2.8.0+incompatible
 	github.com/docker/docker v20.10.17+incompatible
