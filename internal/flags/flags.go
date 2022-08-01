@@ -466,7 +466,11 @@ func getSecretFromFile(flags *pflag.FlagSet, secret string) {
 				}
 				scanner := bufio.NewScanner(file)
 				for scanner.Scan() {
-					values = append(values, scanner.Text())
+					line := scanner.Text()
+					if line == "" {
+						continue
+					}
+					values = append(values, line)
 				}
 			} else {
 				values = append(values, value)
