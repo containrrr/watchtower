@@ -50,6 +50,7 @@ func TestGetSecretsFromFilesWithString(t *testing.T) {
 
 	err := os.Setenv("WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PASSWORD", value)
 	require.NoError(t, err)
+	defer os.Unsetenv("WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PASSWORD")
 
 	testGetSecretsFromFiles(t, "notification-email-server-password", value)
 }
@@ -69,17 +70,40 @@ func TestGetSecretsFromFilesWithFile(t *testing.T) {
 
 	err = os.Setenv("WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PASSWORD", file.Name())
 	require.NoError(t, err)
+	defer os.Unsetenv("WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PASSWORD")
 
 	testGetSecretsFromFiles(t, "notification-email-server-password", value)
 }
 
-func testGetSecretsFromFiles(t *testing.T, flagName string, expected string) {
+func TestGetSliceSecretsFromFiles(t *testing.T) {
+	values := []string{"entry2", "", "entry3"}
+
+	// Create the temporary file which will contain a secret.
+	file, err := ioutil.TempFile(os.TempDir(), "watchtower-")
+	require.NoError(t, err)
+	defer os.Remove(file.Name()) // Make sure to remove the temporary file later.
+
+	// Write the secret to the temporary file.
+	for _, value := range values {
+		_, err = file.WriteString("\n" + value)
+		require.NoError(t, err)
+	}
+	file.Close()
+
+	testGetSecretsFromFiles(t, "notification-url", `[entry1,entry2,entry3]`,
+		`--notification-url`, "entry1",
+		`--notification-url`, file.Name())
+}
+
+func testGetSecretsFromFiles(t *testing.T, flagName string, expected string, args ...string) {
 	cmd := new(cobra.Command)
 	SetDefaults()
 	RegisterNotificationFlags(cmd)
+	require.NoError(t, cmd.ParseFlags(args))
 	GetSecretsFromFiles(cmd)
-	value, err := cmd.PersistentFlags().GetString(flagName)
-	require.NoError(t, err)
+	flag := cmd.PersistentFlags().Lookup(flagName)
+	require.NotNil(t, flag)
+	value := flag.Value.String()
 
 	assert.Equal(t, expected, value)
 }

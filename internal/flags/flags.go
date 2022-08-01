@@ -1,6 +1,7 @@
 package flags
 
 import (
+	"bufio"
 	"errors"
 	"io/ioutil"
 	"os"
@@ -444,6 +445,7 @@ func GetSecretsFromFiles(rootCmd *cobra.Command) {
 		"notification-slack-hook-url",
 		"notification-msteams-hook",
 		"notification-gotify-token",
+		"notification-url",
 	}
 	for _, secret := range secrets {
 		getSecretFromFile(flags, secret)
@@ -452,10 +454,33 @@ func GetSecretsFromFiles(rootCmd *cobra.Command) {
 
 // getSecretFromFile will check if the flag contains a reference to a file; if it does, replaces the value of the flag with the contents of the file.
 func getSecretFromFile(flags *pflag.FlagSet, secret string) {
-	value, err := flags.GetString(secret)
-	if err != nil {
-		log.Error(err)
+	flag := flags.Lookup(secret)
+	if sliceValue, ok := flag.Value.(pflag.SliceValue); ok {
+		oldValues := sliceValue.GetSlice()
+		values := make([]string, 0, len(oldValues))
+		for _, value := range oldValues {
+			if value != "" && isFile(value) {
+				file, err := os.Open(value)
+				if err != nil {
+					log.Fatal(err)
+				}
+				scanner := bufio.NewScanner(file)
+				for scanner.Scan() {
+					line := scanner.Text()
+					if line == "" {
+						continue
+					}
+					values = append(values, line)
+				}
+			} else {
+				values = append(values, value)
+			}
+		}
+		sliceValue.Replace(values)
+		return
 	}
+
+	value := flag.Value.String()
 	if value != "" && isFile(value) {
 		file, err := ioutil.ReadFile(value)
 		if err != nil {
