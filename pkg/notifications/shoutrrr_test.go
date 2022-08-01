@@ -73,6 +73,17 @@ var _ = Describe("Shoutrrr", func() {
 		})
 	})
 
+	When("passing a common template name", func() {
+		It("should format using that template", func() {
+			expected := `
+1 containers matched filter
+
+updt1 (mock/updt1:latest): Updated`[1:]
+			data := mockDataFromStates(s.UpdatedState)
+			Expect(getTemplatedResult(`porcelain.v1.summary-no-log`, false, data)).To(Equal(expected))
+		})
+	})
+
 	When("using legacy templates", func() {
 
 		When("no custom template is provided", func() {
@@ -168,7 +179,6 @@ var _ = Describe("Shoutrrr", func() {
 	})
 
 	When("using report templates", func() {
-
 		When("no custom template is provided", func() {
 			It("should format the messages using the default template", func() {
 				expected := `4 Scanned, 2 Updated, 1 Failed
