@@ -148,14 +148,14 @@ function create-container() {
   local image_name="${2:-$container_name}"
 
   echo -en "Creating \e[94m$container_name\e[0m container... "
-  local result=$(docker run -d --name "$container_name" $(registry-host)/$image_name 2>&1)
-  local result_len=$(echo $result | wc -c)
+  local result, result_len
+  result=$(docker run -d --name "$container_name" "$(registry-host)/$image_name" 2>&1)
+  result_len=${#result}
   if [ "$result_len" -eq 65 ]; then
-    echo -e "\e[92m$(echo $result | cut -c -12)\e[0m"
+    echo -e "\e[92m${result:0:12}\e[0m"
     return 0
   else
     echo -e "\e[91mFailed!\n\e[97m$result\e[0m"
-    echo $result_len
     return 1
   fi
 }

@@ -61,9 +61,9 @@ case $1 in
         fi
         image_name="images/$3"
         container_name=$3
-        $0 image rev $image_name || exit 1
-        $0 container create $container_name $image_name || exit 1
-        $0 image rev $image_name || exit 1
+        $0 image rev "$image_name" || exit 1
+        $0 container create "$container_name" "$image_name" || exit 1
+        $0 image rev "$image_name" || exit 1
         ;;
       *)
         echo "Unknown container action \"$2\""
