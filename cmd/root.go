@@ -109,7 +109,7 @@ func PreRun(cmd *cobra.Command, _ []string) {
 	scope, _ = f.GetString("scope")
 
 	if scope != "" {
-		log.Debug(`Using scope %q`, scope)
+		log.Debugf(`Using scope %q`, scope)
 	}
 
 	// configure environment vars for client
