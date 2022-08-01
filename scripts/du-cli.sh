@@ -28,6 +28,9 @@ case $1 in
       latest)
         latest-image-rev "$3"
         ;;
+      rm)
+        remove-repo-images "$3"
+        ;;
       *)
         echo "Unknown image action \"$2\""
         ;;
