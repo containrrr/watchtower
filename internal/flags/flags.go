@@ -510,12 +510,12 @@ func ProcessFlagAliases(flags *pflag.FlagSet) {
 		setFlagIfDefault(flags, `notification-template`, `porcelain.v1.summary-no-log`)
 	}
 
-	// update schedule flag to match interval if it's set
-	if flags.Changed(`interval`) {
-		schedule, _ := flags.GetString(`schedule`)
-		if len(schedule) > 0 {
-			log.Fatal(`Only schedule or interval can be defined, not both.`)
-		}
+	if flags.Changed(`interval`) && flags.Changed(`schedule`) {
+		log.Fatal(`Only schedule or interval can be defined, not both.`)
+	}
+
+	// update schedule flag to match interval if it's set, or to the default if none of them are
+	if flags.Changed(`interval`) || !flags.Changed(`schedule`) {
 		interval, _ := flags.GetInt(`interval`)
 		flags.Set(`schedule`, fmt.Sprintf(`@every %ds`, interval))
 	}
