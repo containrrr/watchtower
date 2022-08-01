@@ -123,3 +123,39 @@ function container-started() {
   fi
   docker container inspect "$Name" | jq -r .[].State.StartedAt
 }
+
+
+function container-exists() {
+  local Name=$1
+  if [ -z "$Name" ];  then
+    echo "NAME missing"
+    return 1
+  fi
+  
+  docker container inspect "$Name" 1> /dev/null 2> /dev/null
+}
+
+function registry-exists() {
+  container-exists "$CONTAINER_PREFIX-registry"
+}
+
+function create-container() {
+  local container_name=$1
+    if [ -z "$container_name" ];  then
+    echo "NAME missing"
+    return 1
+  fi
+  local image_name="${2:-$container_name}"
+
+  echo -en "Creating \e[94m$container_name\e[0m container... "
+  local result=$(docker run -d --name "$container_name" $(registry-host)/$image_name 2>&1)
+  local result_len=$(echo $result | wc -c)
+  if [ "$result_len" -eq 65 ]; then
+    echo -e "\e[92m$(echo $result | cut -c -12)\e[0m"
+    return 0
+  else
+    echo -e "\e[91mFailed!\n\e[97m$result\e[0m"
+    echo $result_len
+    return 1
+  fi
+}
