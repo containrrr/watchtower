@@ -149,6 +149,8 @@ var _ = Describe("notifications", func() {
 			color := notifications.ColorInt
 			data := notifications.GetTemplateData(command)
 			title := url.QueryEscape(data.Title)
+			username := "containrrrbot"
+			iconURL := "https://containrrr.dev/watchtower-sq180.png"
 			expected := fmt.Sprintf("discord://%s@%s?color=0x%x&colordebug=0x0&colorerror=0x0&colorinfo=0x0&colorwarn=0x0&title=%s&username=watchtower", token, channel, color, title)
 			buildArgs := func(url string) []string {
 				return []string{
@@ -166,6 +168,27 @@ var _ = Describe("notifications", func() {
 			It("should return a discord url when using a hook url with the domain discordapp.com", func() {
 				hookURL := fmt.Sprintf("https://%s/api/webhooks/%s/%s/slack", "discordapp.com", channel, token)
 				testURL(buildArgs(hookURL), expected, time.Duration(0))
+			})
+			When("icon URL and username are specified", func() {
+				It("should return the expected URL", func() {
+					hookURL := fmt.Sprintf("https://%s/api/webhooks/%s/%s/slack", "discord.com", channel, token)
+					expectedOutput := fmt.Sprintf("discord://%s@%s?avatar=%s&color=0x%x&colordebug=0x0&colorerror=0x0&colorinfo=0x0&colorwarn=0x0&title=%s&username=%s", token, channel, url.QueryEscape(iconURL), color, title, username)
+					expectedDelay := time.Duration(7) * time.Second
+					args := []string{
+						"--notifications",
+						"slack",
+						"--notification-slack-hook-url",
+						hookURL,
+						"--notification-slack-identifier",
+						username,
+						"--notification-slack-icon-url",
+						iconURL,
+						"--notifications-delay",
+						fmt.Sprint(expectedDelay.Seconds()),
+					}
+
+					testURL(args, expectedOutput, expectedDelay)
+				})
 			})
 		})
 		When("converting a slack service config into a shoutrrr url", func() {

@@ -56,6 +56,11 @@ func (s *slackTypeNotifier) GetURL(c *cobra.Command, title string) (string, erro
 			SplitLines: true,
 			Username:   s.Username,
 		}
+
+		if s.IconURL != "" {
+			conf.Avatar = s.IconURL
+		}
+
 		return conf.GetURL().String(), nil
 	}
 
