@@ -8,6 +8,7 @@ type Report interface {
 	Skipped() []ContainerReport
 	Stale() []ContainerReport
 	Fresh() []ContainerReport
+	All() []ContainerReport
 }
 
 // ContainerReport represents a container that was included in watchtower session

@@ -80,7 +80,7 @@ var _ = Describe("Shoutrrr", func() {
 				cmd := new(cobra.Command)
 				flags.RegisterNotificationFlags(cmd)
 
-				shoutrrr := createNotifier([]string{}, logrus.AllLevels, "", true, StaticData{})
+				shoutrrr := createNotifier([]string{}, logrus.AllLevels, "", true, StaticData{}, false)
 
 				entries := []*logrus.Entry{
 					{
@@ -236,7 +236,7 @@ Turns out everything is on fire
 	When("batching notifications", func() {
 		When("no messages are queued", func() {
 			It("should not send any notification", func() {
-				shoutrrr := newShoutrrrNotifier("", allButTrace, true, StaticData{}, time.Duration(0), "logger://")
+				shoutrrr := newShoutrrrNotifier("", allButTrace, true, StaticData{}, time.Duration(0), false, "logger://")
 				shoutrrr.StartNotification()
 				shoutrrr.SendNotification(nil)
 				Consistently(logBuffer).ShouldNot(gbytes.Say(`Shoutrrr:`))
@@ -244,7 +244,7 @@ Turns out everything is on fire
 		})
 		When("at least one message is queued", func() {
 			It("should send a notification", func() {
-				shoutrrr := newShoutrrrNotifier("", allButTrace, true, StaticData{}, time.Duration(0), "logger://")
+				shoutrrr := newShoutrrrNotifier("", allButTrace, true, StaticData{}, time.Duration(0), false, "logger://")
 				shoutrrr.StartNotification()
 				logrus.Info("This log message is sponsored by ContainrrrVPN")
 				shoutrrr.SendNotification(nil)
@@ -258,7 +258,7 @@ Turns out everything is on fire
 			shoutrrr := createNotifier([]string{"logger://"}, allButTrace, "", true, StaticData{
 				Host:  "test.host",
 				Title: "",
-			})
+			}, false)
 			_, found := shoutrrr.params.Title()
 			Expect(found).ToNot(BeTrue())
 		})
@@ -290,7 +290,7 @@ type blockingRouter struct {
 }
 
 func (b blockingRouter) Send(_ string, _ *types.Params) []error {
-	_ = <-b.unlock
+	<-b.unlock
 	b.sent <- true
 	return nil
 }

@@ -1,8 +1,9 @@
 package session
 
 import (
-	"github.com/containrrr/watchtower/pkg/types"
 	"sort"
+
+	"github.com/containrrr/watchtower/pkg/types"
 )
 
 type report struct {
@@ -31,6 +32,33 @@ func (r *report) Stale() []types.ContainerReport {
 }
 func (r *report) Fresh() []types.ContainerReport {
 	return r.fresh
+}
+func (r *report) All() []types.ContainerReport {
+	allLen := len(r.scanned) + len(r.updated) + len(r.failed) + len(r.skipped) + len(r.stale) + len(r.fresh)
+	all := make([]types.ContainerReport, 0, allLen)
+
+	presentIds := map[types.ContainerID][]string{}
+
+	appendUnique := func(reports []types.ContainerReport) {
+		for _, cr := range reports {
+			if _, found := presentIds[cr.ID()]; found {
+				continue
+			}
+			all = append(all, cr)
+			presentIds[cr.ID()] = nil
+		}
+	}
+
+	appendUnique(r.updated)
+	appendUnique(r.failed)
+	appendUnique(r.skipped)
+	appendUnique(r.stale)
+	appendUnique(r.fresh)
+	appendUnique(r.scanned)
+
+	sort.Sort(sortableContainers(all))
+
+	return all
 }
 
 // NewReport creates a types.Report from the supplied Progress

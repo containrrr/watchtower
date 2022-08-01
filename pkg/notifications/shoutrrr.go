@@ -3,6 +3,7 @@ package notifications
 import (
 	"bytes"
 	stdlog "log"
+	"os"
 	"strings"
 	"text/template"
 	"time"
@@ -11,35 +12,14 @@ import (
 	"github.com/containrrr/shoutrrr/pkg/types"
 	t "github.com/containrrr/watchtower/pkg/types"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 // LocalLog is a logrus logger that does not send entries as notifications
 var LocalLog = log.WithField("notify", "no")
 
 const (
-	shoutrrrDefaultLegacyTemplate = "{{range .}}{{.Message}}{{println}}{{end}}"
-	shoutrrrDefaultTemplate       = `
-{{- if .Report -}}
-  {{- with .Report -}}
-    {{- if ( or .Updated .Failed ) -}}
-{{len .Scanned}} Scanned, {{len .Updated}} Updated, {{len .Failed}} Failed
-      {{- range .Updated}}
-- {{.Name}} ({{.ImageName}}): {{.CurrentImageID.ShortID}} updated to {{.LatestImageID.ShortID}}
-      {{- end -}}
-      {{- range .Fresh}}
-- {{.Name}} ({{.ImageName}}): {{.State}}
-	  {{- end -}}
-	  {{- range .Skipped}}
-- {{.Name}} ({{.ImageName}}): {{.State}}: {{.Error}}
-	  {{- end -}}
-	  {{- range .Failed}}
-- {{.Name}} ({{.ImageName}}): {{.State}}: {{.Error}}
-	  {{- end -}}
-    {{- end -}}
-  {{- end -}}
-{{- else -}}
-  {{range .Entries -}}{{.Message}}{{"\n"}}{{- end -}}
-{{- end -}}`
 	shoutrrrType = "shoutrrr"
 )
 
@@ -79,9 +59,9 @@ func (n *shoutrrrTypeNotifier) GetNames() []string {
 	return names
 }
 
-func newShoutrrrNotifier(tplString string, acceptedLogLevels []log.Level, legacy bool, data StaticData, delay time.Duration, urls ...string) t.Notifier {
+func newShoutrrrNotifier(tplString string, levels []log.Level, legacy bool, data StaticData, delay time.Duration, stdout bool, urls ...string) t.Notifier {
 
-	notifier := createNotifier(urls, acceptedLogLevels, tplString, legacy, data)
+	notifier := createNotifier(urls, levels, tplString, legacy, data, stdout)
 	log.AddHook(notifier)
 
 	// Do the sending in a separate goroutine so we don't block the main process.
@@ -90,14 +70,19 @@ func newShoutrrrNotifier(tplString string, acceptedLogLevels []log.Level, legacy
 	return notifier
 }
 
-func createNotifier(urls []string, levels []log.Level, tplString string, legacy bool, data StaticData) *shoutrrrTypeNotifier {
+func createNotifier(urls []string, levels []log.Level, tplString string, legacy bool, data StaticData, stdout bool) *shoutrrrTypeNotifier {
 	tpl, err := getShoutrrrTemplate(tplString, legacy)
 	if err != nil {
 		log.Errorf("Could not use configured notification template: %s. Using default template", err)
 	}
 
-	traceWriter := log.StandardLogger().WriterLevel(log.TraceLevel)
-	r, err := shoutrrr.NewSender(stdlog.New(traceWriter, "Shoutrrr: ", 0), urls...)
+	var logger types.StdLogger
+	if stdout {
+		logger = stdlog.New(os.Stdout, ``, 0)
+	} else {
+		logger = stdlog.New(log.StandardLogger().WriterLevel(log.TraceLevel), "Shoutrrr: ", 0)
+	}
+	r, err := shoutrrr.NewSender(logger, urls...)
 	if err != nil {
 		log.Fatalf("Failed to initialize Shoutrrr notifications: %s\n", err.Error())
 	}
@@ -190,7 +175,7 @@ func (n *shoutrrrTypeNotifier) Close() {
 	// Use fmt so it doesn't trigger another notification.
 	LocalLog.Info("Waiting for the notification goroutine to finish")
 
-	_ = <-n.done
+	<-n.done
 }
 
 // Levels return what log levels trigger notifications
@@ -217,9 +202,14 @@ func getShoutrrrTemplate(tplString string, legacy bool) (tpl *template.Template,
 	funcs := template.FuncMap{
 		"ToUpper": strings.ToUpper,
 		"ToLower": strings.ToLower,
-		"Title":   strings.Title,
+		"Title":   cases.Title(language.AmericanEnglish).String,
 	}
 	tplBase := template.New("").Funcs(funcs)
+
+	if builtin, found := commonTemplates[tplString]; found {
+		log.WithField(`template`, tplString).Debug(`Using common template`)
+		tplString = builtin
+	}
 
 	// If we succeed in getting a non-empty template configuration
 	// try to parse the template string.
@@ -228,16 +218,16 @@ func getShoutrrrTemplate(tplString string, legacy bool) (tpl *template.Template,
 	}
 
 	// If we had an error (either from parsing the template string
-	// or from getting the template configuration) or we a
+	// or from getting the template configuration) or a
 	// template wasn't configured (the empty template string)
 	// fallback to using the default template.
 	if err != nil || tplString == "" {
-		defaultTemplate := shoutrrrDefaultTemplate
+		defaultKey := `default`
 		if legacy {
-			defaultTemplate = shoutrrrDefaultLegacyTemplate
+			defaultKey = `default-legacy`
 		}
 
-		tpl = template.Must(tplBase.Parse(defaultTemplate))
+		tpl = template.Must(tplBase.Parse(commonTemplates[defaultKey]))
 	}
 
 	return

@@ -2,6 +2,7 @@ package flags
 
 import (
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -152,22 +153,31 @@ func RegisterSystemFlags(rootCmd *cobra.Command) {
 		"",
 		viper.GetString("WATCHTOWER_HTTP_API_TOKEN"),
 		"Sets an authentication token to HTTP API requests.")
+
 	flags.BoolP(
 		"http-api-periodic-polls",
 		"",
 		viper.GetBool("WATCHTOWER_HTTP_API_PERIODIC_POLLS"),
 		"Also run periodic updates (specified with --interval and --schedule) if HTTP API is enabled")
+
 	// https://no-color.org/
 	flags.BoolP(
 		"no-color",
 		"",
 		viper.IsSet("NO_COLOR"),
 		"Disable ANSI color escape codes in log output")
+
 	flags.StringP(
 		"scope",
 		"",
 		viper.GetString("WATCHTOWER_SCOPE"),
 		"Defines a monitoring scope for the Watchtower instance.")
+
+	flags.BoolP(
+		"porcelain",
+		"P",
+		viper.GetBool("WATCHTOWER_PORCELAIN"),
+		"Write session results to stdout (alias for --notification-url logger:// --notification-log-stdout)")
 }
 
 // RegisterNotificationFlags that are used by watchtower to send notifications
@@ -342,6 +352,10 @@ Should only be used for testing.`)
 		viper.GetString("WATCHTOWER_WARN_ON_HEAD_FAILURE"),
 		"When to warn about HEAD pull requests failing. Possible values: always, auto or never")
 
+	flags.Bool(
+		"notification-log-stdout",
+		viper.GetBool("WATCHTOWER_NOTIFICATION_LOG_STDOUT"),
+		"Write notification logs to stdout instead of logging (to stderr)")
 }
 
 // SetDefaults provides default values for environment variables
@@ -478,4 +492,57 @@ func isFile(s string) bool {
 	}
 	_, err := os.Stat(s)
 	return !errors.Is(err, os.ErrNotExist)
+}
+
+// ProcessFlagAliases updates the value of flags that are being set by helper flags
+func ProcessFlagAliases(flags *pflag.FlagSet) {
+
+	porcelain, err := flags.GetBool(`porcelain`)
+	if err != nil {
+		log.Fatalf(`Failed to get flag: %v`, err)
+	}
+	if porcelain {
+		if err = appendFlagValue(flags, `notification-url`, `logger://`); err != nil {
+			log.Errorf(`Failed to set flag: %v`, err)
+		}
+		setFlagIfDefault(flags, `notification-log-stdout`, `true`)
+		setFlagIfDefault(flags, `notification-report`, `true`)
+		setFlagIfDefault(flags, `notification-template`, `porcelain.v1.summary-no-log`)
+	}
+
+	// update schedule flag to match interval if it's set
+	if flags.Changed(`interval`) {
+		schedule, _ := flags.GetString(`schedule`)
+		if len(schedule) > 0 {
+			log.Fatal(`Only schedule or interval can be defined, not both.`)
+		}
+		interval, _ := flags.GetInt(`interval`)
+		flags.Set(`schedule`, fmt.Sprintf(`@every %ds`, interval))
+	}
+}
+
+func appendFlagValue(flags *pflag.FlagSet, name string, values ...string) error {
+	flag := flags.Lookup(name)
+	if flag == nil {
+		return fmt.Errorf(`invalid flag name %q`, name)
+	}
+
+	if flagValues, ok := flag.Value.(pflag.SliceValue); ok {
+		for _, value := range values {
+			flagValues.Append(value)
+		}
+	} else {
+		return fmt.Errorf(`the value for flag %q is not a slice value`, name)
+	}
+
+	return nil
+}
+
+func setFlagIfDefault(flags *pflag.FlagSet, name string, value string) {
+	if flags.Changed(name) {
+		return
+	}
+	if err := flags.Set(name, value); err != nil {
+		log.Errorf(`Failed to set flag: %v`, err)
+	}
 }
