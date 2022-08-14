@@ -123,3 +123,64 @@ function container-started() {
   fi
   docker container inspect "$Name" | jq -r .[].State.StartedAt
 }
+
+
+function container-exists() {
+  local Name=$1
+  if [ -z "$Name" ];  then
+    echo "NAME missing"
+    return 1
+  fi
+  
+  docker container inspect "$Name" 1> /dev/null 2> /dev/null
+}
+
+function registry-exists() {
+  container-exists "$CONTAINER_PREFIX-registry"
+}
+
+function create-container() {
+  local container_name=$1
+    if [ -z "$container_name" ];  then
+    echo "NAME missing"
+    return 1
+  fi
+  local image_name="${2:-$container_name}"
+
+  echo -en "Creating \e[94m$container_name\e[0m container... "
+  local result
+  result=$(docker run -d --name "$container_name" "$(registry-host)/$image_name" 2>&1)
+  if [ "${#result}" -eq 64 ]; then
+    echo -e "\e[92m${result:0:12}\e[0m"
+    return 0
+  else
+    echo -e "\e[91mFailed!\n\e[97m$result\e[0m"
+    return 1
+  fi
+}
+
+function remove-images() {
+  local image_name=$1
+  if [ -z "$image_name" ];  then
+    echo "NAME missing"
+    return 1
+  fi
+
+  local images
+  mapfile -t images < <(docker images -q "$image_name" | uniq)
+  if [ -n "${images[*]}" ]; then
+    docker image rm "${images[@]}"
+  else
+    echo "No images matched \"$image_name\""
+  fi
+}
+
+function remove-repo-images() {
+  local image_name=$1
+  if [ -z "$image_name" ];  then
+    echo "NAME missing"
+    return 1
+  fi
+
+  remove-images "$(registry-host)/images/$image_name"
+}

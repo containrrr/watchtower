@@ -39,7 +39,6 @@ var (
 	lifecycleHooks bool
 	rollingRestart bool
 	scope          string
-	// Set on build using ldflags
 )
 
 var rootCmd = NewRootCommand()
@@ -75,6 +74,7 @@ func Execute() {
 // PreRun is a lifecycle hook that runs before the command is executed.
 func PreRun(cmd *cobra.Command, _ []string) {
 	f := cmd.PersistentFlags()
+	flags.ProcessFlagAliases(f)
 
 	if enabled, _ := f.GetBool("no-color"); enabled {
 		log.SetFormatter(&log.TextFormatter{
@@ -94,18 +94,7 @@ func PreRun(cmd *cobra.Command, _ []string) {
 		log.SetLevel(log.TraceLevel)
 	}
 
-	pollingSet := f.Changed("interval")
-	schedule, _ := f.GetString("schedule")
-	cronLen := len(schedule)
-
-	if pollingSet && cronLen > 0 {
-		log.Fatal("Only schedule or interval can be defined, not both.")
-	} else if cronLen > 0 {
-		scheduleSpec, _ = f.GetString("schedule")
-	} else {
-		interval, _ := f.GetInt("interval")
-		scheduleSpec = "@every " + strconv.Itoa(interval) + "s"
-	}
+	scheduleSpec, _ = f.GetString("schedule")
 
 	flags.GetSecretsFromFiles(cmd)
 	cleanup, noRestart, monitorOnly, timeout = flags.ReadFlags(cmd)
@@ -119,7 +108,9 @@ func PreRun(cmd *cobra.Command, _ []string) {
 	rollingRestart, _ = f.GetBool("rolling-restart")
 	scope, _ = f.GetString("scope")
 
-	log.Debug(scope)
+	if scope != "" {
+		log.Debugf(`Using scope %q`, scope)
+	}
 
 	// configure environment vars for client
 	err := flags.EnvConfig(cmd)

@@ -5,6 +5,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -126,4 +127,72 @@ func TestHTTPAPIPeriodicPollsFlag(t *testing.T) {
 func TestIsFile(t *testing.T) {
 	assert.False(t, isFile("https://google.com"), "an URL should never be considered a file")
 	assert.True(t, isFile(os.Args[0]), "the currently running binary path should always be considered a file")
+}
+
+func TestReadFlags(t *testing.T) {
+	logrus.StandardLogger().ExitFunc = func(_ int) { t.FailNow() }
+
+}
+
+func TestProcessFlagAliases(t *testing.T) {
+	logrus.StandardLogger().ExitFunc = func(_ int) { t.FailNow() }
+	cmd := new(cobra.Command)
+	SetDefaults()
+	RegisterDockerFlags(cmd)
+	RegisterSystemFlags(cmd)
+	RegisterNotificationFlags(cmd)
+
+	require.NoError(t, cmd.ParseFlags([]string{
+	    `--porcelain`, `v1`, 
+	    `--interval`, `10`,
+	}))
+	flags := cmd.Flags()
+	ProcessFlagAliases(flags)
+
+	urls, _ := flags.GetStringArray(`notification-url`)
+	assert.Contains(t, urls, `logger://`)
+
+	logStdout, _ := flags.GetBool(`notification-log-stdout`)
+	assert.True(t, logStdout)
+
+	report, _ := flags.GetBool(`notification-report`)
+	assert.True(t, report)
+
+	template, _ := flags.GetString(`notification-template`)
+	assert.Equal(t, `porcelain.v1.summary-no-log`, template)
+
+	sched, _ := flags.GetString(`schedule`)
+	assert.Equal(t, `@every 10s`, sched)
+}
+
+func TestProcessFlagAliasesSchedAndInterval(t *testing.T) {
+	logrus.StandardLogger().ExitFunc = func(_ int) { panic(`FATAL`) }
+	cmd := new(cobra.Command)
+	SetDefaults()
+	RegisterDockerFlags(cmd)
+	RegisterSystemFlags(cmd)
+	RegisterNotificationFlags(cmd)
+
+	require.NoError(t, cmd.ParseFlags([]string{`--schedule`, `@now`, `--interval`, `10`}))
+	flags := cmd.Flags()
+
+	assert.PanicsWithValue(t, `FATAL`, func() {
+		ProcessFlagAliases(flags)
+	})
+}
+
+func TestProcessFlagAliasesInvalidPorcelaineVersion(t *testing.T) {
+	logrus.StandardLogger().ExitFunc = func(_ int) { panic(`FATAL`) }
+	cmd := new(cobra.Command)
+	SetDefaults()
+	RegisterDockerFlags(cmd)
+	RegisterSystemFlags(cmd)
+	RegisterNotificationFlags(cmd)
+
+	require.NoError(t, cmd.ParseFlags([]string{`--porcelain`, `cowboy`}))
+	flags := cmd.Flags()
+
+	assert.PanicsWithValue(t, `FATAL`, func() {
+		ProcessFlagAliases(flags)
+	})
 }

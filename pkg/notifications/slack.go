@@ -43,7 +43,7 @@ func newSlackNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.Convert
 
 func (s *slackTypeNotifier) GetURL(c *cobra.Command, title string) (string, error) {
 	trimmedURL := strings.TrimRight(s.HookURL, "/")
-	trimmedURL = strings.TrimLeft(trimmedURL, "https://")
+	trimmedURL = strings.TrimPrefix(trimmedURL, "https://")
 	parts := strings.Split(trimmedURL, "/")
 
 	if parts[0] == "discord.com" || parts[0] == "discordapp.com" {

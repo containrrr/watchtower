@@ -21,20 +21,21 @@ func NewNotifier(c *cobra.Command) ty.Notifier {
 		log.Fatalf("Notifications invalid log level: %s", err.Error())
 	}
 
-	acceptedLogLevels := slackrus.LevelThreshold(logLevel)
+	levels := slackrus.LevelThreshold(logLevel)
 	// slackrus does not allow log level TRACE, even though it's an accepted log level for logrus
-	if len(acceptedLogLevels) == 0 {
+	if len(levels) == 0 {
 		log.Fatalf("Unsupported notification log level provided: %s", level)
 	}
 
 	reportTemplate, _ := f.GetBool("notification-report")
+	stdout, _ := f.GetBool("notification-log-stdout")
 	tplString, _ := f.GetString("notification-template")
 	urls, _ := f.GetStringArray("notification-url")
 
 	data := GetTemplateData(c)
 	urls, delay := AppendLegacyUrls(urls, c, data.Title)
 
-	return newShoutrrrNotifier(tplString, acceptedLogLevels, !reportTemplate, data, delay, urls...)
+	return newShoutrrrNotifier(tplString, levels, !reportTemplate, data, delay, stdout, urls...)
 }
 
 // AppendLegacyUrls creates shoutrrr equivalent URLs from legacy notification flags

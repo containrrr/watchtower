@@ -15,7 +15,6 @@ const (
 )
 
 type emailTypeNotifier struct {
-	url                                string
 	From, To                           string
 	Server, User, Password, SubjectTag string
 	Port                               int

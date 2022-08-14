@@ -16,7 +16,7 @@ case $1 in
         registry-host
         ;;
       *)
-        echo "Unknown keyword \"$2\""
+        echo "Unknown registry action \"$2\""
         ;;
     esac
     ;;
@@ -28,8 +28,11 @@ case $1 in
       latest)
         latest-image-rev "$3"
         ;;
+      rm)
+        remove-repo-images "$3"
+        ;;
       *)
-        echo "Unknown keyword \"$2\""
+        echo "Unknown image action \"$2\""
         ;;
     esac
     ;;
@@ -47,8 +50,26 @@ case $1 in
       started)
         container-started "$3"
         ;;
+      create)
+        create-container "${@:3:2}"
+        ;;
+      create-stale)
+        if [ -z "$3" ]; then
+          echo "NAME missing"
+          exit 1
+        fi
+        if ! registry-exists; then
+          echo "Registry container missing! Creating..."
+          start-registry || exit 1
+        fi
+        image_name="images/$3"
+        container_name=$3
+        $0 image rev "$image_name" || exit 1
+        $0 container create "$container_name" "$image_name" || exit 1
+        $0 image rev "$image_name" || exit 1
+        ;;
       *)
-        echo "Unknown keyword \"$2\""
+        echo "Unknown container action \"$2\""
         ;;
     esac
     ;;
