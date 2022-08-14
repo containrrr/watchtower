@@ -28,9 +28,12 @@ var commonTemplates = map[string]string{
 
 	`porcelain.v1.summary-no-log`: `
 {{- if .Report -}}
-{{len .Report.All}} containers matched filter{{println}}
-  {{- range .Report.All}}
-  	{{- println}}{{.Name}} ({{.ImageName}}): {{.State}} {{- with .Error}} Error: {{.}}{{end}}
+  {{- range .Report.All }}
+    {{- .Name}} ({{.ImageName}}): {{.State -}}
+    {{- with .Error}} Error: {{.}}{{end}}{{ println }}
+  {{- else -}}
+    no containers matched filter
   {{- end -}}
 {{- end -}}`,
 }
+
