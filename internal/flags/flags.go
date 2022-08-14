@@ -173,11 +173,12 @@ func RegisterSystemFlags(rootCmd *cobra.Command) {
 		viper.GetString("WATCHTOWER_SCOPE"),
 		"Defines a monitoring scope for the Watchtower instance.")
 
-	flags.BoolP(
+	flags.StringP(
 		"porcelain",
 		"P",
-		viper.GetBool("WATCHTOWER_PORCELAIN"),
-		"Write session results to stdout (alias for --notification-url logger:// --notification-log-stdout)")
+		viper.GetString("WATCHTOWER_PORCELAIN"),
+		`Write session results to stdout using a stable versioned format. Supported values: "v1"`)
+		
 }
 
 // RegisterNotificationFlags that are used by watchtower to send notifications
@@ -497,17 +498,21 @@ func isFile(s string) bool {
 // ProcessFlagAliases updates the value of flags that are being set by helper flags
 func ProcessFlagAliases(flags *pflag.FlagSet) {
 
-	porcelain, err := flags.GetBool(`porcelain`)
+	porcelain, err := flags.GetString(`porcelain`)
 	if err != nil {
 		log.Fatalf(`Failed to get flag: %v`, err)
 	}
-	if porcelain {
+	if porcelain != "" {
+	    if porcelain != "v1" {
+	        log.Fatalf(`Unknown porcelain version %q. Supported values: "v1"`, porcelain)
+	    }
 		if err = appendFlagValue(flags, `notification-url`, `logger://`); err != nil {
 			log.Errorf(`Failed to set flag: %v`, err)
 		}
 		setFlagIfDefault(flags, `notification-log-stdout`, `true`)
 		setFlagIfDefault(flags, `notification-report`, `true`)
-		setFlagIfDefault(flags, `notification-template`, `porcelain.v1.summary-no-log`)
+		tpl := fmt.Sprintf(`porcelain.%s.summary-no-log`, porcelain)
+		setFlagIfDefault(flags, `notification-template`, tpl)
 	}
 
 	if flags.Changed(`interval`) && flags.Changed(`schedule`) {
@@ -544,5 +549,8 @@ func setFlagIfDefault(flags *pflag.FlagSet, name string, value string) {
 	}
 	if err := flags.Set(name, value); err != nil {
 		log.Errorf(`Failed to set flag: %v`, err)
+	}
+}
+ err)
 	}
 }

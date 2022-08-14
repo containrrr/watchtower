@@ -118,7 +118,10 @@ func TestProcessFlagAliases(t *testing.T) {
 	RegisterSystemFlags(cmd)
 	RegisterNotificationFlags(cmd)
 
-	require.NoError(t, cmd.ParseFlags([]string{`--porcelain`, `--interval`, `10`}))
+	require.NoError(t, cmd.ParseFlags([]string{
+	    `--porcelain`, `v1`, 
+	    `--interval`, `10`,
+	}))
 	flags := cmd.Flags()
 	ProcessFlagAliases(flags)
 
@@ -147,6 +150,22 @@ func TestProcessFlagAliasesSchedAndInterval(t *testing.T) {
 	RegisterNotificationFlags(cmd)
 
 	require.NoError(t, cmd.ParseFlags([]string{`--schedule`, `@now`, `--interval`, `10`}))
+	flags := cmd.Flags()
+
+	assert.PanicsWithValue(t, `FATAL`, func() {
+		ProcessFlagAliases(flags)
+	})
+}
+
+func TestProcessFlagAliasesInvalidPorcelaineVersion(t *testing.T) {
+	logrus.StandardLogger().ExitFunc = func(_ int) { panic(`FATAL`) }
+	cmd := new(cobra.Command)
+	SetDefaults()
+	RegisterDockerFlags(cmd)
+	RegisterSystemFlags(cmd)
+	RegisterNotificationFlags(cmd)
+
+	require.NoError(t, cmd.ParseFlags([]string{`--porcelain`, `cowboy`}))
 	flags := cmd.Flags()
 
 	assert.PanicsWithValue(t, `FATAL`, func() {
