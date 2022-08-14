@@ -551,6 +551,3 @@ func setFlagIfDefault(flags *pflag.FlagSet, name string, value string) {
 		log.Errorf(`Failed to set flag: %v`, err)
 	}
 }
- err)
-	}
-}
