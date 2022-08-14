@@ -1,8 +1,10 @@
 package filters
 
 import (
-	t "github.com/containrrr/watchtower/pkg/types"
+	"regexp"
 	"strings"
+
+	t "github.com/containrrr/watchtower/pkg/types"
 )
 
 // WatchtowerContainersFilter filters only watchtower containers
@@ -19,8 +21,20 @@ func FilterByNames(names []string, baseFilter t.Filter) t.Filter {
 
 	return func(c t.FilterableContainer) bool {
 		for _, name := range names {
-			if (name == c.Name()) || (name == c.Name()[1:]) {
+			if name == c.Name() || name == c.Name()[1:] {
 				return baseFilter(c)
+			}
+
+			if re, err := regexp.Compile(name); err == nil {
+				indices := re.FindStringIndex(c.Name())
+				if indices == nil {
+					continue
+				}
+				start := indices[0]
+				end := indices[1]
+				if start <= 1 && end >= len(c.Name())-1 {
+					return baseFilter(c)
+				}
 			}
 		}
 		return false
@@ -95,7 +109,7 @@ func BuildFilter(names []string, enableLabel bool, scope string) (t.Filter, stri
 	filter = FilterByNames(names, filter)
 
 	if len(names) > 0 {
-		sb.WriteString("with name \"")
+		sb.WriteString("which name matches \"")
 		for i, n := range names {
 			sb.WriteString(n)
 			if i < len(names)-1 {

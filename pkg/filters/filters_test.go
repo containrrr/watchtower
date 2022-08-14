@@ -47,6 +47,28 @@ func TestFilterByNames(t *testing.T) {
 	container.AssertExpectations(t)
 }
 
+func TestFilterByNamesRegex(t *testing.T) {
+	names := []string{`ba(b|ll)oon`}
+
+	filter := FilterByNames(names, NoFilter)
+	assert.NotNil(t, filter)
+
+	container := new(mocks.FilterableContainer)
+	container.On("Name").Return("balloon")
+	assert.True(t, filter(container))
+	container.AssertExpectations(t)
+
+	container = new(mocks.FilterableContainer)
+	container.On("Name").Return("spoon")
+	assert.False(t, filter(container))
+	container.AssertExpectations(t)
+
+	container = new(mocks.FilterableContainer)
+	container.On("Name").Return("baboonious")
+	assert.False(t, filter(container))
+	container.AssertExpectations(t)
+}
+
 func TestFilterByEnableLabel(t *testing.T) {
 	filter := FilterByEnableLabel(NoFilter)
 	assert.NotNil(t, filter)
@@ -68,8 +90,7 @@ func TestFilterByEnableLabel(t *testing.T) {
 }
 
 func TestFilterByScope(t *testing.T) {
-	var scope string
-	scope = "testscope"
+	scope := "testscope"
 
 	filter := FilterByScope(scope, NoFilter)
 	assert.NotNil(t, filter)
@@ -148,11 +169,12 @@ func TestFilterByImage(t *testing.T) {
 }
 
 func TestBuildFilter(t *testing.T) {
-	var names []string
-	names = append(names, "test")
+	names := []string{"test", "valid"}
 
 	filter, desc := BuildFilter(names, false, "")
 	assert.Contains(t, desc, "test")
+	assert.Contains(t, desc, "or")
+	assert.Contains(t, desc, "valid")
 
 	container := new(mocks.FilterableContainer)
 	container.On("Name").Return("Invalid")
