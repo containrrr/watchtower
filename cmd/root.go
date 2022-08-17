@@ -371,6 +371,6 @@ func runUpdatesWithNotifications(filter t.Filter) *metrics.Metric {
 		"Scanned": metricResults.Scanned,
 		"Updated": metricResults.Updated,
 		"Failed":  metricResults.Failed,
-	}).Info("Session done")
+	}).Debug("Session done")
 	return metricResults
 }
