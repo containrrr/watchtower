@@ -14,7 +14,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/types"
+	gt "github.com/onsi/gomega/types"
 
 	"context"
 	"net/http"
@@ -223,7 +223,7 @@ var _ = Describe("the client", func() {
 
 // Gomega matcher helpers
 
-func withContainerImageName(matcher GomegaMatcher) GomegaMatcher {
+func withContainerImageName(matcher gt.GomegaMatcher) gt.GomegaMatcher {
 	return WithTransform(containerImageName, matcher)
 }
 
@@ -231,13 +231,13 @@ func containerImageName(container Container) string {
 	return container.ImageName()
 }
 
-func havingRestartingState(expected bool) GomegaMatcher {
+func havingRestartingState(expected bool) gt.GomegaMatcher {
 	return WithTransform(func(container Container) bool {
 		return container.containerInfo.State.Restarting
 	}, Equal(expected))
 }
 
-func havingRunningState(expected bool) GomegaMatcher {
+func havingRunningState(expected bool) gt.GomegaMatcher {
 	return WithTransform(func(container Container) bool {
 		return container.containerInfo.State.Running
 	}, Equal(expected))
