@@ -17,7 +17,7 @@ require (
 	github.com/spf13/cobra v1.5.0
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.6.3
-	github.com/stretchr/testify v1.7.0
+	github.com/stretchr/testify v1.8.0
 	golang.org/x/net v0.0.0-20220425223048-2871e0cb64e4
 )
 
@@ -35,7 +35,6 @@ require (
 	github.com/opencontainers/image-spec v1.0.2 // indirect
 	github.com/pelletier/go-toml v1.8.1 // indirect
 	github.com/prometheus/procfs v0.6.0 // indirect
-	github.com/stretchr/objx v0.2.0 // indirect
 	golang.org/x/text v0.3.7
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e // indirect
 	gotest.tools/v3 v3.0.3 // indirect
