@@ -19,12 +19,9 @@ jobs:
         uses: actions/setup-go@v2
         with:
           go-version: 1.18.x
-      - name: Install linter
-        run: |
-          go get -u golang.org/x/lint/golint
-      - name: Lint files
-        run: |
-          golint -set_exit_status ./...
+      - uses: dominikh/staticcheck-action@v1.2.0
+        with:
+          version: "2022.1.1"
   test:
     name: Test
     strategy:
