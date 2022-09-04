@@ -143,8 +143,8 @@ func TestProcessFlagAliases(t *testing.T) {
 	RegisterNotificationFlags(cmd)
 
 	require.NoError(t, cmd.ParseFlags([]string{
-	    `--porcelain`, `v1`, 
-	    `--interval`, `10`,
+		`--porcelain`, `v1`,
+		`--interval`, `10`,
 	}))
 	flags := cmd.Flags()
 	ProcessFlagAliases(flags)
@@ -173,12 +173,32 @@ func TestProcessFlagAliasesSchedAndInterval(t *testing.T) {
 	RegisterSystemFlags(cmd)
 	RegisterNotificationFlags(cmd)
 
-	require.NoError(t, cmd.ParseFlags([]string{`--schedule`, `@now`, `--interval`, `10`}))
+	require.NoError(t, cmd.ParseFlags([]string{`--schedule`, `@hourly`, `--interval`, `10`}))
 	flags := cmd.Flags()
 
 	assert.PanicsWithValue(t, `FATAL`, func() {
 		ProcessFlagAliases(flags)
 	})
+}
+
+func TestProcessFlagAliasesScheduleFromEnvironment(t *testing.T) {
+	cmd := new(cobra.Command)
+
+	err := os.Setenv("WATCHTOWER_SCHEDULE", `@hourly`)
+	require.NoError(t, err)
+	defer os.Unsetenv("WATCHTOWER_SCHEDULE")
+
+	SetDefaults()
+	RegisterDockerFlags(cmd)
+	RegisterSystemFlags(cmd)
+	RegisterNotificationFlags(cmd)
+
+	require.NoError(t, cmd.ParseFlags([]string{}))
+	flags := cmd.Flags()
+	ProcessFlagAliases(flags)
+
+	sched, _ := flags.GetString(`schedule`)
+	assert.Equal(t, `@hourly`, sched)
 }
 
 func TestProcessFlagAliasesInvalidPorcelaineVersion(t *testing.T) {
