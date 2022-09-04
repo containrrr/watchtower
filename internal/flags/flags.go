@@ -19,6 +19,8 @@ import (
 // use watchtower
 const DockerAPIMinVersion string = "1.25"
 
+var defaultInterval = int((time.Hour * 24).Seconds())
+
 // RegisterDockerFlags that are used directly by the docker api client
 func RegisterDockerFlags(rootCmd *cobra.Command) {
 	flags := rootCmd.PersistentFlags()
@@ -179,7 +181,7 @@ func RegisterSystemFlags(rootCmd *cobra.Command) {
 		"P",
 		viper.GetString("WATCHTOWER_PORCELAIN"),
 		`Write session results to stdout using a stable versioned format. Supported values: "v1"`)
-		
+
 }
 
 // RegisterNotificationFlags that are used by watchtower to send notifications
@@ -362,11 +364,10 @@ Should only be used for testing.`)
 
 // SetDefaults provides default values for environment variables
 func SetDefaults() {
-	day := (time.Hour * 24).Seconds()
 	viper.AutomaticEnv()
 	viper.SetDefault("DOCKER_HOST", "unix:///var/run/docker.sock")
 	viper.SetDefault("DOCKER_API_VERSION", DockerAPIMinVersion)
-	viper.SetDefault("WATCHTOWER_POLL_INTERVAL", day)
+	viper.SetDefault("WATCHTOWER_POLL_INTERVAL", defaultInterval)
 	viper.SetDefault("WATCHTOWER_TIMEOUT", time.Second*10)
 	viper.SetDefault("WATCHTOWER_NOTIFICATIONS", []string{})
 	viper.SetDefault("WATCHTOWER_NOTIFICATIONS_LEVEL", "info")
@@ -528,9 +529,9 @@ func ProcessFlagAliases(flags *pflag.FlagSet) {
 		log.Fatalf(`Failed to get flag: %v`, err)
 	}
 	if porcelain != "" {
-	    if porcelain != "v1" {
-	        log.Fatalf(`Unknown porcelain version %q. Supported values: "v1"`, porcelain)
-	    }
+		if porcelain != "v1" {
+			log.Fatalf(`Unknown porcelain version %q. Supported values: "v1"`, porcelain)
+		}
 		if err = appendFlagValue(flags, `notification-url`, `logger://`); err != nil {
 			log.Errorf(`Failed to set flag: %v`, err)
 		}
@@ -540,12 +541,23 @@ func ProcessFlagAliases(flags *pflag.FlagSet) {
 		setFlagIfDefault(flags, `notification-template`, tpl)
 	}
 
-	if flags.Changed(`interval`) && flags.Changed(`schedule`) {
+	scheduleChanged := flags.Changed(`schedule`)
+	intervalChanged := flags.Changed(`interval`)
+	// FIXME: snakeswap
+	// due to how viper is integrated by swapping the defaults for the flags, we need this hack:
+	if val, _ := flags.GetString(`schedule`); val != `` {
+		scheduleChanged = true
+	}
+	if val, _ := flags.GetInt(`interval`); val != defaultInterval {
+		intervalChanged = true
+	}
+
+	if intervalChanged && scheduleChanged {
 		log.Fatal(`Only schedule or interval can be defined, not both.`)
 	}
 
 	// update schedule flag to match interval if it's set, or to the default if none of them are
-	if flags.Changed(`interval`) || !flags.Changed(`schedule`) {
+	if intervalChanged || !scheduleChanged {
 		interval, _ := flags.GetInt(`interval`)
 		flags.Set(`schedule`, fmt.Sprintf(`@every %ds`, interval))
 	}
