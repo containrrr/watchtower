@@ -4,14 +4,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/containrrr/watchtower/pkg/registry/helpers"
-	"github.com/containrrr/watchtower/pkg/types"
-	"github.com/docker/distribution/reference"
-	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/containrrr/watchtower/pkg/registry/helpers"
+	"github.com/containrrr/watchtower/pkg/types"
+	"github.com/docker/distribution/reference"
+	"github.com/sirupsen/logrus"
 )
 
 // ChallengeHeader is the HTTP Header containing challenge instructions
@@ -54,7 +55,7 @@ func GetToken(container types.Container, registryAuth string) (string, error) {
 		return fmt.Sprintf("Basic %s", registryAuth), nil
 	}
 	if strings.HasPrefix(challenge, "bearer") {
-		return GetBearerHeader(challenge, container.ImageName(), err, registryAuth)
+		return GetBearerHeader(challenge, container.ImageName(), registryAuth)
 	}
 
 	return "", errors.New("unsupported challenge type from registry")
@@ -72,7 +73,7 @@ func GetChallengeRequest(URL url.URL) (*http.Request, error) {
 }
 
 // GetBearerHeader tries to fetch a bearer token from the registry based on the challenge instructions
-func GetBearerHeader(challenge string, img string, err error, registryAuth string) (string, error) {
+func GetBearerHeader(challenge string, img string, registryAuth string) (string, error) {
 	client := http.Client{}
 	if strings.Contains(img, ":") {
 		img = strings.Split(img, ":")[0]
@@ -136,7 +137,7 @@ func GetAuthURL(challenge string, img string) (*url.URL, error) {
 		return nil, fmt.Errorf("challenge header did not include all values needed to construct an auth url")
 	}
 
-	authURL, _ := url.Parse(fmt.Sprintf("%s", values["realm"]))
+	authURL, _ := url.Parse(values["realm"])
 	q := authURL.Query()
 	q.Add("service", values["service"])
 

@@ -454,7 +454,7 @@ func (client dockerClient) waitForExecOrTimeout(bg context.Context, ID string, e
 		if err != nil {
 			return false, err
 		}
-		if execInspect.Running == true {
+		if execInspect.Running {
 			time.Sleep(1 * time.Second)
 			continue
 		}
@@ -467,7 +467,7 @@ func (client dockerClient) waitForExecOrTimeout(bg context.Context, ID string, e
 		}
 
 		if execInspect.ExitCode > 0 {
-			return false, fmt.Errorf("Command exited with code %v  %s", execInspect.ExitCode, execOutput)
+			return false, fmt.Errorf("command exited with code %v  %s", execInspect.ExitCode, execOutput)
 		}
 		break
 	}
