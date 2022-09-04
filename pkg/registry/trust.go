@@ -41,7 +41,7 @@ func EncodedEnvAuth(ref string) (string, error) {
 		log.Tracef("Using auth password %s", auth.Password)
 		return EncodeAuth(auth)
 	}
-	return "", errors.New("Registry auth environment variables (REPO_USER, REPO_PASS) not set")
+	return "", errors.New("registry auth environment variables (REPO_USER, REPO_PASS) not set")
 }
 
 // EncodedConfigAuth returns an encoded auth config for the given registry
