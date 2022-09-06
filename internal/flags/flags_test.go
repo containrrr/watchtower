@@ -129,11 +129,6 @@ func TestIsFile(t *testing.T) {
 	assert.True(t, isFile(os.Args[0]), "the currently running binary path should always be considered a file")
 }
 
-func TestReadFlags(t *testing.T) {
-	logrus.StandardLogger().ExitFunc = func(_ int) { t.FailNow() }
-
-}
-
 func TestProcessFlagAliases(t *testing.T) {
 	logrus.StandardLogger().ExitFunc = func(_ int) { t.FailNow() }
 	cmd := new(cobra.Command)
@@ -145,6 +140,7 @@ func TestProcessFlagAliases(t *testing.T) {
 	require.NoError(t, cmd.ParseFlags([]string{
 		`--porcelain`, `v1`,
 		`--interval`, `10`,
+		`--trace`,
 	}))
 	flags := cmd.Flags()
 	ProcessFlagAliases(flags)
@@ -163,6 +159,28 @@ func TestProcessFlagAliases(t *testing.T) {
 
 	sched, _ := flags.GetString(`schedule`)
 	assert.Equal(t, `@every 10s`, sched)
+
+	logLevel, _ := flags.GetString(`log-level`)
+	assert.Equal(t, `trace`, logLevel)
+}
+
+func TestProcessFlagAliasesLogLevelFromEnvironment(t *testing.T) {
+	cmd := new(cobra.Command)
+	err := os.Setenv("WATCHTOWER_DEBUG", `true`)
+	require.NoError(t, err)
+	defer os.Unsetenv("WATCHTOWER_DEBUG")
+
+	SetDefaults()
+	RegisterDockerFlags(cmd)
+	RegisterSystemFlags(cmd)
+	RegisterNotificationFlags(cmd)
+
+	require.NoError(t, cmd.ParseFlags([]string{}))
+	flags := cmd.Flags()
+	ProcessFlagAliases(flags)
+
+	logLevel, _ := flags.GetString(`log-level`)
+	assert.Equal(t, `debug`, logLevel)
 }
 
 func TestProcessFlagAliasesSchedAndInterval(t *testing.T) {
