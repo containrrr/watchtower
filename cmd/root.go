@@ -87,11 +87,11 @@ func PreRun(cmd *cobra.Command, _ []string) {
 		})
 	}
 
-	if enabled, _ := f.GetBool("debug"); enabled {
-		log.SetLevel(log.DebugLevel)
-	}
-	if enabled, _ := f.GetBool("trace"); enabled {
-		log.SetLevel(log.TraceLevel)
+	rawLogLevel, _ := f.GetString(`log-level`)
+	if logLevel, err := log.ParseLevel(rawLogLevel); err != nil {
+		log.Fatalf("Invalid log level: %s", err.Error())
+	} else {
+		log.SetLevel(logLevel)
 	}
 
 	scheduleSpec, _ = f.GetString("schedule")
