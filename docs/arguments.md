@@ -71,9 +71,9 @@ Environment Variable: WATCHTOWER_REMOVE_VOLUMES
 ## Debug
 Enable debug mode with verbose logging.
 
-!!! note "Notes" 
+!!! note "Notes"  
     Alias for `--log-level debug`. See [Maximum log level](#maximum-log-level).  
-    Does *not* take an argument when used as an argument. Using `--debug true` will **not** work.
+    Does _not_ take an argument when used as an argument. Using `--debug true` will **not** work.
 
 ```text
             Argument: --debug, -d
@@ -87,7 +87,7 @@ Enable trace mode with very verbose logging. Caution: exposes credentials!
 
 !!! note "Notes"  
     Alias for `--log-level trace`. See [Maximum log level](#maximum-log-level).  
-    Does *not* take an argument when used as an argument. Using `--trace true` will **not** work.
+    Does _not_ take an argument when used as an argument. Using `--trace true` will **not** work.
 
 ```text
             Argument: --trace
