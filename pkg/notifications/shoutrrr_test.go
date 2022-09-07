@@ -14,7 +14,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var allButTrace = logrus.AllLevels[0:logrus.TraceLevel]
+var allButTrace = logrus.DebugLevel
 
 var legacyMockData = Data{
 	Entries: []*logrus.Entry{
@@ -90,7 +90,7 @@ updt1 (mock/updt1:latest): Updated
 				cmd := new(cobra.Command)
 				flags.RegisterNotificationFlags(cmd)
 
-				shoutrrr := createNotifier([]string{}, logrus.AllLevels, "", true, StaticData{}, false, time.Second)
+				shoutrrr := createNotifier([]string{}, logrus.TraceLevel, "", true, StaticData{}, false, time.Second)
 
 				entries := []*logrus.Entry{
 					{

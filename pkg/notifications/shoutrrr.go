@@ -32,7 +32,7 @@ type shoutrrrTypeNotifier struct {
 	Urls           []string
 	Router         router
 	entries        []*log.Entry
-	logLevels      []log.Level
+	logLevel       log.Level
 	template       *template.Template
 	messages       chan string
 	done           chan bool
@@ -78,7 +78,7 @@ func (n *shoutrrrTypeNotifier) AddLogHook() {
 	go sendNotifications(n)
 }
 
-func createNotifier(urls []string, levels []log.Level, tplString string, legacy bool, data StaticData, stdout bool, delay time.Duration) *shoutrrrTypeNotifier {
+func createNotifier(urls []string, level log.Level, tplString string, legacy bool, data StaticData, stdout bool, delay time.Duration) *shoutrrrTypeNotifier {
 	tpl, err := getShoutrrrTemplate(tplString, legacy)
 	if err != nil {
 		log.Errorf("Could not use configured notification template: %s. Using default template", err)
@@ -105,7 +105,7 @@ func createNotifier(urls []string, levels []log.Level, tplString string, legacy 
 		Router:         r,
 		messages:       make(chan string, 1),
 		done:           make(chan bool),
-		logLevels:      levels,
+		logLevel:       level,
 		template:       tpl,
 		legacyTemplate: legacy,
 		data:           data,
@@ -188,7 +188,7 @@ func (n *shoutrrrTypeNotifier) Close() {
 
 // Levels return what log levels trigger notifications
 func (n *shoutrrrTypeNotifier) Levels() []log.Level {
-	return n.logLevels
+	return log.AllLevels[:n.logLevel+1]
 }
 
 // Fire is the hook that logrus calls on a new log message
