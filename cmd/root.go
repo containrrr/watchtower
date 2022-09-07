@@ -66,6 +66,7 @@ func init() {
 
 // Execute the root func and exit in case of errors
 func Execute() {
+	rootCmd.AddCommand(notifyUpgradeCommand)
 	if err := rootCmd.Execute(); err != nil {
 		log.Fatal(err)
 	}
