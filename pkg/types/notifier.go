@@ -6,5 +6,6 @@ type Notifier interface {
 	SendNotification(Report)
 	AddLogHook()
 	GetNames() []string
+	GetURLs() []string
 	Close()
 }

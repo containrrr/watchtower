@@ -61,8 +61,12 @@ func (n *shoutrrrTypeNotifier) GetNames() []string {
 	return names
 }
 
-func newShoutrrrNotifier(tplString string, levels []log.Level, legacy bool, data StaticData, delay time.Duration, stdout bool, urls ...string) t.Notifier {
+// GetNames returns a list of URLs for notification services that has been added
+func (n *shoutrrrTypeNotifier) GetURLs() []string {
+	return n.Urls
+}
 
+// AddLogHook adds the notifier as a receiver of log messages and starts a go func for processing them
 func (n *shoutrrrTypeNotifier) AddLogHook() {
 	if n.receiving {
 		return
@@ -74,7 +78,7 @@ func (n *shoutrrrTypeNotifier) AddLogHook() {
 	go sendNotifications(n)
 }
 
-func createNotifier(urls []string, levels []log.Level, tplString string, legacy bool, data StaticData, stdout bool) *shoutrrrTypeNotifier {
+func createNotifier(urls []string, levels []log.Level, tplString string, legacy bool, data StaticData, stdout bool, delay time.Duration) *shoutrrrTypeNotifier {
 	tpl, err := getShoutrrrTemplate(tplString, legacy)
 	if err != nil {
 		log.Errorf("Could not use configured notification template: %s. Using default template", err)
