@@ -25,7 +25,7 @@ type emailTypeNotifier struct {
 }
 
 func newEmailNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.ConvertibleNotifier {
-	flags := c.PersistentFlags()
+	flags := c.Flags()
 
 	from, _ := flags.GetString("notification-email-from")
 	to, _ := flags.GetString("notification-email-to")

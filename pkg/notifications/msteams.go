@@ -21,7 +21,7 @@ type msTeamsTypeNotifier struct {
 
 func newMsTeamsNotifier(cmd *cobra.Command, acceptedLogLevels []log.Level) t.ConvertibleNotifier {
 
-	flags := cmd.PersistentFlags()
+	flags := cmd.Flags()
 
 	webHookURL, _ := flags.GetString("notification-msteams-hook")
 	if len(webHookURL) <= 0 {

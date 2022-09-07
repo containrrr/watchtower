@@ -20,7 +20,7 @@ type slackTypeNotifier struct {
 }
 
 func newSlackNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.ConvertibleNotifier {
-	flags := c.PersistentFlags()
+	flags := c.Flags()
 
 	hookURL, _ := flags.GetString("notification-slack-hook-url")
 	userName, _ := flags.GetString("notification-slack-identifier")

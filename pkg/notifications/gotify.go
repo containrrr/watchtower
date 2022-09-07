@@ -23,7 +23,7 @@ type gotifyTypeNotifier struct {
 }
 
 func newGotifyNotifier(c *cobra.Command, levels []log.Level) t.ConvertibleNotifier {
-	flags := c.PersistentFlags()
+	flags := c.Flags()
 
 	apiURL := getGotifyURL(flags)
 	token := getGotifyToken(flags)
