@@ -4,6 +4,7 @@ package types
 type Notifier interface {
 	StartNotification()
 	SendNotification(Report)
+	AddLogHook()
 	GetNames() []string
 	Close()
 }

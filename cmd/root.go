@@ -139,6 +139,7 @@ func PreRun(cmd *cobra.Command, _ []string) {
 	})
 
 	notifier = notifications.NewNotifier(cmd)
+	notifier.AddLogHook()
 }
 
 // Run is the main execution flow of the command

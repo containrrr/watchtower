@@ -13,7 +13,7 @@ import (
 
 // NewNotifier creates and returns a new Notifier, using global configuration.
 func NewNotifier(c *cobra.Command) ty.Notifier {
-	f := c.PersistentFlags()
+	f := c.Flags()
 
 	level, _ := f.GetString("notifications-level")
 	logLevel, err := log.ParseLevel(level)
@@ -35,7 +35,7 @@ func NewNotifier(c *cobra.Command) ty.Notifier {
 	data := GetTemplateData(c)
 	urls, delay := AppendLegacyUrls(urls, c, data.Title)
 
-	return newShoutrrrNotifier(tplString, levels, !reportTemplate, data, delay, stdout, urls...)
+	return createNotifier(urls, levels, tplString, !reportTemplate, data, stdout, delay)
 }
 
 // AppendLegacyUrls creates shoutrrr equivalent URLs from legacy notification flags

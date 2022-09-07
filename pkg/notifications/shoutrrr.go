@@ -39,6 +39,8 @@ type shoutrrrTypeNotifier struct {
 	legacyTemplate bool
 	params         *types.Params
 	data           StaticData
+	receiving      bool
+	delay          time.Duration
 }
 
 // GetScheme returns the scheme part of a Shoutrrr URL
@@ -61,13 +63,15 @@ func (n *shoutrrrTypeNotifier) GetNames() []string {
 
 func newShoutrrrNotifier(tplString string, levels []log.Level, legacy bool, data StaticData, delay time.Duration, stdout bool, urls ...string) t.Notifier {
 
-	notifier := createNotifier(urls, levels, tplString, legacy, data, stdout)
-	log.AddHook(notifier)
+func (n *shoutrrrTypeNotifier) AddLogHook() {
+	if n.receiving {
+		return
+	}
+	n.receiving = true
+	log.AddHook(n)
 
 	// Do the sending in a separate goroutine so we don't block the main process.
-	go sendNotifications(notifier, delay)
-
-	return notifier
+	go sendNotifications(n)
 }
 
 func createNotifier(urls []string, levels []log.Level, tplString string, legacy bool, data StaticData, stdout bool) *shoutrrrTypeNotifier {
@@ -105,9 +109,9 @@ func createNotifier(urls []string, levels []log.Level, tplString string, legacy 
 	}
 }
 
-func sendNotifications(n *shoutrrrTypeNotifier, delay time.Duration) {
+func sendNotifications(n *shoutrrrTypeNotifier) {
 	for msg := range n.messages {
-		time.Sleep(delay)
+		time.Sleep(n.delay)
 		errs := n.Router.Send(msg, n.params)
 
 		for i, err := range errs {
