@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/containrrr/shoutrrr v0.6.1
-	github.com/docker/cli v20.10.17+incompatible
+	github.com/docker/cli v20.10.18+incompatible
 	github.com/docker/distribution v2.8.1+incompatible
 	github.com/docker/docker v20.10.17+incompatible
 	github.com/docker/go-connections v0.4.0
