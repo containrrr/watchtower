@@ -17,9 +17,13 @@ func GetRunningContainerID() (cid types.ContainerID, err error) {
 		return
 	}
 
-	matches := dockerContainerPattern.FindStringSubmatch(string(file))
+	return getRunningContainerIDFromString(string(file)), nil
+}
+
+func getRunningContainerIDFromString(s string) types.ContainerID {
+	matches := dockerContainerPattern.FindStringSubmatch(s)
 	if len(matches) < 2 {
-		return "", nil
+		return ""
 	}
-	return types.ContainerID(matches[1]), nil
+	return types.ContainerID(matches[1])
 }
