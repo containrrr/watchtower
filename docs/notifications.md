@@ -1,15 +1,7 @@
 # Notifications
 
 Watchtower can send notifications when containers are updated. Notifications are sent via hooks in the logging
-system, [logrus](http://github.com/sirupsen/logrus). The types of notifications to send are set by passing a
-comma-separated list of values to the `--notifications` option
-(or corresponding environment variable `WATCHTOWER_NOTIFICATIONS`), which has the following valid values:
-
--   `email` to send notifications via e-mail
--   `slack` to send notifications through a Slack webhook
--   `msteams` to send notifications via MSTeams webhook
--   `gotify` to send notifications via Gotify
--   `shoutrrr` to send notifications via [containrrr/shoutrrr](https://github.com/containrrr/shoutrrr)
+system, [logrus](http://github.com/sirupsen/logrus). 
 
 !!! note "Using multiple notifications with environment variables"
     There is currently a bug in Viper (https://github.com/spf13/viper/issues/380), which prevents comma-separated slices to
@@ -31,7 +23,56 @@ comma-separated list of values to the `--notifications` option
 -   `notification-title-tag` (env. `WATCHTOWER_NOTIFICATION_TITLE_TAG`): Prefix to include in the title. Useful when running multiple watchtowers.
 -   `notification-skip-title` (env. `WATCHTOWER_NOTIFICATION_SKIP_TITLE`): Do not pass the title param to notifications. This will not pass a dynamic title override to notification services. If no title is configured for the service, it will remove the title all together.
 
-## Available services
+## [shoutrrr](https://github.com/containrrr/shoutrrr) notifications
+
+To send notifications via shoutrrr, the following command-line options, or their corresponding environment variables, can be set:
+
+-   `--notification-url` (env. `WATCHTOWER_NOTIFICATION_URL`): The shoutrrr service URL to be used.  This option can also reference a file, in which case the contents of the file are used.
+
+
+Go to [containrrr.dev/shoutrrr/v0.6/services/overview](https://containrrr.dev/shoutrrr/v0.6/services/overview) to
+learn more about the different service URLs you can use. You can define multiple services by space separating the
+URLs. (See example below)
+
+You can customize the message posted by setting a template.
+
+-   `--notification-template` (env. `WATCHTOWER_NOTIFICATION_TEMPLATE`): The template used for the message.
+
+The template is a Go [template](https://golang.org/pkg/text/template/) and that format a list
+of [log entries](https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry).
+
+The default value if not set is `{{range .}}{{.Message}}{{println}}{{end}}`. The example below uses a template that also
+outputs timestamp and log level.
+
+!!! tip "Custom date format"
+    If you want to adjust the date/time format it must show how the
+    [reference time](https://golang.org/pkg/time/#pkg-constants) (_Mon Jan 2 15:04:05 MST 2006_) would be displayed in your
+    custom format.  
+    i.e., The day of the year has to be 1, the month has to be 2 (february), the hour 3 (or 15 for 24h time) etc.
+
+Example:
+
+```bash
+docker run -d \
+  --name watchtower \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -e WATCHTOWER_NOTIFICATIONS=shoutrrr \
+  -e WATCHTOWER_NOTIFICATION_URL="discord://token@channel slack://watchtower@token-a/token-b/token-c" \
+  -e WATCHTOWER_NOTIFICATION_TEMPLATE="{{range .}}{{.Time.Format \"2006-01-02 15:04:05\"}} ({{.Level}}): {{.Message}}{{println}}{{end}}" \
+  containrrr/watchtower
+```
+
+
+## Legacy notifications
+
+For backwards compatibility, the notifications can also be configured using legacy notification options. These will automatically be converted to shoutrrr URLs when used.  
+The types of notifications to send are set by passing a comma-separated list of values to the `--notifications` option
+(or corresponding environment variable `WATCHTOWER_NOTIFICATIONS`), which has the following valid values:
+
+-   `email` to send notifications via e-mail
+-   `slack` to send notifications through a Slack webhook
+-   `msteams` to send notifications via MSTeams webhook
+-   `gotify` to send notifications via Gotify
 
 ### Email
 
@@ -177,41 +218,3 @@ docker run -d \
 
 If you want to disable TLS verification for the Gotify instance, you can use either `-e WATCHTOWER_NOTIFICATION_GOTIFY_TLS_SKIP_VERIFY=true` or `--notification-gotify-tls-skip-verify`.
 
-### [containrrr/shoutrrr](https://github.com/containrrr/shoutrrr)
-
-To send notifications via shoutrrr, the following command-line options, or their corresponding environment variables, can be set:
-
--   `--notification-url` (env. `WATCHTOWER_NOTIFICATION_URL`): The shoutrrr service URL to be used.  This option can also reference a file, in which case the contents of the file are used.
-
-
-Go to [containrrr.dev/shoutrrr/v0.6/services/overview](https://containrrr.dev/shoutrrr/v0.6/services/overview) to
-learn more about the different service URLs you can use. You can define multiple services by space separating the
-URLs. (See example below)
-
-You can customize the message posted by setting a template.
-
--   `--notification-template` (env. `WATCHTOWER_NOTIFICATION_TEMPLATE`): The template used for the message.
-
-The template is a Go [template](https://golang.org/pkg/text/template/) and that format a list
-of [log entries](https://pkg.go.dev/github.com/sirupsen/logrus?tab=doc#Entry).
-
-The default value if not set is `{{range .}}{{.Message}}{{println}}{{end}}`. The example below uses a template that also
-outputs timestamp and log level.
-
-!!! tip "Custom date format"
-    If you want to adjust the date/time format it must show how the
-    [reference time](https://golang.org/pkg/time/#pkg-constants) (_Mon Jan 2 15:04:05 MST 2006_) would be displayed in your
-    custom format.  
-    i.e., The day of the year has to be 1, the month has to be 2 (february), the hour 3 (or 15 for 24h time) etc.
-
-Example:
-
-```bash
-docker run -d \
-  --name watchtower \
-  -v /var/run/docker.sock:/var/run/docker.sock \
-  -e WATCHTOWER_NOTIFICATIONS=shoutrrr \
-  -e WATCHTOWER_NOTIFICATION_URL="discord://token@channel slack://watchtower@token-a/token-b/token-c" \
-  -e WATCHTOWER_NOTIFICATION_TEMPLATE="{{range .}}{{.Time.Format \"2006-01-02 15:04:05\"}} ({{.Level}}): {{.Message}}{{println}}{{end}}" \
-  containrrr/watchtower
-```
