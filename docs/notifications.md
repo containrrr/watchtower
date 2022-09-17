@@ -62,7 +62,6 @@ docker run -d \
   containrrr/watchtower
 ```
 
-
 ## Legacy notifications
 
 For backwards compatibility, the notifications can also be configured using legacy notification options. These will automatically be converted to shoutrrr URLs when used.  

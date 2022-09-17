@@ -1,4 +1,4 @@
-// cmd contains the watchtower (sub-)commands
+// Package cmd contains the watchtower (sub-)commands
 package cmd
 
 import (
