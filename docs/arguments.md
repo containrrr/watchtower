@@ -71,6 +71,10 @@ Environment Variable: WATCHTOWER_REMOVE_VOLUMES
 ## Debug
 Enable debug mode with verbose logging.
 
+!!! note "Notes"  
+    Alias for `--log-level debug`. See [Maximum log level](#maximum-log-level).  
+    Does _not_ take an argument when used as an argument. Using `--debug true` will **not** work.
+
 ```text
             Argument: --debug, -d
 Environment Variable: WATCHTOWER_DEBUG
@@ -81,11 +85,26 @@ Environment Variable: WATCHTOWER_DEBUG
 ## Trace
 Enable trace mode with very verbose logging. Caution: exposes credentials!
 
+!!! note "Notes"  
+    Alias for `--log-level trace`. See [Maximum log level](#maximum-log-level).  
+    Does _not_ take an argument when used as an argument. Using `--trace true` will **not** work.
+
 ```text
             Argument: --trace
 Environment Variable: WATCHTOWER_TRACE
                 Type: Boolean
              Default: false
+```
+
+## Maximum log level
+
+The maximum log level that will be written to STDERR (shown in `docker log` when used in a container).
+
+```text
+            Argument: --log-level
+Environment Variable: WATCHTOWER_LOG_LEVEL
+     Possible values: panic, fatal, error, warn, info, debug or trace
+             Default: info
 ```
 
 ## ANSI colors
