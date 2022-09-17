@@ -10,6 +10,7 @@ import (
 
 var dockerContainerPattern = regexp.MustCompile(`[0-9]+:.*:/docker/([a-f|0-9]{64})`)
 
+// GetRunningContainerID tries to resolve the current container ID from the current process cgroup information
 func GetRunningContainerID() (cid types.ContainerID, err error) {
 	file, err := os.ReadFile(fmt.Sprintf("/proc/%d/cgroup", os.Getpid()))
 	if err != nil {

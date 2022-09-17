@@ -1,3 +1,4 @@
+// cmd contains the watchtower (sub-)commands
 package cmd
 
 import (
@@ -16,7 +17,7 @@ import (
 
 var notifyUpgradeCommand = NewNotifyUpgradeCommand()
 
-// NewRootCommand creates the notify upgrade command for watchtower
+// NewNotifyUpgradeCommand creates the notify upgrade command for watchtower
 func NewNotifyUpgradeCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:   "notify-upgrade",
@@ -63,14 +64,14 @@ func runNotifyUpgradeE(cmd *cobra.Command, _ []string) error {
 	tryOrLog(outFile.Sync(), "Failed to sync output file")
 	tryOrLog(outFile.Close(), "Failed to close output file")
 
-	containerId := "<CONTAINER>"
+	containerID := "<CONTAINER>"
 	cid, err := container.GetRunningContainerID()
 	tryOrLog(err, "Failed to get running container ID")
 	if cid != "" {
-		containerId = cid.ShortID()
+		containerID = cid.ShortID()
 	}
 	logf("To get the environment file, use:")
-	logf("cp %v:%v ./watchtower-notifications.env", containerId, outFile.Name())
+	logf("cp %v:%v ./watchtower-notifications.env", containerID, outFile.Name())
 	logf("")
 	logf("Note: This file will be removed in 5 minutes or when this container is stopped!")
 
