@@ -83,6 +83,30 @@ updt1 (mock/updt1:latest): Updated
 		})
 	})
 
+	When("adding a log hook", func() {
+		When("it has not been added before", func() {
+			It("should be added to the logrus hooks", func() {
+				level := logrus.TraceLevel
+				hooksBefore := len(logrus.StandardLogger().Hooks[level])
+				shoutrrr := createNotifier([]string{}, level, "", true, StaticData{}, false, time.Second)
+				shoutrrr.AddLogHook()
+				hooksAfter := len(logrus.StandardLogger().Hooks[level])
+				Expect(hooksAfter).To(BeNumerically(">", hooksBefore))
+			})
+		})
+		When("it is being added a second time", func() {
+			It("should not be added to the logrus hooks", func() {
+				level := logrus.TraceLevel
+				shoutrrr := createNotifier([]string{}, level, "", true, StaticData{}, false, time.Second)
+				shoutrrr.AddLogHook()
+				hooksBefore := len(logrus.StandardLogger().Hooks[level])
+				shoutrrr.AddLogHook()
+				hooksAfter := len(logrus.StandardLogger().Hooks[level])
+				Expect(hooksAfter).To(Equal(hooksBefore))
+			})
+		})
+	})
+
 	When("using legacy templates", func() {
 
 		When("no custom template is provided", func() {
