@@ -70,7 +70,7 @@ docker run -d \
 ## Report templates
 
 The default template for report notifications are the following:
-```
+```go
 {{- if .Report -}}
   {{- with .Report -}}
     {{- if ( or .Updated .Failed ) -}}
