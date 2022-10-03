@@ -840,6 +840,15 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "IAmTamal",
+      "name": "Tamal Das ",
+      "avatar_url": "https://avatars.githubusercontent.com/u/72851613?v=4",
+      "profile": "https://tamal.vercel.app/",
+      "contributions": [
+        "doc"
+      ]
     }
   ],
   "contributorsPerLine": 7,
