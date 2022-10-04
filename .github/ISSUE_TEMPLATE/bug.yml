@@ -58,11 +58,8 @@ body:
   - type: textarea
     attributes:
       label: Your logs
-      description: Paste the Logs from running watchtower with the `--debug` option between the backticks.
-      value: |
-        ```
-
-        ```
+      description: Paste the logs from running watchtower with the `--debug` option.
+      render: text
     validations:
       required: true
 
