@@ -59,7 +59,7 @@ body:
     attributes:
       label: Your logs
       description: Paste the logs from running watchtower with the `--debug` option.
-      render: shell
+      render: text
     validations:
       required: true
 
