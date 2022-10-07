@@ -280,7 +280,7 @@ func (client dockerClient) RenameContainer(c Container, newName string) error {
 func (client dockerClient) IsContainerStale(container Container) (stale bool, latestImage t.ImageID, err error) {
 	ctx := context.Background()
 
-	if !client.PullImages {
+	if !client.PullImages || container.IsNoPull() {
 		log.Debugf("Skipping image pull.")
 	} else if err := client.PullImage(ctx, container); err != nil {
 		return false, container.SafeImageID(), err
