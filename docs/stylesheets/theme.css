@@ -6,6 +6,10 @@
     --md-accent-fg-color--transparent: #00334310;
 }
 
+[data-md-color-scheme="slate"] {
+    --md-typeset-a-color: #7f9ece;
+}
+
 .md-header-nav__button.md-logo {
     padding: 0;
 }
