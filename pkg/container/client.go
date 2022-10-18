@@ -157,6 +157,15 @@ func (client dockerClient) GetContainer(containerID t.ContainerID) (t.Container,
 		return &Container{}, err
 	}
 
+	containerNetworkMode := strings.Split(string(containerInfo.HostConfig.NetworkMode), ":")
+	if len(containerNetworkMode) == 2 {
+		parentContainer, err := client.api.ContainerInspect(bg, containerNetworkMode[1])
+		if err != nil {
+			log.Debug("Unable to fetch parentContainer.")
+		}
+		containerInfo.HostConfig.NetworkMode = container.NetworkMode(fmt.Sprintf("container:%s", parentContainer.Name))
+	}
+
 	imageInfo, _, err := client.api.ImageInspectWithRaw(bg, containerInfo.Image)
 	if err != nil {
 		log.Warnf("Failed to retrieve container image info: %v", err)
