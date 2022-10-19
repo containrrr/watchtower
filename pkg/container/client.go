@@ -158,7 +158,7 @@ func (client dockerClient) GetContainer(containerID t.ContainerID) (t.Container,
 	}
 
 	containerNetworkMode := strings.Split(string(containerInfo.HostConfig.NetworkMode), ":")
-	if len(containerNetworkMode) == 2 {
+	if len(containerNetworkMode) == 2 && containerNetworkMode[0] == "container" {
 		parentContainer, err := client.api.ContainerInspect(bg, containerNetworkMode[1])
 		if err != nil {
 			log.Debug("Unable to fetch parentContainer.")
