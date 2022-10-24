@@ -63,7 +63,7 @@ jobs:
         with:
           go-version: 1.18.x
       - name: Build
-        uses: goreleaser/goreleaser-action@ff11ca24a9b39f2d36796d1fbd7a4e39c182630a #v3
+        uses: goreleaser/goreleaser-action@b508e2e3ef3b19d4e4146d4f8fb3ba9db644a757 #v3
         with:
           version: v0.155.0
           args: --snapshot --skip-publish --debug
