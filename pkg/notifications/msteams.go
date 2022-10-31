@@ -15,13 +15,12 @@ const (
 
 type msTeamsTypeNotifier struct {
 	webHookURL string
-	levels     []log.Level
 	data       bool
 }
 
-func newMsTeamsNotifier(cmd *cobra.Command, acceptedLogLevels []log.Level) t.ConvertibleNotifier {
+func newMsTeamsNotifier(cmd *cobra.Command) t.ConvertibleNotifier {
 
-	flags := cmd.PersistentFlags()
+	flags := cmd.Flags()
 
 	webHookURL, _ := flags.GetString("notification-msteams-hook")
 	if len(webHookURL) <= 0 {
@@ -30,7 +29,6 @@ func newMsTeamsNotifier(cmd *cobra.Command, acceptedLogLevels []log.Level) t.Con
 
 	withData, _ := flags.GetBool("notification-msteams-data")
 	n := &msTeamsTypeNotifier{
-		levels:     acceptedLogLevels,
 		webHookURL: webHookURL,
 		data:       withData,
 	}
@@ -38,7 +36,7 @@ func newMsTeamsNotifier(cmd *cobra.Command, acceptedLogLevels []log.Level) t.Con
 	return n
 }
 
-func (n *msTeamsTypeNotifier) GetURL(c *cobra.Command, title string) (string, error) {
+func (n *msTeamsTypeNotifier) GetURL(c *cobra.Command) (string, error) {
 	webhookURL, err := url.Parse(n.webHookURL)
 	if err != nil {
 		return "", err
@@ -50,7 +48,6 @@ func (n *msTeamsTypeNotifier) GetURL(c *cobra.Command, title string) (string, er
 	}
 
 	config.Color = ColorHex
-	config.Title = title
 
 	return config.GetURL().String(), nil
 }

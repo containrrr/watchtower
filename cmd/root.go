@@ -66,6 +66,7 @@ func init() {
 
 // Execute the root func and exit in case of errors
 func Execute() {
+	rootCmd.AddCommand(notifyUpgradeCommand)
 	if err := rootCmd.Execute(); err != nil {
 		log.Fatal(err)
 	}
@@ -139,6 +140,7 @@ func PreRun(cmd *cobra.Command, _ []string) {
 	})
 
 	notifier = notifications.NewNotifier(cmd)
+	notifier.AddLogHook()
 }
 
 // Run is the main execution flow of the command

@@ -32,13 +32,15 @@ type shoutrrrTypeNotifier struct {
 	Urls           []string
 	Router         router
 	entries        []*log.Entry
-	logLevels      []log.Level
+	logLevel       log.Level
 	template       *template.Template
 	messages       chan string
 	done           chan bool
 	legacyTemplate bool
 	params         *types.Params
 	data           StaticData
+	receiving      bool
+	delay          time.Duration
 }
 
 // GetScheme returns the scheme part of a Shoutrrr URL
@@ -59,18 +61,24 @@ func (n *shoutrrrTypeNotifier) GetNames() []string {
 	return names
 }
 
-func newShoutrrrNotifier(tplString string, levels []log.Level, legacy bool, data StaticData, delay time.Duration, stdout bool, urls ...string) t.Notifier {
-
-	notifier := createNotifier(urls, levels, tplString, legacy, data, stdout)
-	log.AddHook(notifier)
-
-	// Do the sending in a separate goroutine so we don't block the main process.
-	go sendNotifications(notifier, delay)
-
-	return notifier
+// GetNames returns a list of URLs for notification services that has been added
+func (n *shoutrrrTypeNotifier) GetURLs() []string {
+	return n.Urls
 }
 
-func createNotifier(urls []string, levels []log.Level, tplString string, legacy bool, data StaticData, stdout bool) *shoutrrrTypeNotifier {
+// AddLogHook adds the notifier as a receiver of log messages and starts a go func for processing them
+func (n *shoutrrrTypeNotifier) AddLogHook() {
+	if n.receiving {
+		return
+	}
+	n.receiving = true
+	log.AddHook(n)
+
+	// Do the sending in a separate goroutine so we don't block the main process.
+	go sendNotifications(n)
+}
+
+func createNotifier(urls []string, level log.Level, tplString string, legacy bool, data StaticData, stdout bool, delay time.Duration) *shoutrrrTypeNotifier {
 	tpl, err := getShoutrrrTemplate(tplString, legacy)
 	if err != nil {
 		log.Errorf("Could not use configured notification template: %s. Using default template", err)
@@ -97,7 +105,7 @@ func createNotifier(urls []string, levels []log.Level, tplString string, legacy 
 		Router:         r,
 		messages:       make(chan string, 1),
 		done:           make(chan bool),
-		logLevels:      levels,
+		logLevel:       level,
 		template:       tpl,
 		legacyTemplate: legacy,
 		data:           data,
@@ -105,9 +113,9 @@ func createNotifier(urls []string, levels []log.Level, tplString string, legacy 
 	}
 }
 
-func sendNotifications(n *shoutrrrTypeNotifier, delay time.Duration) {
+func sendNotifications(n *shoutrrrTypeNotifier) {
 	for msg := range n.messages {
-		time.Sleep(delay)
+		time.Sleep(n.delay)
 		errs := n.Router.Send(msg, n.params)
 
 		for i, err := range errs {
@@ -180,7 +188,7 @@ func (n *shoutrrrTypeNotifier) Close() {
 
 // Levels return what log levels trigger notifications
 func (n *shoutrrrTypeNotifier) Levels() []log.Level {
-	return n.logLevels
+	return log.AllLevels[:n.logLevel+1]
 }
 
 // Fire is the hook that logrus calls on a new log message
