@@ -5,7 +5,16 @@ edit_uri: edit/main/docs/
 theme:
   name: 'material'
   palette:
-    scheme: containrrr
+    - media: "(prefers-color-scheme: light)"
+      scheme: containrrr
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: containrrr-dark
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
   logo: images/logo-450px.png
   favicon: images/favicon.ico
 extra_css:
@@ -24,7 +33,7 @@ markdown_extensions:
         repo: watchtower
     - pymdownx.saneheaders
     - pymdownx.tabbed:
-        alternate_style: true 
+        alternate_style: true
 nav:
    - 'Home': 'index.md'
    - 'Introduction': 'introduction.md'

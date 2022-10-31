@@ -182,6 +182,10 @@ func RegisterSystemFlags(rootCmd *cobra.Command) {
 		viper.GetString("WATCHTOWER_PORCELAIN"),
 		`Write session results to stdout using a stable versioned format. Supported values: "v1"`)
 
+	flags.String(
+		"log-level",
+		viper.GetString("WATCHTOWER_LOG_LEVEL"),
+		"The maximum log level that will be written to STDERR. Possible values: panic, fatal, error, warn, info, debug or trace")
 }
 
 // RegisterNotificationFlags that are used by watchtower to send notifications
@@ -374,6 +378,7 @@ func SetDefaults() {
 	viper.SetDefault("WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PORT", 25)
 	viper.SetDefault("WATCHTOWER_NOTIFICATION_EMAIL_SUBJECTTAG", "")
 	viper.SetDefault("WATCHTOWER_NOTIFICATION_SLACK_IDENTIFIER", "watchtower")
+	viper.SetDefault("WATCHTOWER_LOG_LEVEL", "info")
 }
 
 // EnvConfig translates the command-line options into environment variables
@@ -561,6 +566,23 @@ func ProcessFlagAliases(flags *pflag.FlagSet) {
 		interval, _ := flags.GetInt(`interval`)
 		flags.Set(`schedule`, fmt.Sprintf(`@every %ds`, interval))
 	}
+
+	if flagIsEnabled(flags, `debug`) {
+		flags.Set(`log-level`, `debug`)
+	}
+
+	if flagIsEnabled(flags, `trace`) {
+		flags.Set(`log-level`, `trace`)
+	}
+
+}
+
+func flagIsEnabled(flags *pflag.FlagSet, name string) bool {
+	value, err := flags.GetBool(name)
+	if err != nil {
+		log.Fatalf(`The flag %q is not defined`, name)
+	}
+	return value
 }
 
 func appendFlagValue(flags *pflag.FlagSet, name string, values ...string) error {
