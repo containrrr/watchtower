@@ -54,6 +54,7 @@ func NewRootCommand() *cobra.Command {
 	`,
 		Run:    Run,
 		PreRun: PreRun,
+		Args:   cobra.ArbitraryArgs,
 	}
 }
 
