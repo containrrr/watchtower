@@ -22,12 +22,10 @@ jobs:
         uses: actions/setup-go@v3
         with:
           go-version: 1.18.x
-      - name: Install linter
-        run: |
-          go get -u golang.org/x/lint/golint
-      - name: Lint files
-        run: |
-          golint -set_exit_status ./...
+      - uses: dominikh/staticcheck-action@a3513ade2e5cb8075ba1c1ed1890a989cf0f2aa0 #v1.2.0
+        with:
+          version: "2022.1.1"
+          install-go: "false" # StaticCheck uses go v1.17 which does not support `any`
 
   test:
     name: Test
