@@ -1,16 +1,87 @@
 [data-md-color-scheme="containrrr"] {
-    --md-primary-fg-color: #406170;
-    --md-primary-fg-color--light:#acbfc7;
-    --md-primary-fg-color--dark: #003343;
-    --md-accent-fg-color: #003343;
-    --md-accent-fg-color--transparent: #00334310;
+  /* Primary and accent */
+  --md-primary-fg-color: #406170;
+  --md-primary-fg-color--light:#acbfc7;
+  --md-primary-fg-color--dark: #003343;
+  --md-accent-fg-color: #003343;
+  --md-accent-fg-color--transparent: #00334310;
+
+  /* Typeset overrides */
+  --md-typeset-a-color: var(--md-primary-fg-color);
+}
+
+[data-md-color-scheme="containrrr-dark"] {
+  --md-hue: 199;
+
+  /* Primary and accent */
+  --md-primary-fg-color:             hsla(199deg  27%  35% 100%);
+  --md-primary-fg-color--link:       hsla(199deg  45%  65% 100%);
+  --md-primary-fg-color--light:      hsla(198deg  19%  73% 100%);
+  --md-primary-fg-color--dark:       hsla(194deg 100%  13% 100%);
+  --md-accent-fg-color:              hsla(194deg  45%  50% 100%);
+  --md-accent-fg-color--transparent: hsla(194deg  45%  50% 6.3%);
+
+  /* Default */
+  --md-default-fg-color:             hsla(var(--md-hue)  75%  95% 100%);
+  --md-default-fg-color--light:      hsla(var(--md-hue)  75%  90%  62%);
+  --md-default-fg-color--lighter:    hsla(var(--md-hue)  75%  90%  32%);
+  --md-default-fg-color--lightest:   hsla(var(--md-hue)  75%  90%  12%);
+  --md-default-bg-color:             hsla(var(--md-hue)  15%  21% 100%);
+  --md-default-bg-color--light:      hsla(var(--md-hue)  15%  21%  54%);
+  --md-default-bg-color--lighter:    hsla(var(--md-hue)  15%  21%  26%);
+  --md-default-bg-color--lightest:   hsla(var(--md-hue)  15%  21%   7%);
+
+  /* Code */
+  --md-code-fg-color:                hsla(var(--md-hue) 18% 86% 100%);
+  --md-code-bg-color:                hsla(var(--md-hue) 15% 15% 100%);
+  --md-code-hl-color:                hsla(218deg 100%  63%  15%);
+  --md-code-hl-number-color:         hsla(346deg  74%  63% 100%);
+  --md-code-hl-special-color:        hsla(320deg  83%  66% 100%);
+  --md-code-hl-function-color:       hsla(271deg  57%  65% 100%);
+  --md-code-hl-constant-color:       hsla(230deg  62%  70% 100%);
+  --md-code-hl-keyword-color:        hsla(199deg  33%  64% 100%);
+  --md-code-hl-string-color:         hsla( 50deg  34%  74% 100%);
+  --md-code-hl-name-color:           var(--md-code-fg-color);
+  --md-code-hl-operator-color:       var(--md-default-fg-color--light);
+  --md-code-hl-punctuation-color:    var(--md-default-fg-color--light);
+  --md-code-hl-comment-color:        var(--md-default-fg-color--light);
+  --md-code-hl-generic-color:        var(--md-default-fg-color--light);
+  --md-code-hl-variable-color:       hsla(241deg  22%  60% 100%);
+
+  /* Typeset */
+  --md-typeset-color:                var(--md-default-fg-color);
+  --md-typeset-a-color:              var(--md-primary-fg-color--link);
+  --md-typeset-mark-color:           hsla(218deg 100%  63%  30%);
+  --md-typeset-kbd-color:            hsla(var(--md-hue)  15%  94%  12%);
+  --md-typeset-kbd-accent-color:     hsla(var(--md-hue)  15%  94%  20%);
+  --md-typeset-kbd-border-color:     hsla(var(--md-hue)  15%  14% 100%);
+  --md-typeset-table-color:          hsla(var(--md-hue)  75%  95%  12%);
+
+  /* Admonition */
+  --md-admonition-fg-color:          var(--md-default-fg-color);
+  --md-admonition-bg-color:          var(--md-default-bg-color);
+
+  /* Footer */
+  --md-footer-bg-color:              hsla(var(--md-hue)  15%  12%  87%);
+  --md-footer-bg-color--dark:        hsla(var(--md-hue)  15%  10% 100%);
+
+  /* Shadows */
+  --md-shadow-z1:
+    0 0.2rem 0.50rem rgba(0 0 0 20%),
+    0 0      0.05rem rgba(0 0 0 10%);
+  --md-shadow-z2:
+    0 0.2rem 0.50rem rgba(0 0 0 30%),
+    0 0      0.05rem rgba(0 0 0 25%);
+  --md-shadow-z3:
+    0 0.2rem 0.50rem rgba(0 0 0 40%),
+    0 0      0.05rem rgba(0 0 0 35%);
 }
 
 .md-header-nav__button.md-logo {
-    padding: 0;
+  padding: 0;
 }
 
 .md-header-nav__button.md-logo img {
-    width: 1.6rem;
-    height: 1.6rem;
+  width: 1.6rem;
+  height: 1.6rem;
 }
