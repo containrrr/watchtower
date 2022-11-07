@@ -10,7 +10,7 @@ require (
 	github.com/docker/go-connections v0.4.0
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.23.0
-	github.com/prometheus/client_golang v1.13.0
+	github.com/prometheus/client_golang v1.13.1
 	github.com/robfig/cron v0.0.0-20180505203441-b41be1df6967
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/cobra v1.6.0
