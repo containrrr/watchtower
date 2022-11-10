@@ -30,7 +30,7 @@ type Client interface {
 	StopContainer(Container, time.Duration) error
 	StartContainer(Container) (t.ContainerID, error)
 	RenameContainer(Container, string) error
-	IsContainerStale(Container) (stale bool, latestImage t.ImageID, err error)
+	IsContainerStale(Container) (stale bool, latestImage t.ImageID, created string, err error)
 	ExecuteCommand(containerID t.ContainerID, command string, timeout int) (SkipUpdate bool, err error)
 	RemoveImageByID(t.ImageID) error
 	WarnOnHeadPullFailed(container Container) bool
@@ -39,9 +39,9 @@ type Client interface {
 // NewClient returns a new Client instance which can be used to interact with
 // the Docker API.
 // The client reads its configuration from the following environment variables:
-//  * DOCKER_HOST			the docker-engine host to send api requests to
-//  * DOCKER_TLS_VERIFY		whether to verify tls certificates
-//  * DOCKER_API_VERSION	the minimum docker api version to work with
+//   - DOCKER_HOST			the docker-engine host to send api requests to
+//   - DOCKER_TLS_VERIFY		whether to verify tls certificates
+//   - DOCKER_API_VERSION	the minimum docker api version to work with
 func NewClient(opts ClientOptions) Client {
 	cli, err := sdkClient.NewClientWithOpts(sdkClient.FromEnv)
 
@@ -273,35 +273,35 @@ func (client dockerClient) RenameContainer(c Container, newName string) error {
 	return client.api.ContainerRename(bg, string(c.ID()), newName)
 }
 
-func (client dockerClient) IsContainerStale(container Container) (stale bool, latestImage t.ImageID, err error) {
+func (client dockerClient) IsContainerStale(container Container) (stale bool, latestImage t.ImageID, created string, err error) {
 	ctx := context.Background()
 
 	if !client.PullImages {
 		log.Debugf("Skipping image pull.")
 	} else if err := client.PullImage(ctx, container); err != nil {
-		return false, container.SafeImageID(), err
+		return false, container.SafeImageID(), "", err
 	}
 
 	return client.HasNewImage(ctx, container)
 }
 
-func (client dockerClient) HasNewImage(ctx context.Context, container Container) (hasNew bool, latestImage t.ImageID, err error) {
+func (client dockerClient) HasNewImage(ctx context.Context, container Container) (hasNew bool, latestImage t.ImageID, created string, err error) {
 	currentImageID := t.ImageID(container.containerInfo.ContainerJSONBase.Image)
 	imageName := container.ImageName()
 
 	newImageInfo, _, err := client.api.ImageInspectWithRaw(ctx, imageName)
 	if err != nil {
-		return false, currentImageID, err
+		return false, currentImageID, "", err
 	}
 
 	newImageID := t.ImageID(newImageInfo.ID)
 	if newImageID == currentImageID {
 		log.Debugf("No new images found for %s", container.Name())
-		return false, currentImageID, nil
+		return false, currentImageID, "", nil
 	}
 
 	log.Infof("Found new %s image (%s)", imageName, newImageID.ShortID())
-	return true, newImageID, nil
+	return true, newImageID, newImageInfo.Created, nil
 }
 
 // PullImage pulls the latest image for the supplied container, optionally skipping if it's digest can be confirmed

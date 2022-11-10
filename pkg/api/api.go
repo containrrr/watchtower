@@ -23,6 +23,22 @@ func New(token string) *API {
 	}
 }
 
+func (api *API) EnableCors(fn http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Access-Control-Allow-Origin", "http://localhost:8001") // todo: configurable port
+		w.Header().Add("Access-Control-Allow-Credentials", "true")
+		w.Header().Add("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
+		w.Header().Add("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+
+		if r.Method == http.MethodOptions {
+			http.Error(w, "No Content", http.StatusNoContent)
+			return
+		}
+
+		fn(w, r)
+	}
+}
+
 // RequireToken is wrapper around http.HandleFunc that checks token validity
 func (api *API) RequireToken(fn http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -40,7 +56,7 @@ func (api *API) RequireToken(fn http.HandlerFunc) http.HandlerFunc {
 // RegisterFunc is a wrapper around http.HandleFunc that also sets the flag used to determine whether to launch the API
 func (api *API) RegisterFunc(path string, fn http.HandlerFunc) {
 	api.hasHandlers = true
-	http.HandleFunc(path, api.RequireToken(fn))
+	http.HandleFunc(path, api.EnableCors(api.RequireToken(fn)))
 }
 
 // RegisterHandler is a wrapper around http.Handler that also sets the flag used to determine whether to launch the API
