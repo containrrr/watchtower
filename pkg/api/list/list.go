@@ -17,6 +17,7 @@ type Handler struct {
 	Client container.Client
 }
 
+// ContainerListEntry defines the type of each container in the response
 type ContainerListEntry struct {
 	ContainerId      string
 	ContainerName    string
@@ -25,6 +26,8 @@ type ContainerListEntry struct {
 	ImageVersion     string
 	ImageCreatedDate string
 }
+
+// ListResponse defines the return type of the List endpoint
 type ListResponse struct {
 	Containers []ContainerListEntry
 }

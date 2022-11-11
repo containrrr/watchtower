@@ -4,23 +4,13 @@ const apiFactory = () => {
     let token = "";
 
     const headers = () => ({
-        'Authorization': 'Bearer ' + token
+        "Authorization": "Bearer " + token
     });
-
-    const checkLogin = async () => {
-        const token = localStorage.getItem("token");
-
-        if (token) {
-            const isLoggedIn = await logIn(token);
-            return isLoggedIn;
-        }
-        return false;
-    };
 
     const logIn = async (password, remember) => {
         token = password;
         const response = await fetch(baseUrl + "/list", {
-            credentials: 'include',
+            credentials: "include",
             headers: headers()
         });
 
@@ -35,13 +25,23 @@ const apiFactory = () => {
         return false;
     };
 
+    const checkLogin = async () => {
+        const token = localStorage.getItem("token");
+
+        if (token) {
+            const isLoggedIn = await logIn(token);
+            return isLoggedIn;
+        }
+        return false;
+    };
+
     const logOut = () => {
         localStorage.clear();
     };
 
     const list = async () => {
         const response = await fetch(baseUrl + "/list", {
-            credentials: 'include',
+            credentials: "include",
             headers: headers()
         });
         const data = await response.json();
@@ -53,11 +53,11 @@ const apiFactory = () => {
             ContainerId: containerId
         };
         const response = await fetch(baseUrl + "/check", {
-            method: 'POST',
-            credentials: 'include',
+            method: "POST",
+            credentials: "include",
             headers: {
                 ...headers(),
-                'Content-Type': 'application/json',
+                "Content-Type": "application/json",
             },
             body: JSON.stringify(requestData)
         });
@@ -73,7 +73,7 @@ const apiFactory = () => {
         }
 
         const response = await fetch(updateUrl.toString(), {
-            credentials: 'include',
+            credentials: "include",
             headers: headers(),
         });
 

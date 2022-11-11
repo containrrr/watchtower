@@ -16,10 +16,12 @@ type Handler struct {
 	Client container.Client
 }
 
+// CheckRequest defines the type for the request data of the Check endpoint
 type CheckRequest struct {
 	ContainerId string
 }
 
+// CheckResponse defines the type for the response data of the Check endpoint
 type CheckResponse struct {
 	ContainerId       string
 	HasUpdate         bool

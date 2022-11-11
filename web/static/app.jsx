@@ -1,3 +1,6 @@
+var React;
+var ReactDOM;
+
 const useState = React.useState;
 const useEffect = React.useEffect;
 

@@ -16,7 +16,7 @@
 
     --bs-secondary: #acbfc7 !important;
     --bs-secondary-rgb: 64, 97, 112;
-    
+
     --bs-dark: #003343 !important;
 }
 
@@ -32,8 +32,8 @@
 }
 
 .btn-outline-primary {
-    --bs-btn-color:#038C7F;
-    --bs-btn-disabled-color:#038C7F;
+    --bs-btn-color: #038C7F;
+    --bs-btn-disabled-color: #038C7F;
     --bs-btn-border-color: #038C7F;
     --bs-btn-hover-bg: #02675d;
     --bs-btn-hover-border-color: #025a52;
@@ -47,5 +47,6 @@ body {
 }
 
 .container-list-entry:hover .container-list-entry-icon .bi-box::before {
-    content: "\F7D2" /* .bi-box-fill */
+    /* .bi-box-fill */
+    content: "\F7D2"
 }
