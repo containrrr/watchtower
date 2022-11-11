@@ -32,5 +32,5 @@ func runHTTPServer() {
 }
 
 func getHandler() http.Handler {
-	return http.FileServer(http.Dir("./pkg/dashboard/static"))
+	return http.FileServer(http.Dir("./web/static"))
 }
