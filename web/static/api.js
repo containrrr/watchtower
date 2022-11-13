@@ -1,6 +1,15 @@
 
+function getEmbeddedVariable(variableName) {
+    const value = document.body.getAttribute(`data-${variableName}`);
+    if (value === null) {
+        throw new Error(`No ${variableName} embedded variable detected`);
+    }
+
+    return value;
+}
+
 const apiFactory = () => {
-    const baseUrl = "http://localhost:8080/v1";
+    const apiBasePath = getEmbeddedVariable("apipath");
     let token = "";
 
     const headers = () => ({
@@ -9,15 +18,15 @@ const apiFactory = () => {
 
     const logIn = async (password, remember) => {
         token = password;
-        const response = await fetch(baseUrl + "/list", {
-            credentials: "include",
+        const response = await fetch(apiBasePath + "list", {
             headers: headers()
         });
 
         if (response.ok) {
             if (remember === true) {
-                localStorage.setItem("token", password);
+                localStorage.setItem("token", token);
             }
+
             return true;
         }
 
@@ -27,11 +36,10 @@ const apiFactory = () => {
 
     const checkLogin = async () => {
         const token = localStorage.getItem("token");
-
         if (token) {
-            const isLoggedIn = await logIn(token);
-            return isLoggedIn;
+            return await logIn(token);
         }
+
         return false;
     };
 
@@ -40,8 +48,7 @@ const apiFactory = () => {
     };
 
     const list = async () => {
-        const response = await fetch(baseUrl + "/list", {
-            credentials: "include",
+        const response = await fetch(apiBasePath + "list", {
             headers: headers()
         });
         const data = await response.json();
@@ -52,9 +59,8 @@ const apiFactory = () => {
         const requestData = {
             ContainerId: containerId
         };
-        const response = await fetch(baseUrl + "/check", {
+        const response = await fetch(apiBasePath + "check", {
             method: "POST",
-            credentials: "include",
             headers: {
                 ...headers(),
                 "Content-Type": "application/json",
@@ -66,14 +72,13 @@ const apiFactory = () => {
     };
 
     const update = async (images) => {
-        let updateUrl = new URL(baseUrl + "/update");
+        let updateUrl = new URL(apiBasePath + "/update");
 
         if (images instanceof Array) {
             images.map(image => updateUrl.searchParams.append("image", image));
         }
 
         const response = await fetch(updateUrl.toString(), {
-            credentials: "include",
             headers: headers(),
         });
 
