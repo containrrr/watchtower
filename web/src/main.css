@@ -1,0 +1,52 @@
+[data-md-color-scheme="containrrr"] {
+  /* Primary and accent */
+  --md-primary-fg-color: #406170;
+  --md-primary-fg-color--light: #acbfc7;
+  --md-primary-fg-color--dark: #003343;
+  --md-accent-fg-color: #003343;
+  --md-accent-fg-color--transparent: #00334310;
+
+  /* Typeset overrides */
+  --md-typeset-a-color: var(--md-primary-fg-color);
+}
+
+:root {
+  --bs-primary: #406170 !important;
+  --bs-primary-rgb: 3, 140, 127;
+
+  --bs-secondary: #acbfc7 !important;
+  --bs-secondary-rgb: 64, 97, 112;
+
+  --bs-dark: #003343 !important;
+}
+
+.btn-primary {
+  --bs-btn-bg: #038C7F;
+  --bs-btn-border-color: ##038C7F;
+  --bs-btn-hover-bg: #02675d;
+  --bs-btn-hover-border-color: #025a52;
+  --bs-btn-active-bg: #025a52;
+  --bs-btn-active-border-color: #025a52;
+  --bs-btn-disabled-bg: #038C7F;
+  --bs-btn-disabled-border-color: #038C7F;
+}
+
+.btn-outline-primary {
+  --bs-btn-color: #038C7F;
+  --bs-btn-disabled-color: #038C7F;
+  --bs-btn-border-color: #038C7F;
+  --bs-btn-hover-bg: #02675d;
+  --bs-btn-hover-border-color: #025a52;
+  --bs-btn-active-bg: #025a52;
+  --bs-btn-active-border-color: #025a52;
+  --bs-btn-disabled-border-color: #038C7F;
+}
+
+body {
+  background-color: rgba(172, 191, 199, 0.5);
+}
+
+.container-list-entry:hover .container-list-entry-icon .bi-box::before {
+  /* .bi-box-fill */
+  content: "\F7D2"
+}

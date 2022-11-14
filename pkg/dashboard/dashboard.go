@@ -20,9 +20,9 @@ type Dashboard struct {
 
 // New is a factory function creating a new Dashboard instance
 func New() *Dashboard {
-	const webRootDir = "./web/static" // Todo: needs to work in containerized environment
-	const webPort = "8001"            // Todo: make configurable?
-	const apiPort = "8080"            // Todo: make configurable?
+	const webRootDir = "./web/dist" // Todo: needs to work in containerized environment
+	const webPort = "8001"          // Todo: make configurable?
+	const apiPort = "8080"          // Todo: make configurable?
 
 	return &Dashboard{
 		apiPort:    apiPort,
