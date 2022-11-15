@@ -1,7 +1,3 @@
-export interface ListResponse {
-    Containers: ContainerListEntry[];
-}
-
 export interface ContainerListEntry {
     ContainerID: string;
     ContainerName: string;
@@ -9,6 +5,10 @@ export interface ContainerListEntry {
     ImageNameShort: string;
     ImageVersion: string;
     ImageCreatedDate: string;
+}
+
+export interface ListResponse {
+    Containers: ContainerListEntry[];
 }
 
 export interface CheckRequest {
