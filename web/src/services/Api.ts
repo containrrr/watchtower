@@ -1,3 +1,26 @@
+export interface ListResponse {
+    Containers: ContainerListEntry[];
+}
+
+export interface ContainerListEntry {
+    ContainerID: string;
+    ContainerName: string;
+    ImageName: string;
+    ImageNameShort: string;
+    ImageVersion: string;
+    ImageCreatedDate: string;
+}
+
+export interface CheckRequest {
+    ContainerID: string;
+}
+
+export interface CheckResponse {
+    ContainerID: string;
+    HasUpdate: boolean;
+    NewVersion: string;
+    NewVersionCreated: string;
+}
 
 const getEmbeddedVariable = (variableName: string) => {
     const value = document.body.getAttribute(`data-${variableName}`);
@@ -84,27 +107,3 @@ export const update = async (images?: string[]): Promise<boolean> => {
 
     return response.ok;
 };
-
-export interface ListResponse {
-    Containers: ContainerListEntry[];
-}
-
-export interface ContainerListEntry {
-    ContainerID: string;
-    ContainerName: string;
-    ImageName: string;
-    ImageNameShort: string;
-    ImageVersion: string;
-    ImageCreatedDate: string;
-}
-
-export interface CheckRequest {
-    ContainerID: string;
-}
-
-export interface CheckResponse {
-    ContainerID: string;
-    HasUpdate: boolean;
-    NewVersion: string;
-    NewVersionCreated: string;
-}

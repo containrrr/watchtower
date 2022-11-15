@@ -7,7 +7,7 @@ interface LoginProps {
 }
 
 const Login = (props: LoginProps) => {
-    const [password, setPassword] = useState("");
+    const [value, setValue] = useState("");
     const [remember, setRemember] = useState(false);
     const [error, setError] = useState("");
 
@@ -15,7 +15,7 @@ const Login = (props: LoginProps) => {
         if (event.target.type === "checkbox") {
             setRemember(event.target.checked);
         } else {
-            setPassword(event.target.value);
+            setValue(event.target.value);
         }
     };
 
@@ -23,11 +23,11 @@ const Login = (props: LoginProps) => {
         setError("");
         event.preventDefault();
 
-        if (password === "") {
+        if (value === "") {
             return;
         }
 
-        const loggedIn = await logIn(password, remember);
+        const loggedIn = await logIn(value, remember);
         if (loggedIn) {
             props.onLogin();
         } else {
@@ -42,7 +42,7 @@ const Login = (props: LoginProps) => {
                 <h1 className="h3 mb-3 fw-normal">Please log in</h1>
 
                 <div className="form-floating mb-3">
-                    <input type="password" value={password} onChange={handleChange} className={"form-control" + (error ? " is-invalid" : "")} id="floatingPassword" placeholder="Password" required />
+                    <input type="password" value={value} onChange={handleChange} className={"form-control" + (error ? " is-invalid" : "")} id="floatingPassword" placeholder="Password" required />
                     <label htmlFor="floatingPassword" className="user-select-none">Password</label>
                     {error &&
                         <div className="invalid-feedback">
