@@ -95,7 +95,7 @@ export const check = async (containerId: string): Promise<CheckResponse> => {
 };
 
 export const update = async (images?: string[]): Promise<boolean> => {
-    let updateUrl = new URL(apiBasePath + "/update");
+    let updateUrl = new URL(apiBasePath + "update");
 
     if (images instanceof Array) {
         images.map((image) => updateUrl.searchParams.append("image", image));
