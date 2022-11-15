@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import ContainerModel from "../models/ContainerModel";
-import { check, list, update } from "../services/Api";
+import { check, list, ListResponse, update } from "../services/Api";
 import ContainerList from "./ContainerList";
 import Spinner from "./Spinner";
 import SpinnerModal from "./SpinnerModal";
@@ -23,7 +23,12 @@ const ContainerView = () => {
     const hasSelectedContainers = containers.some((c) => c.Selected);
     const hasUpdates = containersWithUpdates.length > 0;
 
-    const checkForUpdates = async () => {
+    const checkForUpdates = async (containersToUpdate?: ContainerModel[]) => {
+
+        if (!containersToUpdate) {
+            containersToUpdate = containers;
+        }
+
         setChecking(true);
 
         setViewModel((m) => ({
@@ -34,7 +39,7 @@ const ContainerView = () => {
             }))
         }));
 
-        await Promise.all(containers.map(async (c1) => {
+        await Promise.all(containersToUpdate.map(async (c1) => {
             const result = await check(c1.ContainerID);
             setViewModel((m) => ({
                 ...m,
@@ -51,29 +56,36 @@ const ContainerView = () => {
         setHasChecked(true);
     };
 
+    const mapListDataToViewModel = (data: ListResponse) => ({
+        Containers: data.Containers.map((c) => ({
+            ...c,
+            Selected: false,
+            IsChecking: false,
+            HasUpdate: false,
+            IsUpdating: false,
+            NewVersion: "",
+            NewVersionCreated: ""
+        }))
+    });
+
     const listContainers = async () => {
         setLoading(true);
         const data = await list();
-        setViewModel({
-            Containers: data.Containers.map((c) => ({
-                ...c,
-                Selected: false,
-                IsChecking: false,
-                HasUpdate: false,
-                IsUpdating: false,
-                NewVersion: "",
-                NewVersionCreated: ""
-            }))
-        });
+        const mappedViewModel = mapListDataToViewModel(data);
+        setViewModel((m) => ({
+            ...m,
+            ...mappedViewModel
+        }));
         setLoading(false);
         setHasChecked(false);
+        return mappedViewModel;
     };
 
     const updateImages = async (imagesToUpdate?: string[]) => {
         setUpdating(true);
         await update(imagesToUpdate);
-        await listContainers();
-        await checkForUpdates();
+        const data = await listContainers();
+        await checkForUpdates(data.Containers);
         setUpdating(false);
     };
 
@@ -117,7 +129,7 @@ const ContainerView = () => {
                 <div className="col-12 col-md-8 text-end">
                     {hasUpdates && <UpdateSelected onClick={updateSelected} disabled={checking || !hasSelectedContainers} />}
                     {hasUpdates && <UpdateAll onClick={updateAll} disabled={checking} />}
-                    <UpdateCheck onClick={checkForUpdates} disabled={checking} />
+                    <UpdateCheck onClick={() => checkForUpdates()} disabled={checking} />
                 </div>
             </div>
 

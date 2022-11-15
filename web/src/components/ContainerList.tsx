@@ -8,7 +8,7 @@ interface ContainerListProps {
 
 const ContainerList = (props: ContainerListProps) => (
     <ul className="list-group">
-        {props.containers.map((c) => <ContainerListEntry {...c} onClick={() => props.onContainerClick(c)} />)}
+        {props.containers.map((c) => <ContainerListEntry {...c} key={c.ContainerID} onClick={() => props.onContainerClick(c)} />)}
     </ul >
 );
 
