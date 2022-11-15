@@ -16,7 +16,7 @@ const headers = () => ({
     "Authorization": "Bearer " + token
 });
 
-export const logIn = async (password: string, remember: boolean) => {
+export const logIn = async (password: string, remember: boolean): Promise<boolean> => {
     token = password;
     const response = await fetch(apiBasePath + "list", {
         headers: headers()
@@ -33,7 +33,7 @@ export const logIn = async (password: string, remember: boolean) => {
     return false;
 };
 
-export const checkLogin = async () => {
+export const checkLogin = async (): Promise<boolean> => {
     const savedToken = localStorage.getItem(tokenStorageKey);
     if (savedToken) {
         return await logIn(savedToken, false);
@@ -47,17 +47,17 @@ export const logOut = () => {
     localStorage.clear();
 };
 
-export const list = async () => {
+export const list = async (): Promise<ListResponse> => {
     const response = await fetch(apiBasePath + "list", {
         headers: headers()
     });
     const data = await response.json();
-    return data;
+    return data as ListResponse;
 };
 
-export const check = async (containerId: string) => {
-    const requestData = {
-        ContainerId: containerId
+export const check = async (containerId: string): Promise<CheckResponse> => {
+    const requestData: CheckRequest = {
+        ContainerID: containerId
     };
     const response = await fetch(apiBasePath + "check", {
         method: "POST",
@@ -68,14 +68,14 @@ export const check = async (containerId: string) => {
         body: JSON.stringify(requestData)
     });
     const data = await response.json();
-    return data;
+    return data as CheckResponse;
 };
 
-export const update = async (images?: string[]) => {
+export const update = async (images?: string[]): Promise<boolean> => {
     let updateUrl = new URL(apiBasePath + "/update");
 
     if (images instanceof Array) {
-        images.map(image => updateUrl.searchParams.append("image", image));
+        images.map((image) => updateUrl.searchParams.append("image", image));
     }
 
     const response = await fetch(updateUrl.toString(), {
@@ -84,3 +84,27 @@ export const update = async (images?: string[]) => {
 
     return response.ok;
 };
+
+export interface ListResponse {
+    Containers: ContainerListEntry[];
+}
+
+export interface ContainerListEntry {
+    ContainerID: string;
+    ContainerName: string;
+    ImageName: string;
+    ImageNameShort: string;
+    ImageVersion: string;
+    ImageCreatedDate: string;
+}
+
+export interface CheckRequest {
+    ContainerID: string;
+}
+
+export interface CheckResponse {
+    ContainerID: string;
+    HasUpdate: boolean;
+    NewVersion: string;
+    NewVersionCreated: string;
+}

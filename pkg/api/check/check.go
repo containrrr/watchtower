@@ -10,20 +10,18 @@ import (
 	"github.com/containrrr/watchtower/pkg/types"
 )
 
-// Handler is an HTTP handle for serving list data
+// Handler is an HTTP handle for serving check data
 type Handler struct {
 	Path   string
 	Client container.Client
 }
 
-// CheckRequest defines the type for the request data of the Check endpoint
-type CheckRequest struct {
-	ContainerId string
+type checkRequest struct {
+	ContainerID string
 }
 
-// CheckResponse defines the type for the response data of the Check endpoint
-type CheckResponse struct {
-	ContainerId       string
+type checkResponse struct {
+	ContainerID       string
 	HasUpdate         bool
 	NewVersion        string
 	NewVersionCreated string
@@ -47,7 +45,7 @@ func (handle *Handler) HandlePost(w http.ResponseWriter, r *http.Request) {
 
 	log.Info("Check for update triggered by HTTP API request.")
 
-	var request CheckRequest
+	var request checkRequest
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
 		log.Error(err)
@@ -57,7 +55,7 @@ func (handle *Handler) HandlePost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	client := handle.Client
-	container, err := client.GetContainer(types.ContainerID(request.ContainerId))
+	container, err := client.GetContainer(types.ContainerID(request.ContainerID))
 	if err != nil {
 		log.Error(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -74,8 +72,8 @@ func (handle *Handler) HandlePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := CheckResponse{
-		ContainerId:       request.ContainerId,
+	data := checkResponse{
+		ContainerID:       request.ContainerID,
 		HasUpdate:         stale,
 		NewVersion:        newestImage.ShortID(),
 		NewVersionCreated: created,

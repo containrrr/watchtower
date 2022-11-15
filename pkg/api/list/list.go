@@ -17,9 +17,8 @@ type Handler struct {
 	Client container.Client
 }
 
-// ContainerListEntry defines the type of each container in the response
-type ContainerListEntry struct {
-	ContainerId      string
+type containerListEntry struct {
+	ContainerID      string
 	ContainerName    string
 	ImageName        string
 	ImageNameShort   string
@@ -27,9 +26,8 @@ type ContainerListEntry struct {
 	ImageCreatedDate string
 }
 
-// ListResponse defines the return type of the List endpoint
-type ListResponse struct {
-	Containers []ContainerListEntry
+type listResponse struct {
+	Containers []containerListEntry
 }
 
 // New is a factory function creating a new List instance
@@ -59,11 +57,11 @@ func (handle *Handler) HandleGet(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(err.Error()))
 	}
 
-	data := ListResponse{Containers: []ContainerListEntry{}}
+	data := listResponse{Containers: []containerListEntry{}}
 
 	for _, c := range containers {
-		data.Containers = append(data.Containers, ContainerListEntry{
-			ContainerId:      c.ID().ShortID(),
+		data.Containers = append(data.Containers, containerListEntry{
+			ContainerID:      c.ID().ShortID(),
 			ContainerName:    c.Name()[1:],
 			ImageName:        c.ImageName(),
 			ImageNameShort:   strings.Split(c.ImageName(), ":")[0],

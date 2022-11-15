@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
-import ContainerEntry from "../models/ContainerEntry"
+import ContainerModel from "../models/ContainerModel";
 import { check, list, update } from "../services/Api";
 import ContainerList from "./ContainerList";
 import Spinner from "./Spinner";
 import SpinnerModal from "./SpinnerModal";
+import { UpdateSelected, UpdateAll, UpdateCheck } from "./UpdateButtons";
 
 interface ViewModel {
-    Containers: ContainerEntry[];
+    Containers: ContainerModel[];
 }
 
 const ContainerView = () => {
@@ -16,32 +17,28 @@ const ContainerView = () => {
     const [hasChecked, setHasChecked] = useState(false);
     const [viewModel, setViewModel] = useState<ViewModel>({ Containers: [] });
 
-    useEffect(() => {
-        listContainers();
-    }, []);
-
     const containers = viewModel.Containers;
-    const containersWithUpdates = containers.filter(c => c.HasUpdate);
-    const containersWithoutUpdates = containers.filter(c => !c.HasUpdate);
-    const hasSelectedContainers = containers.some(c => c.Selected);
+    const containersWithUpdates = containers.filter((c) => c.HasUpdate);
+    const containersWithoutUpdates = containers.filter((c) => !c.HasUpdate);
+    const hasSelectedContainers = containers.some((c) => c.Selected);
     const hasUpdates = containersWithUpdates.length > 0;
 
     const checkForUpdates = async () => {
         setChecking(true);
 
-        setViewModel(m => ({
+        setViewModel((m) => ({
             ...m,
-            Containers: m.Containers.map(c => ({
+            Containers: m.Containers.map((c) => ({
                 ...c,
                 IsChecking: true
             }))
         }));
 
         await Promise.all(containers.map(async (c1) => {
-            const result = await check(c1.ContainerId);
-            setViewModel(m => ({
+            const result = await check(c1.ContainerID);
+            setViewModel((m) => ({
                 ...m,
-                Containers: m.Containers.map((c2, i) => (c1.ContainerId === c2.ContainerId ? {
+                Containers: m.Containers.map((c2) => (c1.ContainerID === c2.ContainerID ? {
                     ...c2,
                     ...result,
                     IsChecking: false
@@ -57,7 +54,17 @@ const ContainerView = () => {
     const listContainers = async () => {
         setLoading(true);
         const data = await list();
-        setViewModel(data);
+        setViewModel({
+            Containers: data.Containers.map((c) => ({
+                ...c,
+                Selected: false,
+                IsChecking: false,
+                HasUpdate: false,
+                IsUpdating: false,
+                NewVersion: "",
+                NewVersionCreated: ""
+            }))
+        });
         setLoading(false);
         setHasChecked(false);
     };
@@ -75,20 +82,24 @@ const ContainerView = () => {
     };
 
     const updateSelected = async () => {
-        const selectedImages = containers.filter(c => c.Selected === true).map(c => c.ImageNameShort);
+        const selectedImages = containers.filter((c) => c.Selected === true).map((c) => c.ImageNameShort);
         await updateImages(selectedImages);
     };
 
-    const onContainerClick = (container: ContainerEntry) => {
-        setViewModel(m => ({
+    const onContainerClick = (container: ContainerModel) => {
+        setViewModel((m) => ({
             ...m,
-            Containers: m.Containers.map(c2 => (container.ContainerId === c2.ContainerId ? {
+            Containers: m.Containers.map((c2) => (container.ContainerID === c2.ContainerID ? {
                 ...c2,
                 Selected: !c2.Selected,
             } : c2
             ))
         }));
     };
+
+    useEffect(() => {
+        listContainers();
+    }, []);
 
     return (
         <main className="mt-5 p-5 d-block">
@@ -126,28 +137,5 @@ const ContainerView = () => {
         </main>
     );
 };
-
-interface UpdateButtonProps {
-    disabled: boolean;
-    onClick: () => void;
-};
-
-const UpdateSelected = (props: UpdateButtonProps) => (
-    <button type="button" className="btn btn-primary me-2" disabled={props.disabled} onClick={props.onClick}>
-        <i className="bi bi-arrow-down-circle me-2"></i>Update selected
-    </button>
-);
-
-const UpdateAll = (props: UpdateButtonProps) => (
-    <button type="button" className="btn btn-primary me-2" disabled={props.disabled} onClick={props.onClick}>
-        <i className="bi bi-arrow-down-circle me-2"></i>Update all
-    </button>
-);
-
-const UpdateCheck = (props: UpdateButtonProps) => (
-    <button type="button" className="btn btn-outline-primary" disabled={props.disabled} onClick={props.onClick}>
-        <i className="bi bi-arrow-repeat me-2"></i>Check for updates
-    </button>
-);
 
 export default ContainerView;

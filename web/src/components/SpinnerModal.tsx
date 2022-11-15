@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import logo from "../assets/logo.png"
+import logo from "../assets/logo.png";
 
 interface SpinnerModalProps {
     visible: boolean;
@@ -10,9 +10,11 @@ interface SpinnerModalProps {
 const SpinnerModal = (props: SpinnerModalProps) => {
     useEffect(() => {
         document.body.classList.toggle("modal-open", props.visible === true);
-    }, [props.visible])
+    }, [props.visible]);
 
-    if (props.visible !== true) return null;
+    if (props.visible !== true) {
+        return null;
+    }
 
     return (
         <div>
@@ -37,7 +39,7 @@ const SpinnerModal = (props: SpinnerModalProps) => {
                 </div>
             </div>
         </div>
-    )
+    );
 };
 
 export default SpinnerModal;

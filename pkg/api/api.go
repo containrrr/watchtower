@@ -23,6 +23,7 @@ func New(token string) *API {
 	}
 }
 
+// EnableCors is a middleware that enables CORS for the API
 func (api *API) EnableCors(fn http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Access-Control-Allow-Origin", "*")

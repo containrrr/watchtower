@@ -1,8 +1,12 @@
-import ContainerEntry from "../models/ContainerEntry";
+import ContainerModel from "../models/ContainerModel";
 import ImageInfo from "./ImageInfo";
 import SpinnerGrow from "./SpinnerGrow";
 
-const ContainerListEntry = (props: (ContainerEntry & { onClick: () => void })) => (
+interface ContainerListEntryProps extends ContainerModel {
+    onClick: () => void;
+}
+
+const ContainerListEntry = (props: ContainerListEntryProps) => (
     <li className="list-group-item d-flex justify-content-between align-items-center container-list-entry" onClick={props.onClick} role="button">
         <div className="ms-1 me-3 container-list-entry-icon">
             {props.Selected

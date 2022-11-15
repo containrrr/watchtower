@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState } from "react";
 import ContainerView from "./components/ContainerView";
 import Header from "./components/Header";
 import Login from "./components/Login";
@@ -20,7 +20,7 @@ const App = () => {
     const onLogIn = () => {
         setLoading(false);
         setLoggedIn(true);
-    }
+    };
 
     const onLogOut = () => {
         logOut();
@@ -44,4 +44,4 @@ const App = () => {
     );
 };
 
-export default App
+export default App;

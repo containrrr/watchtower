@@ -41,8 +41,8 @@ func (d *Dashboard) Start() error {
 	return nil
 }
 
-func (d *Dashboard) templatedHttpHandler(h http.Handler) http.HandlerFunc {
-	const apiUrlTemplate = "%s://%s:%s/%s/"
+func (d *Dashboard) templatedHTTPHandler(h http.Handler) http.HandlerFunc {
+	const apiURLTemplate = "%s://%s:%s/%s/"
 	indexTemplate, err := template.ParseFiles(d.rootDir + "/index.html")
 	if err != nil {
 		log.Error("Error when parsing index template")
@@ -53,9 +53,9 @@ func (d *Dashboard) templatedHttpHandler(h http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/" {
 			hostName := strings.Split(r.Host, ":")[0]
-			apiUrl := fmt.Sprintf(apiUrlTemplate, d.apiScheme, hostName, d.apiPort, d.apiVersion)
-			err = indexTemplate.Execute(w, struct{ ApiUrl string }{
-				ApiUrl: apiUrl,
+			apiURL := fmt.Sprintf(apiURLTemplate, d.apiScheme, hostName, d.apiPort, d.apiVersion)
+			err = indexTemplate.Execute(w, struct{ APIURL string }{
+				APIURL: apiURL,
 			})
 			if err != nil {
 				log.Error("Error when executing index template")
@@ -70,7 +70,7 @@ func (d *Dashboard) templatedHttpHandler(h http.Handler) http.HandlerFunc {
 }
 
 func (d *Dashboard) getHandler() http.Handler {
-	return d.templatedHttpHandler(http.FileServer(http.Dir(d.rootDir)))
+	return d.templatedHTTPHandler(http.FileServer(http.Dir(d.rootDir)))
 }
 
 func (d *Dashboard) runHTTPServer() {

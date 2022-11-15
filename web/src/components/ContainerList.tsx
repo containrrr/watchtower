@@ -1,14 +1,14 @@
-import ContainerEntry from "../models/ContainerEntry";
+import ContainerModel from "../models/ContainerModel";
 import ContainerListEntry from "./ContainerListEntry";
 
 interface ContainerListProps {
-    containers: ContainerEntry[];
-    onContainerClick: (container: ContainerEntry) => void;
+    containers: ContainerModel[];
+    onContainerClick: (container: ContainerModel) => void;
 }
 
 const ContainerList = (props: ContainerListProps) => (
     <ul className="list-group">
-        {props.containers.map(c => <ContainerListEntry {...c} onClick={() => props.onContainerClick(c)} />)}
+        {props.containers.map((c) => <ContainerListEntry {...c} onClick={() => props.onContainerClick(c)} />)}
     </ul >
 );
 

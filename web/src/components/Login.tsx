@@ -1,15 +1,15 @@
 import { ChangeEvent, FormEvent, useState } from "react";
 import { logIn } from "../services/Api";
-import logo from "../assets/logo.png"
+import logo from "../assets/logo.png";
 
 interface LoginProps {
     onLogin: () => void;
 }
 
 const Login = (props: LoginProps) => {
-    const [password, setPassword] = useState<string | undefined>(undefined);
+    const [password, setPassword] = useState("");
     const [remember, setRemember] = useState(false);
-    const [error, setError] = useState<string | undefined>(undefined);
+    const [error, setError] = useState("");
 
     const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
         if (event.target.type === "checkbox") {
@@ -20,10 +20,10 @@ const Login = (props: LoginProps) => {
     };
 
     const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-        setError(undefined);
+        setError("");
         event.preventDefault();
 
-        if (password === undefined) {
+        if (password === "") {
             return;
         }
 
