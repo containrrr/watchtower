@@ -94,11 +94,11 @@ export const check = async (containerId: string): Promise<CheckResponse> => {
     return data as CheckResponse;
 };
 
-export const update = async (images?: string[]): Promise<boolean> => {
+export const update = async (containers?: string[]): Promise<boolean> => {
     let updateUrl = new URL(apiBasePath + "update");
 
-    if (images instanceof Array) {
-        images.map((image) => updateUrl.searchParams.append("image", image));
+    if (containers instanceof Array) {
+        containers.map((container) => updateUrl.searchParams.append("container", container));
     }
 
     const response = await fetch(updateUrl.toString(), {

@@ -14,7 +14,7 @@ var (
 )
 
 // New is a factory function creating a new  Handler instance
-func New(updateFn func(images []string), updateLock chan bool) *Handler {
+func New(updateImages func(images []string), updateContainers func(containerNames []string), updateLock chan bool) *Handler {
 	if updateLock != nil {
 		lock = updateLock
 	} else {
@@ -23,15 +23,17 @@ func New(updateFn func(images []string), updateLock chan bool) *Handler {
 	}
 
 	return &Handler{
-		fn:   updateFn,
-		Path: "/v1/update",
+		updateImages:     updateImages,
+		updateContainers: updateContainers,
+		Path:             "/v1/update",
 	}
 }
 
 // Handler is an API handler used for triggering container update scans
 type Handler struct {
-	fn   func(images []string)
-	Path string
+	updateImages     func(images []string)
+	updateContainers func(containerNames []string)
+	Path             string
 }
 
 // Handle is the actual http.Handle function doing all the heavy lifting
@@ -55,15 +57,30 @@ func (handle *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 		images = nil
 	}
 
+	var containers []string
+	containerQueries, found := r.URL.Query()["container"]
+	if found {
+		for _, container := range containerQueries {
+			containers = append(containers, strings.Split(container, ",")...)
+		}
+
+	} else {
+		containers = nil
+	}
+
 	if len(images) > 0 {
 		chanValue := <-lock
 		defer func() { lock <- chanValue }()
-		handle.fn(images)
+		handle.updateImages(images)
+	} else if len(containers) > 0 {
+		chanValue := <-lock
+		defer func() { lock <- chanValue }()
+		handle.updateContainers(containers)
 	} else {
 		select {
 		case chanValue := <-lock:
 			defer func() { lock <- chanValue }()
-			handle.fn(images)
+			handle.updateImages(images)
 		default:
 			log.Debug("Skipped. Another update already running.")
 		}

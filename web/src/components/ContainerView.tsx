@@ -6,22 +6,19 @@ import Spinner from "./Spinner";
 import SpinnerModal from "./SpinnerModal";
 import { UpdateSelected, UpdateAll, UpdateCheck } from "./UpdateButtons";
 
-interface ViewModel {
-    Containers: ContainerModel[];
-}
-
 const ContainerView = () => {
     const [loading, setLoading] = useState(true);
     const [checking, setChecking] = useState(false);
     const [updating, setUpdating] = useState(false);
+    const [updatingImage, setUpdatingContainer] = useState<string | null>(null);
     const [hasChecked, setHasChecked] = useState(false);
-    const [viewModel, setViewModel] = useState<ViewModel>({ Containers: [] });
+    const [containers, setContainers] = useState<ContainerModel[]>([]);
 
-    const containers = viewModel.Containers;
     const containersWithUpdates = containers.filter((c) => c.HasUpdate);
     const containersWithoutUpdates = containers.filter((c) => !c.HasUpdate);
-    const hasSelectedContainers = containers.some((c) => c.Selected);
+    const selectedContainers = containers.filter((c) => c.Selected);
     const hasUpdates = containersWithUpdates.length > 0;
+    const hasSelectedContainers = selectedContainers.length > 0;
 
     const checkForUpdates = async (containersToUpdate?: ContainerModel[]) => {
 
@@ -31,33 +28,33 @@ const ContainerView = () => {
 
         setChecking(true);
 
-        setViewModel((m) => ({
-            ...m,
-            Containers: m.Containers.map((c) => ({
+        setContainers((current) =>
+            current.map((c) => ({
                 ...c,
                 IsChecking: true
             }))
-        }));
+        );
 
         await Promise.all(containersToUpdate.map(async (c1) => {
             const result = await check(c1.ContainerID);
-            setViewModel((m) => ({
-                ...m,
-                Containers: m.Containers.map((c2) => (c1.ContainerID === c2.ContainerID ? {
+            setContainers((current) =>
+                current.map((c2) => (c1.ContainerID === c2.ContainerID ? {
                     ...c2,
                     ...result,
                     IsChecking: false
                 } : c2
                 ))
-            }));
+            );
         }));
 
         setChecking(false);
         setHasChecked(true);
     };
 
-    const mapListDataToViewModel = (data: ListResponse) => ({
-        Containers: data.Containers.map((c) => ({
+    const listContainers = async () => {
+        setLoading(true);
+        const data = await list();
+        const mappedData = data.Containers.map((c) => ({
             ...c,
             Selected: false,
             IsChecking: false,
@@ -65,48 +62,42 @@ const ContainerView = () => {
             IsUpdating: false,
             NewVersion: "",
             NewVersionCreated: ""
-        }))
-    });
-
-    const listContainers = async () => {
-        setLoading(true);
-        const data = await list();
-        const mappedViewModel = mapListDataToViewModel(data);
-        setViewModel((m) => ({
-            ...m,
-            ...mappedViewModel
         }));
+        setContainers(mappedData);
         setLoading(false);
         setHasChecked(false);
-        return mappedViewModel;
+        return mappedData;
     };
 
-    const updateImages = async (imagesToUpdate?: string[]) => {
+    const updateImages = async (containersToUpdate: ContainerModel[]) => {
         setUpdating(true);
-        await update(imagesToUpdate);
-        const data = await listContainers();
-        await checkForUpdates(data.Containers);
+        const containerNames = containersToUpdate.map((c) => c.ContainerName);
+        for (const containerName of containerNames) {
+            setUpdatingContainer(containerName);
+            await update([containerName]);
+        }
+        setUpdatingContainer(null);
+        const clist = await listContainers();
+        await checkForUpdates(clist);
         setUpdating(false);
     };
 
     const updateAll = async () => {
-        await updateImages();
+        await updateImages(containersWithUpdates);
     };
 
     const updateSelected = async () => {
-        const selectedImages = containers.filter((c) => c.Selected === true).map((c) => c.ImageNameShort);
-        await updateImages(selectedImages);
+        await updateImages(selectedContainers);
     };
 
     const onContainerClick = (container: ContainerModel) => {
-        setViewModel((m) => ({
-            ...m,
-            Containers: m.Containers.map((c2) => (container.ContainerID === c2.ContainerID ? {
+        setContainers((current) =>
+            current.map((c2) => (container.ContainerID === c2.ContainerID ? {
                 ...c2,
-                Selected: !c2.Selected,
+                Selected: !c2.Selected
             } : c2
             ))
-        }));
+        );
     };
 
     useEffect(() => {
@@ -115,7 +106,7 @@ const ContainerView = () => {
 
     return (
         <main className="mt-5 p-5 d-block">
-            <SpinnerModal visible={updating} title="Updating containers" message="Please wait..." />
+            <SpinnerModal visible={updating} title={`Updating ${updatingImage ?? "containers"}`} message="Please wait..." />
             <div className="row mb-2">
                 <div className="col-12 col-md-4 d-flex align-items-center">
                     {hasUpdates
