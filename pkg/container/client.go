@@ -192,6 +192,10 @@ func (client dockerClient) StopContainer(c Container, timeout time.Duration) err
 		log.Debugf("Removing container %s", shortID)
 
 		if err := client.api.ContainerRemove(bg, idStr, types.ContainerRemoveOptions{Force: true, RemoveVolumes: client.RemoveVolumes}); err != nil {
+			if sdkClient.IsErrNotFound(err) {
+				log.Debugf("Container %s not found, skipping removal.", shortID)
+				return nil
+			}
 			return err
 		}
 	}
