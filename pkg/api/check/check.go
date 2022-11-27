@@ -63,20 +63,32 @@ func (handle *Handler) HandlePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	stale, newestImage, created, err := client.IsContainerStale(container)
+	hasUpdate := false
+	newVersion := ""
+	newVersionCreated := ""
+
+	matches, err := client.ContainerDigestMatchesWithRegistry(container)
+	hasUpdate = !matches
 
 	if err != nil {
-		log.Error(err)
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
-		return
+		stale, newestImage, created, err := client.IsContainerStale(container)
+		hasUpdate = stale
+		newVersion = newestImage.ShortID()
+		newVersionCreated = created
+
+		if err != nil {
+			log.Error(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(err.Error()))
+			return
+		}
 	}
 
 	data := checkResponse{
 		ContainerID:       request.ContainerID,
-		HasUpdate:         stale,
-		NewVersion:        newestImage.ShortID(),
-		NewVersionCreated: created,
+		HasUpdate:         hasUpdate,
+		NewVersion:        newVersion,
+		NewVersionCreated: newVersionCreated,
 	}
 
 	jsonData, err := json.Marshal(data)

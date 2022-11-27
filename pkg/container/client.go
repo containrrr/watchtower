@@ -34,6 +34,7 @@ type Client interface {
 	ExecuteCommand(containerID t.ContainerID, command string, timeout int) (SkipUpdate bool, err error)
 	RemoveImageByID(t.ImageID) error
 	WarnOnHeadPullFailed(container Container) bool
+	ContainerDigestMatchesWithRegistry(container Container) (matches bool, err error)
 }
 
 // NewClient returns a new Client instance which can be used to interact with
@@ -331,21 +332,13 @@ func (client dockerClient) PullImage(ctx context.Context, container Container) e
 
 	log.WithFields(fields).Debugf("Checking if pull is needed")
 
-	if match, err := digest.CompareDigest(container, opts.RegistryAuth); err != nil {
-		headLevel := log.DebugLevel
-		if client.WarnOnHeadPullFailed(container) {
-			headLevel = log.WarnLevel
-		}
-		log.WithFields(fields).Logf(headLevel, "Could not do a head request for %q, falling back to regular pull.", imageName)
-		log.WithFields(fields).Log(headLevel, "Reason: ", err)
-	} else if match {
+	matches, err := client.digestMatchesWithRegistry(ctx, container, opts.RegistryAuth)
+	if matches == true {
 		log.Debug("No pull needed. Skipping image.")
 		return nil
-	} else {
-		log.Debug("Digests did not match, doing a pull.")
 	}
 
-	log.WithFields(fields).Debugf("Pulling image")
+	log.WithFields(fields).Debugf("Digests did not match, pulling image")
 
 	response, err := client.api.ImagePull(ctx, imageName, opts)
 	if err != nil {
@@ -360,6 +353,40 @@ func (client dockerClient) PullImage(ctx context.Context, container Container) e
 		return err
 	}
 	return nil
+}
+
+func (client dockerClient) ContainerDigestMatchesWithRegistry(container Container) (matches bool, err error) {
+	ctx := context.Background()
+	imageName := container.ImageName()
+	opts, err := registry.GetPullOptions(imageName)
+	if err != nil {
+		log.Debugf("Error loading authentication credentials %s", err)
+		return false, err
+	}
+
+	return client.digestMatchesWithRegistry(ctx, container, opts.RegistryAuth)
+}
+
+func (client dockerClient) digestMatchesWithRegistry(ctx context.Context, container Container, registryAuth string) (matches bool, err error) {
+	containerName := container.Name()
+	imageName := container.ImageName()
+	fields := log.Fields{
+		"image":     imageName,
+		"container": containerName,
+	}
+
+	match, err := digest.CompareDigest(container, registryAuth)
+	if err != nil {
+		headLevel := log.DebugLevel
+		if client.WarnOnHeadPullFailed(container) {
+			headLevel = log.WarnLevel
+		}
+		log.WithFields(fields).Logf(headLevel, "Could not do a head request for %q, falling back to regular pull.", imageName)
+		log.WithFields(fields).Log(headLevel, "Reason: ", err)
+		return false, err
+	}
+
+	return match, nil
 }
 
 func (client dockerClient) RemoveImageByID(id t.ImageID) error {
