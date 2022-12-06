@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -19,7 +20,7 @@ import (
 const ChallengeHeader = "WWW-Authenticate"
 
 // GetToken fetches a token for the registry hosting the provided image
-func GetToken(container types.Container, registryAuth string) (string, error) {
+func GetToken(ctx context.Context, container types.Container, registryAuth string) (string, error) {
 	var err error
 	var URL url.URL
 
@@ -29,13 +30,12 @@ func GetToken(container types.Container, registryAuth string) (string, error) {
 	logrus.WithField("URL", URL.String()).Debug("Building challenge URL")
 
 	var req *http.Request
-	if req, err = GetChallengeRequest(URL); err != nil {
+	if req, err = GetChallengeRequest(ctx, URL); err != nil {
 		return "", err
 	}
 
-	client := &http.Client{}
 	var res *http.Response
-	if res, err = client.Do(req); err != nil {
+	if res, err = http.DefaultClient.Do(req); err != nil {
 		return "", err
 	}
 	defer res.Body.Close()
@@ -55,15 +55,15 @@ func GetToken(container types.Container, registryAuth string) (string, error) {
 		return fmt.Sprintf("Basic %s", registryAuth), nil
 	}
 	if strings.HasPrefix(challenge, "bearer") {
-		return GetBearerHeader(challenge, container.ImageName(), registryAuth)
+		return GetBearerHeader(ctx, challenge, container.ImageName(), registryAuth)
 	}
 
 	return "", errors.New("unsupported challenge type from registry")
 }
 
 // GetChallengeRequest creates a request for getting challenge instructions
-func GetChallengeRequest(URL url.URL) (*http.Request, error) {
-	req, err := http.NewRequest("GET", URL.String(), nil)
+func GetChallengeRequest(ctx context.Context, URL url.URL) (*http.Request, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", URL.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -73,8 +73,7 @@ func GetChallengeRequest(URL url.URL) (*http.Request, error) {
 }
 
 // GetBearerHeader tries to fetch a bearer token from the registry based on the challenge instructions
-func GetBearerHeader(challenge string, img string, registryAuth string) (string, error) {
-	client := http.Client{}
+func GetBearerHeader(ctx context.Context, challenge string, img string, registryAuth string) (string, error) {
 	if strings.Contains(img, ":") {
 		img = strings.Split(img, ":")[0]
 	}
@@ -85,7 +84,7 @@ func GetBearerHeader(challenge string, img string, registryAuth string) (string,
 	}
 
 	var r *http.Request
-	if r, err = http.NewRequest("GET", authURL.String(), nil); err != nil {
+	if r, err = http.NewRequestWithContext(ctx, "GET", authURL.String(), nil); err != nil {
 		return "", err
 	}
 
@@ -98,7 +97,7 @@ func GetBearerHeader(challenge string, img string, registryAuth string) (string,
 	}
 
 	var authResponse *http.Response
-	if authResponse, err = client.Do(r); err != nil {
+	if authResponse, err = http.DefaultClient.Do(r); err != nil {
 		return "", err
 	}
 

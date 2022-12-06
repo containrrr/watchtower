@@ -1,35 +1,37 @@
 package digest
 
 import (
+	"context"
 	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
+	"net/http"
+	"strings"
+	"time"
+
 	"github.com/containrrr/watchtower/internal/meta"
 	"github.com/containrrr/watchtower/pkg/registry/auth"
 	"github.com/containrrr/watchtower/pkg/registry/manifest"
 	"github.com/containrrr/watchtower/pkg/types"
 	"github.com/sirupsen/logrus"
-	"net"
-	"net/http"
-	"strings"
-	"time"
 )
 
 // ContentDigestHeader is the key for the key-value pair containing the digest header
 const ContentDigestHeader = "Docker-Content-Digest"
 
 // CompareDigest ...
-func CompareDigest(container types.Container, registryAuth string) (bool, error) {
+func CompareDigest(ctx context.Context, container types.Container, registryAuth string) (bool, error) {
 	if !container.HasImageInfo() {
 		return false, errors.New("container image info missing")
 	}
-	
+
 	var digest string
 
 	registryAuth = TransformAuth(registryAuth)
-	token, err := auth.GetToken(container, registryAuth)
+	token, err := auth.GetToken(ctx, container, registryAuth)
 	if err != nil {
 		return false, err
 	}
@@ -39,7 +41,7 @@ func CompareDigest(container types.Container, registryAuth string) (bool, error)
 		return false, err
 	}
 
-	if digest, err = GetDigest(digestURL, token); err != nil {
+	if digest, err = GetDigest(ctx, digestURL, token); err != nil {
 		return false, err
 	}
 
@@ -74,7 +76,7 @@ func TransformAuth(registryAuth string) string {
 }
 
 // GetDigest from registry using a HEAD request to prevent rate limiting
-func GetDigest(url string, token string) (string, error) {
+func GetDigest(ctx context.Context, url string, token string) (string, error) {
 	tr := &http.Transport{
 		Proxy: http.ProxyFromEnvironment,
 		DialContext: (&net.Dialer{
@@ -90,7 +92,7 @@ func GetDigest(url string, token string) (string, error) {
 	}
 	client := &http.Client{Transport: tr}
 
-	req, _ := http.NewRequest("HEAD", url, nil)
+	req, _ := http.NewRequestWithContext(ctx, "HEAD", url, nil)
 	req.Header.Set("User-Agent", meta.UserAgent)
 
 	if token != "" {

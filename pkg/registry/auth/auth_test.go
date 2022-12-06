@@ -1,13 +1,15 @@
 package auth_test
 
 import (
+	"context"
 	"fmt"
-	"github.com/containrrr/watchtower/internal/actions/mocks"
-	"github.com/containrrr/watchtower/pkg/registry/auth"
 	"net/url"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/containrrr/watchtower/internal/actions/mocks"
+	"github.com/containrrr/watchtower/pkg/registry/auth"
 
 	wtTypes "github.com/containrrr/watchtower/pkg/types"
 	. "github.com/onsi/ginkgo"
@@ -32,6 +34,8 @@ func SkipIfCredentialsEmpty(credentials *wtTypes.RegistryCredentials, fn func())
 	}
 }
 
+var ctx = context.Background()
+
 var GHCRCredentials = &wtTypes.RegistryCredentials{
 	Username: os.Getenv("CI_INTEGRATION_TEST_REGISTRY_GH_USERNAME"),
 	Password: os.Getenv("CI_INTEGRATION_TEST_REGISTRY_GH_PASSWORD"),
@@ -55,7 +59,7 @@ var _ = Describe("the auth module", func() {
 		It("should parse the token from the response",
 			SkipIfCredentialsEmpty(GHCRCredentials, func() {
 				creds := fmt.Sprintf("%s:%s", GHCRCredentials.Username, GHCRCredentials.Password)
-				token, err := auth.GetToken(mockContainer, creds)
+				token, err := auth.GetToken(ctx, mockContainer, creds)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(token).NotTo(Equal(""))
 			}),
