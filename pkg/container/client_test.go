@@ -33,8 +33,8 @@ var _ = Describe("the client", func() {
 		mockServer.Close()
 	})
 	Describe("WarnOnHeadPullFailed", func() {
-		containerUnknown := *mockContainerWithImageName("unknown.repo/prefix/imagename:latest")
-		containerKnown := *mockContainerWithImageName("docker.io/prefix/imagename:latest")
+		containerUnknown := *MockContainer(WithImageName("unknown.repo/prefix/imagename:latest"))
+		containerKnown := *MockContainer(WithImageName("docker.io/prefix/imagename:latest"))
 
 		When(`warn on head failure is set to "always"`, func() {
 			c := dockerClient{ClientOptions: ClientOptions{WarnOnHeadFailed: WarnAlways}}
@@ -64,7 +64,7 @@ var _ = Describe("the client", func() {
 		When("the image consist of a pinned hash", func() {
 			It("should gracefully fail with a useful message", func() {
 				c := dockerClient{}
-				pinnedContainer := *mockContainerWithImageName("sha256:fa5269854a5e615e51a72b17ad3fd1e01268f278a6684c8ed3c5f0cdce3f230b")
+				pinnedContainer := *MockContainer(WithImageName("sha256:fa5269854a5e615e51a72b17ad3fd1e01268f278a6684c8ed3c5f0cdce3f230b"))
 				c.PullImage(context.Background(), pinnedContainer)
 			})
 		})
