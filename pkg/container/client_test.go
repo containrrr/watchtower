@@ -1,6 +1,8 @@
 package container
 
 import (
+	"time"
+
 	"github.com/containrrr/watchtower/pkg/container/mocks"
 	"github.com/containrrr/watchtower/pkg/filters"
 	t "github.com/containrrr/watchtower/pkg/types"
@@ -66,6 +68,38 @@ var _ = Describe("the client", func() {
 				c := dockerClient{}
 				pinnedContainer := *MockContainer(WithImageName("sha256:fa5269854a5e615e51a72b17ad3fd1e01268f278a6684c8ed3c5f0cdce3f230b"))
 				c.PullImage(context.Background(), pinnedContainer)
+			})
+		})
+	})
+	When("removing a running container", func() {
+		When("the container still exist after stopping", func() {
+			It("should attempt to remove the container", func() {
+				container := *MockContainer(WithContainerState(types.ContainerState{Running: true}))
+				containerStopped := *MockContainer(WithContainerState(types.ContainerState{Running: false}))
+
+				cid := container.ContainerInfo().ID
+				mockServer.AppendHandlers(
+					mocks.KillContainerHandler(cid, mocks.Found),
+					mocks.GetContainerHandler(cid, containerStopped.ContainerInfo()),
+					mocks.RemoveContainerHandler(cid, mocks.Found),
+					mocks.GetContainerHandler(cid, nil),
+				)
+
+				Expect(dockerClient{api: docker}.StopContainer(container, time.Minute)).To(Succeed())
+			})
+		})
+		When("the container does not exist after stopping", func() {
+			It("should not cause an error", func() {
+				container := *MockContainer(WithContainerState(types.ContainerState{Running: true}))
+
+				cid := container.ContainerInfo().ID
+				mockServer.AppendHandlers(
+					mocks.KillContainerHandler(cid, mocks.Found),
+					mocks.GetContainerHandler(cid, nil),
+					mocks.RemoveContainerHandler(cid, mocks.Missing),
+				)
+
+				Expect(dockerClient{api: docker}.StopContainer(container, time.Minute)).To(Succeed())
 			})
 		})
 	})
