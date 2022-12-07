@@ -110,7 +110,7 @@ func GetContainerHandlerOK(containerInfo *types.ContainerJSON) http.HandlerFunc 
 	return GetContainerHandler(containerInfo.ID, containerInfo)
 }
 
-// GetImageHandler mocks the GET images/{imageName}/json endpoint, returns a 200 OK response with the imageInfo
+// GetImageHandlerOK mocks the GET images/{imageName}/json endpoint, returning a 200 OK response with the imageInfo
 func GetImageHandlerOK(imageName string, imageInfo *types.ImageInspect) http.HandlerFunc {
 	return getImageHandler(imageName, ghttp.RespondWithJSONEncoded(http.StatusOK, imageInfo))
 }
@@ -122,6 +122,7 @@ func GetImageHandlerNotFound(imageName string) http.HandlerFunc {
 	return getImageHandler(imageName, ghttp.RespondWithJSONEncoded(http.StatusNotFound, body))
 }
 
+// PullImageHandlerOK mocks the POST images/create endpoint, returning a 204 NoContent response
 func PullImageHandlerOK() http.HandlerFunc {
 	return ghttp.CombineHandlers(
 		ghttp.VerifyRequest("POST", O.HaveSuffix("images/create")),
