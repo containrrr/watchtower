@@ -1,7 +1,6 @@
 package registry
 
 import (
-	"crypto/tls"
 	"net"
 	"net/http"
 	"time"
@@ -34,7 +33,6 @@ func NewClient() *Client {
 		IdleConnTimeout:       90 * time.Second,
 		TLSHandshakeTimeout:   10 * time.Second,
 		ExpectContinueTimeout: 1 * time.Second,
-		TLSClientConfig:       &tls.Config{InsecureSkipVerify: true},
 	}
 	return NewClientWithHTTPClient(&http.Client{Transport: tr})
 }

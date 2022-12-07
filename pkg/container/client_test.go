@@ -7,7 +7,6 @@ import (
 	"github.com/containrrr/watchtower/pkg/container/mocks"
 	"github.com/containrrr/watchtower/pkg/filters"
 	"github.com/containrrr/watchtower/pkg/registry"
-	t "github.com/containrrr/watchtower/pkg/types"
 	wt "github.com/containrrr/watchtower/pkg/types"
 
 	"github.com/docker/docker/api/types"
@@ -295,7 +294,7 @@ var _ = Describe("the client", func() {
 				logrus.SetOutput(logbuf)
 
 				user := ""
-				containerID := t.ContainerID("ex-cont-id")
+				containerID := wt.ContainerID("ex-cont-id")
 				execID := "ex-exec-id"
 				cmd := "exec-cmd"
 
