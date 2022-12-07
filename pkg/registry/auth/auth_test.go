@@ -1,14 +1,10 @@
 package auth_test
 
 import (
-	"context"
-	"fmt"
 	"net/url"
 	"os"
 	"testing"
-	"time"
 
-	"github.com/containrrr/watchtower/internal/actions/mocks"
 	"github.com/containrrr/watchtower/pkg/registry/auth"
 
 	wtTypes "github.com/containrrr/watchtower/pkg/types"
@@ -34,37 +30,13 @@ func SkipIfCredentialsEmpty(credentials *wtTypes.RegistryCredentials, fn func())
 	}
 }
 
-var ctx = context.Background()
-
 var GHCRCredentials = &wtTypes.RegistryCredentials{
 	Username: os.Getenv("CI_INTEGRATION_TEST_REGISTRY_GH_USERNAME"),
 	Password: os.Getenv("CI_INTEGRATION_TEST_REGISTRY_GH_PASSWORD"),
 }
 
 var _ = Describe("the auth module", func() {
-	mockId := "mock-id"
-	mockName := "mock-container"
-	mockImage := "ghcr.io/k6io/operator:latest"
-	mockCreated := time.Now()
-	mockDigest := "ghcr.io/k6io/operator@sha256:d68e1e532088964195ad3a0a71526bc2f11a78de0def85629beb75e2265f0547"
-
-	mockContainer := mocks.CreateMockContainerWithDigest(
-		mockId,
-		mockName,
-		mockImage,
-		mockCreated,
-		mockDigest)
-
 	When("getting an auth url", func() {
-		It("should parse the token from the response",
-			SkipIfCredentialsEmpty(GHCRCredentials, func() {
-				creds := fmt.Sprintf("%s:%s", GHCRCredentials.Username, GHCRCredentials.Password)
-				token, err := auth.GetToken(ctx, mockContainer, creds)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(token).NotTo(Equal(""))
-			}),
-		)
-
 		It("should create a valid auth url object based on the challenge header supplied", func() {
 			input := `bearer realm="https://ghcr.io/token",service="ghcr.io",scope="repository:user/image:pull"`
 			expected := &url.URL{

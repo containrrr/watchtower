@@ -1,25 +1,19 @@
-package digest_test
+package registry_test
 
 import (
 	"fmt"
 	"net/http"
 	"os"
-	"testing"
 	"time"
 
 	"github.com/containrrr/watchtower/internal/actions/mocks"
-	"github.com/containrrr/watchtower/pkg/registry/digest"
+	"github.com/containrrr/watchtower/pkg/registry"
 	wtTypes "github.com/containrrr/watchtower/pkg/types"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
 	"golang.org/x/net/context"
 )
-
-func TestDigest(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(GinkgoT(), "Digest Suite")
-}
 
 var (
 	DockerHubCredentials = &wtTypes.RegistryCredentials{
@@ -31,6 +25,7 @@ var (
 		Password: os.Getenv("CI_INTEGRATION_TEST_REGISTRY_GH_PASSWORD"),
 	}
 	ctx = context.Background()
+	rc  = registry.NewClientWithHTTPClient(http.DefaultClient)
 )
 
 func SkipIfCredentialsEmpty(credentials *wtTypes.RegistryCredentials, fn func()) func() {
@@ -67,7 +62,7 @@ var _ = Describe("Digests", func() {
 		It("should return true if digests match",
 			SkipIfCredentialsEmpty(GHCRCredentials, func() {
 				creds := fmt.Sprintf("%s:%s", GHCRCredentials.Username, GHCRCredentials.Password)
-				matches, err := digest.CompareDigest(ctx, mockContainer, creds)
+				matches, err := rc.CompareDigest(ctx, mockContainer, creds)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(matches).To(Equal(true))
 			}),
@@ -80,7 +75,7 @@ var _ = Describe("Digests", func() {
 
 		})
 		It("should return an error when container contains no image info", func() {
-			matches, err := digest.CompareDigest(ctx, mockContainerNoImage, `user:pass`)
+			matches, err := rc.CompareDigest(ctx, mockContainerNoImage, `user:pass`)
 			Expect(err).To(HaveOccurred())
 			Expect(matches).To(Equal(false))
 		})
@@ -112,16 +107,42 @@ var _ = Describe("Digests", func() {
 						"User-Agent": []string{"Watchtower/v0.0.0-unknown"},
 					}),
 					ghttp.RespondWith(http.StatusOK, "", http.Header{
-						digest.ContentDigestHeader: []string{
+						registry.ContentDigestHeader: []string{
 							mockDigest,
 						},
 					}),
 				),
 			)
-			dig, err := digest.GetDigest(ctx, server.URL(), "token")
+			dig, err := rc.GetDigest(ctx, server.URL(), "token")
 			Expect(server.ReceivedRequests()).Should(HaveLen(1))
 			Expect(err).NotTo(HaveOccurred())
 			Expect(dig).To(Equal(mockDigest))
 		})
+	})
+})
+
+var _ = Describe("the auth module", func() {
+	mockId := "mock-id"
+	mockName := "mock-container"
+	mockImage := "ghcr.io/k6io/operator:latest"
+	mockCreated := time.Now()
+	mockDigest := "ghcr.io/k6io/operator@sha256:d68e1e532088964195ad3a0a71526bc2f11a78de0def85629beb75e2265f0547"
+
+	mockContainer := mocks.CreateMockContainerWithDigest(
+		mockId,
+		mockName,
+		mockImage,
+		mockCreated,
+		mockDigest)
+
+	When("getting an auth url", func() {
+		It("should parse the token from the response",
+			SkipIfCredentialsEmpty(GHCRCredentials, func() {
+				creds := fmt.Sprintf("%s:%s", GHCRCredentials.Username, GHCRCredentials.Password)
+				token, err := rc.GetToken(ctx, mockContainer, creds)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(token).NotTo(Equal(""))
+			}),
+		)
 	})
 })

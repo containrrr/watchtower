@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/containrrr/watchtower/pkg/registry"
-	"github.com/containrrr/watchtower/pkg/registry/digest"
 
 	t "github.com/containrrr/watchtower/pkg/types"
 	"github.com/docker/docker/api/types"
@@ -52,6 +51,7 @@ func NewClient(opts ClientOptions) Client {
 	return dockerClient{
 		api:           cli,
 		ClientOptions: opts,
+		reg:           registry.NewClient(),
 	}
 }
 
@@ -63,6 +63,7 @@ type ClientOptions struct {
 	ReviveStopped     bool
 	IncludeRestarting bool
 	WarnOnHeadFailed  WarningStrategy
+	Timeout           time.Duration
 }
 
 // WarningStrategy is a value determining when to show warnings
@@ -80,6 +81,16 @@ const (
 type dockerClient struct {
 	api sdkClient.CommonAPIClient
 	ClientOptions
+	reg *registry.Client
+}
+
+func (client *dockerClient) createContext() (context.Context, context.CancelFunc) {
+	base := context.TODO()
+	if client.ClientOptions.Timeout == 0 {
+		// No timeout has been specified, let's not create a context that instantly cancels itself
+		return base, func() {}
+	}
+	return context.WithTimeout(context.Background(), client.ClientOptions.Timeout)
 }
 
 func (client dockerClient) WarnOnHeadPullFailed(container Container) bool {
@@ -278,7 +289,8 @@ func (client dockerClient) RenameContainer(c Container, newName string) error {
 }
 
 func (client dockerClient) IsContainerStale(container Container) (stale bool, latestImage t.ImageID, err error) {
-	ctx := context.Background()
+	ctx, cancel := client.createContext()
+	defer cancel()
 
 	if !client.PullImages {
 		log.Debugf("Skipping image pull.")
@@ -335,12 +347,12 @@ func (client dockerClient) PullImage(ctx context.Context, container Container) e
 
 	log.WithFields(fields).Debugf("Checking if pull is needed")
 
-	if match, err := digest.CompareDigest(ctx, container, opts.RegistryAuth); err != nil {
+	if match, err := client.reg.CompareDigest(ctx, container, opts.RegistryAuth); err != nil {
 		headLevel := log.DebugLevel
 		if client.WarnOnHeadPullFailed(container) {
 			headLevel = log.WarnLevel
 		}
-		log.WithFields(fields).Logf(headLevel, "Could not do a head request for %q, falling back to regular pull.", imageName)
+		log.WithFields(fields).Log(headLevel, "Could not do a head request, falling back to regular pull.")
 		log.WithFields(fields).Log(headLevel, "Reason: ", err)
 	} else if match {
 		log.Debug("No pull needed. Skipping image.")
