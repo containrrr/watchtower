@@ -81,7 +81,7 @@ jobs:
           password: ${{ secrets.BOT_GHCR_PAT }}
           registry: ghcr.io
       - name: Build
-        uses: goreleaser/goreleaser-action@b508e2e3ef3b19d4e4146d4f8fb3ba9db644a757 #v3
+        uses: goreleaser/goreleaser-action@8f67e590f2d095516493f017008adc464e63adb1 #v3
         with:
           version: v0.155.0
           args: --debug
