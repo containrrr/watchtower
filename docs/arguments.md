@@ -285,6 +285,16 @@ Environment Variable: WATCHTOWER_HTTP_API_PERIODIC_POLLS
              Default: false
 ```
 
+## HTTP Web Dashboard
+Enables the web dashboard at http://localhost:8001
+
+```text
+            Argument: --http-web-dashboard
+Environment Variable: WATCHTOWER_HTTP_WEB_DASHBOARD
+                Type: Boolean
+             Default: false
+```
+
 ## Filter by scope
 Update containers that have a `com.centurylinklabs.watchtower.scope` label set with the same value as the given argument. 
 This enables [running multiple instances](https://containrrr.dev/watchtower/running-multiple-instances).

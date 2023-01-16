@@ -14,9 +14,12 @@ import (
 	"github.com/containrrr/watchtower/internal/flags"
 	"github.com/containrrr/watchtower/internal/meta"
 	"github.com/containrrr/watchtower/pkg/api"
+	apiCheck "github.com/containrrr/watchtower/pkg/api/check"
+	apiList "github.com/containrrr/watchtower/pkg/api/list"
 	apiMetrics "github.com/containrrr/watchtower/pkg/api/metrics"
 	"github.com/containrrr/watchtower/pkg/api/update"
 	"github.com/containrrr/watchtower/pkg/container"
+	"github.com/containrrr/watchtower/pkg/dashboard"
 	"github.com/containrrr/watchtower/pkg/filters"
 	"github.com/containrrr/watchtower/pkg/metrics"
 	"github.com/containrrr/watchtower/pkg/notifications"
@@ -152,9 +155,14 @@ func Run(c *cobra.Command, names []string) {
 	enableMetricsAPI, _ := c.PersistentFlags().GetBool("http-api-metrics")
 	unblockHTTPAPI, _ := c.PersistentFlags().GetBool("http-api-periodic-polls")
 	apiToken, _ := c.PersistentFlags().GetString("http-api-token")
+	enableDashboard, _ := c.PersistentFlags().GetBool("http-web-dashboard")
 
 	if rollingRestart && monitorOnly {
 		log.Fatal("Rolling restarts is not compatible with the global monitor only flag")
+	}
+
+	if enableDashboard {
+		enableUpdateAPI = true
 	}
 
 	awaitDockerClient()
@@ -182,12 +190,29 @@ func Run(c *cobra.Command, names []string) {
 	httpAPI := api.New(apiToken)
 
 	if enableUpdateAPI {
-		updateHandler := update.New(func(images []string) { runUpdatesWithNotifications(filters.FilterByImage(images, filter)) }, updateLock)
+		updateHandler := update.New(
+			func(images []string) { runUpdatesWithNotifications(filters.FilterByImage(images, filter)) },
+			func(containers []string) { runUpdatesWithNotifications(filters.FilterByNames(containers, filter)) },
+			updateLock)
 		httpAPI.RegisterFunc(updateHandler.Path, updateHandler.Handle)
 		// If polling isn't enabled the scheduler is never started and
 		// we need to trigger the startup messages manually.
 		if !unblockHTTPAPI {
 			writeStartupMessage(c, time.Time{}, filterDesc)
+		}
+
+		apiListHandler := apiList.New(client)
+		httpAPI.RegisterFunc(apiListHandler.Path, apiListHandler.HandleGet)
+
+		apiCheckHandler := apiCheck.New(client)
+		httpAPI.RegisterFunc(apiCheckHandler.Path, apiCheckHandler.HandlePost)
+	}
+
+	if enableDashboard {
+		httpDashboard := dashboard.New()
+
+		if err := httpDashboard.Start(); err != nil && err != http.ErrServerClosed {
+			log.Error("failed to start dashboard server", err)
 		}
 	}
 
@@ -260,6 +285,7 @@ func formatDuration(d time.Duration) string {
 func writeStartupMessage(c *cobra.Command, sched time.Time, filtering string) {
 	noStartupMessage, _ := c.PersistentFlags().GetBool("no-startup-message")
 	enableUpdateAPI, _ := c.PersistentFlags().GetBool("http-api-update")
+	enableDashboardWeb, _ := c.PersistentFlags().GetBool("http-web-dashboard")
 
 	var startupLog *log.Entry
 	if noStartupMessage {
@@ -294,6 +320,11 @@ func writeStartupMessage(c *cobra.Command, sched time.Time, filtering string) {
 	if enableUpdateAPI {
 		// TODO: make listen port configurable
 		startupLog.Info("The HTTP API is enabled at :8080.")
+	}
+
+	if enableDashboardWeb {
+		// TODO: make listen port configurable
+		startupLog.Info("The HTTP Web dashboard is enabled at :8001.")
 	}
 
 	if !noStartupMessage {

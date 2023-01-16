@@ -163,6 +163,12 @@ func RegisterSystemFlags(rootCmd *cobra.Command) {
 		viper.GetBool("WATCHTOWER_HTTP_API_PERIODIC_POLLS"),
 		"Also run periodic updates (specified with --interval and --schedule) if HTTP API is enabled")
 
+	flags.BoolP(
+		"http-web-dashboard",
+		"",
+		viper.GetBool("WATCHTOWER_HTTP_WEB_DASHBOARD"),
+		"Enables the web dashboard at http://localhost:8001")
+
 	// https://no-color.org/
 	flags.BoolP(
 		"no-color",
