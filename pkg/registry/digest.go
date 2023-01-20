@@ -1,35 +1,37 @@
-package digest
+package registry
 
 import (
-	"crypto/tls"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
+	"strings"
+
 	"github.com/containrrr/watchtower/internal/meta"
-	"github.com/containrrr/watchtower/pkg/registry/auth"
 	"github.com/containrrr/watchtower/pkg/registry/manifest"
 	"github.com/containrrr/watchtower/pkg/types"
 	"github.com/sirupsen/logrus"
-	"net"
-	"net/http"
-	"strings"
-	"time"
 )
 
 // ContentDigestHeader is the key for the key-value pair containing the digest header
 const ContentDigestHeader = "Docker-Content-Digest"
 
-// CompareDigest ...
-func CompareDigest(container types.Container, registryAuth string) (bool, error) {
+// CompareDigest retrieves the latest digest for the container image from the registry
+// and returns whether it matches any of the containers current image's digest
+func (rc *Client) CompareDigest(ctx context.Context, container types.Container, registryAuth string) (bool, error) {
+	ctx, cancel := context.WithTimeout(ctx, rc.Timeout)
+	defer cancel()
+
 	if !container.HasImageInfo() {
 		return false, errors.New("container image info missing")
 	}
-	
+
 	var digest string
 
 	registryAuth = TransformAuth(registryAuth)
-	token, err := auth.GetToken(container, registryAuth)
+	token, err := rc.GetToken(ctx, container, registryAuth)
 	if err != nil {
 		return false, err
 	}
@@ -39,7 +41,7 @@ func CompareDigest(container types.Container, registryAuth string) (bool, error)
 		return false, err
 	}
 
-	if digest, err = GetDigest(digestURL, token); err != nil {
+	if digest, err = rc.GetDigest(ctx, digestURL, token); err != nil {
 		return false, err
 	}
 
@@ -74,23 +76,9 @@ func TransformAuth(registryAuth string) string {
 }
 
 // GetDigest from registry using a HEAD request to prevent rate limiting
-func GetDigest(url string, token string) (string, error) {
-	tr := &http.Transport{
-		Proxy: http.ProxyFromEnvironment,
-		DialContext: (&net.Dialer{
-			Timeout:   30 * time.Second,
-			KeepAlive: 30 * time.Second,
-		}).DialContext,
-		ForceAttemptHTTP2:     true,
-		MaxIdleConns:          100,
-		IdleConnTimeout:       90 * time.Second,
-		TLSHandshakeTimeout:   10 * time.Second,
-		ExpectContinueTimeout: 1 * time.Second,
-		TLSClientConfig:       &tls.Config{InsecureSkipVerify: true},
-	}
-	client := &http.Client{Transport: tr}
+func (rc *Client) GetDigest(ctx context.Context, url string, token string) (string, error) {
 
-	req, _ := http.NewRequest("HEAD", url, nil)
+	req, _ := http.NewRequestWithContext(ctx, "HEAD", url, nil)
 	req.Header.Set("User-Agent", meta.UserAgent)
 
 	if token != "" {
@@ -106,7 +94,7 @@ func GetDigest(url string, token string) (string, error) {
 
 	logrus.WithField("url", url).Debug("Doing a HEAD request to fetch a digest")
 
-	res, err := client.Do(req)
+	res, err := rc.httpClient.Do(req)
 	if err != nil {
 		return "", err
 	}

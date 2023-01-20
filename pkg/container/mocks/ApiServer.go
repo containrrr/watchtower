@@ -92,7 +92,10 @@ func getContainerHandler(containerId string, responseHandler http.HandlerFunc) h
 	)
 }
 
-// GetContainerHandler mocks the GET containers/{id}/json endpoint
+// GetContainerHandler mocks the GET containers/{containerID}/json endpoint.
+//
+// If containerInfo is nil, it returns an 200 OK http result with the containerInfo as the body.
+// Otherwise, it returns the appropriate 404 NotFound result for the containerID.
 func GetContainerHandler(containerID string, containerInfo *types.ContainerJSON) http.HandlerFunc {
 	responseHandler := containerNotFoundResponse(containerID)
 	if containerInfo != nil {
@@ -101,9 +104,30 @@ func GetContainerHandler(containerID string, containerInfo *types.ContainerJSON)
 	return getContainerHandler(containerID, responseHandler)
 }
 
-// GetImageHandler mocks the GET images/{id}/json endpoint
-func GetImageHandler(imageInfo *types.ImageInspect) http.HandlerFunc {
-	return getImageHandler(imageInfo.ID, ghttp.RespondWithJSONEncoded(http.StatusOK, imageInfo))
+// GetContainerHandlerOK mocks the GET containers/{containerInfo.ID}/json endpoint, returning the containerInfo
+func GetContainerHandlerOK(containerInfo *types.ContainerJSON) http.HandlerFunc {
+	O.ExpectWithOffset(1, containerInfo).ToNot(O.BeNil())
+	return GetContainerHandler(containerInfo.ID, containerInfo)
+}
+
+// GetImageHandlerOK mocks the GET images/{imageName}/json endpoint, returning a 200 OK response with the imageInfo
+func GetImageHandlerOK(imageName string, imageInfo *types.ImageInspect) http.HandlerFunc {
+	return getImageHandler(imageName, ghttp.RespondWithJSONEncoded(http.StatusOK, imageInfo))
+}
+
+// GetImageHandlerNotFound mocks the GET images/{imageName}/json endpoint, returning a 404 NotFound response
+// with the appropriate error message for imageName
+func GetImageHandlerNotFound(imageName string) http.HandlerFunc {
+	body := errorMessage{"no such image: " + imageName}
+	return getImageHandler(imageName, ghttp.RespondWithJSONEncoded(http.StatusNotFound, body))
+}
+
+// PullImageHandlerOK mocks the POST images/create endpoint, returning a 204 NoContent response
+func PullImageHandlerOK() http.HandlerFunc {
+	return ghttp.CombineHandlers(
+		ghttp.VerifyRequest("POST", O.HaveSuffix("images/create")),
+		ghttp.RespondWith(http.StatusNoContent, nil),
+	)
 }
 
 // ListContainersHandler mocks the GET containers/json endpoint, filtering the returned containers based on statuses
@@ -179,8 +203,10 @@ func RemoveContainerHandler(containerID string, found FoundStatus) http.HandlerF
 	)
 }
 
+type errorMessage struct{ message string }
+
 func containerNotFoundResponse(containerID string) http.HandlerFunc {
-	return ghttp.RespondWithJSONEncoded(http.StatusNotFound, struct{ message string }{message: "No such container: " + containerID})
+	return ghttp.RespondWithJSONEncoded(http.StatusNotFound, errorMessage{"No such container: " + containerID})
 }
 
 var noContentStatusResponse = ghttp.RespondWith(http.StatusNoContent, nil)

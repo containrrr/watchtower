@@ -3,9 +3,11 @@ package container
 import (
 	"time"
 
+	"github.com/containrrr/watchtower/internal/testing/delayhttp"
 	"github.com/containrrr/watchtower/pkg/container/mocks"
 	"github.com/containrrr/watchtower/pkg/filters"
-	t "github.com/containrrr/watchtower/pkg/types"
+	"github.com/containrrr/watchtower/pkg/registry"
+	wt "github.com/containrrr/watchtower/pkg/types"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/backend"
@@ -25,6 +27,7 @@ import (
 var _ = Describe("the client", func() {
 	var docker *cli.Client
 	var mockServer *ghttp.Server
+	mockRegServer := ghttp.NewTLSServer()
 	BeforeEach(func() {
 		mockServer = ghttp.NewServer()
 		docker, _ = cli.NewClientWithOpts(
@@ -33,6 +36,7 @@ var _ = Describe("the client", func() {
 	})
 	AfterEach(func() {
 		mockServer.Close()
+		mockRegServer.Reset()
 	})
 	Describe("WarnOnHeadPullFailed", func() {
 		containerUnknown := *MockContainer(WithImageName("unknown.repo/prefix/imagename:latest"))
@@ -100,6 +104,97 @@ var _ = Describe("the client", func() {
 				)
 
 				Expect(dockerClient{api: docker}.StopContainer(container, time.Minute)).To(Succeed())
+			})
+		})
+	})
+	When("checking if container is stale", func() {
+
+		testRegPullFallback := func(client *dockerClient, cnt *Container, regResponses int) (bool, error) {
+			delayedResponseHandler, cancel := delayhttp.WithCancel()
+			defer cancel()
+
+			// TODO: Add mock handlers for repository requests
+			regRequestHandlers := [][]http.HandlerFunc{
+				{
+					ghttp.VerifyRequest("GET", HaveSuffix("v2/")),
+					func(_ http.ResponseWriter, _ *http.Request) {
+						Fail("registry request is not implemented")
+					},
+				},
+			}
+
+			for i, regRequestPair := range regRequestHandlers {
+
+				verifyHandler := regRequestPair[0]
+				responseHandler := regRequestPair[1]
+
+				if i >= regResponses {
+					// Registry should not be responding
+					responseHandler = delayedResponseHandler
+				}
+
+				mockRegServer.AppendHandlers(ghttp.CombineHandlers(
+					verifyHandler,
+					responseHandler,
+				))
+
+				if i >= regResponses {
+					// No need to add further handlers since the last one is blocking
+					break
+				}
+			}
+
+			newImage := types.ImageInspect{ID: "newer_id"}
+
+			// Docker should respond normally
+			mockServer.AppendHandlers(
+				mocks.PullImageHandlerOK(),
+				mocks.GetImageHandlerOK(cnt.ImageName(), &newImage),
+			)
+
+			stale, latest, err := client.IsContainerStale(*cnt)
+
+			Expect(stale).To(Equal(latest == wt.ImageID(newImage.ID)))
+
+			return stale, err
+
+		}
+
+		When("head request times out", func() {
+			It("should gracefully fail and continue using pull", func() {
+				mockContainer := MockContainer(WithImageName(mockRegServer.Addr() + "/prefix/imagename:latest"))
+
+				regClient := registry.NewClientWithHTTPClient(mockRegServer.HTTPTestServer.Client())
+				regClient.Timeout = time.Second * 2
+				client := dockerClient{
+					api:           docker,
+					ClientOptions: ClientOptions{PullImages: true},
+					reg:           regClient,
+				}
+
+				stale, err := testRegPullFallback(&client, mockContainer, 0)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(stale).To(BeTrue())
+
+			})
+		})
+		When("client request times out", func() {
+			It("should fail with a useful message", func() {
+				mockContainer := MockContainer(WithImageName(mockRegServer.Addr() + "/prefix/imagename:latest"))
+
+				regClient := registry.NewClientWithHTTPClient(mockRegServer.HTTPTestServer.Client())
+				client := dockerClient{
+					api: docker,
+					ClientOptions: ClientOptions{
+						Timeout:    time.Second * 2,
+						PullImages: true,
+					},
+					reg: regClient,
+				}
+
+				_, err := testRegPullFallback(&client, mockContainer, 0)
+				Expect(err).To(MatchError(context.DeadlineExceeded))
+
 			})
 		})
 	})
@@ -199,7 +294,7 @@ var _ = Describe("the client", func() {
 				logrus.SetOutput(logbuf)
 
 				user := ""
-				containerID := t.ContainerID("ex-cont-id")
+				containerID := wt.ContainerID("ex-cont-id")
 				execID := "ex-exec-id"
 				cmd := "exec-cmd"
 

@@ -1,13 +1,11 @@
 package auth_test
 
 import (
-	"fmt"
-	"github.com/containrrr/watchtower/internal/actions/mocks"
-	"github.com/containrrr/watchtower/pkg/registry/auth"
 	"net/url"
 	"os"
 	"testing"
-	"time"
+
+	"github.com/containrrr/watchtower/pkg/registry/auth"
 
 	wtTypes "github.com/containrrr/watchtower/pkg/types"
 	. "github.com/onsi/ginkgo"
@@ -38,29 +36,7 @@ var GHCRCredentials = &wtTypes.RegistryCredentials{
 }
 
 var _ = Describe("the auth module", func() {
-	mockId := "mock-id"
-	mockName := "mock-container"
-	mockImage := "ghcr.io/k6io/operator:latest"
-	mockCreated := time.Now()
-	mockDigest := "ghcr.io/k6io/operator@sha256:d68e1e532088964195ad3a0a71526bc2f11a78de0def85629beb75e2265f0547"
-
-	mockContainer := mocks.CreateMockContainerWithDigest(
-		mockId,
-		mockName,
-		mockImage,
-		mockCreated,
-		mockDigest)
-
 	When("getting an auth url", func() {
-		It("should parse the token from the response",
-			SkipIfCredentialsEmpty(GHCRCredentials, func() {
-				creds := fmt.Sprintf("%s:%s", GHCRCredentials.Username, GHCRCredentials.Password)
-				token, err := auth.GetToken(mockContainer, creds)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(token).NotTo(Equal(""))
-			}),
-		)
-
 		It("should create a valid auth url object based on the challenge header supplied", func() {
 			input := `bearer realm="https://ghcr.io/token",service="ghcr.io",scope="repository:user/image:pull"`
 			expected := &url.URL{
