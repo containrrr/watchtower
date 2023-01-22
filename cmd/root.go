@@ -182,7 +182,10 @@ func Run(c *cobra.Command, names []string) {
 	httpAPI := api.New(apiToken)
 
 	if enableUpdateAPI {
-		updateHandler := update.New(func(images []string) { runUpdatesWithNotifications(filters.FilterByImage(images, filter)) }, updateLock)
+		updateHandler := update.New(func(images []string) {
+			metric := runUpdatesWithNotifications(filters.FilterByImage(images, filter))
+			metrics.RegisterScan(metric)
+		}, updateLock)
 		httpAPI.RegisterFunc(updateHandler.Path, updateHandler.Handle)
 		// If polling isn't enabled the scheduler is never started and
 		// we need to trigger the startup messages manually.
