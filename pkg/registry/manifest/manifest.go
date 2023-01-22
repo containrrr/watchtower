@@ -13,18 +13,16 @@ import (
 
 // BuildManifestURL from raw image data
 func BuildManifestURL(container types.Container) (string, error) {
-	var normalizedTaggedRef ref.NamedTagged
-	if normalizedRef, err := ref.ParseDockerRef(container.ImageName()); err == nil {
-		var isTagged bool
-		normalizedTaggedRef, isTagged = normalizedRef.(ref.NamedTagged)
+	normalizedRef, err := ref.ParseDockerRef(container.ImageName())
+	if err != nil {
+		return "", err
+	}
+	normalizedTaggedRef, isTagged := normalizedRef.(ref.NamedTagged)
 		if !isTagged {
 			return "", errors.New("Parsed container image ref has no tag: " + normalizedRef.String())
 		}
-	} else {
-		return "", err
-	}
 
-	host, err := helpers.NormalizeRegistry(normalizedTaggedRef.Name())
+	host, _ := helpers.GetRegistryAddress(normalizedTaggedRef.Name())
 	img, tag := ExtractImageAndTag(normalizedTaggedRef)
 
 	logrus.WithFields(logrus.Fields{

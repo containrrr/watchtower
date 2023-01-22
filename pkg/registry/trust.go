@@ -5,13 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
-	"strings"
 
+	"github.com/containrrr/watchtower/pkg/registry/helpers"
 	cliconfig "github.com/docker/cli/cli/config"
 	"github.com/docker/cli/cli/config/configfile"
 	"github.com/docker/cli/cli/config/credentials"
 	"github.com/docker/cli/cli/config/types"
-	"github.com/docker/distribution/reference"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -48,12 +47,13 @@ func EncodedEnvAuth(ref string) (string, error) {
 // loaded from the docker config
 // Returns an empty string if credentials cannot be found for the referenced server
 // The docker config must be mounted on the container
-func EncodedConfigAuth(ref string) (string, error) {
-	server, err := ParseServerAddress(ref)
+func EncodedConfigAuth(imageRef string) (string, error) {
+	server, err := helpers.GetRegistryAddress(imageRef)
 	if err != nil {
-		log.Errorf("Unable to parse the image ref %s", err)
+		log.Errorf("Could not get registry from image ref %s", imageRef)
 		return "", err
 	}
+
 	configDir := os.Getenv("DOCKER_CONFIG")
 	if configDir == "" {
 		configDir = "/"
@@ -70,21 +70,9 @@ func EncodedConfigAuth(ref string) (string, error) {
 		log.WithField("config_file", configFile.Filename).Debugf("No credentials for %s found", server)
 		return "", nil
 	}
-	log.Debugf("Loaded auth credentials for user %s, on registry %s, from file %s", auth.Username, ref, configFile.Filename)
+	log.Debugf("Loaded auth credentials for user %s, on registry %s, from file %s", auth.Username, server, configFile.Filename)
 	log.Tracef("Using auth password %s", auth.Password)
 	return EncodeAuth(auth)
-}
-
-// ParseServerAddress extracts the server part from a container image ref
-func ParseServerAddress(ref string) (string, error) {
-
-	parsedRef, err := reference.Parse(ref)
-	if err != nil {
-		return ref, err
-	}
-
-	parts := strings.Split(parsedRef.String(), "/")
-	return parts[0], nil
 }
 
 // CredentialsStore returns a new credentials store based

@@ -23,11 +23,9 @@ var _ = Describe("Registry", func() {
 		})
 		When("Given a container with an image explicitly from dockerhub", func() {
 			It("should want to warn", func() {
-				Expect(testContainerWithImage("registry-1.docker.io/docker:latest")).To(BeTrue())
 				Expect(testContainerWithImage("index.docker.io/docker:latest")).To(BeTrue())
 				Expect(testContainerWithImage("docker.io/docker:latest")).To(BeTrue())
 			})
-
 		})
 		When("Given a container with an image from some other registry", func() {
 			It("should not want to warn", func() {

@@ -36,30 +36,6 @@ var _ = Describe("Testing with Ginkgo", func() {
 
 		_, err = EncodedConfigAuth("")
 		Expect(err).To(HaveOccurred())
-
 	})
-	/*
-	 * TODO:
-	 * This part only confirms that it still works in the same way as it did
-	 * with the old version of the docker api client sdk. I'd say that
-	 * ParseServerAddress likely needs to be elaborated a bit to default to
-	 * dockerhub in case no server address was provided.
-	 *
-	 * ++ @simskij, 2019-04-04
-	 */
-	It("parse server address_ should return error if passed empty string", func() {
-
-		_, err := ParseServerAddress("")
-		Expect(err).To(HaveOccurred())
-	})
-	It("parse server address_ should return the organization part if passed an image name missing server name", func() {
-
-		val, _ := ParseServerAddress("containrrr/config")
-		Expect(val).To(Equal("containrrr"))
-	})
-	It("parse server address_ should return the server name if passed a fully qualified image name", func() {
-
-		val, _ := ParseServerAddress("github.com/containrrrr/config")
-		Expect(val).To(Equal("github.com"))
 	})
 })
