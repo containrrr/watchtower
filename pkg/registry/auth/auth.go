@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -26,7 +26,7 @@ func GetToken(container types.Container, registryAuth string) (string, error) {
 	}
 
 	URL := GetChallengeURL(normalizedRef)
-	logrus.WithField("URL", URL.String()).Debug("Building challenge URL")
+	logrus.WithField("URL", URL.String()).Debug("Built challenge URL")
 
 	var req *http.Request
 	if req, err = GetChallengeRequest(URL); err != nil {
@@ -99,7 +99,7 @@ func GetBearerHeader(challenge string, imageRef ref.Named, registryAuth string) 
 		return "", err
 	}
 
-	body, _ := ioutil.ReadAll(authResponse.Body)
+	body, _ := io.ReadAll(authResponse.Body)
 	tokenResponse := &types.TokenResponse{}
 
 	err = json.Unmarshal(body, tokenResponse)

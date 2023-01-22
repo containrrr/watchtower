@@ -19,30 +19,34 @@ func TestManifest(t *testing.T) {
 var _ = Describe("the manifest module", func() {
 	Describe("BuildManifestURL", func() {
 		It("should return a valid url given a fully qualified image", func() {
-			expected := "https://ghcr.io/v2/containrrr/watchtower/manifests/latest"
+			imageRef := "ghcr.io/containrrr/watchtower:mytag"
+			expected := "https://ghcr.io/v2/containrrr/watchtower/manifests/mytag"
 
-			URL, err := buildMockContainerManifestURL("ghcr.io/containrrr/watchtower:latest")
+			URL, err := buildMockContainerManifestURL(imageRef)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(URL).To(Equal(expected))
 		})
-		It("should assume Docker Hub for non-qualified images", func() {
+		It("should assume Docker Hub for image refs with no explicit registry", func() {
+			imageRef := "containrrr/watchtower:latest"
 			expected := "https://index.docker.io/v2/containrrr/watchtower/manifests/latest"
 
-			URL, err := buildMockContainerManifestURL("containrrr/watchtower:latest")
+			URL, err := buildMockContainerManifestURL(imageRef)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(URL).To(Equal(expected))
 		})
-		It("should assume latest for image refs without an explicit tag", func() {
+		It("should assume latest for image refs with no explicit tag", func() {
+			imageRef := "containrrr/watchtower"
 			expected := "https://index.docker.io/v2/containrrr/watchtower/manifests/latest"
 
-			URL, err := buildMockContainerManifestURL("containrrr/watchtower")
+			URL, err := buildMockContainerManifestURL(imageRef)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(URL).To(Equal(expected))
 		})
 		It("should not prepend library/ for single-part container names in registries other than Docker Hub", func() {
+			imageRef := "docker-registry.domain/imagename:latest"
 			expected := "https://docker-registry.domain/v2/imagename/manifests/latest"
 
-			URL, err := buildMockContainerManifestURL("docker-registry.domain/imagename:latest")
+			URL, err := buildMockContainerManifestURL(imageRef)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(URL).To(Equal(expected))
 		})

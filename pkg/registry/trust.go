@@ -18,7 +18,7 @@ import (
 // loaded from environment variables or docker config
 // as available in that order
 func EncodedAuth(ref string) (string, error) {
-	auth, err := EncodedEnvAuth(ref)
+	auth, err := EncodedEnvAuth()
 	if err != nil {
 		auth, err = EncodedConfigAuth(ref)
 	}
@@ -28,7 +28,7 @@ func EncodedAuth(ref string) (string, error) {
 // EncodedEnvAuth returns an encoded auth config for the given registry
 // loaded from environment variables
 // Returns an error if authentication environment variables have not been set
-func EncodedEnvAuth(ref string) (string, error) {
+func EncodedEnvAuth() (string, error) {
 	username := os.Getenv("REPO_USER")
 	password := os.Getenv("REPO_PASS")
 	if username != "" && password != "" {
@@ -36,7 +36,7 @@ func EncodedEnvAuth(ref string) (string, error) {
 			Username: username,
 			Password: password,
 		}
-		log.Debugf("Loaded auth credentials for user %s on registry %s", auth.Username, ref)
+		log.Debugf("Loaded auth credentials for registry user %s from environment", auth.Username)
 		log.Tracef("Using auth password %s", auth.Password)
 		return EncodeAuth(auth)
 	}
@@ -60,7 +60,7 @@ func EncodedConfigAuth(imageRef string) (string, error) {
 	}
 	configFile, err := cliconfig.Load(configDir)
 	if err != nil {
-		log.Errorf("Unable to find default config file %s", err)
+		log.Errorf("Unable to find default config file: %s", err)
 		return "", err
 	}
 	credStore := CredentialsStore(*configFile)

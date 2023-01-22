@@ -18,12 +18,12 @@ func BuildManifestURL(container types.Container) (string, error) {
 		return "", err
 	}
 	normalizedTaggedRef, isTagged := normalizedRef.(ref.NamedTagged)
-		if !isTagged {
-			return "", errors.New("Parsed container image ref has no tag: " + normalizedRef.String())
-		}
+	if !isTagged {
+		return "", errors.New("Parsed container image ref has no tag: " + normalizedRef.String())
+	}
 
 	host, _ := helpers.GetRegistryAddress(normalizedTaggedRef.Name())
-	img, tag := ExtractImageAndTag(normalizedTaggedRef)
+	img, tag := ref.Path(normalizedTaggedRef), normalizedTaggedRef.Tag()
 
 	logrus.WithFields(logrus.Fields{
 		"image":      img,
@@ -42,9 +42,4 @@ func BuildManifestURL(container types.Container) (string, error) {
 		Path:   fmt.Sprintf("/v2/%s/manifests/%s", img, tag),
 	}
 	return url.String(), nil
-}
-
-// ExtractImageAndTag from image reference
-func ExtractImageAndTag(namedTaggedRef ref.NamedTagged) (string, string) {
-	return ref.Path(namedTaggedRef), namedTaggedRef.Tag()
 }

@@ -4,6 +4,7 @@ import (
 	"github.com/docker/distribution/reference"
 )
 
+// domains for Docker Hub, the default registry
 const (
 	DefaultRegistryDomain       = "docker.io"
 	DefaultRegistryHost         = "index.docker.io"
