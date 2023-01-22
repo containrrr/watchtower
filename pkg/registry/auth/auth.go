@@ -11,7 +11,7 @@ import (
 
 	"github.com/containrrr/watchtower/pkg/registry/helpers"
 	"github.com/containrrr/watchtower/pkg/types"
-	"github.com/docker/distribution/reference"
+	ref "github.com/docker/distribution/reference"
 	"github.com/sirupsen/logrus"
 )
 
@@ -20,12 +20,12 @@ const ChallengeHeader = "WWW-Authenticate"
 
 // GetToken fetches a token for the registry hosting the provided image
 func GetToken(container types.Container, registryAuth string) (string, error) {
-	var err error
-	var URL url.URL
-
-	if URL, err = GetChallengeURL(container.ImageName()); err != nil {
+	normalizedRef, err := ref.ParseNormalizedNamed(container.ImageName())
+	if err != nil {
 		return "", err
 	}
+
+	URL := GetChallengeURL(normalizedRef)
 	logrus.WithField("URL", URL.String()).Debug("Building challenge URL")
 
 	var req *http.Request
@@ -55,7 +55,7 @@ func GetToken(container types.Container, registryAuth string) (string, error) {
 		return fmt.Sprintf("Basic %s", registryAuth), nil
 	}
 	if strings.HasPrefix(challenge, "bearer") {
-		return GetBearerHeader(challenge, container.ImageName(), registryAuth)
+		return GetBearerHeader(challenge, normalizedRef, registryAuth)
 	}
 
 	return "", errors.New("unsupported challenge type from registry")
@@ -73,12 +73,9 @@ func GetChallengeRequest(URL url.URL) (*http.Request, error) {
 }
 
 // GetBearerHeader tries to fetch a bearer token from the registry based on the challenge instructions
-func GetBearerHeader(challenge string, img string, registryAuth string) (string, error) {
+func GetBearerHeader(challenge string, imageRef ref.Named, registryAuth string) (string, error) {
 	client := http.Client{}
-	if strings.Contains(img, ":") {
-		img = strings.Split(img, ":")[0]
-	}
-	authURL, err := GetAuthURL(challenge, img)
+	authURL, err := GetAuthURL(challenge, imageRef)
 
 	if err != nil {
 		return "", err
@@ -114,7 +111,7 @@ func GetBearerHeader(challenge string, img string, registryAuth string) (string,
 }
 
 // GetAuthURL from the instructions in the challenge
-func GetAuthURL(challenge string, img string) (*url.URL, error) {
+func GetAuthURL(challenge string, imageRef ref.Named) (*url.URL, error) {
 	loweredChallenge := strings.ToLower(challenge)
 	raw := strings.TrimPrefix(loweredChallenge, "bearer")
 
@@ -141,51 +138,25 @@ func GetAuthURL(challenge string, img string) (*url.URL, error) {
 	q := authURL.Query()
 	q.Add("service", values["service"])
 
-	scopeImage := GetScopeFromImageName(img, values["service"])
+	scopeImage := ref.Path(imageRef)
 
 	scope := fmt.Sprintf("repository:%s:pull", scopeImage)
-	logrus.WithFields(logrus.Fields{"scope": scope, "image": img}).Debug("Setting scope for auth token")
+	logrus.WithFields(logrus.Fields{"scope": scope, "image": imageRef.Name()}).Debug("Setting scope for auth token")
 	q.Add("scope", scope)
 
 	authURL.RawQuery = q.Encode()
 	return authURL, nil
 }
 
-// GetScopeFromImageName normalizes an image name for use as scope during auth and head requests
-func GetScopeFromImageName(img, svc string) string {
-	parts := strings.Split(img, "/")
-
-	if len(parts) > 2 {
-		if strings.Contains(svc, "docker.io") {
-			return fmt.Sprintf("%s/%s", parts[1], strings.Join(parts[2:], "/"))
-		}
-		return strings.Join(parts, "/")
-	}
-
-	if len(parts) == 2 {
-		if strings.Contains(parts[0], "docker.io") {
-			return fmt.Sprintf("library/%s", parts[1])
-		}
-		return strings.Replace(img, svc+"/", "", 1)
-	}
-
-	if strings.Contains(svc, "docker.io") {
-		return fmt.Sprintf("library/%s", parts[0])
-	}
-	return img
-}
-
-// GetChallengeURL creates a URL object based on the image info
-func GetChallengeURL(img string) (url.URL, error) {
-	host, err := helpers.GetRegistryAddress(img)
-	if err != nil {
-		return url.URL{}, err
-	}
+// GetChallengeURL returns the URL to check auth requirements
+// for access to a given image
+func GetChallengeURL(imageRef ref.Named) url.URL {
+	host, _ := helpers.GetRegistryAddress(imageRef.Name())
 
 	URL := url.URL{
 		Scheme: "https",
 		Host:   host,
 		Path:   "/v2/",
 	}
-	return URL, nil
+	return URL
 }

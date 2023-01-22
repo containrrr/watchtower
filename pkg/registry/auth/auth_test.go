@@ -6,10 +6,12 @@ import (
 	"github.com/containrrr/watchtower/pkg/registry/auth"
 	"net/url"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
 	wtTypes "github.com/containrrr/watchtower/pkg/types"
+	ref "github.com/docker/distribution/reference"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -69,52 +71,71 @@ var _ = Describe("the auth module", func() {
 				Path:     "/token",
 				RawQuery: "scope=repository%3Acontainrrr%2Fwatchtower%3Apull&service=ghcr.io",
 			}
-			res, err := auth.GetAuthURL(input, "containrrr/watchtower")
+			imageRef, _ := ref.ParseNormalizedNamed("containrrr/watchtower")
+			res, err := auth.GetAuthURL(input, imageRef)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(res).To(Equal(expected))
 		})
 		It("should create a valid auth url object based on the challenge header supplied", func() {
 			input := `bearer realm="https://ghcr.io/token"`
-			res, err := auth.GetAuthURL(input, "containrrr/watchtower")
+			imageRef, _ := ref.ParseNormalizedNamed("containrrr/watchtower")
+			res, err := auth.GetAuthURL(input, imageRef)
 			Expect(err).To(HaveOccurred())
 			Expect(res).To(BeNil())
+		})
+
+		When("deriving the auth scope from an image name", func() {
+			It("should prepend official dockerhub images with \"library/\"", func() {
+				Expect(getScopeFromImageAuthURL("docker.io/registry")).To(Equal("library/registry"))
+				Expect(getScopeFromImageAuthURL("docker.io/registry")).To(Equal("library/registry"))
+				Expect(getScopeFromImageAuthURL("index.docker.io/registry")).To(Equal("library/registry"))
+				Expect(getScopeFromImageAuthURL("index.docker.io/registry")).To(Equal("library/registry"))
+
+				Expect(getScopeFromImageAuthURL("registry")).To(Equal("library/registry"))
+				Expect(getScopeFromImageAuthURL("registry")).To(Equal("library/registry"))
+			})
+			It("should not include vanity hosts\"", func() {
+				Expect(getScopeFromImageAuthURL("docker.io/containrrr/watchtower")).To(Equal("containrrr/watchtower"))
+				Expect(getScopeFromImageAuthURL("index.docker.io/containrrr/watchtower")).To(Equal("containrrr/watchtower"))
+			})
+			It("should not destroy three segment image names\"", func() {
+				Expect(getScopeFromImageAuthURL("piksel/containrrr/watchtower")).To(Equal("piksel/containrrr/watchtower"))
+				Expect(getScopeFromImageAuthURL("piksel/containrrr/watchtower")).To(Equal("piksel/containrrr/watchtower"))
+			})
+			It("should not add \"library/\" for one segment image names if they're not on dockerhub", func() {
+				Expect(getScopeFromImageAuthURL("ghcr.io/watchtower")).To(Equal("watchtower"))
+				// Expect(getScopeFromImageName("watchtower")).To(Equal("watchtower"))
+			})
 		})
 	})
 	When("getting a challenge url", func() {
 		It("should create a valid challenge url object based on the image ref supplied", func() {
 			expected := url.URL{Host: "ghcr.io", Scheme: "https", Path: "/v2/"}
-			Expect(auth.GetChallengeURL("ghcr.io/containrrr/watchtower:latest")).To(Equal(expected))
+			imageRef, _ := ref.ParseNormalizedNamed("ghcr.io/containrrr/watchtower:latest")
+			Expect(auth.GetChallengeURL(imageRef)).To(Equal(expected))
 		})
-		It("should assume dockerhub if the image ref is not fully qualified", func() {
+		It("should assume docker hub if the image ref is not fully qualified", func() {
 			expected := url.URL{Host: "index.docker.io", Scheme: "https", Path: "/v2/"}
-			Expect(auth.GetChallengeURL("containrrr/watchtower:latest")).To(Equal(expected))
+			imageRef, _ := ref.ParseNormalizedNamed("containrrr/watchtower:latest")
+			Expect(auth.GetChallengeURL(imageRef)).To(Equal(expected))
 		})
-		It("should convert legacy dockerhub hostnames to index.docker.io", func() {
+		It("should use docker hub if the image ref specifies docker.io", func() {
 			expected := url.URL{Host: "index.docker.io", Scheme: "https", Path: "/v2/"}
-			Expect(auth.GetChallengeURL("docker.io/containrrr/watchtower:latest")).To(Equal(expected))
-			Expect(auth.GetChallengeURL("registry-1.docker.io/containrrr/watchtower:latest")).To(Equal(expected))
-		})
-	})
-	When("getting the auth scope from an image name", func() {
-		It("should prepend official dockerhub images with \"library/\"", func() {
-			Expect(auth.GetScopeFromImageName("docker.io/registry", "index.docker.io")).To(Equal("library/registry"))
-			Expect(auth.GetScopeFromImageName("docker.io/registry", "docker.io")).To(Equal("library/registry"))
-
-			Expect(auth.GetScopeFromImageName("registry", "index.docker.io")).To(Equal("library/registry"))
-			Expect(auth.GetScopeFromImageName("watchtower", "registry-1.docker.io")).To(Equal("library/watchtower"))
-
-		})
-		It("should not include vanity hosts\"", func() {
-			Expect(auth.GetScopeFromImageName("docker.io/containrrr/watchtower", "index.docker.io")).To(Equal("containrrr/watchtower"))
-			Expect(auth.GetScopeFromImageName("index.docker.io/containrrr/watchtower", "index.docker.io")).To(Equal("containrrr/watchtower"))
-		})
-		It("should not destroy three segment image names\"", func() {
-			Expect(auth.GetScopeFromImageName("piksel/containrrr/watchtower", "index.docker.io")).To(Equal("containrrr/watchtower"))
-			Expect(auth.GetScopeFromImageName("piksel/containrrr/watchtower", "ghcr.io")).To(Equal("piksel/containrrr/watchtower"))
-		})
-		It("should not add \"library/\" for one segment image names if they're not on dockerhub", func() {
-			Expect(auth.GetScopeFromImageName("ghcr.io/watchtower", "ghcr.io")).To(Equal("watchtower"))
-			Expect(auth.GetScopeFromImageName("watchtower", "ghcr.io")).To(Equal("watchtower"))
+			imageRef, _ := ref.ParseNormalizedNamed("docker.io/containrrr/watchtower:latest")
+			Expect(auth.GetChallengeURL(imageRef)).To(Equal(expected))
 		})
 	})
 })
+
+var scopeImageRegexp = MatchRegexp("^repository:[a-z0-9]+(/[a-z0-9]+)*:pull$")
+
+func getScopeFromImageAuthURL(imageName string) string {
+	challenge := `bearer realm="https://dummy.host/token",service="dummy.host",scope="repository:user/image:pull"`
+
+	normalizedRef, _ := ref.ParseNormalizedNamed(imageName)
+	URL, _ := auth.GetAuthURL(challenge, normalizedRef)
+
+	scope := URL.Query().Get("scope")
+	Expect(scopeImageRegexp.Match(scope)).To(BeTrue())
+	return strings.Replace(scope[11:], ":pull", "", 1)
+}
