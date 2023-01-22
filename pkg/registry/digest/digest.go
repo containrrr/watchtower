@@ -103,6 +103,7 @@ func GetDigest(url string, token string) (string, error) {
 	req.Header.Add("Accept", "application/vnd.docker.distribution.manifest.v2+json")
 	req.Header.Add("Accept", "application/vnd.docker.distribution.manifest.list.v2+json")
 	req.Header.Add("Accept", "application/vnd.docker.distribution.manifest.v1+json")
+	req.Header.Add("Accept", "application/vnd.oci.image.index.v1+json")
 
 	logrus.WithField("url", url).Debug("Doing a HEAD request to fetch a digest")
 
