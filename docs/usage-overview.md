@@ -48,14 +48,14 @@ docker run -d \
 
 If you mount the config file as described above, be sure to also prepend the URL for the registry when starting up your
 watched image (you can omit the https://). Here is a complete docker-compose.yml file that starts up a docker container
-from a private repo at Docker Hub and monitors it with watchtower. Note the command argument changing the interval to
-30s rather than the default 24 hours.
+from a private repo on the GitHub Registry and monitors it with watchtower. Note the command argument changing the interval
+to 30s rather than the default 24 hours.
 
 ```yaml
 version: "3"
 services:
   cavo:
-    image: index.docker.io/<org>/<image>:<tag>
+    image: ghcr.io/<org>/<image>:<tag>
     ports:
       - "443:3443"
       - "80:3080"
