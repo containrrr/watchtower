@@ -6,13 +6,13 @@ import (
 	t "github.com/containrrr/watchtower/pkg/types"
 )
 
-type JSONMap = map[string]interface{}
+type jsonMap = map[string]interface{}
 
 // MarshalJSON implements json.Marshaler
 func (d Data) MarshalJSON() ([]byte, error) {
-	var entries = make([]JSONMap, len(d.Entries))
+	var entries = make([]jsonMap, len(d.Entries))
 	for i, entry := range d.Entries {
-		entries[i] = JSONMap{
+		entries[i] = jsonMap{
 			`level`:   entry.Level,
 			`message`: entry.Message,
 			`data`:    entry.Data,
@@ -20,9 +20,9 @@ func (d Data) MarshalJSON() ([]byte, error) {
 		}
 	}
 
-	var report JSONMap
+	var report jsonMap
 	if d.Report != nil {
-		report = JSONMap{
+		report = jsonMap{
 			`scanned`: marshalReports(d.Report.Scanned()),
 			`updated`: marshalReports(d.Report.Updated()),
 			`failed`:  marshalReports(d.Report.Failed()),
@@ -32,7 +32,7 @@ func (d Data) MarshalJSON() ([]byte, error) {
 		}
 	}
 
-	return json.Marshal(JSONMap{
+	return json.Marshal(jsonMap{
 		`report`:  report,
 		`title`:   d.Title,
 		`host`:    d.Host,
@@ -40,10 +40,10 @@ func (d Data) MarshalJSON() ([]byte, error) {
 	})
 }
 
-func marshalReports(reports []t.ContainerReport) []JSONMap {
-	jsonReports := make([]JSONMap, len(reports))
+func marshalReports(reports []t.ContainerReport) []jsonMap {
+	jsonReports := make([]jsonMap, len(reports))
 	for i, report := range reports {
-		jsonReports[i] = JSONMap{
+		jsonReports[i] = jsonMap{
 			`id`:             report.ID().ShortID(),
 			`name`:           report.Name(),
 			`currentImageId`: report.CurrentImageID().ShortID(),
@@ -61,10 +61,11 @@ func marshalReports(reports []t.ContainerReport) []JSONMap {
 var _ json.Marshaler = &Data{}
 
 func toJSON(v interface{}) string {
-	if bytes, err := json.MarshalIndent(v, "", "  "); err != nil {
+	var bytes []byte
+	var err error
+	if bytes, err = json.MarshalIndent(v, "", "  "); err != nil {
 		LocalLog.Errorf("failed to marshal JSON in notification template: %v", err)
 		return ""
-	} else {
-		return string(bytes)
 	}
+	return string(bytes)
 }
