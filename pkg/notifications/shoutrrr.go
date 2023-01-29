@@ -210,6 +210,7 @@ func getShoutrrrTemplate(tplString string, legacy bool) (tpl *template.Template,
 	funcs := template.FuncMap{
 		"ToUpper": strings.ToUpper,
 		"ToLower": strings.ToLower,
+		"ToJSON":  toJSON,
 		"Title":   cases.Title(language.AmericanEnglish).String,
 	}
 	tplBase := template.New("").Funcs(funcs)
@@ -239,17 +240,4 @@ func getShoutrrrTemplate(tplString string, legacy bool) (tpl *template.Template,
 	}
 
 	return
-}
-
-// StaticData is the part of the notification template data model set upon initialization
-type StaticData struct {
-	Title string
-	Host  string
-}
-
-// Data is the notification template data model
-type Data struct {
-	StaticData
-	Entries []*log.Entry
-	Report  t.Report
 }

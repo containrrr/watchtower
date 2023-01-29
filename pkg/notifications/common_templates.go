@@ -35,5 +35,6 @@ var commonTemplates = map[string]string{
     no containers matched filter
   {{- end -}}
 {{- end -}}`,
-}
 
+	`json.v1`: `{{ . | ToJSON }}`,
+}
