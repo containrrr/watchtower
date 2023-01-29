@@ -44,10 +44,10 @@ func marshalReports(reports []t.ContainerReport) []JSONMap {
 	jsonReports := make([]JSONMap, len(reports))
 	for i, report := range reports {
 		jsonReports[i] = JSONMap{
-			`id`:             report.ID(),
+			`id`:             report.ID().ShortID(),
 			`name`:           report.Name(),
-			`currentImageId`: report.CurrentImageID(),
-			`latestImageId`:  report.LatestImageID(),
+			`currentImageId`: report.CurrentImageID().ShortID(),
+			`latestImageId`:  report.LatestImageID().ShortID(),
 			`imageName`:      report.ImageName(),
 			`state`:          report.State(),
 		}
