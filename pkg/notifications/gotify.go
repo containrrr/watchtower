@@ -19,11 +19,10 @@ type gotifyTypeNotifier struct {
 	gotifyURL                string
 	gotifyAppToken           string
 	gotifyInsecureSkipVerify bool
-	logLevels                []log.Level
 }
 
-func newGotifyNotifier(c *cobra.Command, levels []log.Level) t.ConvertibleNotifier {
-	flags := c.PersistentFlags()
+func newGotifyNotifier(c *cobra.Command) t.ConvertibleNotifier {
+	flags := c.Flags()
 
 	apiURL := getGotifyURL(flags)
 	token := getGotifyToken(flags)
@@ -34,7 +33,6 @@ func newGotifyNotifier(c *cobra.Command, levels []log.Level) t.ConvertibleNotifi
 		gotifyURL:                apiURL,
 		gotifyAppToken:           token,
 		gotifyInsecureSkipVerify: skipVerify,
-		logLevels:                levels,
 	}
 
 	return n
@@ -62,7 +60,7 @@ func getGotifyURL(flags *pflag.FlagSet) string {
 	return gotifyURL
 }
 
-func (n *gotifyTypeNotifier) GetURL(c *cobra.Command, title string) (string, error) {
+func (n *gotifyTypeNotifier) GetURL(c *cobra.Command) (string, error) {
 	apiURL, err := url.Parse(n.gotifyURL)
 	if err != nil {
 		return "", err
@@ -72,7 +70,6 @@ func (n *gotifyTypeNotifier) GetURL(c *cobra.Command, title string) (string, err
 		Host:       apiURL.Host,
 		Path:       apiURL.Path,
 		DisableTLS: apiURL.Scheme == "http",
-		Title:      title,
 		Token:      n.gotifyAppToken,
 	}
 

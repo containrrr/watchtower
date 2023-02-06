@@ -6,7 +6,6 @@ import (
 	shoutrrrDisco "github.com/containrrr/shoutrrr/pkg/services/discord"
 	shoutrrrSlack "github.com/containrrr/shoutrrr/pkg/services/slack"
 	t "github.com/containrrr/watchtower/pkg/types"
-	"github.com/johntdyer/slackrus"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -16,11 +15,15 @@ const (
 )
 
 type slackTypeNotifier struct {
-	slackrus.SlackrusHook
+	HookURL   string
+	Username  string
+	Channel   string
+	IconEmoji string
+	IconURL   string
 }
 
-func newSlackNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.ConvertibleNotifier {
-	flags := c.PersistentFlags()
+func newSlackNotifier(c *cobra.Command) t.ConvertibleNotifier {
+	flags := c.Flags()
 
 	hookURL, _ := flags.GetString("notification-slack-hook-url")
 	userName, _ := flags.GetString("notification-slack-identifier")
@@ -29,19 +32,16 @@ func newSlackNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.Convert
 	iconURL, _ := flags.GetString("notification-slack-icon-url")
 
 	n := &slackTypeNotifier{
-		SlackrusHook: slackrus.SlackrusHook{
-			HookURL:        hookURL,
-			Username:       userName,
-			Channel:        channel,
-			IconEmoji:      emoji,
-			IconURL:        iconURL,
-			AcceptedLevels: acceptedLogLevels,
-		},
+		HookURL:   hookURL,
+		Username:  userName,
+		Channel:   channel,
+		IconEmoji: emoji,
+		IconURL:   iconURL,
 	}
 	return n
 }
 
-func (s *slackTypeNotifier) GetURL(c *cobra.Command, title string) (string, error) {
+func (s *slackTypeNotifier) GetURL(c *cobra.Command) (string, error) {
 	trimmedURL := strings.TrimRight(s.HookURL, "/")
 	trimmedURL = strings.TrimPrefix(trimmedURL, "https://")
 	parts := strings.Split(trimmedURL, "/")
@@ -52,7 +52,6 @@ func (s *slackTypeNotifier) GetURL(c *cobra.Command, title string) (string, erro
 			WebhookID:  parts[len(parts)-3],
 			Token:      parts[len(parts)-2],
 			Color:      ColorInt,
-			Title:      title,
 			SplitLines: true,
 			Username:   s.Username,
 		}
@@ -70,7 +69,6 @@ func (s *slackTypeNotifier) GetURL(c *cobra.Command, title string) (string, erro
 		BotName: s.Username,
 		Color:   ColorHex,
 		Channel: "webhook",
-		Title:   title,
 	}
 
 	if s.IconURL != "" {

@@ -22,12 +22,10 @@ jobs:
         uses: actions/setup-go@v3
         with:
           go-version: 1.18.x
-      - name: Install linter
-        run: |
-          go get -u golang.org/x/lint/golint
-      - name: Lint files
-        run: |
-          golint -set_exit_status ./...
+      - uses: dominikh/staticcheck-action@ba605356b4b29a60e87ab9404b712f3461e566dc #v1.3.0
+        with:
+          version: "2022.1.1"
+          install-go: "false" # StaticCheck uses go v1.17 which does not support `any`
 
   test:
     name: Test
@@ -72,18 +70,18 @@ jobs:
         with:
           go-version: 1.18.x
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a #v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Login to GHCR
-        uses: docker/login-action@v2
+        uses: docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a #v2
         with:
           username: ${{ secrets.BOT_USERNAME }}
           password: ${{ secrets.BOT_GHCR_PAT }}
           registry: ghcr.io
       - name: Build
-        uses: goreleaser/goreleaser-action@v3
+        uses: goreleaser/goreleaser-action@f82d6c1c344bcacabba2c841718984797f664a6b #v3
         with:
           version: v0.155.0
           args: --debug
@@ -193,7 +191,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Pull new module version
-      uses: andrewslotin/go-proxy-pull-action@master
+      uses: andrewslotin/go-proxy-pull-action@bfc19ec6536e1638181b2ad6a03e16c7ccfb122f #master@2022-10-14
 
   
   

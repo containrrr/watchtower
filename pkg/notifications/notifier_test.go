@@ -3,7 +3,6 @@ package notifications_test
 import (
 	"fmt"
 	"net/url"
-	"os"
 	"time"
 
 	"github.com/containrrr/watchtower/cmd"
@@ -147,11 +146,9 @@ var _ = Describe("notifications", func() {
 			channel := "123456789"
 			token := "abvsihdbau"
 			color := notifications.ColorInt
-			data := notifications.GetTemplateData(command)
-			title := url.QueryEscape(data.Title)
 			username := "containrrrbot"
 			iconURL := "https://containrrr.dev/watchtower-sq180.png"
-			expected := fmt.Sprintf("discord://%s@%s?color=0x%x&colordebug=0x0&colorerror=0x0&colorinfo=0x0&colorwarn=0x0&title=%s&username=watchtower", token, channel, color, title)
+			expected := fmt.Sprintf("discord://%s@%s?color=0x%x&colordebug=0x0&colorerror=0x0&colorinfo=0x0&colorwarn=0x0&username=watchtower", token, channel, color)
 			buildArgs := func(url string) []string {
 				return []string{
 					"--notifications",
@@ -172,7 +169,7 @@ var _ = Describe("notifications", func() {
 			When("icon URL and username are specified", func() {
 				It("should return the expected URL", func() {
 					hookURL := fmt.Sprintf("https://%s/api/webhooks/%s/%s/slack", "discord.com", channel, token)
-					expectedOutput := fmt.Sprintf("discord://%s@%s?avatar=%s&color=0x%x&colordebug=0x0&colorerror=0x0&colorinfo=0x0&colorwarn=0x0&title=%s&username=%s", token, channel, url.QueryEscape(iconURL), color, title, username)
+					expectedOutput := fmt.Sprintf("discord://%s@%s?avatar=%s&color=0x%x&colordebug=0x0&colorerror=0x0&colorinfo=0x0&colorwarn=0x0&username=%s", token, channel, url.QueryEscape(iconURL), color, username)
 					expectedDelay := time.Duration(7) * time.Second
 					args := []string{
 						"--notifications",
@@ -199,8 +196,6 @@ var _ = Describe("notifications", func() {
 			tokenB := "BBBBBBBBB"
 			tokenC := "123456789123456789123456"
 			color := url.QueryEscape(notifications.ColorHex)
-			data := notifications.GetTemplateData(command)
-			title := url.QueryEscape(data.Title)
 			iconURL := "https://containrrr.dev/watchtower-sq180.png"
 			iconEmoji := "whale"
 
@@ -208,7 +203,7 @@ var _ = Describe("notifications", func() {
 				It("should return the expected URL", func() {
 
 					hookURL := fmt.Sprintf("https://hooks.slack.com/services/%s/%s/%s", tokenA, tokenB, tokenC)
-					expectedOutput := fmt.Sprintf("slack://hook:%s-%s-%s@webhook?botname=%s&color=%s&icon=%s&title=%s", tokenA, tokenB, tokenC, username, color, url.QueryEscape(iconURL), title)
+					expectedOutput := fmt.Sprintf("slack://hook:%s-%s-%s@webhook?botname=%s&color=%s&icon=%s", tokenA, tokenB, tokenC, username, color, url.QueryEscape(iconURL))
 					expectedDelay := time.Duration(7) * time.Second
 
 					args := []string{
@@ -231,7 +226,7 @@ var _ = Describe("notifications", func() {
 			When("icon emoji is specified", func() {
 				It("should return the expected URL", func() {
 					hookURL := fmt.Sprintf("https://hooks.slack.com/services/%s/%s/%s", tokenA, tokenB, tokenC)
-					expectedOutput := fmt.Sprintf("slack://hook:%s-%s-%s@webhook?botname=%s&color=%s&icon=%s&title=%s", tokenA, tokenB, tokenC, username, color, iconEmoji, title)
+					expectedOutput := fmt.Sprintf("slack://hook:%s-%s-%s@webhook?botname=%s&color=%s&icon=%s", tokenA, tokenB, tokenC, username, color, iconEmoji)
 
 					args := []string{
 						"--notifications",
@@ -258,10 +253,8 @@ var _ = Describe("notifications", func() {
 
 				token := "aaa"
 				host := "shoutrrr.local"
-				data := notifications.GetTemplateData(command)
-				title := url.QueryEscape(data.Title)
 
-				expectedOutput := fmt.Sprintf("gotify://%s/%s?title=%s", host, token, title)
+				expectedOutput := fmt.Sprintf("gotify://%s/%s?title=", host, token)
 
 				args := []string{
 					"--notifications",
@@ -287,11 +280,9 @@ var _ = Describe("notifications", func() {
 				tokenB := "33333333012222222222333333333344"
 				tokenC := "44444444-4444-4444-8444-cccccccccccc"
 				color := url.QueryEscape(notifications.ColorHex)
-				data := notifications.GetTemplateData(command)
-				title := url.QueryEscape(data.Title)
 
 				hookURL := fmt.Sprintf("https://outlook.office.com/webhook/%s/IncomingWebhook/%s/%s", tokenA, tokenB, tokenC)
-				expectedOutput := fmt.Sprintf("teams://%s/%s/%s?color=%s&title=%s", tokenA, tokenB, tokenC, color, title)
+				expectedOutput := fmt.Sprintf("teams://%s/%s/%s?color=%s", tokenA, tokenB, tokenC, color)
 
 				args := []string{
 					"--notifications",
@@ -362,18 +353,12 @@ var _ = Describe("notifications", func() {
 })
 
 func buildExpectedURL(username string, password string, host string, port int, from string, to string, auth string) string {
-	hostname, err := os.Hostname()
-	Expect(err).NotTo(HaveOccurred())
-
-	subject := fmt.Sprintf("Watchtower updates on %s", hostname)
-
-	var template = "smtp://%s:%s@%s:%d/?auth=%s&fromaddress=%s&fromname=Watchtower&subject=%s&toaddresses=%s"
+	var template = "smtp://%s:%s@%s:%d/?auth=%s&fromaddress=%s&fromname=Watchtower&subject=&toaddresses=%s"
 	return fmt.Sprintf(template,
 		url.QueryEscape(username),
 		url.QueryEscape(password),
 		host, port, auth,
 		url.QueryEscape(from),
-		url.QueryEscape(subject),
 		url.QueryEscape(to))
 }
 
@@ -385,8 +370,7 @@ func testURL(args []string, expectedURL string, expectedDelay time.Duration) {
 
 	Expect(command.ParseFlags(args)).To(Succeed())
 
-	data := notifications.GetTemplateData(command)
-	urls, delay := notifications.AppendLegacyUrls([]string{}, command, data.Title)
+	urls, delay := notifications.AppendLegacyUrls([]string{}, command)
 
 	Expect(urls).To(ContainElement(expectedURL))
 	Expect(delay).To(Equal(expectedDelay))

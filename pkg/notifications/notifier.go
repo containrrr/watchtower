@@ -6,25 +6,18 @@ import (
 	"time"
 
 	ty "github.com/containrrr/watchtower/pkg/types"
-	"github.com/johntdyer/slackrus"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
 // NewNotifier creates and returns a new Notifier, using global configuration.
 func NewNotifier(c *cobra.Command) ty.Notifier {
-	f := c.PersistentFlags()
+	f := c.Flags()
 
 	level, _ := f.GetString("notifications-level")
 	logLevel, err := log.ParseLevel(level)
 	if err != nil {
 		log.Fatalf("Notifications invalid log level: %s", err.Error())
-	}
-
-	levels := slackrus.LevelThreshold(logLevel)
-	// slackrus does not allow log level TRACE, even though it's an accepted log level for logrus
-	if len(levels) == 0 {
-		log.Fatalf("Unsupported notification log level provided: %s", level)
 	}
 
 	reportTemplate, _ := f.GetBool("notification-report")
@@ -33,13 +26,13 @@ func NewNotifier(c *cobra.Command) ty.Notifier {
 	urls, _ := f.GetStringArray("notification-url")
 
 	data := GetTemplateData(c)
-	urls, delay := AppendLegacyUrls(urls, c, data.Title)
+	urls, delay := AppendLegacyUrls(urls, c)
 
-	return newShoutrrrNotifier(tplString, levels, !reportTemplate, data, delay, stdout, urls...)
+	return createNotifier(urls, logLevel, tplString, !reportTemplate, data, stdout, delay)
 }
 
 // AppendLegacyUrls creates shoutrrr equivalent URLs from legacy notification flags
-func AppendLegacyUrls(urls []string, cmd *cobra.Command, title string) ([]string, time.Duration) {
+func AppendLegacyUrls(urls []string, cmd *cobra.Command) ([]string, time.Duration) {
 
 	// Parse types and create notifiers.
 	types, err := cmd.Flags().GetStringSlice("notifications")
@@ -56,13 +49,13 @@ func AppendLegacyUrls(urls []string, cmd *cobra.Command, title string) ([]string
 
 		switch t {
 		case emailType:
-			legacyNotifier = newEmailNotifier(cmd, []log.Level{})
+			legacyNotifier = newEmailNotifier(cmd)
 		case slackType:
-			legacyNotifier = newSlackNotifier(cmd, []log.Level{})
+			legacyNotifier = newSlackNotifier(cmd)
 		case msTeamsType:
-			legacyNotifier = newMsTeamsNotifier(cmd, []log.Level{})
+			legacyNotifier = newMsTeamsNotifier(cmd)
 		case gotifyType:
-			legacyNotifier = newGotifyNotifier(cmd, []log.Level{})
+			legacyNotifier = newGotifyNotifier(cmd)
 		case shoutrrrType:
 			continue
 		default:
@@ -71,7 +64,7 @@ func AppendLegacyUrls(urls []string, cmd *cobra.Command, title string) ([]string
 			continue
 		}
 
-		shoutrrrURL, err := legacyNotifier.GetURL(cmd, title)
+		shoutrrrURL, err := legacyNotifier.GetURL(cmd)
 		if err != nil {
 			log.Fatal("failed to create notification config: ", err)
 		}

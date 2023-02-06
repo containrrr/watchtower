@@ -14,7 +14,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var allButTrace = logrus.AllLevels[0:logrus.TraceLevel]
+var allButTrace = logrus.DebugLevel
 
 var legacyMockData = Data{
 	Entries: []*logrus.Entry{
@@ -83,6 +83,30 @@ updt1 (mock/updt1:latest): Updated
 		})
 	})
 
+	When("adding a log hook", func() {
+		When("it has not been added before", func() {
+			It("should be added to the logrus hooks", func() {
+				level := logrus.TraceLevel
+				hooksBefore := len(logrus.StandardLogger().Hooks[level])
+				shoutrrr := createNotifier([]string{}, level, "", true, StaticData{}, false, time.Second)
+				shoutrrr.AddLogHook()
+				hooksAfter := len(logrus.StandardLogger().Hooks[level])
+				Expect(hooksAfter).To(BeNumerically(">", hooksBefore))
+			})
+		})
+		When("it is being added a second time", func() {
+			It("should not be added to the logrus hooks", func() {
+				level := logrus.TraceLevel
+				shoutrrr := createNotifier([]string{}, level, "", true, StaticData{}, false, time.Second)
+				shoutrrr.AddLogHook()
+				hooksBefore := len(logrus.StandardLogger().Hooks[level])
+				shoutrrr.AddLogHook()
+				hooksAfter := len(logrus.StandardLogger().Hooks[level])
+				Expect(hooksAfter).To(Equal(hooksBefore))
+			})
+		})
+	})
+
 	When("using legacy templates", func() {
 
 		When("no custom template is provided", func() {
@@ -90,7 +114,7 @@ updt1 (mock/updt1:latest): Updated
 				cmd := new(cobra.Command)
 				flags.RegisterNotificationFlags(cmd)
 
-				shoutrrr := createNotifier([]string{}, logrus.AllLevels, "", true, StaticData{}, false)
+				shoutrrr := createNotifier([]string{}, logrus.TraceLevel, "", true, StaticData{}, false, time.Second)
 
 				entries := []*logrus.Entry{
 					{
@@ -245,7 +269,7 @@ Turns out everything is on fire
 	When("batching notifications", func() {
 		When("no messages are queued", func() {
 			It("should not send any notification", func() {
-				shoutrrr := newShoutrrrNotifier("", allButTrace, true, StaticData{}, time.Duration(0), false, "logger://")
+				shoutrrr := createNotifier([]string{"logger://"}, allButTrace, "", true, StaticData{}, false, time.Duration(0))
 				shoutrrr.StartNotification()
 				shoutrrr.SendNotification(nil)
 				Consistently(logBuffer).ShouldNot(gbytes.Say(`Shoutrrr:`))
@@ -253,7 +277,8 @@ Turns out everything is on fire
 		})
 		When("at least one message is queued", func() {
 			It("should send a notification", func() {
-				shoutrrr := newShoutrrrNotifier("", allButTrace, true, StaticData{}, time.Duration(0), false, "logger://")
+				shoutrrr := createNotifier([]string{"logger://"}, allButTrace, "", true, StaticData{}, false, time.Duration(0))
+				shoutrrr.AddLogHook()
 				shoutrrr.StartNotification()
 				logrus.Info("This log message is sponsored by ContainrrrVPN")
 				shoutrrr.SendNotification(nil)
@@ -267,7 +292,7 @@ Turns out everything is on fire
 			shoutrrr := createNotifier([]string{"logger://"}, allButTrace, "", true, StaticData{
 				Host:  "test.host",
 				Title: "",
-			}, false)
+			}, false, time.Second)
 			_, found := shoutrrr.params.Title()
 			Expect(found).ToNot(BeTrue())
 		})
@@ -321,13 +346,14 @@ func sendNotificationsWithBlockingRouter(legacy bool) (*shoutrrrTypeNotifier, *b
 		Router:         router,
 		legacyTemplate: legacy,
 		params:         &types.Params{},
+		delay:          time.Duration(0),
 	}
 
 	entry := &logrus.Entry{
 		Message: "foo bar",
 	}
 
-	go sendNotifications(shoutrrr, time.Duration(0))
+	go sendNotifications(shoutrrr)
 
 	shoutrrr.StartNotification()
 	_ = shoutrrr.Fire(entry)

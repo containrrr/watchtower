@@ -1,0 +1,71 @@
+name: 🐛 Bug report
+description: Create a report to help us improve
+labels: ["Priority: Medium, Status: Available, Type: Bug"]
+
+body:
+  - type: markdown
+    attributes:
+      value: Before submitting your issue, please make sure you're using the containrrr/watchtower:latest image. If not, switch to this image prior to posting your report. Other forks, or the old `v2tec` image are **not** supported.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the bug
+      description: A clear and concise description of what the bug is
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Steps to reproduce the behavior
+      value: |
+        1. Go to '...'
+        2. Click on '....'
+        3. Scroll down to '....'
+        4. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: A clear and concise description of what you expected to happen.
+    validations:
+      required: true
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: Please add screenshots if applicable
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: Environment
+      description: We would want to know the following things
+      value: |
+        - Platform
+        - Architecture
+        - Docker Version
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Your logs
+      description: Paste the logs from running watchtower with the `--debug` option.
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Additional context
+      description: Add any other context about the problem here.
+    validations:
+      required: false

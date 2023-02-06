@@ -15,17 +15,16 @@ const (
 )
 
 type emailTypeNotifier struct {
-	From, To                           string
-	Server, User, Password, SubjectTag string
-	Port                               int
-	tlsSkipVerify                      bool
-	entries                            []*log.Entry
-	logLevels                          []log.Level
-	delay                              time.Duration
+	From, To               string
+	Server, User, Password string
+	Port                   int
+	tlsSkipVerify          bool
+	entries                []*log.Entry
+	delay                  time.Duration
 }
 
-func newEmailNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.ConvertibleNotifier {
-	flags := c.PersistentFlags()
+func newEmailNotifier(c *cobra.Command) t.ConvertibleNotifier {
+	flags := c.Flags()
 
 	from, _ := flags.GetString("notification-email-from")
 	to, _ := flags.GetString("notification-email-to")
@@ -35,7 +34,6 @@ func newEmailNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.Convert
 	port, _ := flags.GetInt("notification-email-server-port")
 	tlsSkipVerify, _ := flags.GetBool("notification-email-server-tls-skip-verify")
 	delay, _ := flags.GetInt("notification-email-delay")
-	subjecttag, _ := flags.GetString("notification-email-subjecttag")
 
 	n := &emailTypeNotifier{
 		entries:       []*log.Entry{},
@@ -46,28 +44,26 @@ func newEmailNotifier(c *cobra.Command, acceptedLogLevels []log.Level) t.Convert
 		Password:      password,
 		Port:          port,
 		tlsSkipVerify: tlsSkipVerify,
-		logLevels:     acceptedLogLevels,
 		delay:         time.Duration(delay) * time.Second,
-		SubjectTag:    subjecttag,
 	}
 
 	return n
 }
 
-func (e *emailTypeNotifier) GetURL(c *cobra.Command, title string) (string, error) {
+func (e *emailTypeNotifier) GetURL(c *cobra.Command) (string, error) {
 	conf := &shoutrrrSmtp.Config{
 		FromAddress: e.From,
 		FromName:    "Watchtower",
 		ToAddresses: []string{e.To},
 		Port:        uint16(e.Port),
 		Host:        e.Server,
-		Subject:     e.getSubject(c, title),
 		Username:    e.User,
 		Password:    e.Password,
 		UseStartTLS: !e.tlsSkipVerify,
 		UseHTML:     false,
 		Encryption:  shoutrrrSmtp.EncMethods.Auto,
 		Auth:        shoutrrrSmtp.AuthTypes.None,
+		ClientHost:  "localhost",
 	}
 
 	if len(e.User) > 0 {
@@ -83,12 +79,4 @@ func (e *emailTypeNotifier) GetURL(c *cobra.Command, title string) (string, erro
 
 func (e *emailTypeNotifier) GetDelay() time.Duration {
 	return e.delay
-}
-
-func (e *emailTypeNotifier) getSubject(_ *cobra.Command, title string) string {
-	if e.SubjectTag != "" {
-		return e.SubjectTag + " " + title
-	}
-
-	return title
 }

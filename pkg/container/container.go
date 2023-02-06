@@ -1,3 +1,4 @@
+// Package container contains code related to dealing with docker containers
 package container
 
 import (
