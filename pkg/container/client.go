@@ -178,13 +178,14 @@ func (client dockerClient) StopContainer(c Container, timeout time.Duration) err
 
 	if c.IsRunning() {
 		log.Infof("Stopping %s (%s) with %s", c.Name(), shortID, signal)
-		if err := client.api.ContainerKill(bg, idStr, signal); err != nil {
+		if err := client.api.ContainerStop(bg, idStr, c.StopOptions{ Signal: "SIGKILL", Timeout: &timeout,}); err != nil {
 			return err
 		}
 	}
 
 	// TODO: This should probably be checked.
-	_ = client.waitForStopOrTimeout(c, timeout)
+	// ContainerStop has been implemented above with a SIGKILL if timeout is reached. This is no longer required
+	// _ = client.waitForStopOrTimeout(c, timeout)
 
 	if c.containerInfo.HostConfig.AutoRemove {
 		log.Debugf("AutoRemove container %s, skipping ContainerRemove call.", shortID)
