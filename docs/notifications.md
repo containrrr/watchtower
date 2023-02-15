@@ -110,7 +110,7 @@ Example using a custom report template that always sends a session report after 
     docker run -d \
       --name watchtower \
       -v /var/run/docker.sock:/var/run/docker.sock \
-      -e WATCHTOWER_NOTIFICATION_REPORT="true"
+      -e WATCHTOWER_NOTIFICATION_REPORT="true" \
       -e WATCHTOWER_NOTIFICATION_URL="discord://token@channel slack://watchtower@token-a/token-b/token-c" \
       -e WATCHTOWER_NOTIFICATION_TEMPLATE="
       {{- if .Report -}}
@@ -130,7 +130,7 @@ Example using a custom report template that always sends a session report after 
           {{- end -}}
         {{- end -}}
       {{- else -}}
-        {{range .Entries -}}{{.Message}}{{"\n"}}{{- end -}}
+        {{range .Entries -}}{{.Message}}{{\"\n\"}}{{- end -}}
       {{- end -}}
       " \
       containrrr/watchtower
