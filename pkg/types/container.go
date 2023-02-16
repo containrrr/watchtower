@@ -1,8 +1,9 @@
 package types
 
 import (
-	"github.com/docker/docker/api/types"
 	"strings"
+
+	"github.com/docker/docker/api/types"
 )
 
 // ImageID is a hash string representing a container image

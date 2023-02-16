@@ -39,9 +39,9 @@ type Client interface {
 // NewClient returns a new Client instance which can be used to interact with
 // the Docker API.
 // The client reads its configuration from the following environment variables:
-//  * DOCKER_HOST			the docker-engine host to send api requests to
-//  * DOCKER_TLS_VERIFY		whether to verify tls certificates
-//  * DOCKER_API_VERSION	the minimum docker api version to work with
+//   - DOCKER_HOST			the docker-engine host to send api requests to
+//   - DOCKER_TLS_VERIFY		whether to verify tls certificates
+//   - DOCKER_API_VERSION	the minimum docker api version to work with
 func NewClient(opts ClientOptions) Client {
 	cli, err := sdkClient.NewClientWithOpts(sdkClient.FromEnv)
 
