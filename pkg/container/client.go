@@ -177,8 +177,13 @@ func (client dockerClient) StopContainer(c Container, timeout time.Duration) err
 	shortID := c.ID().ShortID()
 
 	if c.IsRunning() {
-		log.Infof("Stopping %s (%s) with %s", c.Name(), shortID, signal)
-		if err := client.api.ContainerStop(bg, idStr, c.StopOptions{ Signal: "SIGKILL", Timeout: &timeout,}); err != nil {
+		var maxWaitSeconds int = int(timeout.Milliseconds())
+		stopOptions := container.StopOptions{
+			Signal:  "",
+			Timeout: &maxWaitSeconds,
+		}
+		log.Infof("Stopping %s (%s) with %s, Timeout: %i", c.Name(), shortID, signal, maxWaitSeconds)
+		if err := client.api.ContainerStop(bg, idStr, stopOptions); err != nil {
 			return err
 		}
 	}
