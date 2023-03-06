@@ -207,6 +207,31 @@ var _ = Describe("the container", func() {
 			})
 		})
 
+		When("checking no-pull label", func() {
+			When("no-pull label is true", func() {
+				c := MockContainer(WithLabels(map[string]string{
+					"com.centurylinklabs.watchtower.no-pull": "true",
+				}))
+				It("should return true", func() {
+					Expect(c.IsNoPull()).To(Equal(true))
+				})
+			})
+			When("no-pull label is false", func() {
+				c := MockContainer(WithLabels(map[string]string{
+					"com.centurylinklabs.watchtower.no-pull": "false",
+				}))
+				It("should return false", func() {
+					Expect(c.IsNoPull()).To(Equal(false))
+				})
+			})
+			When("no-pull label is unset", func() {
+				c = MockContainer(WithLabels(map[string]string{}))
+				It("should return false", func() {
+					Expect(c.IsNoPull()).To(Equal(false))
+				})
+			})
+		})
+
 		When("there is a pre or post update timeout", func() {
 			It("should return minute values", func() {
 				c = MockContainer(WithLabels(map[string]string{
