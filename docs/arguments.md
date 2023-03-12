@@ -234,6 +234,9 @@ Environment Variable: WATCHTOWER_NO_PULL
              Default: false
 ```
 
+Note that no-pull can also be specified on a per-container basis with the
+`com.centurylinklabs.watchtower.no-pull` label set on those containers.
+
 ## Without sending a startup message
 Do not send a message after watchtower started. Otherwise there will be an info-level notification.
 
