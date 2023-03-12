@@ -224,6 +224,14 @@ var _ = Describe("the container", func() {
 					Expect(c.IsNoPull()).To(Equal(false))
 				})
 			})
+			When("no-pull label is set to an invalid value", func() {
+				c := MockContainer(WithLabels(map[string]string{
+					"com.centurylinklabs.watchtower.no-pull": "maybe",
+				}))
+				It("should return false", func() {
+					Expect(c.IsNoPull()).To(Equal(false))
+				})
+			})
 			When("no-pull label is unset", func() {
 				c = MockContainer(WithLabels(map[string]string{}))
 				It("should return false", func() {
