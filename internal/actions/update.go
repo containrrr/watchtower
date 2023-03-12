@@ -2,7 +2,6 @@ package actions
 
 import (
 	"errors"
-	"strings"
 
 	"github.com/containrrr/watchtower/internal/util"
 	"github.com/containrrr/watchtower/pkg/container"
@@ -260,10 +259,6 @@ func UpdateImplicitRestart(containers []container.Container) {
 // container marked for restart
 func linkedContainerMarkedForRestart(links []string, containers []container.Container) string {
 	for _, linkName := range links {
-		// Since the container names need to start with '/', let's prepend it if it's missing
-		if !strings.HasPrefix(linkName, "/") {
-			linkName = "/" + linkName
-		}
 		for _, candidate := range containers {
 			if candidate.Name() == linkName && candidate.ToRestart() {
 				return linkName

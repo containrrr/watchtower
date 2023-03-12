@@ -178,14 +178,21 @@ var _ = Describe("the container", func() {
 						"com.centurylinklabs.watchtower.depends-on": "postgres",
 					}))
 					links := c.Links()
-					Expect(links).To(SatisfyAll(ContainElement("postgres"), HaveLen(1)))
+					Expect(links).To(SatisfyAll(ContainElement("/postgres"), HaveLen(1)))
 				})
 				It("should fetch depending containers if there are many", func() {
 					c = MockContainer(WithLabels(map[string]string{
 						"com.centurylinklabs.watchtower.depends-on": "postgres,redis",
 					}))
 					links := c.Links()
-					Expect(links).To(SatisfyAll(ContainElement("postgres"), ContainElement("redis"), HaveLen(2)))
+					Expect(links).To(SatisfyAll(ContainElement("/postgres"), ContainElement("/redis"), HaveLen(2)))
+				})
+				It("should only add slashes to names when they are missing", func() {
+					c = MockContainer(WithLabels(map[string]string{
+						"com.centurylinklabs.watchtower.depends-on": "/postgres,redis",
+					}))
+					links := c.Links()
+					Expect(links).To(SatisfyAll(ContainElement("/postgres"), ContainElement("/redis")))
 				})
 				It("should fetch depending containers if label is blank", func() {
 					c = MockContainer(WithLabels(map[string]string{
