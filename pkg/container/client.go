@@ -260,7 +260,7 @@ func (client dockerClient) StartContainer(c Container) (t.ContainerID, error) {
 
 }
 
-func (client dockerClient) doStartContainer(bg context.Context, c Container, creation container.ContainerCreateCreatedBody) error {
+func (client dockerClient) doStartContainer(bg context.Context, c Container, creation container.CreateResponse) error {
 	name := c.Name()
 
 	log.Debugf("Starting container %s (%s)", name, t.ContainerID(creation.ID).ShortID())
