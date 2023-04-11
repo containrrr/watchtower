@@ -123,10 +123,9 @@ func GetAuthURL(challenge string, img string) (*url.URL, error) {
 
 	for _, pair := range pairs {
 		trimmed := strings.Trim(pair, " ")
-		kv := strings.Split(trimmed, "=")
-		key := kv[0]
-		val := strings.Trim(kv[1], "\"")
-		values[key] = val
+		if key, val, ok := strings.Cut(trimmed, "="); ok {
+			values[key] = strings.Trim(val, `"`)
+		}
 	}
 	logrus.WithFields(logrus.Fields{
 		"realm":   values["realm"],
