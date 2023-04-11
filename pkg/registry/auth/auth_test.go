@@ -86,6 +86,12 @@ var _ = Describe("the auth module", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(res).NotTo(BeNil())
 		})
+		It("should not crash when a field without a value is recieved", func() {
+			input := `bearer realm="https://ghcr.io/token",service="ghcr.io",scope="repository:user/image:pull",valuelesskey`
+			res, err := auth.GetAuthURL(input, "containrrr/watchtower")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(res).NotTo(BeNil())
+		})
 	})
 	When("getting a challenge url", func() {
 		It("should create a valid challenge url object based on the image ref supplied", func() {
