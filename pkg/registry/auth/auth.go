@@ -118,7 +118,8 @@ func GetAuthURL(challenge string, img string) (*url.URL, error) {
 	loweredChallenge := strings.ToLower(challenge)
 	raw := strings.TrimPrefix(loweredChallenge, "bearer")
 
-	pairs := strings.Split(raw, ",")
+	// split raw into pairs but skip empty strings
+	pairs := strings.FieldsFunc(raw, func(c rune) bool { return c == ',' })
 	values := make(map[string]string, len(pairs))
 
 	for _, pair := range pairs {
