@@ -178,14 +178,21 @@ var _ = Describe("the container", func() {
 						"com.centurylinklabs.watchtower.depends-on": "postgres",
 					}))
 					links := c.Links()
-					Expect(links).To(SatisfyAll(ContainElement("postgres"), HaveLen(1)))
+					Expect(links).To(SatisfyAll(ContainElement("/postgres"), HaveLen(1)))
 				})
 				It("should fetch depending containers if there are many", func() {
 					c = MockContainer(WithLabels(map[string]string{
 						"com.centurylinklabs.watchtower.depends-on": "postgres,redis",
 					}))
 					links := c.Links()
-					Expect(links).To(SatisfyAll(ContainElement("postgres"), ContainElement("redis"), HaveLen(2)))
+					Expect(links).To(SatisfyAll(ContainElement("/postgres"), ContainElement("/redis"), HaveLen(2)))
+				})
+				It("should only add slashes to names when they are missing", func() {
+					c = MockContainer(WithLabels(map[string]string{
+						"com.centurylinklabs.watchtower.depends-on": "/postgres,redis",
+					}))
+					links := c.Links()
+					Expect(links).To(SatisfyAll(ContainElement("/postgres"), ContainElement("/redis")))
 				})
 				It("should fetch depending containers if label is blank", func() {
 					c = MockContainer(WithLabels(map[string]string{
@@ -203,6 +210,39 @@ var _ = Describe("the container", func() {
 					}))
 					links := c.Links()
 					Expect(links).To(SatisfyAll(ContainElement("redis"), ContainElement("postgres"), HaveLen(2)))
+				})
+			})
+		})
+
+		When("checking no-pull label", func() {
+			When("no-pull label is true", func() {
+				c := MockContainer(WithLabels(map[string]string{
+					"com.centurylinklabs.watchtower.no-pull": "true",
+				}))
+				It("should return true", func() {
+					Expect(c.IsNoPull()).To(Equal(true))
+				})
+			})
+			When("no-pull label is false", func() {
+				c := MockContainer(WithLabels(map[string]string{
+					"com.centurylinklabs.watchtower.no-pull": "false",
+				}))
+				It("should return false", func() {
+					Expect(c.IsNoPull()).To(Equal(false))
+				})
+			})
+			When("no-pull label is set to an invalid value", func() {
+				c := MockContainer(WithLabels(map[string]string{
+					"com.centurylinklabs.watchtower.no-pull": "maybe",
+				}))
+				It("should return false", func() {
+					Expect(c.IsNoPull()).To(Equal(false))
+				})
+			})
+			When("no-pull label is unset", func() {
+				c = MockContainer(WithLabels(map[string]string{}))
+				It("should return false", func() {
+					Expect(c.IsNoPull()).To(Equal(false))
 				})
 			})
 		})

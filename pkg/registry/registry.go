@@ -19,7 +19,9 @@ func GetPullOptions(imageName string) (types.ImagePullOptions, error) {
 	if auth == "" {
 		return types.ImagePullOptions{}, nil
 	}
-	log.Tracef("Got auth value: %s", auth)
+
+	// CREDENTIAL: Uncomment to log docker config auth
+	// log.Tracef("Got auth value: %s", auth)
 
 	return types.ImagePullOptions{
 		RegistryAuth:  auth,

@@ -112,7 +112,6 @@ func ListContainersHandler(statuses ...string) http.HandlerFunc {
 	bytes, err := filterArgs.MarshalJSON()
 	O.ExpectWithOffset(1, err).ShouldNot(O.HaveOccurred())
 	query := url.Values{
-		"limit":   []string{"0"},
 		"filters": []string{string(bytes)},
 	}
 	return ghttp.CombineHandlers(

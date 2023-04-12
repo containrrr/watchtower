@@ -125,6 +125,22 @@ func (c Container) IsMonitorOnly() bool {
 	return parsedBool
 }
 
+// IsNoPull returns the value of the no-pull label. If the label is not set
+// then false is returned.
+func (c Container) IsNoPull() bool {
+	rawBool, ok := c.getLabelValue(noPullLabel)
+	if !ok {
+		return false
+	}
+
+	parsedBool, err := strconv.ParseBool(rawBool)
+	if err != nil {
+		return false
+	}
+
+	return parsedBool
+}
+
 // Scope returns the value of the scope UID label and if the label
 // was set.
 func (c Container) Scope() (string, bool) {
@@ -144,7 +160,14 @@ func (c Container) Links() []string {
 	dependsOnLabelValue := c.getLabelValueOrEmpty(dependsOnLabel)
 
 	if dependsOnLabelValue != "" {
-		links := strings.Split(dependsOnLabelValue, ",")
+		for _, link := range strings.Split(dependsOnLabelValue, ",") {
+			// Since the container names need to start with '/', let's prepend it if it's missing
+			if !strings.HasPrefix(link, "/") {
+				link = "/" + link
+			}
+			links = append(links, link)
+		}
+
 		return links
 	}
 

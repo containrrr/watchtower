@@ -30,7 +30,7 @@ To send notifications via shoutrrr, the following command-line options, or their
 -   `--notification-url` (env. `WATCHTOWER_NOTIFICATION_URL`): The shoutrrr service URL to be used.  This option can also reference a file, in which case the contents of the file are used.
 
 
-Go to [containrrr.dev/shoutrrr/v0.6/services/overview](https://containrrr.dev/shoutrrr/v0.6/services/overview) to
+Go to [containrrr.dev/shoutrrr/v0.7/services/overview](https://containrrr.dev/shoutrrr/v0.6/services/overview) to
 learn more about the different service URLs you can use. You can define multiple services by space separating the
 URLs. (See example below)
 
@@ -110,7 +110,7 @@ Example using a custom report template that always sends a session report after 
     docker run -d \
       --name watchtower \
       -v /var/run/docker.sock:/var/run/docker.sock \
-      -e WATCHTOWER_NOTIFICATION_REPORT="true"
+      -e WATCHTOWER_NOTIFICATION_REPORT="true" \
       -e WATCHTOWER_NOTIFICATION_URL="discord://token@channel slack://watchtower@token-a/token-b/token-c" \
       -e WATCHTOWER_NOTIFICATION_TEMPLATE="
       {{- if .Report -}}
@@ -130,7 +130,7 @@ Example using a custom report template that always sends a session report after 
           {{- end -}}
         {{- end -}}
       {{- else -}}
-        {{range .Entries -}}{{.Message}}{{"\n"}}{{- end -}}
+        {{range .Entries -}}{{.Message}}{{\"\n\"}}{{- end -}}
       {{- end -}}
       " \
       containrrr/watchtower

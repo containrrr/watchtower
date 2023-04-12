@@ -10,6 +10,7 @@ import (
 
 	"github.com/containrrr/watchtower/internal/actions/mocks"
 	"github.com/containrrr/watchtower/pkg/registry/auth"
+
 	wtTypes "github.com/containrrr/watchtower/pkg/types"
 	ref "github.com/docker/distribution/reference"
 	. "github.com/onsi/ginkgo"
@@ -108,6 +109,18 @@ var _ = Describe("the auth module", func() {
 				Expect(getScopeFromImageAuthURL("ghcr.io/watchtower")).To(Equal("watchtower"))
 				Expect(getScopeFromImageAuthURL("ghcr.io/containrrr/watchtower")).To(Equal("containrrr/watchtower"))
 			})
+		})
+		It("should not crash when an empty field is recieved", func() {
+			input := `bearer realm="https://ghcr.io/token",service="ghcr.io",scope="repository:user/image:pull",`
+			res, err := auth.GetAuthURL(input, "containrrr/watchtower")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(res).NotTo(BeNil())
+		})
+		It("should not crash when a field without a value is recieved", func() {
+			input := `bearer realm="https://ghcr.io/token",service="ghcr.io",scope="repository:user/image:pull",valuelesskey`
+			res, err := auth.GetAuthURL(input, "containrrr/watchtower")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(res).NotTo(BeNil())
 		})
 	})
 

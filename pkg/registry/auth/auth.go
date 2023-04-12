@@ -88,7 +88,8 @@ func GetBearerHeader(challenge string, imageRef ref.Named, registryAuth string) 
 
 	if registryAuth != "" {
 		logrus.Debug("Credentials found.")
-		logrus.Tracef("Credentials: %v", registryAuth)
+		// CREDENTIAL: Uncomment to log registry credentials
+		// logrus.Tracef("Credentials: %v", registryAuth)
 		r.Header.Add("Authorization", fmt.Sprintf("Basic %s", registryAuth))
 	} else {
 		logrus.Debug("No credentials found.")
@@ -120,10 +121,9 @@ func GetAuthURL(challenge string, imageRef ref.Named) (*url.URL, error) {
 
 	for _, pair := range pairs {
 		trimmed := strings.Trim(pair, " ")
-		kv := strings.Split(trimmed, "=")
-		key := kv[0]
-		val := strings.Trim(kv[1], "\"")
-		values[key] = val
+		if key, val, ok := strings.Cut(trimmed, "="); ok {
+			values[key] = strings.Trim(val, `"`)
+		}
 	}
 	logrus.WithFields(logrus.Fields{
 		"realm":   values["realm"],
