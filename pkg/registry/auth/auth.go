@@ -91,7 +91,8 @@ func GetBearerHeader(challenge string, img string, registryAuth string) (string,
 
 	if registryAuth != "" {
 		logrus.Debug("Credentials found.")
-		logrus.Tracef("Credentials: %v", registryAuth)
+		// CREDENTIAL: Uncomment to log registry credentials
+		// logrus.Tracef("Credentials: %v", registryAuth)
 		r.Header.Add("Authorization", fmt.Sprintf("Basic %s", registryAuth))
 	} else {
 		logrus.Debug("No credentials found.")
