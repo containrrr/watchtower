@@ -2,12 +2,13 @@ package auth_test
 
 import (
 	"fmt"
-	"github.com/containrrr/watchtower/internal/actions/mocks"
-	"github.com/containrrr/watchtower/pkg/registry/auth"
 	"net/url"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/containrrr/watchtower/internal/actions/mocks"
+	"github.com/containrrr/watchtower/pkg/registry/auth"
 
 	wtTypes "github.com/containrrr/watchtower/pkg/types"
 	. "github.com/onsi/ginkgo"
@@ -78,6 +79,18 @@ var _ = Describe("the auth module", func() {
 			res, err := auth.GetAuthURL(input, "containrrr/watchtower")
 			Expect(err).To(HaveOccurred())
 			Expect(res).To(BeNil())
+		})
+		It("should not crash when an empty field is recieved", func() {
+			input := `bearer realm="https://ghcr.io/token",service="ghcr.io",scope="repository:user/image:pull",`
+			res, err := auth.GetAuthURL(input, "containrrr/watchtower")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(res).NotTo(BeNil())
+		})
+		It("should not crash when a field without a value is recieved", func() {
+			input := `bearer realm="https://ghcr.io/token",service="ghcr.io",scope="repository:user/image:pull",valuelesskey`
+			res, err := auth.GetAuthURL(input, "containrrr/watchtower")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(res).NotTo(BeNil())
 		})
 	})
 	When("getting a challenge url", func() {
