@@ -35,8 +35,8 @@ var _ = Describe("the client", func() {
 		mockServer.Close()
 	})
 	Describe("WarnOnHeadPullFailed", func() {
-		containerUnknown := *MockContainer(WithImageName("unknown.repo/prefix/imagename:latest"))
-		containerKnown := *MockContainer(WithImageName("docker.io/prefix/imagename:latest"))
+		containerUnknown := MockContainer(WithImageName("unknown.repo/prefix/imagename:latest"))
+		containerKnown := MockContainer(WithImageName("docker.io/prefix/imagename:latest"))
 
 		When(`warn on head failure is set to "always"`, func() {
 			c := dockerClient{ClientOptions: ClientOptions{WarnOnHeadFailed: WarnAlways}}
@@ -66,7 +66,7 @@ var _ = Describe("the client", func() {
 		When("the image consist of a pinned hash", func() {
 			It("should gracefully fail with a useful message", func() {
 				c := dockerClient{}
-				pinnedContainer := *MockContainer(WithImageName("sha256:fa5269854a5e615e51a72b17ad3fd1e01268f278a6684c8ed3c5f0cdce3f230b"))
+				pinnedContainer := MockContainer(WithImageName("sha256:fa5269854a5e615e51a72b17ad3fd1e01268f278a6684c8ed3c5f0cdce3f230b"))
 				c.PullImage(context.Background(), pinnedContainer)
 			})
 		})
@@ -74,8 +74,8 @@ var _ = Describe("the client", func() {
 	When("removing a running container", func() {
 		When("the container still exist after stopping", func() {
 			It("should attempt to remove the container", func() {
-				container := *MockContainer(WithContainerState(types.ContainerState{Running: true}))
-				containerStopped := *MockContainer(WithContainerState(types.ContainerState{Running: false}))
+				container := MockContainer(WithContainerState(types.ContainerState{Running: true}))
+				containerStopped := MockContainer(WithContainerState(types.ContainerState{Running: false}))
 
 				cid := container.ContainerInfo().ID
 				mockServer.AppendHandlers(
@@ -90,7 +90,7 @@ var _ = Describe("the client", func() {
 		})
 		When("the container does not exist after stopping", func() {
 			It("should not cause an error", func() {
-				container := *MockContainer(WithContainerState(types.ContainerState{Running: true}))
+				container := MockContainer(WithContainerState(types.ContainerState{Running: true}))
 
 				cid := container.ContainerInfo().ID
 				mockServer.AppendHandlers(
@@ -261,18 +261,18 @@ func withContainerImageName(matcher gt.GomegaMatcher) gt.GomegaMatcher {
 	return WithTransform(containerImageName, matcher)
 }
 
-func containerImageName(container Container) string {
+func containerImageName(container t.Container) string {
 	return container.ImageName()
 }
 
 func havingRestartingState(expected bool) gt.GomegaMatcher {
-	return WithTransform(func(container Container) bool {
-		return container.containerInfo.State.Restarting
+	return WithTransform(func(container t.Container) bool {
+		return container.ContainerInfo().State.Restarting
 	}, Equal(expected))
 }
 
 func havingRunningState(expected bool) gt.GomegaMatcher {
-	return WithTransform(func(container Container) bool {
-		return container.containerInfo.State.Running
+	return WithTransform(func(container t.Container) bool {
+		return container.ContainerInfo().State.Running
 	}, Equal(expected))
 }

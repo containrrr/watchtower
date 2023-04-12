@@ -1,8 +1,10 @@
 package types
 
 import (
-	"github.com/docker/docker/api/types"
 	"strings"
+
+	"github.com/docker/docker/api/types"
+	dc "github.com/docker/docker/api/types/container"
 )
 
 // ImageID is a hash string representing a container image
@@ -62,4 +64,15 @@ type Container interface {
 	GetLifecyclePostCheckCommand() string
 	GetLifecyclePreUpdateCommand() string
 	GetLifecyclePostUpdateCommand() string
+	VerifyConfiguration() error
+	SetStale(bool)
+	IsStale() bool
+	IsNoPull() bool
+	SetLinkedToRestarting(bool)
+	IsLinkedToRestarting() bool
+	PreUpdateTimeout() int
+	PostUpdateTimeout() int
+	IsRestarting() bool
+	GetCreateConfig() *dc.Config
+	GetCreateHostConfig() *dc.HostConfig
 }

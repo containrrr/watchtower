@@ -25,15 +25,15 @@ const defaultStopSignal = "SIGTERM"
 // A Client is the interface through which watchtower interacts with the
 // Docker API.
 type Client interface {
-	ListContainers(t.Filter) ([]Container, error)
-	GetContainer(containerID t.ContainerID) (Container, error)
-	StopContainer(Container, time.Duration) error
-	StartContainer(Container) (t.ContainerID, error)
-	RenameContainer(Container, string) error
-	IsContainerStale(Container) (stale bool, latestImage t.ImageID, err error)
+	ListContainers(t.Filter) ([]t.Container, error)
+	GetContainer(containerID t.ContainerID) (t.Container, error)
+	StopContainer(t.Container, time.Duration) error
+	StartContainer(t.Container) (t.ContainerID, error)
+	RenameContainer(t.Container, string) error
+	IsContainerStale(t.Container) (stale bool, latestImage t.ImageID, err error)
 	ExecuteCommand(containerID t.ContainerID, command string, timeout int) (SkipUpdate bool, err error)
 	RemoveImageByID(t.ImageID) error
-	WarnOnHeadPullFailed(container Container) bool
+	WarnOnHeadPullFailed(container t.Container) bool
 }
 
 // NewClient returns a new Client instance which can be used to interact with
@@ -82,7 +82,7 @@ type dockerClient struct {
 	ClientOptions
 }
 
-func (client dockerClient) WarnOnHeadPullFailed(container Container) bool {
+func (client dockerClient) WarnOnHeadPullFailed(container t.Container) bool {
 	if client.WarnOnHeadFailed == WarnAlways {
 		return true
 	}
@@ -93,8 +93,8 @@ func (client dockerClient) WarnOnHeadPullFailed(container Container) bool {
 	return registry.WarnOnAPIConsumption(container)
 }
 
-func (client dockerClient) ListContainers(fn t.Filter) ([]Container, error) {
-	cs := []Container{}
+func (client dockerClient) ListContainers(fn t.Filter) ([]t.Container, error) {
+	cs := []t.Container{}
 	bg := context.Background()
 
 	if client.IncludeStopped && client.IncludeRestarting {
@@ -149,24 +149,24 @@ func (client dockerClient) createListFilter() filters.Args {
 	return filterArgs
 }
 
-func (client dockerClient) GetContainer(containerID t.ContainerID) (Container, error) {
+func (client dockerClient) GetContainer(containerID t.ContainerID) (t.Container, error) {
 	bg := context.Background()
 
 	containerInfo, err := client.api.ContainerInspect(bg, string(containerID))
 	if err != nil {
-		return Container{}, err
+		return &Container{}, err
 	}
 
 	imageInfo, _, err := client.api.ImageInspectWithRaw(bg, containerInfo.Image)
 	if err != nil {
 		log.Warnf("Failed to retrieve container image info: %v", err)
-		return Container{containerInfo: &containerInfo, imageInfo: nil}, nil
+		return &Container{containerInfo: &containerInfo, imageInfo: nil}, nil
 	}
 
-	return Container{containerInfo: &containerInfo, imageInfo: &imageInfo}, nil
+	return &Container{containerInfo: &containerInfo, imageInfo: &imageInfo}, nil
 }
 
-func (client dockerClient) StopContainer(c Container, timeout time.Duration) error {
+func (client dockerClient) StopContainer(c t.Container, timeout time.Duration) error {
 	bg := context.Background()
 	signal := c.StopSignal()
 	if signal == "" {
@@ -186,7 +186,7 @@ func (client dockerClient) StopContainer(c Container, timeout time.Duration) err
 	// TODO: This should probably be checked.
 	_ = client.waitForStopOrTimeout(c, timeout)
 
-	if c.containerInfo.HostConfig.AutoRemove {
+	if c.ContainerInfo().HostConfig.AutoRemove {
 		log.Debugf("AutoRemove container %s, skipping ContainerRemove call.", shortID)
 	} else {
 		log.Debugf("Removing container %s", shortID)
@@ -208,11 +208,11 @@ func (client dockerClient) StopContainer(c Container, timeout time.Duration) err
 	return nil
 }
 
-func (client dockerClient) StartContainer(c Container) (t.ContainerID, error) {
+func (client dockerClient) StartContainer(c t.Container) (t.ContainerID, error) {
 	bg := context.Background()
-	config := c.runtimeConfig()
-	hostConfig := c.hostConfig()
-	networkConfig := &network.NetworkingConfig{EndpointsConfig: c.containerInfo.NetworkSettings.Networks}
+	config := c.GetCreateConfig()
+	hostConfig := c.GetCreateHostConfig()
+	networkConfig := &network.NetworkingConfig{EndpointsConfig: c.ContainerInfo().NetworkSettings.Networks}
 	// simpleNetworkConfig is a networkConfig with only 1 network.
 	// see: https://github.com/docker/docker/issues/29265
 	simpleNetworkConfig := func() *network.NetworkingConfig {
@@ -260,7 +260,7 @@ func (client dockerClient) StartContainer(c Container) (t.ContainerID, error) {
 
 }
 
-func (client dockerClient) doStartContainer(bg context.Context, c Container, creation container.CreateResponse) error {
+func (client dockerClient) doStartContainer(bg context.Context, c t.Container, creation container.CreateResponse) error {
 	name := c.Name()
 
 	log.Debugf("Starting container %s (%s)", name, t.ContainerID(creation.ID).ShortID())
@@ -271,13 +271,13 @@ func (client dockerClient) doStartContainer(bg context.Context, c Container, cre
 	return nil
 }
 
-func (client dockerClient) RenameContainer(c Container, newName string) error {
+func (client dockerClient) RenameContainer(c t.Container, newName string) error {
 	bg := context.Background()
 	log.Debugf("Renaming container %s (%s) to %s", c.Name(), c.ID().ShortID(), newName)
 	return client.api.ContainerRename(bg, string(c.ID()), newName)
 }
 
-func (client dockerClient) IsContainerStale(container Container) (stale bool, latestImage t.ImageID, err error) {
+func (client dockerClient) IsContainerStale(container t.Container) (stale bool, latestImage t.ImageID, err error) {
 	ctx := context.Background()
 
 	if !client.PullImages || container.IsNoPull() {
@@ -289,8 +289,8 @@ func (client dockerClient) IsContainerStale(container Container) (stale bool, la
 	return client.HasNewImage(ctx, container)
 }
 
-func (client dockerClient) HasNewImage(ctx context.Context, container Container) (hasNew bool, latestImage t.ImageID, err error) {
-	currentImageID := t.ImageID(container.containerInfo.ContainerJSONBase.Image)
+func (client dockerClient) HasNewImage(ctx context.Context, container t.Container) (hasNew bool, latestImage t.ImageID, err error) {
+	currentImageID := t.ImageID(container.ContainerInfo().ContainerJSONBase.Image)
 	imageName := container.ImageName()
 
 	newImageInfo, _, err := client.api.ImageInspectWithRaw(ctx, imageName)
@@ -310,7 +310,7 @@ func (client dockerClient) HasNewImage(ctx context.Context, container Container)
 
 // PullImage pulls the latest image for the supplied container, optionally skipping if it's digest can be confirmed
 // to match the one that the registry reports via a HEAD request
-func (client dockerClient) PullImage(ctx context.Context, container Container) error {
+func (client dockerClient) PullImage(ctx context.Context, container t.Container) error {
 	containerName := container.Name()
 	imageName := container.ImageName()
 
@@ -478,7 +478,7 @@ func (client dockerClient) waitForExecOrTimeout(bg context.Context, ID string, e
 	return false, nil
 }
 
-func (client dockerClient) waitForStopOrTimeout(c Container, waitTime time.Duration) error {
+func (client dockerClient) waitForStopOrTimeout(c t.Container, waitTime time.Duration) error {
 	bg := context.Background()
 	timeout := time.After(waitTime)
 

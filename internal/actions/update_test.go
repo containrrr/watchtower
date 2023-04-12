@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/containrrr/watchtower/internal/actions"
-	"github.com/containrrr/watchtower/pkg/container"
 	"github.com/containrrr/watchtower/pkg/types"
 	dockerTypes "github.com/docker/docker/api/types"
 	dockerContainer "github.com/docker/docker/api/types/container"
@@ -18,7 +17,7 @@ import (
 func getCommonTestData(keepContainer string) *TestData {
 	return &TestData{
 		NameOfContainerToKeep: keepContainer,
-		Containers: []container.Container{
+		Containers: []types.Container{
 			CreateMockContainer(
 				"test-container-01",
 				"test-container-01",
@@ -59,7 +58,7 @@ func getLinkedTestData(withImageInfo bool) *TestData {
 
 	return &TestData{
 		Staleness: map[string]bool{linkingContainer.Name(): false},
-		Containers: []container.Container{
+		Containers: []types.Container{
 			staleContainer,
 			linkingContainer,
 		},
@@ -130,7 +129,7 @@ var _ = Describe("the update action", func() {
 				client := CreateMockClient(
 					&TestData{
 						NameOfContainerToKeep: "test-container-02",
-						Containers: []container.Container{
+						Containers: []types.Container{
 							CreateMockContainer(
 								"test-container-01",
 								"test-container-01",
@@ -163,7 +162,7 @@ var _ = Describe("the update action", func() {
 			It("should not update any containers", func() {
 				client := CreateMockClient(
 					&TestData{
-						Containers: []container.Container{
+						Containers: []types.Container{
 							CreateMockContainer(
 								"test-container-01",
 								"test-container-01",
@@ -194,7 +193,7 @@ var _ = Describe("the update action", func() {
 				client := CreateMockClient(
 					&TestData{
 						//NameOfContainerToKeep: "test-container-02",
-						Containers: []container.Container{
+						Containers: []types.Container{
 							CreateMockContainerWithConfig(
 								"test-container-02",
 								"test-container-02",
@@ -227,7 +226,7 @@ var _ = Describe("the update action", func() {
 				client := CreateMockClient(
 					&TestData{
 						//NameOfContainerToKeep: "test-container-02",
-						Containers: []container.Container{
+						Containers: []types.Container{
 							CreateMockContainerWithConfig(
 								"test-container-02",
 								"test-container-02",
@@ -259,7 +258,7 @@ var _ = Describe("the update action", func() {
 				client := CreateMockClient(
 					&TestData{
 						//NameOfContainerToKeep: "test-container-02",
-						Containers: []container.Container{
+						Containers: []types.Container{
 							CreateMockContainerWithConfig(
 								"test-container-02",
 								"test-container-02",
@@ -300,7 +299,7 @@ var _ = Describe("the update action", func() {
 						ExposedPorts: map[nat.Port]struct{}{},
 					})
 
-				provider.Stale = true
+				provider.SetStale(true)
 
 				consumer := CreateMockContainerWithConfig(
 					"test-container-consumer",
@@ -316,7 +315,7 @@ var _ = Describe("the update action", func() {
 						ExposedPorts: map[nat.Port]struct{}{},
 					})
 
-				containers := []container.Container{
+				containers := []types.Container{
 					provider,
 					consumer,
 				}
@@ -338,7 +337,7 @@ var _ = Describe("the update action", func() {
 				client := CreateMockClient(
 					&TestData{
 						//NameOfContainerToKeep: "test-container-02",
-						Containers: []container.Container{
+						Containers: []types.Container{
 							CreateMockContainerWithConfig(
 								"test-container-02",
 								"test-container-02",
@@ -370,7 +369,7 @@ var _ = Describe("the update action", func() {
 				client := CreateMockClient(
 					&TestData{
 						//NameOfContainerToKeep: "test-container-02",
-						Containers: []container.Container{
+						Containers: []types.Container{
 							CreateMockContainerWithConfig(
 								"test-container-02",
 								"test-container-02",

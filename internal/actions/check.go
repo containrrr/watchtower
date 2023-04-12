@@ -2,16 +2,15 @@ package actions
 
 import (
 	"fmt"
-	"github.com/containrrr/watchtower/pkg/types"
 	"sort"
 	"time"
 
+	"github.com/containrrr/watchtower/pkg/container"
 	"github.com/containrrr/watchtower/pkg/filters"
 	"github.com/containrrr/watchtower/pkg/sorter"
+	"github.com/containrrr/watchtower/pkg/types"
 
 	log "github.com/sirupsen/logrus"
-
-	"github.com/containrrr/watchtower/pkg/container"
 )
 
 // CheckForSanity makes sure everything is sane before starting
@@ -55,7 +54,7 @@ func CheckForMultipleWatchtowerInstances(client container.Client, cleanup bool, 
 	return cleanupExcessWatchtowers(containers, client, cleanup)
 }
 
-func cleanupExcessWatchtowers(containers []container.Container, client container.Client, cleanup bool) error {
+func cleanupExcessWatchtowers(containers []types.Container, client container.Client, cleanup bool) error {
 	var stopErrors int
 
 	sort.Sort(sorter.ByCreated(containers))

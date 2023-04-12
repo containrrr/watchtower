@@ -57,7 +57,7 @@ func Update(client container.Client, params types.UpdateParams) (types.Report, e
 		} else {
 			progress.AddScanned(targetContainer, newestImage)
 		}
-		containers[i].Stale = stale
+		containers[i].SetStale(stale)
 
 		if stale {
 			staleCount++
@@ -71,7 +71,7 @@ func Update(client container.Client, params types.UpdateParams) (types.Report, e
 
 	UpdateImplicitRestart(containers)
 
-	var containersToUpdate []container.Container
+	var containersToUpdate []types.Container
 	if !params.MonitorOnly {
 		for _, c := range containers {
 			if !c.IsMonitorOnly() {
@@ -96,7 +96,7 @@ func Update(client container.Client, params types.UpdateParams) (types.Report, e
 	return progress.Report(), nil
 }
 
-func performRollingRestart(containers []container.Container, client container.Client, params types.UpdateParams) map[types.ContainerID]error {
+func performRollingRestart(containers []types.Container, client container.Client, params types.UpdateParams) map[types.ContainerID]error {
 	cleanupImageIDs := make(map[types.ImageID]bool, len(containers))
 	failed := make(map[types.ContainerID]error, len(containers))
 
@@ -108,7 +108,7 @@ func performRollingRestart(containers []container.Container, client container.Cl
 			} else {
 				if err := restartStaleContainer(containers[i], client, params); err != nil {
 					failed[containers[i].ID()] = err
-				} else if containers[i].Stale {
+				} else if containers[i].IsStale() {
 					// Only add (previously) stale containers' images to cleanup
 					cleanupImageIDs[containers[i].ImageID()] = true
 				}
@@ -122,7 +122,7 @@ func performRollingRestart(containers []container.Container, client container.Cl
 	return failed
 }
 
-func stopContainersInReversedOrder(containers []container.Container, client container.Client, params types.UpdateParams) (failed map[types.ContainerID]error, stopped map[types.ImageID]bool) {
+func stopContainersInReversedOrder(containers []types.Container, client container.Client, params types.UpdateParams) (failed map[types.ContainerID]error, stopped map[types.ImageID]bool) {
 	failed = make(map[types.ContainerID]error, len(containers))
 	stopped = make(map[types.ImageID]bool, len(containers))
 	for i := len(containers) - 1; i >= 0; i-- {
@@ -137,7 +137,7 @@ func stopContainersInReversedOrder(containers []container.Container, client cont
 	return
 }
 
-func stopStaleContainer(container container.Container, client container.Client, params types.UpdateParams) error {
+func stopStaleContainer(container types.Container, client container.Client, params types.UpdateParams) error {
 	if container.IsWatchtower() {
 		log.Debugf("This is the watchtower container %s", container.Name())
 		return nil
@@ -148,7 +148,7 @@ func stopStaleContainer(container container.Container, client container.Client, 
 	}
 
 	// Perform an additional check here to prevent us from stopping a linked container we cannot restart
-	if container.LinkedToRestarting {
+	if container.IsLinkedToRestarting() {
 		if err := container.VerifyConfiguration(); err != nil {
 			return err
 		}
@@ -174,7 +174,7 @@ func stopStaleContainer(container container.Container, client container.Client, 
 	return nil
 }
 
-func restartContainersInSortedOrder(containers []container.Container, client container.Client, params types.UpdateParams, stoppedImages map[types.ImageID]bool) map[types.ContainerID]error {
+func restartContainersInSortedOrder(containers []types.Container, client container.Client, params types.UpdateParams, stoppedImages map[types.ImageID]bool) map[types.ContainerID]error {
 	cleanupImageIDs := make(map[types.ImageID]bool, len(containers))
 	failed := make(map[types.ContainerID]error, len(containers))
 
@@ -185,7 +185,7 @@ func restartContainersInSortedOrder(containers []container.Container, client con
 		if stoppedImages[c.SafeImageID()] {
 			if err := restartStaleContainer(c, client, params); err != nil {
 				failed[c.ID()] = err
-			} else if c.Stale {
+			} else if c.IsStale() {
 				// Only add (previously) stale containers' images to cleanup
 				cleanupImageIDs[c.ImageID()] = true
 			}
@@ -210,7 +210,7 @@ func cleanupImages(client container.Client, imageIDs map[types.ImageID]bool) {
 	}
 }
 
-func restartStaleContainer(container container.Container, client container.Client, params types.UpdateParams) error {
+func restartStaleContainer(container types.Container, client container.Client, params types.UpdateParams) error {
 	// Since we can't shutdown a watchtower container immediately, we need to
 	// start the new one while the old one is still running. This prevents us
 	// from re-using the same container name so we first rename the current
@@ -235,7 +235,7 @@ func restartStaleContainer(container container.Container, client container.Clien
 
 // UpdateImplicitRestart iterates through the passed containers, setting the
 // `LinkedToRestarting` flag if any of it's linked containers are marked for restart
-func UpdateImplicitRestart(containers []container.Container) {
+func UpdateImplicitRestart(containers []types.Container) {
 
 	for ci, c := range containers {
 		if c.ToRestart() {
@@ -249,7 +249,7 @@ func UpdateImplicitRestart(containers []container.Container) {
 				"linked":     c.Name(),
 			}).Debug("container is linked to restarting")
 			// NOTE: To mutate the array, the `c` variable cannot be used as it's a copy
-			containers[ci].LinkedToRestarting = true
+			containers[ci].SetLinkedToRestarting(true)
 		}
 
 	}
@@ -257,7 +257,7 @@ func UpdateImplicitRestart(containers []container.Container) {
 
 // linkedContainerMarkedForRestart returns the name of the first link that matches a
 // container marked for restart
-func linkedContainerMarkedForRestart(links []string, containers []container.Container) string {
+func linkedContainerMarkedForRestart(links []string, containers []types.Container) string {
 	for _, linkName := range links {
 		for _, candidate := range containers {
 			if candidate.Name() == linkName && candidate.ToRestart() {

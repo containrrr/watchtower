@@ -32,6 +32,26 @@ type Container struct {
 	imageInfo     *types.ImageInspect
 }
 
+// IsLinkedToRestarting returns the current value of the LinkedToRestarting field for the container
+func (c *Container) IsLinkedToRestarting() bool {
+	return c.LinkedToRestarting
+}
+
+// IsStale returns the current value of the Stale field for the container
+func (c *Container) IsStale() bool {
+	return c.Stale
+}
+
+// SetLinkedToRestarting sets the LinkedToRestarting field for the container
+func (c *Container) SetLinkedToRestarting(value bool) {
+	c.LinkedToRestarting = value
+}
+
+// SetStale implements sets the Stale field for the container
+func (c *Container) SetStale(value bool) {
+	c.Stale = value
+}
+
 // ContainerInfo fetches JSON info for the container
 func (c Container) ContainerInfo() *types.ContainerJSON {
 	return c.containerInfo
@@ -240,18 +260,23 @@ func (c Container) StopSignal() string {
 	return c.getLabelValueOrEmpty(signalLabel)
 }
 
+// GetCreateConfig returns the container's current Config converted into a format
+// that can be re-submitted to the Docker create API.
+//
 // Ideally, we'd just be able to take the ContainerConfig from the old container
 // and use it as the starting point for creating the new container; however,
 // the ContainerConfig that comes back from the Inspect call merges the default
 // configuration (the stuff specified in the metadata for the image itself)
 // with the overridden configuration (the stuff that you might specify as part
-// of the "docker run"). In order to avoid unintentionally overriding the
+// of the "docker run").
+//
+// In order to avoid unintentionally overriding the
 // defaults in the new image we need to separate the override options from the
 // default options. To do this we have to compare the ContainerConfig for the
 // running container with the ContainerConfig from the image that container was
 // started from. This function returns a ContainerConfig which contains just
 // the options overridden at runtime.
-func (c Container) runtimeConfig() *dockercontainer.Config {
+func (c Container) GetCreateConfig() *dockercontainer.Config {
 	config := c.containerInfo.Config
 	hostConfig := c.containerInfo.HostConfig
 	imageConfig := c.imageInfo.Config
@@ -295,9 +320,9 @@ func (c Container) runtimeConfig() *dockercontainer.Config {
 	return config
 }
 
-// Any links in the HostConfig need to be re-written before they can be
-// re-submitted to the Docker create API.
-func (c Container) hostConfig() *dockercontainer.HostConfig {
+// GetCreateHostConfig returns the container's current HostConfig with any links
+// re-written so that they can be re-submitted to the Docker create API.
+func (c Container) GetCreateHostConfig() *dockercontainer.HostConfig {
 	hostConfig := c.containerInfo.HostConfig
 
 	for i, link := range hostConfig.Links {

@@ -29,7 +29,7 @@ func ExecutePostChecks(client container.Client, params types.UpdateParams) {
 }
 
 // ExecutePreCheckCommand tries to run the pre-check lifecycle hook for a single container.
-func ExecutePreCheckCommand(client container.Client, container container.Container) {
+func ExecutePreCheckCommand(client container.Client, container types.Container) {
 	clog := log.WithField("container", container.Name())
 	command := container.GetLifecyclePreCheckCommand()
 	if len(command) == 0 {
@@ -45,7 +45,7 @@ func ExecutePreCheckCommand(client container.Client, container container.Contain
 }
 
 // ExecutePostCheckCommand tries to run the post-check lifecycle hook for a single container.
-func ExecutePostCheckCommand(client container.Client, container container.Container) {
+func ExecutePostCheckCommand(client container.Client, container types.Container) {
 	clog := log.WithField("container", container.Name())
 	command := container.GetLifecyclePostCheckCommand()
 	if len(command) == 0 {
@@ -61,7 +61,7 @@ func ExecutePostCheckCommand(client container.Client, container container.Contai
 }
 
 // ExecutePreUpdateCommand tries to run the pre-update lifecycle hook for a single container.
-func ExecutePreUpdateCommand(client container.Client, container container.Container) (SkipUpdate bool, err error) {
+func ExecutePreUpdateCommand(client container.Client, container types.Container) (SkipUpdate bool, err error) {
 	timeout := container.PreUpdateTimeout()
 	command := container.GetLifecyclePreUpdateCommand()
 	clog := log.WithField("container", container.Name())
