@@ -23,19 +23,29 @@ password `auth` string:
 ```
 
 `<REGISTRY_NAME>` needs to be replaced by the name of your private registry
-(e.g., `my-private-registry.example.org`)
+(e.g., `my-private-registry.example.org`).
 
-!!! important "Using private images on docker hub"
-    When using private images on docker hub, the containers beeing watched needs to use the full image name, including the repository prefix `index.docker.io`.
-    So instead of
-    ```
-    docker run -d myuser/myimage
-    ```
-    you would run it as
-    ```
-    docker run -d index.docker.io/myuser/myimage
-    ```
+!!! info "Using private images on Docker Hub"
+    To access private repositories on Docker Hub,
+    `<REGISTRY_NAME>` should be `https://index.docker.io/v1/`.
+    In this special case, the registry domain does not have to be specified
+    in `docker run` or `docker-compose`. Like Docker, Watchtower will use the
+    Docker Hub registry and its credentials when no registry domain is specified.
+    
+    <sub>Watchtower will recognize credentials with `<REGISTRY_NAME>` `index.docker.io`,
+    but the Docker CLI will not.</sub>
 
+!!! important "Using a private registry on a local host"
+    To use a private registry hosted locally, make sure to correctly specify the registry host
+    in both `config.json` and the `docker run` command or `docker-compose` file.
+    Valid hosts are `localhost[:PORT]`, `HOST:PORT`,
+    or any multi-part `domain.name` or IP-address with or without a port.
+    
+    Examples:
+    * `localhost` -> `localhost/myimage`
+    * `127.0.0.1` -> `127.0.0.1/myimage:mytag`
+    * `host.domain` -> `host.domain/myorganization/myimage`
+    * `other-lan-host:80` -> `other-lan-host:80/imagename:latest`
 
 The required `auth` string can be generated as follows:
 
@@ -75,7 +85,7 @@ When creating the watchtower container via docker-compose, use the following lin
 version: "3.4"
 services:
   watchtower:
-    image: index.docker.io/containrrr/watchtower:latest
+    image: containrrr/watchtower:latest
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - <PATH_TO_HOME_DIR>/.docker/config.json:/config.json

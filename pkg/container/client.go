@@ -260,7 +260,7 @@ func (client dockerClient) StartContainer(c t.Container) (t.ContainerID, error) 
 
 }
 
-func (client dockerClient) doStartContainer(bg context.Context, c t.Container, creation container.ContainerCreateCreatedBody) error {
+func (client dockerClient) doStartContainer(bg context.Context, c t.Container, creation container.CreateResponse) error {
 	name := c.Name()
 
 	log.Debugf("Starting container %s (%s)", name, t.ContainerID(creation.ID).ShortID())
@@ -280,7 +280,7 @@ func (client dockerClient) RenameContainer(c t.Container, newName string) error 
 func (client dockerClient) IsContainerStale(container t.Container) (stale bool, latestImage t.ImageID, err error) {
 	ctx := context.Background()
 
-	if !client.PullImages {
+	if !client.PullImages || container.IsNoPull() {
 		log.Debugf("Skipping image pull.")
 	} else if err := client.PullImage(ctx, container); err != nil {
 		return false, container.SafeImageID(), err

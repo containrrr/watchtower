@@ -63,6 +63,7 @@ func (e *emailTypeNotifier) GetURL(c *cobra.Command) (string, error) {
 		UseHTML:     false,
 		Encryption:  shoutrrrSmtp.EncMethods.Auto,
 		Auth:        shoutrrrSmtp.AuthTypes.None,
+		ClientHost:  "localhost",
 	}
 
 	if len(e.User) > 0 {
