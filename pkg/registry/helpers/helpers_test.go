@@ -1,9 +1,10 @@
 package helpers
 
 import (
+	"testing"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"testing"
 )
 
 func TestHelpers(t *testing.T) {
@@ -12,20 +13,25 @@ func TestHelpers(t *testing.T) {
 }
 
 var _ = Describe("the helpers", func() {
-
-	When("converting an url to a hostname", func() {
-		It("should return docker.io given docker.io/containrrr/watchtower:latest", func() {
-			host, port, err := ConvertToHostname("docker.io/containrrr/watchtower:latest")
-			Expect(err).NotTo(HaveOccurred())
-			Expect(host).To(Equal("docker.io"))
-			Expect(port).To(BeEmpty())
+	Describe("GetRegistryAddress", func() {
+		It("should return error if passed empty string", func() {
+			_, err := GetRegistryAddress("")
+			Expect(err).To(HaveOccurred())
 		})
-	})
-	When("normalizing the registry information", func() {
-		It("should return index.docker.io given docker.io", func() {
-			out, err := NormalizeRegistry("docker.io/containrrr/watchtower:latest")
-			Expect(err).NotTo(HaveOccurred())
-			Expect(out).To(Equal("index.docker.io"))
+		It("should return index.docker.io for image refs with no explicit registry", func() {
+			Expect(GetRegistryAddress("watchtower")).To(Equal("index.docker.io"))
+			Expect(GetRegistryAddress("containrrr/watchtower")).To(Equal("index.docker.io"))
+		})
+		It("should return index.docker.io for image refs with docker.io domain", func() {
+			Expect(GetRegistryAddress("docker.io/watchtower")).To(Equal("index.docker.io"))
+			Expect(GetRegistryAddress("docker.io/containrrr/watchtower")).To(Equal("index.docker.io"))
+		})
+		It("should return the host if passed an image name containing a local host", func() {
+			Expect(GetRegistryAddress("henk:80/watchtower")).To(Equal("henk:80"))
+			Expect(GetRegistryAddress("localhost/watchtower")).To(Equal("localhost"))
+		})
+		It("should return the server address if passed a fully qualified image name", func() {
+			Expect(GetRegistryAddress("github.com/containrrr/config")).To(Equal("github.com"))
 		})
 	})
 })

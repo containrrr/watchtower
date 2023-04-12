@@ -1,36 +1,28 @@
 package helpers
 
 import (
-	"fmt"
-	url2 "net/url"
+	"github.com/docker/distribution/reference"
 )
 
-// ConvertToHostname strips a url from everything but the hostname part
-func ConvertToHostname(url string) (string, string, error) {
-	urlWithSchema := fmt.Sprintf("x://%s", url)
-	u, err := url2.Parse(urlWithSchema)
-	if err != nil {
-		return "", "", err
-	}
-	hostName := u.Hostname()
-	port := u.Port()
+// domains for Docker Hub, the default registry
+const (
+	DefaultRegistryDomain       = "docker.io"
+	DefaultRegistryHost         = "index.docker.io"
+	LegacyDefaultRegistryDomain = "index.docker.io"
+)
 
-	return hostName, port, err
-}
-
-// NormalizeRegistry makes sure variations of DockerHubs registry
-func NormalizeRegistry(registry string) (string, error) {
-	hostName, port, err := ConvertToHostname(registry)
+// GetRegistryAddress parses an image name
+// and returns the address of the specified registry
+func GetRegistryAddress(imageRef string) (string, error) {
+	normalizedRef, err := reference.ParseNormalizedNamed(imageRef)
 	if err != nil {
 		return "", err
 	}
 
-	if hostName == "registry-1.docker.io" || hostName == "docker.io" {
-		hostName = "index.docker.io"
-	}
+	address := reference.Domain(normalizedRef)
 
-	if port != "" {
-		return fmt.Sprintf("%s:%s", hostName, port), nil
+	if address == DefaultRegistryDomain {
+		address = DefaultRegistryHost
 	}
-	return hostName, nil
+	return address, nil
 }

@@ -43,17 +43,17 @@ func DefaultAuthHandler() (string, error) {
 // Will return false if behavior for container is unknown.
 func WarnOnAPIConsumption(container watchtowerTypes.Container) bool {
 
-	normalizedName, err := ref.ParseNormalizedNamed(container.ImageName())
+	normalizedRef, err := ref.ParseNormalizedNamed(container.ImageName())
 	if err != nil {
 		return true
 	}
 
-	containerHost, err := helpers.NormalizeRegistry(normalizedName.String())
+	containerHost, err := helpers.GetRegistryAddress(normalizedRef.Name())
 	if err != nil {
 		return true
 	}
 
-	if containerHost == "index.docker.io" || containerHost == "ghcr.io" {
+	if containerHost == helpers.DefaultRegistryHost || containerHost == "ghcr.io" {
 		return true
 	}
 
