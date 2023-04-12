@@ -68,7 +68,8 @@ var _ = Describe("the auth module", func() {
 	Describe("GetAuthURL", func() {
 		It("should create a valid auth url object based on the challenge header supplied", func() {
 			challenge := `bearer realm="https://ghcr.io/token",service="ghcr.io",scope="repository:user/image:pull"`
-			imageRef, _ := ref.ParseNormalizedNamed("containrrr/watchtower")
+			imageRef, err := ref.ParseNormalizedNamed("containrrr/watchtower")
+			Expect(err).NotTo(HaveOccurred())
 			expected := &url.URL{
 				Host:     "ghcr.io",
 				Scheme:   "https",
@@ -84,7 +85,8 @@ var _ = Describe("the auth module", func() {
 		When("given an invalid challenge header", func() {
 			It("should return an error", func() {
 				challenge := `bearer realm="https://ghcr.io/token"`
-				imageRef, _ := ref.ParseNormalizedNamed("containrrr/watchtower")
+				imageRef, err := ref.ParseNormalizedNamed("containrrr/watchtower")
+				Expect(err).NotTo(HaveOccurred())
 				URL, err := auth.GetAuthURL(challenge, imageRef)
 				Expect(err).To(HaveOccurred())
 				Expect(URL).To(BeNil())
@@ -112,13 +114,17 @@ var _ = Describe("the auth module", func() {
 		})
 		It("should not crash when an empty field is recieved", func() {
 			input := `bearer realm="https://ghcr.io/token",service="ghcr.io",scope="repository:user/image:pull",`
-			res, err := auth.GetAuthURL(input, "containrrr/watchtower")
+			imageRef, err := ref.ParseNormalizedNamed("containrrr/watchtower")
+			Expect(err).NotTo(HaveOccurred())
+			res, err := auth.GetAuthURL(input, imageRef)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(res).NotTo(BeNil())
 		})
 		It("should not crash when a field without a value is recieved", func() {
 			input := `bearer realm="https://ghcr.io/token",service="ghcr.io",scope="repository:user/image:pull",valuelesskey`
-			res, err := auth.GetAuthURL(input, "containrrr/watchtower")
+			imageRef, err := ref.ParseNormalizedNamed("containrrr/watchtower")
+			Expect(err).NotTo(HaveOccurred())
+			res, err := auth.GetAuthURL(input, imageRef)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(res).NotTo(BeNil())
 		})
