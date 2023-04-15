@@ -39,9 +39,9 @@ type Client interface {
 // NewClient returns a new Client instance which can be used to interact with
 // the Docker API.
 // The client reads its configuration from the following environment variables:
-//  * DOCKER_HOST			the docker-engine host to send api requests to
-//  * DOCKER_TLS_VERIFY		whether to verify tls certificates
-//  * DOCKER_API_VERSION	the minimum docker api version to work with
+//   - DOCKER_HOST			the docker-engine host to send api requests to
+//   - DOCKER_TLS_VERIFY		whether to verify tls certificates
+//   - DOCKER_API_VERSION	the minimum docker api version to work with
 func NewClient(opts ClientOptions) Client {
 	cli, err := sdkClient.NewClientWithOpts(sdkClient.FromEnv)
 
@@ -369,12 +369,33 @@ func (client dockerClient) PullImage(ctx context.Context, container t.Container)
 func (client dockerClient) RemoveImageByID(id t.ImageID) error {
 	log.Infof("Removing image %s", id.ShortID())
 
-	_, err := client.api.ImageRemove(
+	items, err := client.api.ImageRemove(
 		context.Background(),
 		string(id),
 		types.ImageRemoveOptions{
 			Force: true,
 		})
+
+	if log.IsLevelEnabled(log.DebugLevel) {
+		deleted := strings.Builder{}
+		untagged := strings.Builder{}
+		for _, item := range items {
+			if item.Deleted != "" {
+				if deleted.Len() > 0 {
+					deleted.WriteString(`, `)
+				}
+				deleted.WriteString(t.ImageID(item.Deleted).ShortID())
+			}
+			if item.Untagged != "" {
+				if untagged.Len() > 0 {
+					untagged.WriteString(`, `)
+				}
+				untagged.WriteString(t.ImageID(item.Untagged).ShortID())
+			}
+		}
+		fields := log.Fields{`deleted`: deleted.String(), `untagged`: untagged.String()}
+		log.WithFields(fields).Debug("Image removal completed")
+	}
 
 	return err
 }

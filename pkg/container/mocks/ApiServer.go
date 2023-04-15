@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"path/filepath"
+	"strings"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
@@ -190,3 +191,29 @@ const (
 	Found   FoundStatus = true
 	Missing FoundStatus = false
 )
+
+// RemoveImageHandler mocks the DELETE images/ID endpoint, simulating removal of the given imagesWithParents
+func RemoveImageHandler(imagesWithParents map[string][]string) http.HandlerFunc {
+	return ghttp.CombineHandlers(
+		ghttp.VerifyRequest("DELETE", O.MatchRegexp("/images/.*")),
+		func(w http.ResponseWriter, r *http.Request) {
+			parts := strings.Split(r.URL.Path, `/`)
+			image := parts[len(parts)-1]
+
+			if parents, found := imagesWithParents[image]; found {
+				items := []types.ImageDeleteResponseItem{
+					{Untagged: image},
+					{Deleted: image},
+				}
+				for _, parent := range parents {
+					items = append(items, types.ImageDeleteResponseItem{Deleted: parent})
+				}
+				ghttp.RespondWithJSONEncoded(http.StatusOK, items)(w, r)
+			} else {
+				ghttp.RespondWithJSONEncoded(http.StatusNotFound, struct{ message string }{
+					message: "Something went wrong.",
+				})(w, r)
+			}
+		},
+	)
+}

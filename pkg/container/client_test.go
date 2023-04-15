@@ -3,6 +3,7 @@ package container
 import (
 	"time"
 
+	"github.com/containrrr/watchtower/internal/util"
 	"github.com/containrrr/watchtower/pkg/container/mocks"
 	"github.com/containrrr/watchtower/pkg/filters"
 	t "github.com/containrrr/watchtower/pkg/types"
@@ -10,6 +11,7 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/backend"
 	cli "github.com/docker/docker/client"
+	"github.com/docker/docker/errdefs"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/ghttp"
 	"github.com/sirupsen/logrus"
@@ -103,6 +105,37 @@ var _ = Describe("the client", func() {
 			})
 		})
 	})
+	When("removing a image", func() {
+		When("debug logging is enabled", func() {
+			It("should log removed and untagged images", func() {
+				imageA := util.GenerateRandomSHA256()
+				imageAParent := util.GenerateRandomSHA256()
+				images := map[string][]string{imageA: {imageAParent}}
+				mockServer.AppendHandlers(mocks.RemoveImageHandler(images))
+				c := dockerClient{api: docker}
+
+				resetLogrus, logbuf := captureLogrus(logrus.DebugLevel)
+				defer resetLogrus()
+
+				Expect(c.RemoveImageByID(t.ImageID(imageA))).To(Succeed())
+
+				shortA := t.ImageID(imageA).ShortID()
+				shortAParent := t.ImageID(imageAParent).ShortID()
+
+				Eventually(logbuf).Should(gbytes.Say(`deleted="%v, %v" untagged="?%v"?`, shortA, shortAParent, shortA))
+			})
+		})
+		When("image is not found", func() {
+			It("should return an error", func() {
+				image := util.GenerateRandomSHA256()
+				mockServer.AppendHandlers(mocks.RemoveImageHandler(nil))
+				c := dockerClient{api: docker}
+
+				err := c.RemoveImageByID(t.ImageID(image))
+				Expect(errdefs.IsNotFound(err)).To(BeTrue())
+			})
+		})
+	})
 	When("listing containers", func() {
 		When("no filter is provided", func() {
 			It("should return all available containers", func() {
@@ -193,10 +226,8 @@ var _ = Describe("the client", func() {
 				}
 
 				// Capture logrus output in buffer
-				logbuf := gbytes.NewBuffer()
-				origOut := logrus.StandardLogger().Out
-				defer logrus.SetOutput(origOut)
-				logrus.SetOutput(logbuf)
+				resetLogrus, logbuf := captureLogrus(logrus.DebugLevel)
+				defer resetLogrus()
 
 				user := ""
 				containerID := t.ContainerID("ex-cont-id")
@@ -254,6 +285,23 @@ var _ = Describe("the client", func() {
 		})
 	})
 })
+
+// Capture logrus output in buffer
+func captureLogrus(level logrus.Level) (func(), *gbytes.Buffer) {
+
+	logbuf := gbytes.NewBuffer()
+
+	origOut := logrus.StandardLogger().Out
+	logrus.SetOutput(logbuf)
+
+	origLev := logrus.StandardLogger().Level
+	logrus.SetLevel(level)
+
+	return func() {
+		logrus.SetOutput(origOut)
+		logrus.SetLevel(origLev)
+	}, logbuf
+}
 
 // Gomega matcher helpers
 
