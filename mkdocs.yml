@@ -48,6 +48,7 @@ nav:
    - 'Stop signals': 'stop-signals.md'
    - 'Lifecycle hooks': 'lifecycle-hooks.md'
    - 'Running multiple instances': 'running-multiple-instances.md'
+   - 'HTTP API Mode': 'http-api-mode.md'
    - 'Metrics': 'metrics.md'
 plugins:
     - search
