@@ -13,6 +13,7 @@ func UpdateFromContainer(cont types.Container, newImage types.ImageID, state Sta
 		containerID:   cont.ID(),
 		containerName: cont.Name(),
 		imageName:     cont.ImageName(),
+		labels:        cont.Labels(),
 		oldImage:      cont.SafeImageID(),
 		newImage:      newImage,
 		state:         state,

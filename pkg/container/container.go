@@ -76,6 +76,11 @@ func (c Container) IsRestarting() bool {
 	return c.containerInfo.State.Restarting
 }
 
+// Labels returns a map of all the labels present on the container
+func (c Container) Labels() map[string]string {
+	return c.containerInfo.Config.Labels
+}
+
 // Name returns the Docker container name.
 func (c Container) Name() string {
 	return c.containerInfo.Name
