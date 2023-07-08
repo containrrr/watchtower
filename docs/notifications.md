@@ -45,6 +45,24 @@ Simple templates are used unless the `notification-report` flag is specified:
 
 -   `--notification-report` (env. `WATCHTOWER_NOTIFICATION_REPORT`): Use the session report as the notification template data.
 
+### Matrix Template
+
+To send notifications via matrix, the following command-line options, or their corresponding environment variables, should be set:
+
+-   `--notification-url` (env. `WATCHTOWER_NOTIFICATION_URL`): The matrix service URL to be used. 
+-   `--notification-template` (env. `WATCHTOWER_NOTIFICATION_TEMPLATE`): The format to be used for notifications.
+
+Example:
+
+```bash
+docker run -d \
+  --name watchtower \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -e WATCHTOWER_NOTIFICATION_URL=matrix://username:password@domain.org/?rooms=!ROOMID:domain.org \
+  -e WATCHTOWER_NOTIFICATION_TEMPLATE="{{range .}}[WatchTower] ({{.Level}}): {{.Message}}{{println}}{{end}}" \
+  containrrr/watchtower
+```
+
 ## Simple templates
 
 The default value if not set is `{{range .}}{{.Message}}{{println}}{{end}}`. The example below uses a template that also
