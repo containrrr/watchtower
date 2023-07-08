@@ -49,8 +49,7 @@ Simple templates are used unless the `notification-report` flag is specified:
 
 To send notifications via matrix, the following command-line options, or their corresponding environment variables, should be set:
 
--   `--notification-url` (env. `WATCHTOWER_NOTIFICATION_URL`): The matrix service URL to be used. 
--   `--notification-template` (env. `WATCHTOWER_NOTIFICATION_TEMPLATE`): The format to be used for notifications.
+-   `--notification-url` (env. `WATCHTOWER_NOTIFICATION_URL`): The matrix service URL to be used.
 
 Example:
 
