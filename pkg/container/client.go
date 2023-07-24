@@ -208,11 +208,25 @@ func (client dockerClient) StopContainer(c t.Container, timeout time.Duration) e
 	return nil
 }
 
+func (client dockerClient) GetNetworkConfig(c t.Container) *network.NetworkingConfig {
+	config := &network.NetworkingConfig{
+		EndpointsConfig: c.ContainerInfo().NetworkSettings.Networks,
+	}
+
+	for _, ep := range config.EndpointsConfig {
+		// This keeps accumulating across upgrades with no apparent added value
+		// so throwing the information away to prevent overflows.
+		ep.Aliases = nil
+	}
+	return config
+}
+
 func (client dockerClient) StartContainer(c t.Container) (t.ContainerID, error) {
 	bg := context.Background()
 	config := c.GetCreateConfig()
 	hostConfig := c.GetCreateHostConfig()
-	networkConfig := &network.NetworkingConfig{EndpointsConfig: c.ContainerInfo().NetworkSettings.Networks}
+	networkConfig := client.GetNetworkConfig(c)
+
 	// simpleNetworkConfig is a networkConfig with only 1 network.
 	// see: https://github.com/docker/docker/issues/29265
 	simpleNetworkConfig := func() *network.NetworkingConfig {
@@ -228,6 +242,7 @@ func (client dockerClient) StartContainer(c t.Container) (t.ContainerID, error) 
 	name := c.Name()
 
 	log.Infof("Creating %s", name)
+
 	createdContainer, err := client.api.ContainerCreate(bg, config, hostConfig, simpleNetworkConfig, nil, name)
 	if err != nil {
 		return "", err
