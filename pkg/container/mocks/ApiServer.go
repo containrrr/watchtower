@@ -50,7 +50,7 @@ func GetContainerHandlers(containerFiles ...string) []http.HandlerFunc {
 
 		if file == "net_consumer" {
 			// Also append the net_producer container, since it's used to reconfigure networking
-			handlers = append(handlers, getContainerHandler("net_producer"))
+			handlers = append(handlers, getContainerFileHandler("net_producer"))
 		}
 
 		// Also append the image request since that will be called for every container
@@ -67,15 +67,15 @@ func createFilterArgs(statuses []string) filters.Args {
 	return args
 }
 
-const NetConsumerID = t.ContainerID("1f6b79d2aff23244382026c76f4995851322bed5f9c50631620162f6f9aafbd6")
-const NetProducerID = t.ContainerID("25e75393800b5c450a6841212a3b92ed28fa35414a586dec9f2c8a520d4910c2")
+const NetConsumerID = "1f6b79d2aff23244382026c76f4995851322bed5f9c50631620162f6f9aafbd6"
+const NetProducerID = "25e75393800b5c450a6841212a3b92ed28fa35414a586dec9f2c8a520d4910c2"
 const NetProducerContainerName = "/wt-contnet-producer-1"
 
-var containerFileIds = map[string]t.ContainerID{
-	"stopped":      t.ContainerID("ae8964ba86c7cd7522cf84e09781343d88e0e3543281c747d88b27e246578b65"),
-	"watchtower":   t.ContainerID("3d88e0e3543281c747d88b27e246578b65ae8964ba86c7cd7522cf84e0978134"),
-	"running":      t.ContainerID("b978af0b858aa8855cce46b628817d4ed58e58f2c4f66c9b9c5449134ed4c008"),
-	"restarting":   t.ContainerID("ae8964ba86c7cd7522cf84e09781343d88e0e3543281c747d88b27e246578b67"),
+var containerFileIds = map[string]string{
+	"stopped":      "ae8964ba86c7cd7522cf84e09781343d88e0e3543281c747d88b27e246578b65",
+	"watchtower":   "3d88e0e3543281c747d88b27e246578b65ae8964ba86c7cd7522cf84e0978134",
+	"running":      "b978af0b858aa8855cce46b628817d4ed58e58f2c4f66c9b9c5449134ed4c008",
+	"restarting":   "ae8964ba86c7cd7522cf84e09781343d88e0e3543281c747d88b27e246578b67",
 	"net_consumer": NetConsumerID,
 	"net_producer": NetProducerID,
 }
@@ -114,7 +114,7 @@ func GetContainerHandler(containerID string, containerInfo *types.ContainerJSON)
 
 // GetImageHandler mocks the GET images/{id}/json endpoint
 func GetImageHandler(imageInfo *types.ImageInspect) http.HandlerFunc {
-	return getImageHandler(imageInfo.ID, ghttp.RespondWithJSONEncoded(http.StatusOK, imageInfo))
+	return getImageHandler(t.ImageID(imageInfo.ID), ghttp.RespondWithJSONEncoded(http.StatusOK, imageInfo))
 }
 
 // ListContainersHandler mocks the GET containers/json endpoint, filtering the returned containers based on statuses
@@ -148,7 +148,7 @@ func respondWithFilteredContainers(filters filters.Args) http.HandlerFunc {
 	return ghttp.RespondWithJSONEncoded(http.StatusOK, filteredContainers)
 }
 
-func getImageHandler(imageId string, responseHandler http.HandlerFunc) http.HandlerFunc {
+func getImageHandler(imageId t.ImageID, responseHandler http.HandlerFunc) http.HandlerFunc {
 	return ghttp.CombineHandlers(
 		ghttp.VerifyRequest("GET", O.HaveSuffix("/images/%s/json", imageId)),
 		responseHandler,
@@ -194,7 +194,7 @@ func RemoveContainerHandler(containerID string, found FoundStatus) http.HandlerF
 }
 
 func containerNotFoundResponse(containerID string) http.HandlerFunc {
-	return ghttp.RespondWithJSONEncoded(http.StatusNotFound, struct{ message string }{message: "No such container: " + containerID})
+	return ghttp.RespondWithJSONEncoded(http.StatusNotFound, struct{ message string }{message: "No such container: " + string(containerID)})
 }
 
 var noContentStatusResponse = ghttp.RespondWith(http.StatusNoContent, nil)
