@@ -216,6 +216,19 @@ var _ = Describe("the client", func() {
 				Expect(containers).NotTo(ContainElement(havingRestartingState(true)))
 			})
 		})
+		When(`a container uses container network mode`, func() {
+			It("should return the container name instead of the ID", func() {
+				mockServer.AppendHandlers(mocks.GetContainerHandlers("net_consumer")...)
+				client := dockerClient{
+					api:           docker,
+					ClientOptions: ClientOptions{PullImages: false},
+				}
+				container, err := client.GetContainer(mocks.NetConsumerID)
+				Expect(err).NotTo(HaveOccurred())
+				networkMode := container.ContainerInfo().HostConfig.NetworkMode
+				Expect(networkMode.ConnectedContainer()).To(Equal(mocks.NetProducerContainerName))
+			})
+		})
 	})
 	Describe(`ExecuteCommand`, func() {
 		When(`logging`, func() {

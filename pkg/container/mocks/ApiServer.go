@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	t "github.com/containrrr/watchtower/pkg/types"
+
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
 	O "github.com/onsi/gomega"
@@ -46,13 +48,13 @@ func GetContainerHandlers(containerFiles ...string) []http.HandlerFunc {
 	for _, file := range containerFiles {
 		handlers = append(handlers, getContainerFileHandler(file))
 
-		// Also append the image request since that will be called for every container
-		if file == "running" {
-			// The "running" container is the only one using image02
-			handlers = append(handlers, getImageFileHandler(1))
-		} else {
-			handlers = append(handlers, getImageFileHandler(0))
+		if file == "net_consumer" {
+			// Also append the net_producer container, since it's used to reconfigure networking
+			handlers = append(handlers, getContainerHandler("net_producer"))
 		}
+
+		// Also append the image request since that will be called for every container
+		handlers = append(handlers, getImageFileHandler(file))
 	}
 	return handlers
 }
@@ -65,16 +67,24 @@ func createFilterArgs(statuses []string) filters.Args {
 	return args
 }
 
-var containerFileIds = map[string]string{
-	"stopped":    "ae8964ba86c7cd7522cf84e09781343d88e0e3543281c747d88b27e246578b65",
-	"watchtower": "3d88e0e3543281c747d88b27e246578b65ae8964ba86c7cd7522cf84e0978134",
-	"running":    "b978af0b858aa8855cce46b628817d4ed58e58f2c4f66c9b9c5449134ed4c008",
-	"restarting": "ae8964ba86c7cd7522cf84e09781343d88e0e3543281c747d88b27e246578b67",
+const NetConsumerID = t.ContainerID("1f6b79d2aff23244382026c76f4995851322bed5f9c50631620162f6f9aafbd6")
+const NetProducerID = t.ContainerID("25e75393800b5c450a6841212a3b92ed28fa35414a586dec9f2c8a520d4910c2")
+const NetProducerContainerName = "/wt-contnet-producer-1"
+
+var containerFileIds = map[string]t.ContainerID{
+	"stopped":      t.ContainerID("ae8964ba86c7cd7522cf84e09781343d88e0e3543281c747d88b27e246578b65"),
+	"watchtower":   t.ContainerID("3d88e0e3543281c747d88b27e246578b65ae8964ba86c7cd7522cf84e0978134"),
+	"running":      t.ContainerID("b978af0b858aa8855cce46b628817d4ed58e58f2c4f66c9b9c5449134ed4c008"),
+	"restarting":   t.ContainerID("ae8964ba86c7cd7522cf84e09781343d88e0e3543281c747d88b27e246578b67"),
+	"net_consumer": NetConsumerID,
+	"net_producer": NetProducerID,
 }
 
-var imageIds = []string{
-	"sha256:4dbc5f9c07028a985e14d1393e849ea07f68804c4293050d5a641b138db72daa",
-	"sha256:19d07168491a3f9e2798a9bed96544e34d57ddc4757a4ac5bb199dea896c87fd",
+var imageIds = map[string]t.ImageID{
+	"default":      t.ImageID("sha256:4dbc5f9c07028a985e14d1393e849ea07f68804c4293050d5a641b138db72daa"), // watchtower
+	"running":      t.ImageID("sha256:19d07168491a3f9e2798a9bed96544e34d57ddc4757a4ac5bb199dea896c87fd"), // portainer
+	"net_consumer": t.ImageID("sha256:904b8cb13b932e23230836850610fa45dce9eb0650d5618c2b1487c2a4f577b8"), // nginx
+	"net_producer": t.ImageID("sha256:c22b543d33bfdcb9992cbef23961677133cdf09da71d782468ae2517138bad51"), // gluetun
 }
 
 func getContainerFileHandler(file string) http.HandlerFunc {
@@ -145,9 +155,13 @@ func getImageHandler(imageId string, responseHandler http.HandlerFunc) http.Hand
 	)
 }
 
-func getImageFileHandler(index int) http.HandlerFunc {
-	return getImageHandler(imageIds[index],
-		RespondWithJSONFile(fmt.Sprintf("./mocks/data/image%02d.json", index+1), http.StatusOK),
+func getImageFileHandler(key string) http.HandlerFunc {
+	if _, found := imageIds[key]; !found {
+		// The default image (watchtower) is used for most of the containers
+		key = `default`
+	}
+	return getImageHandler(imageIds[key],
+		RespondWithJSONFile(fmt.Sprintf("./mocks/data/image_%v.json", key), http.StatusOK),
 	)
 }
 
