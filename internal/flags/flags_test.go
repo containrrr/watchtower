@@ -183,6 +183,28 @@ func TestProcessFlagAliasesLogLevelFromEnvironment(t *testing.T) {
 	assert.Equal(t, `debug`, logLevel)
 }
 
+func TestJSONLoggingFlag(t *testing.T) {
+	cmd := new(cobra.Command)
+
+	SetDefaults()
+	RegisterDockerFlags(cmd)
+	RegisterSystemFlags(cmd)
+
+	// Ensure the default value is false
+	enableJsonFormatter, err := cmd.PersistentFlags().GetBool("json-logging")
+	require.NoError(t, err)
+
+	assert.Equal(t, false, enableJsonFormatter)
+
+	// Test with the argument
+	require.NoError(t, cmd.ParseFlags([]string{`--json-logging`}))
+	flags := cmd.Flags()
+	enableJsonFormatter, _ = flags.GetBool("json-logging")
+	require.NoError(t, err)
+	assert.Equal(t, true, enableJsonFormatter)
+
+}
+
 func TestProcessFlagAliasesSchedAndInterval(t *testing.T) {
 	logrus.StandardLogger().ExitFunc = func(_ int) { panic(`FATAL`) }
 	cmd := new(cobra.Command)

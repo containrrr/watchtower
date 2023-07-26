@@ -107,6 +107,17 @@ Environment Variable: WATCHTOWER_LOG_LEVEL
              Default: info
 ```
 
+## JSON Logging
+
+Enables the JSON log formatter for logging, changing the log output to JSON format. By default, the log output follows the standard text-based format.
+
+```text
+            Argument: --json-logging
+Environment Variable: WATCHTOWER_JSON_LOGGING
+                Type: Boolean
+             Default: false
+```
+
 ## ANSI colors
 Disable ANSI color escape codes in log output.
 

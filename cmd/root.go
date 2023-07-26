@@ -28,17 +28,18 @@ import (
 )
 
 var (
-	client         container.Client
-	scheduleSpec   string
-	cleanup        bool
-	noRestart      bool
-	monitorOnly    bool
-	enableLabel    bool
-	notifier       t.Notifier
-	timeout        time.Duration
-	lifecycleHooks bool
-	rollingRestart bool
-	scope          string
+	client              container.Client
+	scheduleSpec        string
+	cleanup             bool
+	noRestart           bool
+	monitorOnly         bool
+	enableLabel         bool
+	enableJsonFormatter bool
+	notifier            t.Notifier
+	timeout             time.Duration
+	lifecycleHooks      bool
+	rollingRestart      bool
+	scope               string
 )
 
 var rootCmd = NewRootCommand()
@@ -94,6 +95,11 @@ func PreRun(cmd *cobra.Command, _ []string) {
 		log.Fatalf("Invalid log level: %s", err.Error())
 	} else {
 		log.SetLevel(logLevel)
+	}
+
+	enableJsonFormatter, _ = f.GetBool("json-logging")
+	if enableJsonFormatter {
+		log.SetFormatter(&log.JSONFormatter{})
 	}
 
 	scheduleSpec, _ = f.GetString("schedule")

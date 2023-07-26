@@ -87,6 +87,12 @@ func RegisterSystemFlags(rootCmd *cobra.Command) {
 		"Watch containers where the com.centurylinklabs.watchtower.enable label is true")
 
 	flags.BoolP(
+		"json-logging",
+		"j",
+		viper.GetBool("WATCHTOWER_JSON_LOGGING"),
+		"Enables the JSON log formatter for logging")
+
+	flags.BoolP(
 		"debug",
 		"d",
 		viper.GetBool("WATCHTOWER_DEBUG"),
