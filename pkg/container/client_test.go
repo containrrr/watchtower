@@ -1,6 +1,7 @@
 package container
 
 import (
+	"github.com/docker/docker/api/types/network"
 	"time"
 
 	"github.com/containrrr/watchtower/internal/util"
@@ -281,6 +282,24 @@ var _ = Describe("the client", func() {
 				// Note: Since Execute requires opening up a raw TCP stream to the daemon for the output, this will fail
 				// when using the mock API server. Regardless of the outcome, the log should include the container ID
 				Eventually(logbuf).Should(gbytes.Say(`containerID="?ex-cont-id"?`))
+			})
+		})
+	})
+	Describe(`GetNetworkConfig`, func() {
+		When(`providing a container with network aliases`, func() {
+			It(`should purge the aliases`, func() {
+				aliases := []string{"One", "Two"}
+				client := dockerClient{
+					api:           docker,
+					ClientOptions: ClientOptions{PullImages: false, IncludeRestarting: false},
+				}
+				container := MockContainer(WithImageName("docker.io/prefix/imagename:latest"))
+				endpoints := map[string]*network.EndpointSettings{
+					`test`: {Aliases: aliases},
+				}
+				container.containerInfo.NetworkSettings = &types.NetworkSettings{Networks: endpoints}
+				Expect(container.ContainerInfo().NetworkSettings.Networks[`test`].Aliases).To(Equal(aliases))
+				Expect(client.GetNetworkConfig(container).EndpointsConfig[`test`].Aliases).To(BeEmpty())
 			})
 		})
 	})
