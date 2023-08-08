@@ -157,6 +157,22 @@ func (client dockerClient) GetContainer(containerID t.ContainerID) (t.Container,
 		return &Container{}, err
 	}
 
+	netType, netContainerId, found := strings.Cut(string(containerInfo.HostConfig.NetworkMode), ":")
+	if found && netType == "container" {
+		parentContainer, err := client.api.ContainerInspect(bg, netContainerId)
+		if err != nil {
+			log.WithFields(map[string]interface{}{
+				"container":         containerInfo.Name,
+				"error":             err,
+				"network-container": netContainerId,
+			}).Warnf("Unable to resolve network container: %v", err)
+
+		} else {
+			// Replace the container ID with a container name to allow it to reference the re-created network container
+			containerInfo.HostConfig.NetworkMode = container.NetworkMode(fmt.Sprintf("container:%s", parentContainer.Name))
+		}
+	}
+
 	imageInfo, _, err := client.api.ImageInspectWithRaw(bg, containerInfo.Image)
 	if err != nil {
 		log.Warnf("Failed to retrieve container image info: %v", err)

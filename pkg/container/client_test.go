@@ -141,7 +141,7 @@ var _ = Describe("the client", func() {
 		When("no filter is provided", func() {
 			It("should return all available containers", func() {
 				mockServer.AppendHandlers(mocks.ListContainersHandler("running"))
-				mockServer.AppendHandlers(mocks.GetContainerHandlers("watchtower", "running")...)
+				mockServer.AppendHandlers(mocks.GetContainerHandlers(&mocks.Watchtower, &mocks.Running)...)
 				client := dockerClient{
 					api:           docker,
 					ClientOptions: ClientOptions{PullImages: false},
@@ -154,7 +154,7 @@ var _ = Describe("the client", func() {
 		When("a filter matching nothing", func() {
 			It("should return an empty array", func() {
 				mockServer.AppendHandlers(mocks.ListContainersHandler("running"))
-				mockServer.AppendHandlers(mocks.GetContainerHandlers("watchtower", "running")...)
+				mockServer.AppendHandlers(mocks.GetContainerHandlers(&mocks.Watchtower, &mocks.Running)...)
 				filter := filters.FilterByNames([]string{"lollercoaster"}, filters.NoFilter)
 				client := dockerClient{
 					api:           docker,
@@ -168,7 +168,7 @@ var _ = Describe("the client", func() {
 		When("a watchtower filter is provided", func() {
 			It("should return only the watchtower container", func() {
 				mockServer.AppendHandlers(mocks.ListContainersHandler("running"))
-				mockServer.AppendHandlers(mocks.GetContainerHandlers("watchtower", "running")...)
+				mockServer.AppendHandlers(mocks.GetContainerHandlers(&mocks.Watchtower, &mocks.Running)...)
 				client := dockerClient{
 					api:           docker,
 					ClientOptions: ClientOptions{PullImages: false},
@@ -181,7 +181,7 @@ var _ = Describe("the client", func() {
 		When(`include stopped is enabled`, func() {
 			It("should return both stopped and running containers", func() {
 				mockServer.AppendHandlers(mocks.ListContainersHandler("running", "exited", "created"))
-				mockServer.AppendHandlers(mocks.GetContainerHandlers("stopped", "watchtower", "running")...)
+				mockServer.AppendHandlers(mocks.GetContainerHandlers(&mocks.Stopped, &mocks.Watchtower, &mocks.Running)...)
 				client := dockerClient{
 					api:           docker,
 					ClientOptions: ClientOptions{PullImages: false, IncludeStopped: true},
@@ -194,7 +194,7 @@ var _ = Describe("the client", func() {
 		When(`include restarting is enabled`, func() {
 			It("should return both restarting and running containers", func() {
 				mockServer.AppendHandlers(mocks.ListContainersHandler("running", "restarting"))
-				mockServer.AppendHandlers(mocks.GetContainerHandlers("watchtower", "running", "restarting")...)
+				mockServer.AppendHandlers(mocks.GetContainerHandlers(&mocks.Watchtower, &mocks.Running, &mocks.Restarting)...)
 				client := dockerClient{
 					api:           docker,
 					ClientOptions: ClientOptions{PullImages: false, IncludeRestarting: true},
@@ -207,7 +207,7 @@ var _ = Describe("the client", func() {
 		When(`include restarting is disabled`, func() {
 			It("should not return restarting containers", func() {
 				mockServer.AppendHandlers(mocks.ListContainersHandler("running"))
-				mockServer.AppendHandlers(mocks.GetContainerHandlers("watchtower", "running")...)
+				mockServer.AppendHandlers(mocks.GetContainerHandlers(&mocks.Watchtower, &mocks.Running)...)
 				client := dockerClient{
 					api:           docker,
 					ClientOptions: ClientOptions{PullImages: false, IncludeRestarting: false},
@@ -215,6 +215,36 @@ var _ = Describe("the client", func() {
 				containers, err := client.ListContainers(filters.NoFilter)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(containers).NotTo(ContainElement(havingRestartingState(true)))
+			})
+		})
+		When(`a container uses container network mode`, func() {
+			When(`the network container can be resolved`, func() {
+				It("should return the container name instead of the ID", func() {
+					consumerContainerRef := mocks.NetConsumerOK
+					mockServer.AppendHandlers(mocks.GetContainerHandlers(&consumerContainerRef)...)
+					client := dockerClient{
+						api:           docker,
+						ClientOptions: ClientOptions{PullImages: false},
+					}
+					container, err := client.GetContainer(consumerContainerRef.ContainerID())
+					Expect(err).NotTo(HaveOccurred())
+					networkMode := container.ContainerInfo().HostConfig.NetworkMode
+					Expect(networkMode.ConnectedContainer()).To(Equal(mocks.NetSupplierContainerName))
+				})
+			})
+			When(`the network container cannot be resolved`, func() {
+				It("should still return the container ID", func() {
+					consumerContainerRef := mocks.NetConsumerInvalidSupplier
+					mockServer.AppendHandlers(mocks.GetContainerHandlers(&consumerContainerRef)...)
+					client := dockerClient{
+						api:           docker,
+						ClientOptions: ClientOptions{PullImages: false},
+					}
+					container, err := client.GetContainer(consumerContainerRef.ContainerID())
+					Expect(err).NotTo(HaveOccurred())
+					networkMode := container.ContainerInfo().HostConfig.NetworkMode
+					Expect(networkMode.ConnectedContainer()).To(Equal(mocks.NetSupplierNotFoundID))
+				})
 			})
 		})
 	})

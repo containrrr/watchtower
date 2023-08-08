@@ -196,6 +196,13 @@ func (c Container) Links() []string {
 			name := strings.Split(link, ":")[0]
 			links = append(links, name)
 		}
+
+		// If the container uses another container for networking, it can be considered an implicit link
+		// since the container would stop working if the network supplier were to be recreated
+		networkMode := c.containerInfo.HostConfig.NetworkMode
+		if networkMode.IsContainer() {
+			links = append(links, networkMode.ConnectedContainer())
+		}
 	}
 
 	return links
