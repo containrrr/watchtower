@@ -317,19 +317,20 @@ var _ = Describe("the client", func() {
 	})
 	Describe(`GetNetworkConfig`, func() {
 		When(`providing a container with network aliases`, func() {
-			It(`should purge the aliases`, func() {
-				aliases := []string{"One", "Two"}
+			It(`should omit the container ID alias`, func() {
 				client := dockerClient{
 					api:           docker,
 					ClientOptions: ClientOptions{PullImages: false, IncludeRestarting: false},
 				}
 				container := MockContainer(WithImageName("docker.io/prefix/imagename:latest"))
+
+				aliases := []string{"One", "Two", container.ID().ShortID(), "Four"}
 				endpoints := map[string]*network.EndpointSettings{
 					`test`: {Aliases: aliases},
 				}
 				container.containerInfo.NetworkSettings = &types.NetworkSettings{Networks: endpoints}
 				Expect(container.ContainerInfo().NetworkSettings.Networks[`test`].Aliases).To(Equal(aliases))
-				Expect(client.GetNetworkConfig(container).EndpointsConfig[`test`].Aliases).To(BeEmpty())
+				Expect(client.GetNetworkConfig(container).EndpointsConfig[`test`].Aliases).To(Equal([]string{"One", "Two", "Four"}))
 			})
 		})
 	})
