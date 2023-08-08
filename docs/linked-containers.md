@@ -4,4 +4,4 @@ For example, imagine you were running a _mysql_ container and a _wordpress_ cont
 
 If you want to override existing links, or if you are not using links, you can use special `com.centurylinklabs.watchtower.depends-on` label with dependent container names, separated by a comma.
 
-When you have a depending container that is using `network_mode: service:container` then links or the `depends-on` label is required for the restart of the depending container to work.
+When you have a depending container that is using `network_mode: service:container` then watchtower will treat that container as an implicit link.
