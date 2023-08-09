@@ -364,3 +364,14 @@ Environment Variable: WATCHTOWER_WARN_ON_HEAD_FAILURE
      Possible values: always, auto, never
              Default: auto
 ```
+
+## Health check
+
+Run health check and exit.
+
+```text
+            Argument: --health-check
+Environment Variable: WATCHTOWER_HEALTH_CHECK
+     Possible values: -
+             Default: -
+```

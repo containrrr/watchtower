@@ -186,6 +186,12 @@ func RegisterSystemFlags(rootCmd *cobra.Command) {
 		"log-level",
 		viper.GetString("WATCHTOWER_LOG_LEVEL"),
 		"The maximum log level that will be written to STDERR. Possible values: panic, fatal, error, warn, info, debug or trace")
+
+	flags.BoolP(
+		"health-check",
+		"",
+		viper.IsSet("WATCHTOWER_HEALTH_CHECK"),
+		"Do health check and exit")
 }
 
 // RegisterNotificationFlags that are used by watchtower to send notifications

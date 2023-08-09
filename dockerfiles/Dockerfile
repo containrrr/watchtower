@@ -17,4 +17,7 @@ COPY --from=alpine \
 EXPOSE 8080
 
 COPY watchtower /
+
+HEALTHCHECK CMD [ "/watchtower", "--health-check"]
+
 ENTRYPOINT ["/watchtower"]
