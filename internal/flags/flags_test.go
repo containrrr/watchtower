@@ -1,13 +1,12 @@
 package flags
 
 import (
-	"os"
-	"testing"
-
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"os"
+	"testing"
 )
 
 func TestEnvConfig_Defaults(t *testing.T) {
@@ -60,9 +59,9 @@ func TestGetSecretsFromFilesWithFile(t *testing.T) {
 	require.NoError(t, err)
 
 	// Write the secret to the temporary file.
-	secret := []byte(value)
-	_, err = file.Write(secret)
+	_, err = file.Write([]byte(value))
 	require.NoError(t, err)
+	require.NoError(t, file.Close())
 
 	t.Setenv("WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PASSWORD", file.Name())
 

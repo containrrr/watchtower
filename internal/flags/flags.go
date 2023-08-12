@@ -468,12 +468,14 @@ func GetSecretsFromFiles(rootCmd *cobra.Command) {
 		"notification-url",
 	}
 	for _, secret := range secrets {
-		getSecretFromFile(flags, secret)
+		if err := getSecretFromFile(flags, secret); err != nil {
+			log.Fatalf("failed to get secret from flag %v: %s", secret, err)
+		}
 	}
 }
 
 // getSecretFromFile will check if the flag contains a reference to a file; if it does, replaces the value of the flag with the contents of the file.
-func getSecretFromFile(flags *pflag.FlagSet, secret string) {
+func getSecretFromFile(flags *pflag.FlagSet, secret string) error {
 	flag := flags.Lookup(secret)
 	if sliceValue, ok := flag.Value.(pflag.SliceValue); ok {
 		oldValues := sliceValue.GetSlice()
@@ -482,7 +484,7 @@ func getSecretFromFile(flags *pflag.FlagSet, secret string) {
 			if value != "" && isFile(value) {
 				file, err := os.Open(value)
 				if err != nil {
-					log.Fatal(err)
+					return err
 				}
 				scanner := bufio.NewScanner(file)
 				for scanner.Scan() {
@@ -492,25 +494,26 @@ func getSecretFromFile(flags *pflag.FlagSet, secret string) {
 					}
 					values = append(values, line)
 				}
+				if err := file.Close(); err != nil {
+					return err
+				}
 			} else {
 				values = append(values, value)
 			}
 		}
-		sliceValue.Replace(values)
-		return
+		return sliceValue.Replace(values)
 	}
 
 	value := flag.Value.String()
 	if value != "" && isFile(value) {
-		file, err := os.ReadFile(value)
+		content, err := os.ReadFile(value)
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
-		err = flags.Set(secret, strings.TrimSpace(string(file)))
-		if err != nil {
-			log.Error(err)
-		}
+		return flags.Set(secret, strings.TrimSpace(string(content)))
 	}
+
+	return nil
 }
 
 func isFile(s string) bool {
