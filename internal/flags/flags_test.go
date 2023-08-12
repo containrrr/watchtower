@@ -90,6 +90,7 @@ func TestGetSliceSecretsFromFiles(t *testing.T) {
 func testGetSecretsFromFiles(t *testing.T, flagName string, expected string, args ...string) {
 	cmd := new(cobra.Command)
 	SetDefaults()
+	RegisterSystemFlags(cmd)
 	RegisterNotificationFlags(cmd)
 	require.NoError(t, cmd.ParseFlags(args))
 	GetSecretsFromFiles(cmd)

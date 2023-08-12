@@ -27,6 +27,33 @@ In the example above, watchtower will execute an upgrade attempt on the containe
 
 When no arguments are specified, watchtower will monitor all running containers.
 
+## Secrets/Files
+
+Some arguments can also reference a file, in which case the contents of the file are used as the value.
+This can be used to avoid putting secrets in the configuration file or command line.
+
+The following arguments are currently supported (including their corresponding `WATCHTOWER_` environment variables):
+ - `notification-url`
+ - `notification-email-server-password`
+ - `notification-slack-hook-url`
+ - `notification-msteams-hook`
+ - `notification-gotify-token`
+ - `http-api-token`
+
+### Example docker-compose usage
+```yaml
+secrets:
+  access_token:
+    file: access_token
+
+services:
+  watchtower:
+    secrets:
+      - access_token
+    environment:
+      - WATCHTOWER_HTTP_API_TOKEN=/run/secrets/access_token
+```
+
 ## Help
 Shows documentation about the supported flags.
 
@@ -270,6 +297,7 @@ Environment Variable: WATCHTOWER_HTTP_API_UPDATE
 
 ## HTTP API Token
 Sets an authentication token to HTTP API requests.
+Can also reference a file, in which case the contents of the file are used.
 
 ```text
             Argument: --http-api-token
