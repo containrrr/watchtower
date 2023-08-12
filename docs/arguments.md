@@ -270,6 +270,7 @@ Environment Variable: WATCHTOWER_HTTP_API_UPDATE
 
 ## HTTP API Token
 Sets an authentication token to HTTP API requests.
+Can also reference a file, in which case the contents of the file are used.
 
 ```text
             Argument: --http-api-token

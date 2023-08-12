@@ -466,6 +466,7 @@ func GetSecretsFromFiles(rootCmd *cobra.Command) {
 		"notification-msteams-hook",
 		"notification-gotify-token",
 		"notification-url",
+		"http-api-token",
 	}
 	for _, secret := range secrets {
 		if err := getSecretFromFile(flags, secret); err != nil {
