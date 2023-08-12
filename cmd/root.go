@@ -77,10 +77,10 @@ func Execute() {
 // PreRun is a lifecycle hook that runs before the command is executed.
 func PreRun(cmd *cobra.Command, _ []string) {
 	f := cmd.PersistentFlags()
+	flags.ProcessFlagAliases(f)
 	if err := flags.SetupLogging(f); err != nil {
 		log.Fatalf("Failed to initialize logging: %s", err.Error())
 	}
-	flags.ProcessFlagAliases(f)
 
 	scheduleSpec, _ = f.GetString("schedule")
 
