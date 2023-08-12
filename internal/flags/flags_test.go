@@ -183,26 +183,55 @@ func TestProcessFlagAliasesLogLevelFromEnvironment(t *testing.T) {
 	assert.Equal(t, `debug`, logLevel)
 }
 
-func TestJSONLoggingFlag(t *testing.T) {
+func TestLogFormatFlag(t *testing.T) {
 	cmd := new(cobra.Command)
 
 	SetDefaults()
 	RegisterDockerFlags(cmd)
 	RegisterSystemFlags(cmd)
 
-	// Ensure the default value is false
-	enableJsonFormatter, err := cmd.PersistentFlags().GetBool("json-logging")
-	require.NoError(t, err)
+	// Ensure the default value is Auto
+	require.NoError(t, cmd.ParseFlags([]string{}))
+	require.NoError(t, SetupLogging(cmd.Flags()))
+	assert.IsType(t, &logrus.TextFormatter{}, logrus.StandardLogger().Formatter)
 
-	assert.Equal(t, false, enableJsonFormatter)
+	// Test JSON format
+	require.NoError(t, cmd.ParseFlags([]string{`--log-format`, `JSON`}))
+	require.NoError(t, SetupLogging(cmd.Flags()))
+	assert.IsType(t, &logrus.JSONFormatter{}, logrus.StandardLogger().Formatter)
 
-	// Test with the argument
-	require.NoError(t, cmd.ParseFlags([]string{`--json-logging`}))
-	flags := cmd.Flags()
-	enableJsonFormatter, _ = flags.GetBool("json-logging")
-	require.NoError(t, err)
-	assert.Equal(t, true, enableJsonFormatter)
+	// Test Pretty format
+	require.NoError(t, cmd.ParseFlags([]string{`--log-format`, `pretty`}))
+	require.NoError(t, SetupLogging(cmd.Flags()))
+	assert.IsType(t, &logrus.TextFormatter{}, logrus.StandardLogger().Formatter)
+	textFormatter, ok := (logrus.StandardLogger().Formatter).(*logrus.TextFormatter)
+	assert.True(t, ok)
+	assert.True(t, textFormatter.ForceColors)
+	assert.False(t, textFormatter.FullTimestamp)
 
+	// Test LogFmt format
+	require.NoError(t, cmd.ParseFlags([]string{`--log-format`, `logfmt`}))
+	require.NoError(t, SetupLogging(cmd.Flags()))
+	textFormatter, ok = (logrus.StandardLogger().Formatter).(*logrus.TextFormatter)
+	assert.True(t, ok)
+	assert.True(t, textFormatter.DisableColors)
+	assert.True(t, textFormatter.FullTimestamp)
+
+	// Test invalid format
+	require.NoError(t, cmd.ParseFlags([]string{`--log-format`, `cowsay`}))
+	require.Error(t, SetupLogging(cmd.Flags()))
+}
+
+func TestLogLevelFlag(t *testing.T) {
+	cmd := new(cobra.Command)
+
+	SetDefaults()
+	RegisterDockerFlags(cmd)
+	RegisterSystemFlags(cmd)
+
+	// Test invalid format
+	require.NoError(t, cmd.ParseFlags([]string{`--log-level`, `gossip`}))
+	require.Error(t, SetupLogging(cmd.Flags()))
 }
 
 func TestProcessFlagAliasesSchedAndInterval(t *testing.T) {

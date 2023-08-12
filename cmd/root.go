@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"math"
 	"net/http"
 	"os"
@@ -28,18 +29,17 @@ import (
 )
 
 var (
-	client              container.Client
-	scheduleSpec        string
-	cleanup             bool
-	noRestart           bool
-	monitorOnly         bool
-	enableLabel         bool
-	enableJsonFormatter bool
-	notifier            t.Notifier
-	timeout             time.Duration
-	lifecycleHooks      bool
-	rollingRestart      bool
-	scope               string
+	client         container.Client
+	scheduleSpec   string
+	cleanup        bool
+	noRestart      bool
+	monitorOnly    bool
+	enableLabel    bool
+	notifier       t.Notifier
+	timeout        time.Duration
+	lifecycleHooks bool
+	rollingRestart bool
+	scope          string
 )
 
 var rootCmd = NewRootCommand()
@@ -77,30 +77,10 @@ func Execute() {
 // PreRun is a lifecycle hook that runs before the command is executed.
 func PreRun(cmd *cobra.Command, _ []string) {
 	f := cmd.PersistentFlags()
+	if err := flags.SetupLogging(f); err != nil {
+		log.Fatalf("Failed to initialize logging: %s", err.Error())
+	}
 	flags.ProcessFlagAliases(f)
-
-	if enabled, _ := f.GetBool("no-color"); enabled {
-		log.SetFormatter(&log.TextFormatter{
-			DisableColors: true,
-		})
-	} else {
-		// enable logrus built-in support for https://bixense.com/clicolors/
-		log.SetFormatter(&log.TextFormatter{
-			EnvironmentOverrideColors: true,
-		})
-	}
-
-	rawLogLevel, _ := f.GetString(`log-level`)
-	if logLevel, err := log.ParseLevel(rawLogLevel); err != nil {
-		log.Fatalf("Invalid log level: %s", err.Error())
-	} else {
-		log.SetLevel(logLevel)
-	}
-
-	enableJsonFormatter, _ = f.GetBool("json-logging")
-	if enableJsonFormatter {
-		log.SetFormatter(&log.JSONFormatter{})
-	}
 
 	scheduleSpec, _ = f.GetString("schedule")
 
@@ -205,7 +185,7 @@ func Run(c *cobra.Command, names []string) {
 		httpAPI.RegisterHandler(metricsHandler.Path, metricsHandler.Handle)
 	}
 
-	if err := httpAPI.Start(enableUpdateAPI && !unblockHTTPAPI); err != nil && err != http.ErrServerClosed {
+	if err := httpAPI.Start(enableUpdateAPI && !unblockHTTPAPI); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		log.Error("failed to start API", err)
 	}
 
