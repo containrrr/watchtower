@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 	"time"
@@ -503,7 +502,7 @@ func getSecretFromFile(flags *pflag.FlagSet, secret string) {
 
 	value := flag.Value.String()
 	if value != "" && isFile(value) {
-		file, err := ioutil.ReadFile(value)
+		file, err := os.ReadFile(value)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -564,15 +563,15 @@ func ProcessFlagAliases(flags *pflag.FlagSet) {
 	// update schedule flag to match interval if it's set, or to the default if none of them are
 	if intervalChanged || !scheduleChanged {
 		interval, _ := flags.GetInt(`interval`)
-		flags.Set(`schedule`, fmt.Sprintf(`@every %ds`, interval))
+		_ = flags.Set(`schedule`, fmt.Sprintf(`@every %ds`, interval))
 	}
 
 	if flagIsEnabled(flags, `debug`) {
-		flags.Set(`log-level`, `debug`)
+		_ = flags.Set(`log-level`, `debug`)
 	}
 
 	if flagIsEnabled(flags, `trace`) {
-		flags.Set(`log-level`, `trace`)
+		_ = flags.Set(`log-level`, `trace`)
 	}
 
 }
@@ -593,7 +592,7 @@ func appendFlagValue(flags *pflag.FlagSet, name string, values ...string) error 
 
 	if flagValues, ok := flag.Value.(pflag.SliceValue); ok {
 		for _, value := range values {
-			flagValues.Append(value)
+			_ = flagValues.Append(value)
 		}
 	} else {
 		return fmt.Errorf(`the value for flag %q is not a slice value`, name)
