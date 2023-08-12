@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 	"time"
@@ -469,12 +468,14 @@ func GetSecretsFromFiles(rootCmd *cobra.Command) {
 		"notification-url",
 	}
 	for _, secret := range secrets {
-		getSecretFromFile(flags, secret)
+		if err := getSecretFromFile(flags, secret); err != nil {
+			log.Fatalf("failed to get secret from flag %v: %s", secret, err)
+		}
 	}
 }
 
 // getSecretFromFile will check if the flag contains a reference to a file; if it does, replaces the value of the flag with the contents of the file.
-func getSecretFromFile(flags *pflag.FlagSet, secret string) {
+func getSecretFromFile(flags *pflag.FlagSet, secret string) error {
 	flag := flags.Lookup(secret)
 	if sliceValue, ok := flag.Value.(pflag.SliceValue); ok {
 		oldValues := sliceValue.GetSlice()
@@ -483,7 +484,7 @@ func getSecretFromFile(flags *pflag.FlagSet, secret string) {
 			if value != "" && isFile(value) {
 				file, err := os.Open(value)
 				if err != nil {
-					log.Fatal(err)
+					return err
 				}
 				scanner := bufio.NewScanner(file)
 				for scanner.Scan() {
@@ -493,25 +494,26 @@ func getSecretFromFile(flags *pflag.FlagSet, secret string) {
 					}
 					values = append(values, line)
 				}
+				if err := file.Close(); err != nil {
+					return err
+				}
 			} else {
 				values = append(values, value)
 			}
 		}
-		sliceValue.Replace(values)
-		return
+		return sliceValue.Replace(values)
 	}
 
 	value := flag.Value.String()
 	if value != "" && isFile(value) {
-		file, err := ioutil.ReadFile(value)
+		content, err := os.ReadFile(value)
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
-		err = flags.Set(secret, strings.TrimSpace(string(file)))
-		if err != nil {
-			log.Error(err)
-		}
+		return flags.Set(secret, strings.TrimSpace(string(content)))
 	}
+
+	return nil
 }
 
 func isFile(s string) bool {
@@ -564,15 +566,15 @@ func ProcessFlagAliases(flags *pflag.FlagSet) {
 	// update schedule flag to match interval if it's set, or to the default if none of them are
 	if intervalChanged || !scheduleChanged {
 		interval, _ := flags.GetInt(`interval`)
-		flags.Set(`schedule`, fmt.Sprintf(`@every %ds`, interval))
+		_ = flags.Set(`schedule`, fmt.Sprintf(`@every %ds`, interval))
 	}
 
 	if flagIsEnabled(flags, `debug`) {
-		flags.Set(`log-level`, `debug`)
+		_ = flags.Set(`log-level`, `debug`)
 	}
 
 	if flagIsEnabled(flags, `trace`) {
-		flags.Set(`log-level`, `trace`)
+		_ = flags.Set(`log-level`, `trace`)
 	}
 
 }
@@ -593,7 +595,7 @@ func appendFlagValue(flags *pflag.FlagSet, name string, values ...string) error 
 
 	if flagValues, ok := flag.Value.(pflag.SliceValue); ok {
 		for _, value := range values {
-			flagValues.Append(value)
+			_ = flagValues.Append(value)
 		}
 	} else {
 		return fmt.Errorf(`the value for flag %q is not a slice value`, name)
