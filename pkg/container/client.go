@@ -34,6 +34,7 @@ type Client interface {
 	ExecuteCommand(containerID t.ContainerID, command string, timeout int) (SkipUpdate bool, err error)
 	RemoveImageByID(t.ImageID) error
 	WarnOnHeadPullFailed(container t.Container) bool
+	GetImage(imageID t.ImageID) (types.ImageInspect, error)
 }
 
 // NewClient returns a new Client instance which can be used to interact with
@@ -395,6 +396,14 @@ func (client dockerClient) PullImage(ctx context.Context, container t.Container)
 		return err
 	}
 	return nil
+}
+
+func (client dockerClient) GetImage(id t.ImageID) (types.ImageInspect, error) {
+	imageInfo, _, err := client.api.ImageInspectWithRaw(context.Background(), string(id))
+	if err != nil {
+		return types.ImageInspect{}, err
+	}
+	return imageInfo, nil
 }
 
 func (client dockerClient) RemoveImageByID(id t.ImageID) error {

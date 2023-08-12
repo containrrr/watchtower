@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	dockerTypes "github.com/docker/docker/api/types"
+
 	t "github.com/containrrr/watchtower/pkg/types"
 )
 
@@ -64,6 +66,11 @@ func (client MockClient) RenameContainer(_ t.Container, _ string) error {
 func (client MockClient) RemoveImageByID(_ t.ImageID) error {
 	client.TestData.TriedToRemoveImageCount++
 	return nil
+}
+
+// GetImage is a mock method
+func (client MockClient) GetImage(_ t.ImageID) (dockerTypes.ImageInspect, error) {
+	return dockerTypes.ImageInspect{}, nil
 }
 
 // GetContainer is a mock method
