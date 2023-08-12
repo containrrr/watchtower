@@ -4,11 +4,14 @@ import "strings"
 
 type imageMeta map[string]string
 
+const openContainersPrefix = "org.opencontainers.image."
+
 func imageMetaFromLabels(labels map[string]string) imageMeta {
 	im := make(imageMeta)
 	for key, value := range labels {
-		if suffix, found := strings.CutPrefix(key, "org.opencontainers.image."); found {
-			im[suffix] = value
+		if strings.HasPrefix(key, openContainersPrefix) {
+			strippedKey := key[len(openContainersPrefix):]
+			im[strippedKey] = value
 		}
 	}
 	return im
