@@ -85,8 +85,8 @@ Environment Variable: WATCHTOWER_CLEANUP
              Default: false
 ```
 
-## Remove attached volumes
-Removes attached volumes after updating. When this flag is specified, watchtower will remove all attached volumes from the container before restarting with a new image. Use this option to force new volumes to be populated as containers are updated.
+## Remove anonymous volumes
+Removes anonymous volumes after updating. When this flag is specified, watchtower will remove all anonymous volumes from the container before restarting with a new image. Named volumes will not be removed!
 
 ```text
             Argument: --remove-volumes
