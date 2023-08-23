@@ -157,7 +157,8 @@ func Run(c *cobra.Command, names []string) {
 	if healthCheck {
 		// health check should not have pid 1
 		if os.Getpid() == 1 {
-			os.Exit(1)
+			time.Sleep(1 * time.Second)
+			log.Fatal("The health check flag should never be passed to the main watchtower container process")
 		}
 		os.Exit(0)
 	}
