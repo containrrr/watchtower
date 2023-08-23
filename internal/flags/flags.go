@@ -190,7 +190,7 @@ func RegisterSystemFlags(rootCmd *cobra.Command) {
 	flags.BoolP(
 		"health-check",
 		"",
-		viper.IsSet("WATCHTOWER_HEALTH_CHECK"),
+		false,
 		"Do health check and exit")
 }
 
