@@ -374,7 +374,4 @@ Returns a success exit code to enable usage with docker `HEALTHCHECK`. This chec
 
 ```text
             Argument: --health-check
-Environment Variable: WATCHTOWER_HEALTH_CHECK
-     Possible values: -
-             Default: -
 ```
