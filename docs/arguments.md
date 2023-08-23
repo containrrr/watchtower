@@ -367,7 +367,10 @@ Environment Variable: WATCHTOWER_WARN_ON_HEAD_FAILURE
 
 ## Health check
 
-Run health check and exit.
+Returns a success exit code to enable usage with docker `HEALTHCHECK`. This check is naive and only returns checks whether there is another process running inside the container, as it is the only known form of failure state for watchtowers container.
+
+!!! note "Only for HEALTHCHECK use"
+    Never put this on the main container executable command line as it is only meant to be run from docker HEALTHCHECK.
 
 ```text
             Argument: --health-check
