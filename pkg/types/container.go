@@ -75,4 +75,5 @@ type Container interface {
 	IsRestarting() bool
 	GetCreateConfig() *dc.Config
 	GetCreateHostConfig() *dc.HostConfig
+	LocalImage() (bool, bool)
 }

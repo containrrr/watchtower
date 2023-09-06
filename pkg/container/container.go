@@ -113,6 +113,22 @@ func (c Container) ImageName() string {
 	return imageName
 }
 
+// Local returns the value of the container local label and if the label
+// was set.
+func (c Container) LocalImage() (bool, bool) {
+	rawBool, ok := c.getLabelValue(enableLocal)
+	if !ok {
+		return false, false
+	}
+
+	parsedBool, err := strconv.ParseBool(rawBool)
+	if err != nil {
+		return false, false
+	}
+
+	return parsedBool, true
+}
+
 // Enabled returns the value of the container enabled label and if the label
 // was set.
 func (c Container) Enabled() (bool, bool) {
