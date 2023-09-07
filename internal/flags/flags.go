@@ -190,7 +190,7 @@ func RegisterSystemFlags(rootCmd *cobra.Command) {
 		"label-take-precedence",
 		"",
 		viper.GetBool("WATCHTOWER_LABEL_TAKE_PRECEDENCE"),
-		"Label applied to containers take precedence over environement variable")
+		"Label applied to containers take precedence over arguments")
 }
 
 // RegisterNotificationFlags that are used by watchtower to send notifications
