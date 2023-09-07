@@ -182,8 +182,41 @@ var _ = Describe("the update action", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(client.TestData.TriedToRemoveImageCount).To(Equal(0))
 			})
-		})
 
+			When("watchtower has been instructed to have label take precedence", func() {
+				It("it should update containers with monitor only set to false", func() {
+					client := CreateMockClient(
+						&TestData{
+							NameOfContainerToKeep: "test-container-02",
+							Containers: []types.Container{
+								CreateMockContainer(
+									"test-container-01",
+									"test-container-01",
+									"fake-image1:latest",
+									time.Now()),
+								CreateMockContainerWithConfig(
+									"test-container-02",
+									"test-container-02",
+									"fake-image2:latest",
+									false,
+									false,
+									time.Now(),
+									&dockerContainer.Config{
+										Labels: map[string]string{
+											"com.centurylinklabs.watchtower.monitor-only": "false",
+										},
+									}),
+							},
+						},
+						false,
+						false,
+					)
+					_, err := actions.Update(client, types.UpdateParams{MonitorOnly: true, LabelPrecedence: true})
+					Expect(err).To(HaveOccurred())
+					Expect(client.TestData.TriedToRemoveImageCount).To(Equal(1))
+				})
+			})
+		})
 	})
 
 	When("watchtower has been instructed to run lifecycle hooks", func() {

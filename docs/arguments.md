@@ -205,7 +205,7 @@ Environment Variable: WATCHTOWER_POLL_INTERVAL
 ```
 
 ## Filter by enable label
-Update containers that have a `com.centurylinklabs.watchtower.enable` label set to true.
+Monitor and update containers that have a `com.centurylinklabs.watchtower.enable` label set to true.
 
 ```text
             Argument: --label-enable
@@ -215,7 +215,7 @@ Environment Variable: WATCHTOWER_LABEL_ENABLE
 ```
 
 ## Filter by disable label
-__Do not__ update containers that have `com.centurylinklabs.watchtower.enable` label set to false and 
+__Do not__ Monitor and update containers that have `com.centurylinklabs.watchtower.enable` label set to false and 
 no `--label-enable` argument is passed. Note that only one or the other (targeting by enable label) can be 
 used at the same time to target containers.
 
@@ -237,6 +237,18 @@ Environment Variable: WATCHTOWER_MONITOR_ONLY
 ```
 
 Note that monitor-only can also be specified on a per-container basis with the `com.centurylinklabs.watchtower.monitor-only` label set on those containers.
+
+## With label taking precedence over environment variables
+
+By default, environement variables will take precedence over labels. This means that if you set `WATCHTOWER_MONITOR_ONLY` to true, a container with `com.centurylinklabs.watchtower.monitor-only` set to false will not be updated. If you set `WATCHTOWER_LABEL_TAKE_PRECEDENCE` to true, then the container will also be updated
+
+
+```text
+            Argument: --label-take-precedence
+Environment Variable: WATCHTOWER_LABEL_TAKE_PRECEDENCE
+                Type: Boolean
+             Default: false
+```
 
 ## Without restarting containers
 Do not restart containers after updating. This option can be useful when the start of the containers
