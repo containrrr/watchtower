@@ -242,7 +242,6 @@ Note that monitor-only can also be specified on a per-container basis with the `
 
 By default, environement variables will take precedence over labels. This means that if you set `WATCHTOWER_MONITOR_ONLY` to true, a container with `com.centurylinklabs.watchtower.monitor-only` set to false will not be updated. If you set `WATCHTOWER_LABEL_TAKE_PRECEDENCE` to true, then the container will also be updated
 
-
 ```text
             Argument: --label-take-precedence
 Environment Variable: WATCHTOWER_LABEL_TAKE_PRECEDENCE
