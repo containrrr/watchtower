@@ -7,6 +7,13 @@ FROM golang:alpine as builder
 # use version (for example "v0.3.3") or "main"
 ARG WATCHTOWER_VERSION=main
 
+# Pre download required modules to avoid redownloading at each build thanks to docker layer caching.
+# Copying go.mod and go.sum ensure to invalid the layer/build cache if there is a change in module requirement
+WORKDIR /watchtower
+COPY go.mod .
+COPY go.sum .
+RUN go mod download
+
 RUN apk add --no-cache \
     alpine-sdk \
     ca-certificates \
