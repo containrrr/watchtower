@@ -52,7 +52,7 @@ type Container interface {
 	SafeImageID() ImageID
 	ImageName() string
 	Enabled() (bool, bool)
-	IsMonitorOnly() bool
+	IsMonitorOnly(UpdateParams) bool
 	Scope() (string, bool)
 	Links() []string
 	ToRestart() bool

@@ -129,20 +129,43 @@ func (c Container) Enabled() (bool, bool) {
 	return parsedBool, true
 }
 
-// IsMonitorOnly returns the value of the monitor-only label. If the label
-// is not set then false is returned.
-func (c Container) IsMonitorOnly() bool {
+// IsMonitorOnly returns whether the container should only be monitored based on values of
+// the monitor-only label, the monitor-only argument and the label-take-precedence argument.
+func (c Container) IsMonitorOnly(params wt.UpdateParams) bool {
+	var containerMonitorOnlyLabel bool
+	
+	MonitorOnlyLabelIsDefined := false
+
 	rawBool, ok := c.getLabelValue(monitorOnlyLabel)
-	if !ok {
-		return false
+	if ok {
+		parsedBool, err := strconv.ParseBool(rawBool)
+		if err == nil {
+			MonitorOnlyLabelIsDefined = true
+			containerMonitorOnlyLabel = parsedBool
+		} else {
+			// Defaulting to false
+			containerMonitorOnlyLabel = false
+		}
+	} else {
+		// Defaulting to false
+		containerMonitorOnlyLabel = false
 	}
 
-	parsedBool, err := strconv.ParseBool(rawBool)
-	if err != nil {
-		return false
+	// in case MonitorOnly argument is true, the results change if the container monitor-only label is explicitly set to false if the label-take-precedence is true
+	if params.MonitorOnly  {
+		if (MonitorOnlyLabelIsDefined) {
+			if params.LabelPrecedence  {
+				return containerMonitorOnlyLabel
+			} else {
+				return true
+			}
+		} else {
+			return true
+		}
+	} else {
+		return containerMonitorOnlyLabel
 	}
 
-	return parsedBool
 }
 
 // IsNoPull returns the value of the no-pull label. If the label is not set
