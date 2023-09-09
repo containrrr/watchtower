@@ -67,7 +67,7 @@ type Container interface {
 	VerifyConfiguration() error
 	SetStale(bool)
 	IsStale() bool
-	IsNoPull() bool
+	IsNoPull(UpdateParams) bool
 	SetLinkedToRestarting(bool)
 	IsLinkedToRestarting() bool
 	PreUpdateTimeout() int

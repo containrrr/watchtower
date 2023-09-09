@@ -238,9 +238,12 @@ Environment Variable: WATCHTOWER_MONITOR_ONLY
 
 Note that monitor-only can also be specified on a per-container basis with the `com.centurylinklabs.watchtower.monitor-only` label set on those containers.
 
+See [With label taking precedence over arguments](##With label taking precedence over arguments) for behavior when both agument and label are set
+
+
 ## With label taking precedence over arguments
 
-By default, arguments will take precedence over labels. This means that if you set `WATCHTOWER_MONITOR_ONLY` to true or use `--monitor-only`, a container with `com.centurylinklabs.watchtower.monitor-only` set to false will not be updated. If you set `WATCHTOWER_LABEL_TAKE_PRECEDENCE` to true or use `--label-take-precedence`, then the container will also be updated
+By default, arguments will take precedence over labels. This means that if you set `WATCHTOWER_MONITOR_ONLY` to true or use `--monitor-only`, a container with `com.centurylinklabs.watchtower.monitor-only` set to false will not be updated. If you set `WATCHTOWER_LABEL_TAKE_PRECEDENCE` to true or use `--label-take-precedence`, then the container will also be updated. This also apply to the no pull option. if you set `WATCHTOWER_NO_PULL` to true or use `--no-pull`, a container with `com.centurylinklabs.watchtower.no-pull` set to false will not pull the new image. If you set `WATCHTOWER_LABEL_TAKE_PRECEDENCE` to true or use `--label-take-precedence`, then the container will pull image
 
 ```text
             Argument: --label-take-precedence
@@ -274,6 +277,8 @@ Environment Variable: WATCHTOWER_NO_PULL
 
 Note that no-pull can also be specified on a per-container basis with the
 `com.centurylinklabs.watchtower.no-pull` label set on those containers.
+
+See [With label taking precedence over arguments](##With label taking precedence over arguments) for behavior when both agument and label are set
 
 ## Without sending a startup message
 Do not send a message after watchtower started. Otherwise there will be an info-level notification.

@@ -133,14 +133,14 @@ func (c Container) Enabled() (bool, bool) {
 // the monitor-only label, the monitor-only argument and the label-take-precedence argument.
 func (c Container) IsMonitorOnly(params wt.UpdateParams) bool {
 	var containerMonitorOnlyLabel bool
-	
-	MonitorOnlyLabelIsDefined := false
+
+	LabelIsDefined := false
 
 	rawBool, ok := c.getLabelValue(monitorOnlyLabel)
 	if ok {
 		parsedBool, err := strconv.ParseBool(rawBool)
 		if err == nil {
-			MonitorOnlyLabelIsDefined = true
+			LabelIsDefined = true
 			containerMonitorOnlyLabel = parsedBool
 		} else {
 			// Defaulting to false
@@ -152,9 +152,9 @@ func (c Container) IsMonitorOnly(params wt.UpdateParams) bool {
 	}
 
 	// in case MonitorOnly argument is true, the results change if the container monitor-only label is explicitly set to false if the label-take-precedence is true
-	if params.MonitorOnly  {
-		if (MonitorOnlyLabelIsDefined) {
-			if params.LabelPrecedence  {
+	if params.MonitorOnly {
+		if LabelIsDefined {
+			if params.LabelPrecedence {
 				return containerMonitorOnlyLabel
 			} else {
 				return true
@@ -168,20 +168,42 @@ func (c Container) IsMonitorOnly(params wt.UpdateParams) bool {
 
 }
 
-// IsNoPull returns the value of the no-pull label. If the label is not set
-// then false is returned.
-func (c Container) IsNoPull() bool {
+// IsNoPull returns whether the image should be pulled based on values of
+// the no-pull label, the no-pull argument and the label-take-precedence argument.
+func (c Container) IsNoPull(params wt.UpdateParams) bool {
+	var containerNoPullLabel bool
+
+	LabelIsDefined := false
+
 	rawBool, ok := c.getLabelValue(noPullLabel)
-	if !ok {
-		return false
+	if ok {
+		parsedBool, err := strconv.ParseBool(rawBool)
+		if err == nil {
+			LabelIsDefined = true
+			containerNoPullLabel = parsedBool
+		} else {
+			// Defaulting to false
+			containerNoPullLabel = false
+		}
+	} else {
+		// Defaulting to false
+		containerNoPullLabel = false
 	}
 
-	parsedBool, err := strconv.ParseBool(rawBool)
-	if err != nil {
-		return false
+	// in case NoPull argument is true, the results change if the container no-pull label is explicitly set to false if the label-take-precedence is true
+	if params.NoPull {
+		if LabelIsDefined {
+			if params.LabelPrecedence {
+				return containerNoPullLabel
+			} else {
+				return true
+			}
+		} else {
+			return true
+		}
+	} else {
+		return containerNoPullLabel
 	}
-
-	return parsedBool
 }
 
 // Scope returns the value of the scope UID label and if the label

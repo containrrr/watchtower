@@ -86,7 +86,7 @@ func (client MockClient) ExecuteCommand(_ t.ContainerID, command string, _ int) 
 }
 
 // IsContainerStale is true if not explicitly stated in TestData for the mock client
-func (client MockClient) IsContainerStale(cont t.Container) (bool, t.ImageID, error) {
+func (client MockClient) IsContainerStale(cont t.Container, params t.UpdateParams) (bool, t.ImageID, error) {
 	stale, found := client.TestData.Staleness[cont.Name()]
 	if !found {
 		stale = true
