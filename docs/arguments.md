@@ -238,8 +238,7 @@ Environment Variable: WATCHTOWER_MONITOR_ONLY
 
 Note that monitor-only can also be specified on a per-container basis with the `com.centurylinklabs.watchtower.monitor-only` label set on those containers.
 
-See [With label taking precedence over arguments](##With label taking precedence over arguments) for behavior when both agument and label are set
-
+See [With label taking precedence over arguments](#With-label-taking-precedence-over-arguments) for behavior when both argument and label are set
 
 ## With label taking precedence over arguments
 
@@ -278,7 +277,7 @@ Environment Variable: WATCHTOWER_NO_PULL
 Note that no-pull can also be specified on a per-container basis with the
 `com.centurylinklabs.watchtower.no-pull` label set on those containers.
 
-See [With label taking precedence over arguments](##With label taking precedence over arguments) for behavior when both agument and label are set
+See [With label taking precedence over arguments](#With-label-taking-precedence-over-arguments) for behavior when both argument and label are set
 
 ## Without sending a startup message
 Do not send a message after watchtower started. Otherwise there will be an info-level notification.

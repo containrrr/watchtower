@@ -182,7 +182,6 @@ var _ = Describe("the update action", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(client.TestData.TriedToRemoveImageCount).To(Equal(0))
 			})
-
 			When("watchtower has been instructed to have label take precedence", func() {
 				It("it should update containers when monitor only is set to false", func() {
 					client := CreateMockClient(
@@ -210,6 +209,51 @@ var _ = Describe("the update action", func() {
 					Expect(err).NotTo(HaveOccurred())
 					Expect(client.TestData.TriedToRemoveImageCount).To(Equal(1))
 				})
+				It("it should update not containers when monitor only is set to true", func() {
+					client := CreateMockClient(
+						&TestData{
+							//NameOfContainerToKeep: "test-container-02",
+							Containers: []types.Container{
+								CreateMockContainerWithConfig(
+									"test-container-02",
+									"test-container-02",
+									"fake-image2:latest",
+									false,
+									false,
+									time.Now(),
+									&dockerContainer.Config{
+										Labels: map[string]string{
+											"com.centurylinklabs.watchtower.monitor-only": "true",
+										},
+									}),
+							},
+						},
+						false,
+						false,
+					)
+					_, err := actions.Update(client, types.UpdateParams{Cleanup: true, MonitorOnly: true, LabelPrecedence: true})
+					Expect(err).NotTo(HaveOccurred())
+					Expect(client.TestData.TriedToRemoveImageCount).To(Equal(0))
+				})
+				It("it should update not containers when monitor only is not set", func() {
+					client := CreateMockClient(
+						&TestData{
+							Containers: []types.Container{
+								CreateMockContainer(
+									"test-container-01",
+									"test-container-01",
+									"fake-image:latest",
+									time.Now()),
+							},
+						},
+						false,
+						false,
+					)
+					_, err := actions.Update(client, types.UpdateParams{Cleanup: true, MonitorOnly: true, LabelPrecedence: true})
+					Expect(err).NotTo(HaveOccurred())
+					Expect(client.TestData.TriedToRemoveImageCount).To(Equal(0))
+				})
+
 			})
 		})
 	})
