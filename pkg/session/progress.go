@@ -2,6 +2,7 @@ package session
 
 import (
 	"github.com/containrrr/watchtower/pkg/types"
+	dockerTypes "github.com/docker/docker/api/types"
 )
 
 // Progress contains the current session container status
@@ -9,6 +10,14 @@ type Progress map[types.ContainerID]*ContainerStatus
 
 // UpdateFromContainer sets various status fields from their corresponding container equivalents
 func UpdateFromContainer(cont types.Container, newImage types.ImageID, state State) *ContainerStatus {
+
+	var beforeMeta imageMeta
+	if imageInfo := cont.ImageInfo(); imageInfo != nil && imageInfo.Config != nil {
+		beforeMeta = imageMetaFromLabels(imageInfo.Config.Labels)
+	} else {
+		beforeMeta = make(imageMeta)
+	}
+
 	return &ContainerStatus{
 		containerID:   cont.ID(),
 		containerName: cont.Name(),
@@ -16,6 +25,8 @@ func UpdateFromContainer(cont types.Container, newImage types.ImageID, state Sta
 		oldImage:      cont.SafeImageID(),
 		newImage:      newImage,
 		state:         state,
+		beforeMeta:    beforeMeta,
+		afterMeta:     beforeMeta,
 	}
 }
 
@@ -27,8 +38,9 @@ func (m Progress) AddSkipped(cont types.Container, err error) {
 }
 
 // AddScanned adds a container to the Progress with the state set as scanned
-func (m Progress) AddScanned(cont types.Container, newImage types.ImageID) {
-	m.Add(UpdateFromContainer(cont, newImage, ScannedState))
+func (m Progress) AddScanned(cont types.Container, newImageID types.ImageID) {
+	m.Add(UpdateFromContainer(cont, newImageID, ScannedState))
+
 }
 
 // UpdateFailed updates the containers passed, setting their state as failed with the supplied error
@@ -53,4 +65,10 @@ func (m Progress) MarkForUpdate(containerID types.ContainerID) {
 // Report creates a new Report from a Progress instance
 func (m Progress) Report() types.Report {
 	return NewReport(m)
+}
+
+func (m Progress) UpdateLatestImage(containerID types.ContainerID, image dockerTypes.ImageInspect) {
+	if image.Config != nil {
+		m[containerID].afterMeta = imageMetaFromLabels(image.Config.Labels)
+	}
 }

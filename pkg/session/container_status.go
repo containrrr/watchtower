@@ -25,7 +25,9 @@ type ContainerStatus struct {
 	containerName string
 	imageName     string
 	error
-	state State
+	state      State
+	beforeMeta imageMeta
+	afterMeta  imageMeta
 }
 
 // ID returns the container ID
@@ -79,4 +81,14 @@ func (u *ContainerStatus) State() string {
 	default:
 		return "Unknown"
 	}
+}
+
+// Before returns the metadata for the image considered latest before the session
+func (u *ContainerStatus) Before() wt.ImageMeta {
+	return u.beforeMeta
+}
+
+// After returns the metadata for the image considered latest after the session
+func (u *ContainerStatus) After() wt.ImageMeta {
+	return u.afterMeta
 }

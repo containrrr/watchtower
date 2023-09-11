@@ -20,4 +20,6 @@ type ContainerReport interface {
 	ImageName() string
 	Error() string
 	State() string
+	Before() ImageMeta
+	After() ImageMeta
 }
