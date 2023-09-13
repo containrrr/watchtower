@@ -112,7 +112,7 @@ var _ = Describe("the auth module", func() {
 				Expect(getScopeFromImageAuthURL("ghcr.io/containrrr/watchtower")).To(Equal("containrrr/watchtower"))
 			})
 		})
-		It("should not crash when an empty field is recieved", func() {
+		It("should not crash when an empty field is received", func() {
 			input := `bearer realm="https://ghcr.io/token",service="ghcr.io",scope="repository:user/image:pull",`
 			imageRef, err := ref.ParseNormalizedNamed("containrrr/watchtower")
 			Expect(err).NotTo(HaveOccurred())
@@ -120,7 +120,7 @@ var _ = Describe("the auth module", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(res).NotTo(BeNil())
 		})
-		It("should not crash when a field without a value is recieved", func() {
+		It("should not crash when a field without a value is received", func() {
 			input := `bearer realm="https://ghcr.io/token",service="ghcr.io",scope="repository:user/image:pull",valuelesskey`
 			imageRef, err := ref.ParseNormalizedNamed("containrrr/watchtower")
 			Expect(err).NotTo(HaveOccurred())
