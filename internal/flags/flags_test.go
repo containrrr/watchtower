@@ -264,7 +264,7 @@ func TestFlagsArePrecentInDocumentation(t *testing.T) {
 	}
 
 	flags.VisitAll(func(f *pflag.Flag) {
-		if !strings.Contains(allDocs, f.Name) {
+		if !strings.Contains(allDocs, "--"+f.Name) {
 			if _, found := ignoredFlags[f.Name]; !found {
 				t.Logf("Docs does not mention flag long name %q", f.Name)
 				t.Fail()
