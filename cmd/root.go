@@ -28,17 +28,18 @@ import (
 )
 
 var (
-	client         container.Client
-	scheduleSpec   string
-	cleanup        bool
-	noRestart      bool
-	monitorOnly    bool
-	enableLabel    bool
-	notifier       t.Notifier
-	timeout        time.Duration
-	lifecycleHooks bool
-	rollingRestart bool
-	scope          string
+	client          container.Client
+	scheduleSpec    string
+	cleanup         bool
+	noRestart       bool
+	monitorOnly     bool
+	enableLabel     bool
+	notifier        t.Notifier
+	timeout         time.Duration
+	lifecycleHooks  bool
+	rollingRestart  bool
+	scope           string
+	labelPrecedence bool
 )
 
 var rootCmd = NewRootCommand()
@@ -109,6 +110,7 @@ func PreRun(cmd *cobra.Command, _ []string) {
 	lifecycleHooks, _ = f.GetBool("enable-lifecycle-hooks")
 	rollingRestart, _ = f.GetBool("rolling-restart")
 	scope, _ = f.GetString("scope")
+	labelPrecedence, _ = f.GetBool("label-take-precedence")
 
 	if scope != "" {
 		log.Debugf(`Using scope %q`, scope)
@@ -359,13 +361,14 @@ func runUpgradesOnSchedule(c *cobra.Command, filter t.Filter, filtering string, 
 func runUpdatesWithNotifications(filter t.Filter) *metrics.Metric {
 	notifier.StartNotification()
 	updateParams := t.UpdateParams{
-		Filter:         filter,
-		Cleanup:        cleanup,
-		NoRestart:      noRestart,
-		Timeout:        timeout,
-		MonitorOnly:    monitorOnly,
-		LifecycleHooks: lifecycleHooks,
-		RollingRestart: rollingRestart,
+		Filter:          filter,
+		Cleanup:         cleanup,
+		NoRestart:       noRestart,
+		Timeout:         timeout,
+		MonitorOnly:     monitorOnly,
+		LifecycleHooks:  lifecycleHooks,
+		RollingRestart:  rollingRestart,
+		LabelPrecedence: labelPrecedence,
 	}
 	result, err := actions.Update(client, updateParams)
 	if err != nil {

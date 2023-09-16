@@ -185,6 +185,12 @@ func RegisterSystemFlags(rootCmd *cobra.Command) {
 		"log-level",
 		envString("WATCHTOWER_LOG_LEVEL"),
 		"The maximum log level that will be written to STDERR. Possible values: panic, fatal, error, warn, info, debug or trace")
+
+	flags.BoolP(
+		"label-take-precedence",
+		"",
+		viper.GetBool("WATCHTOWER_LABEL_TAKE_PRECEDENCE"),
+		"Label applied to containers take precedence over arguments")
 }
 
 // RegisterNotificationFlags that are used by watchtower to send notifications

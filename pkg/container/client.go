@@ -30,7 +30,7 @@ type Client interface {
 	StopContainer(t.Container, time.Duration) error
 	StartContainer(t.Container) (t.ContainerID, error)
 	RenameContainer(t.Container, string) error
-	IsContainerStale(t.Container) (stale bool, latestImage t.ImageID, err error)
+	IsContainerStale(t.Container, t.UpdateParams) (stale bool, latestImage t.ImageID, err error)
 	ExecuteCommand(containerID t.ContainerID, command string, timeout int) (SkipUpdate bool, err error)
 	RemoveImageByID(t.ImageID) error
 	WarnOnHeadPullFailed(container t.Container) bool
@@ -308,10 +308,10 @@ func (client dockerClient) RenameContainer(c t.Container, newName string) error 
 	return client.api.ContainerRename(bg, string(c.ID()), newName)
 }
 
-func (client dockerClient) IsContainerStale(container t.Container) (stale bool, latestImage t.ImageID, err error) {
+func (client dockerClient) IsContainerStale(container t.Container, params t.UpdateParams) (stale bool, latestImage t.ImageID, err error) {
 	ctx := context.Background()
 
-	if !client.PullImages || container.IsNoPull() {
+	if container.IsNoPull(params) {
 		log.Debugf("Skipping image pull.")
 	} else if err := client.PullImage(ctx, container); err != nil {
 		return false, container.SafeImageID(), err
