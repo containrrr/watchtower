@@ -110,6 +110,7 @@ func createNotifier(urls []string, level log.Level, tplString string, legacy boo
 		legacyTemplate: legacy,
 		data:           data,
 		params:         params,
+		delay:          delay,
 	}
 }
 

@@ -2,12 +2,14 @@
 package container
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 
 	"github.com/containrrr/watchtower/internal/util"
 	wt "github.com/containrrr/watchtower/pkg/types"
+	"github.com/sirupsen/logrus"
 
 	"github.com/docker/docker/api/types"
 	dockercontainer "github.com/docker/docker/api/types/container"
@@ -129,36 +131,31 @@ func (c Container) Enabled() (bool, bool) {
 	return parsedBool, true
 }
 
-// IsMonitorOnly returns the value of the monitor-only label. If the label
-// is not set then false is returned.
-func (c Container) IsMonitorOnly() bool {
-	rawBool, ok := c.getLabelValue(monitorOnlyLabel)
-	if !ok {
-		return false
-	}
-
-	parsedBool, err := strconv.ParseBool(rawBool)
-	if err != nil {
-		return false
-	}
-
-	return parsedBool
+// IsMonitorOnly returns whether the container should only be monitored based on values of
+// the monitor-only label, the monitor-only argument and the label-take-precedence argument.
+func (c Container) IsMonitorOnly(params wt.UpdateParams) bool {
+	return c.getContainerOrGlobalBool(params.MonitorOnly, monitorOnlyLabel, params.LabelPrecedence)
 }
 
-// IsNoPull returns the value of the no-pull label. If the label is not set
-// then false is returned.
-func (c Container) IsNoPull() bool {
-	rawBool, ok := c.getLabelValue(noPullLabel)
-	if !ok {
-		return false
-	}
+// IsNoPull returns whether the image should be pulled based on values of
+// the no-pull label, the no-pull argument and the label-take-precedence argument.
+func (c Container) IsNoPull(params wt.UpdateParams) bool {
+	return c.getContainerOrGlobalBool(params.NoPull, noPullLabel, params.LabelPrecedence)
+}
 
-	parsedBool, err := strconv.ParseBool(rawBool)
-	if err != nil {
-		return false
+func (c Container) getContainerOrGlobalBool(globalVal bool, label string, contPrecedence bool) bool {
+	if contVal, err := c.getBoolLabelValue(label); err != nil {
+		if !errors.Is(err, errorLabelNotFound) {
+			logrus.WithField("error", err).WithField("label", label).Warn("Failed to parse label value")
+		}
+		return globalVal
+	} else {
+		if contPrecedence {
+			return contVal
+		} else {
+			return contVal || globalVal
+		}
 	}
-
-	return parsedBool
 }
 
 // Scope returns the value of the scope UID label and if the label
