@@ -134,6 +134,17 @@ Environment Variable: WATCHTOWER_LOG_LEVEL
              Default: info
 ```
 
+## Logging format
+
+Sets what logging format to use for console output.
+
+```text
+            Argument: --log-format, -l
+Environment Variable: WATCHTOWER_LOG_FORMAT
+     Possible values: Auto, LogFmt, Pretty or JSON
+             Default: Auto
+```
+
 ## ANSI colors
 Disable ANSI color escape codes in log output.
 
@@ -407,6 +418,7 @@ Environment Variable: WATCHTOWER_WARN_ON_HEAD_FAILURE
      Possible values: always, auto, never
              Default: auto
 ```
+
 ## Programatic Output (porcelain)
 
 Writes the session results to STDOUT using a stable, machine-readable format (indicated by the argument VERSION).  

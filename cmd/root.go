@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"math"
 	"net/http"
 	"os"
@@ -78,23 +79,8 @@ func Execute() {
 func PreRun(cmd *cobra.Command, _ []string) {
 	f := cmd.PersistentFlags()
 	flags.ProcessFlagAliases(f)
-
-	if enabled, _ := f.GetBool("no-color"); enabled {
-		log.SetFormatter(&log.TextFormatter{
-			DisableColors: true,
-		})
-	} else {
-		// enable logrus built-in support for https://bixense.com/clicolors/
-		log.SetFormatter(&log.TextFormatter{
-			EnvironmentOverrideColors: true,
-		})
-	}
-
-	rawLogLevel, _ := f.GetString(`log-level`)
-	if logLevel, err := log.ParseLevel(rawLogLevel); err != nil {
-		log.Fatalf("Invalid log level: %s", err.Error())
-	} else {
-		log.SetLevel(logLevel)
+	if err := flags.SetupLogging(f); err != nil {
+		log.Fatalf("Failed to initialize logging: %s", err.Error())
 	}
 
 	scheduleSpec, _ = f.GetString("schedule")
@@ -201,7 +187,7 @@ func Run(c *cobra.Command, names []string) {
 		httpAPI.RegisterHandler(metricsHandler.Path, metricsHandler.Handle)
 	}
 
-	if err := httpAPI.Start(enableUpdateAPI && !unblockHTTPAPI); err != nil && err != http.ErrServerClosed {
+	if err := httpAPI.Start(enableUpdateAPI && !unblockHTTPAPI); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		log.Error("failed to start API", err)
 	}
 

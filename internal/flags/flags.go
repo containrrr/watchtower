@@ -85,6 +85,12 @@ func RegisterSystemFlags(rootCmd *cobra.Command) {
 		envBool("WATCHTOWER_LABEL_ENABLE"),
 		"Watch containers where the com.centurylinklabs.watchtower.enable label is true")
 
+	flags.StringP(
+		"log-format",
+		"l",
+		viper.GetString("WATCHTOWER_LOG_FORMAT"),
+		"Sets what logging format to use for console output. Possible values: Auto, LogFmt, Pretty, JSON")
+
 	flags.BoolP(
 		"debug",
 		"d",
@@ -409,6 +415,7 @@ func SetDefaults() {
 	viper.SetDefault("WATCHTOWER_NOTIFICATION_EMAIL_SUBJECTTAG", "")
 	viper.SetDefault("WATCHTOWER_NOTIFICATION_SLACK_IDENTIFIER", "watchtower")
 	viper.SetDefault("WATCHTOWER_LOG_LEVEL", "info")
+	viper.SetDefault("WATCHTOWER_LOG_FORMAT", "auto")
 }
 
 // EnvConfig translates the command-line options into environment variables
@@ -609,6 +616,46 @@ func ProcessFlagAliases(flags *pflag.FlagSet) {
 		_ = flags.Set(`log-level`, `trace`)
 	}
 
+}
+
+// SetupLogging reads only the flags that is needed to set up logging and applies them to the global logger
+func SetupLogging(f *pflag.FlagSet) error {
+	logFormat, _ := f.GetString(`log-format`)
+	noColor, _ := f.GetBool("no-color")
+
+	switch strings.ToLower(logFormat) {
+	case "auto":
+		// This will either use the "pretty" or "logfmt" format, based on whether the standard out is connected to a TTY
+		log.SetFormatter(&log.TextFormatter{
+			DisableColors: noColor,
+			// enable logrus built-in support for https://bixense.com/clicolors/
+			EnvironmentOverrideColors: true,
+		})
+	case "json":
+		log.SetFormatter(&log.JSONFormatter{})
+	case "logfmt":
+		log.SetFormatter(&log.TextFormatter{
+			DisableColors: true,
+			FullTimestamp: true,
+		})
+	case "pretty":
+		log.SetFormatter(&log.TextFormatter{
+			// "Pretty" format combined with `--no-color` will only change the timestamp to the time since start
+			ForceColors:   !noColor,
+			FullTimestamp: false,
+		})
+	default:
+		return fmt.Errorf("invalid log format: %s", logFormat)
+	}
+
+	rawLogLevel, _ := f.GetString(`log-level`)
+	if logLevel, err := log.ParseLevel(rawLogLevel); err != nil {
+		return fmt.Errorf("invalid log level: %e", err)
+	} else {
+		log.SetLevel(logLevel)
+	}
+
+	return nil
 }
 
 func flagIsEnabled(flags *pflag.FlagSet, name string) bool {
