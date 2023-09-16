@@ -178,7 +178,7 @@ Environment Variable: WATCHTOWER_INCLUDE_RESTARTING
 Will also include created and exited containers.
 
 ```text
-            Argument: --include-stopped
+            Argument: --include-stopped, -S
 Environment Variable: WATCHTOWER_INCLUDE_STOPPED
                 Type: Boolean
              Default: false
@@ -278,7 +278,7 @@ Environment Variable: WATCHTOWER_NO_STARTUP_MESSAGE
 Run an update attempt against a container name list one time immediately and exit.
 
 ```text
-            Argument: --run-once
+            Argument: --run-once, -R
 Environment Variable: WATCHTOWER_RUN_ONCE
                 Type: Boolean
              Default: false
@@ -391,4 +391,21 @@ requests and may rate limit pull requests (mainly docker.io).
 Environment Variable: WATCHTOWER_WARN_ON_HEAD_FAILURE
      Possible values: always, auto, never
              Default: auto
+```
+## Programatic Output (porcelain)
+
+Writes the session results to STDOUT using a stable, machine-readable format (indicated by the argument VERSION).  
+  
+Alias for:
+
+```text
+		--notification-url logger://
+		--notification-log-stdout
+		--notification-report
+		--notification-template porcelain.VERSION.summary-no-log
+
+            Argument: --porcelain, -P
+Environment Variable: WATCHTOWER_PORCELAIN
+     Possible values: v1
+             Default: -
 ```
