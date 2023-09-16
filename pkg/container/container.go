@@ -2,12 +2,14 @@
 package container
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 
 	"github.com/containrrr/watchtower/internal/util"
 	wt "github.com/containrrr/watchtower/pkg/types"
+	"github.com/sirupsen/logrus"
 
 	"github.com/docker/docker/api/types"
 	dockercontainer "github.com/docker/docker/api/types/container"
@@ -132,77 +134,27 @@ func (c Container) Enabled() (bool, bool) {
 // IsMonitorOnly returns whether the container should only be monitored based on values of
 // the monitor-only label, the monitor-only argument and the label-take-precedence argument.
 func (c Container) IsMonitorOnly(params wt.UpdateParams) bool {
-	var containerMonitorOnlyLabel bool
-
-	LabelIsDefined := false
-
-	rawBool, ok := c.getLabelValue(monitorOnlyLabel)
-	if ok {
-		parsedBool, err := strconv.ParseBool(rawBool)
-		if err == nil {
-			LabelIsDefined = true
-			containerMonitorOnlyLabel = parsedBool
-		} else {
-			// Defaulting to false
-			containerMonitorOnlyLabel = false
-		}
-	} else {
-		// Defaulting to false
-		containerMonitorOnlyLabel = false
-	}
-
-	// in case MonitorOnly argument is true, the results change if the container monitor-only label is explicitly set to false if the label-take-precedence is true
-	if params.MonitorOnly {
-		if LabelIsDefined {
-			if params.LabelPrecedence {
-				return containerMonitorOnlyLabel
-			} else {
-				return true
-			}
-		} else {
-			return true
-		}
-	} else {
-		return containerMonitorOnlyLabel
-	}
-
+	return c.getContainerOrGlobalBool(params.MonitorOnly, monitorOnlyLabel, params.LabelPrecedence)
 }
 
 // IsNoPull returns whether the image should be pulled based on values of
 // the no-pull label, the no-pull argument and the label-take-precedence argument.
 func (c Container) IsNoPull(params wt.UpdateParams) bool {
-	var containerNoPullLabel bool
+	return c.getContainerOrGlobalBool(params.NoPull, noPullLabel, params.LabelPrecedence)
+}
 
-	LabelIsDefined := false
-
-	rawBool, ok := c.getLabelValue(noPullLabel)
-	if ok {
-		parsedBool, err := strconv.ParseBool(rawBool)
-		if err == nil {
-			LabelIsDefined = true
-			containerNoPullLabel = parsedBool
-		} else {
-			// Defaulting to false
-			containerNoPullLabel = false
+func (c Container) getContainerOrGlobalBool(globalVal bool, label string, contPrecedence bool) bool {
+	if contVal, err := c.getBoolLabelValue(label); err != nil {
+		if !errors.Is(err, errorLabelNotFound) {
+			logrus.WithField("error", err).WithField("label", label).Warn("Failed to parse label value")
 		}
+		return globalVal
 	} else {
-		// Defaulting to false
-		containerNoPullLabel = false
-	}
-
-	// in case NoPull argument is true, the results change if the container no-pull label is explicitly set to false if the label-take-precedence is true
-	if params.NoPull {
-		if LabelIsDefined {
-			if params.LabelPrecedence {
-				return containerNoPullLabel
-			} else {
-				return true
-			}
+		if contPrecedence {
+			return contVal
 		} else {
-			return true
+			return contVal || globalVal
 		}
-	} else {
-		return containerNoPullLabel
 	}
 }
 
