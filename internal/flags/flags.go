@@ -193,9 +193,15 @@ func RegisterSystemFlags(rootCmd *cobra.Command) {
 		"The maximum log level that will be written to STDERR. Possible values: panic, fatal, error, warn, info, debug or trace")
 
 	flags.BoolP(
+		"health-check",
+		"",
+		false,
+		"Do health check and exit")
+  
+  flags.BoolP(
 		"label-take-precedence",
 		"",
-		viper.GetBool("WATCHTOWER_LABEL_TAKE_PRECEDENCE"),
+		envBool("WATCHTOWER_LABEL_TAKE_PRECEDENCE"),
 		"Label applied to containers take precedence over arguments")
 }
 

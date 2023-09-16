@@ -140,6 +140,16 @@ func Run(c *cobra.Command, names []string) {
 	enableMetricsAPI, _ := c.PersistentFlags().GetBool("http-api-metrics")
 	unblockHTTPAPI, _ := c.PersistentFlags().GetBool("http-api-periodic-polls")
 	apiToken, _ := c.PersistentFlags().GetString("http-api-token")
+	healthCheck, _ := c.PersistentFlags().GetBool("health-check")
+
+	if healthCheck {
+		// health check should not have pid 1
+		if os.Getpid() == 1 {
+			time.Sleep(1 * time.Second)
+			log.Fatal("The health check flag should never be passed to the main watchtower container process")
+		}
+		os.Exit(0)
+	}
 
 	if rollingRestart && monitorOnly {
 		log.Fatal("Rolling restarts is not compatible with the global monitor only flag")
