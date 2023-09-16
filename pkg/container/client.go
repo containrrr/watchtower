@@ -30,7 +30,7 @@ type Client interface {
 	StopContainer(t.Container, time.Duration) error
 	StartContainer(t.Container) (t.ContainerID, error)
 	RenameContainer(t.Container, string) error
-	IsContainerStale(t.Container) (stale bool, latestImage t.ImageID, err error)
+	IsContainerStale(t.Container, t.UpdateParams) (stale bool, latestImage t.ImageID, err error)
 	ExecuteCommand(containerID t.ContainerID, command string, timeout int) (SkipUpdate bool, err error)
 	RemoveImageByID(t.ImageID) error
 	WarnOnHeadPullFailed(container t.Container) bool
@@ -157,6 +157,22 @@ func (client dockerClient) GetContainer(containerID t.ContainerID) (t.Container,
 		return &Container{}, err
 	}
 
+	netType, netContainerId, found := strings.Cut(string(containerInfo.HostConfig.NetworkMode), ":")
+	if found && netType == "container" {
+		parentContainer, err := client.api.ContainerInspect(bg, netContainerId)
+		if err != nil {
+			log.WithFields(map[string]interface{}{
+				"container":         containerInfo.Name,
+				"error":             err,
+				"network-container": netContainerId,
+			}).Warnf("Unable to resolve network container: %v", err)
+
+		} else {
+			// Replace the container ID with a container name to allow it to reference the re-created network container
+			containerInfo.HostConfig.NetworkMode = container.NetworkMode(fmt.Sprintf("container:%s", parentContainer.Name))
+		}
+	}
+
 	imageInfo, _, err := client.api.ImageInspectWithRaw(bg, containerInfo.Image)
 	if err != nil {
 		log.Warnf("Failed to retrieve container image info: %v", err)
@@ -208,11 +224,34 @@ func (client dockerClient) StopContainer(c t.Container, timeout time.Duration) e
 	return nil
 }
 
+func (client dockerClient) GetNetworkConfig(c t.Container) *network.NetworkingConfig {
+	config := &network.NetworkingConfig{
+		EndpointsConfig: c.ContainerInfo().NetworkSettings.Networks,
+	}
+
+	for _, ep := range config.EndpointsConfig {
+		aliases := make([]string, 0, len(ep.Aliases))
+		cidAlias := c.ID().ShortID()
+
+		// Remove the old container ID alias from the network aliases, as it would accumulate across updates otherwise
+		for _, alias := range ep.Aliases {
+			if alias == cidAlias {
+				continue
+			}
+			aliases = append(aliases, alias)
+		}
+
+		ep.Aliases = aliases
+	}
+	return config
+}
+
 func (client dockerClient) StartContainer(c t.Container) (t.ContainerID, error) {
 	bg := context.Background()
 	config := c.GetCreateConfig()
 	hostConfig := c.GetCreateHostConfig()
-	networkConfig := &network.NetworkingConfig{EndpointsConfig: c.ContainerInfo().NetworkSettings.Networks}
+	networkConfig := client.GetNetworkConfig(c)
+
 	// simpleNetworkConfig is a networkConfig with only 1 network.
 	// see: https://github.com/docker/docker/issues/29265
 	simpleNetworkConfig := func() *network.NetworkingConfig {
@@ -228,6 +267,7 @@ func (client dockerClient) StartContainer(c t.Container) (t.ContainerID, error) 
 	name := c.Name()
 
 	log.Infof("Creating %s", name)
+
 	createdContainer, err := client.api.ContainerCreate(bg, config, hostConfig, simpleNetworkConfig, nil, name)
 	if err != nil {
 		return "", err
@@ -277,10 +317,10 @@ func (client dockerClient) RenameContainer(c t.Container, newName string) error 
 	return client.api.ContainerRename(bg, string(c.ID()), newName)
 }
 
-func (client dockerClient) IsContainerStale(container t.Container) (stale bool, latestImage t.ImageID, err error) {
+func (client dockerClient) IsContainerStale(container t.Container, params t.UpdateParams) (stale bool, latestImage t.ImageID, err error) {
 	ctx := context.Background()
 
-	if !client.PullImages || container.IsNoPull() {
+	if container.IsNoPull(params) {
 		log.Debugf("Skipping image pull.")
 	} else if err := client.PullImage(ctx, container); err != nil {
 		return false, container.SafeImageID(), err

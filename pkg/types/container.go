@@ -52,7 +52,7 @@ type Container interface {
 	SafeImageID() ImageID
 	ImageName() string
 	Enabled() (bool, bool)
-	IsMonitorOnly() bool
+	IsMonitorOnly(UpdateParams) bool
 	Scope() (string, bool)
 	Links() []string
 	ToRestart() bool
@@ -67,7 +67,7 @@ type Container interface {
 	VerifyConfiguration() error
 	SetStale(bool)
 	IsStale() bool
-	IsNoPull() bool
+	IsNoPull(UpdateParams) bool
 	SetLinkedToRestarting(bool)
 	IsLinkedToRestarting() bool
 	PreUpdateTimeout() int

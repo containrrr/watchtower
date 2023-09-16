@@ -1,20 +1,22 @@
 package flags
 
 import (
-	"io/ioutil"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestEnvConfig_Defaults(t *testing.T) {
 	// Unset testing environments own variables, since those are not what is under test
-	os.Unsetenv("DOCKER_TLS_VERIFY")
-	os.Unsetenv("DOCKER_HOST")
+	_ = os.Unsetenv("DOCKER_TLS_VERIFY")
+	_ = os.Unsetenv("DOCKER_HOST")
 
 	cmd := new(cobra.Command)
 	SetDefaults()
@@ -48,10 +50,7 @@ func TestEnvConfig_Custom(t *testing.T) {
 
 func TestGetSecretsFromFilesWithString(t *testing.T) {
 	value := "supersecretstring"
-
-	err := os.Setenv("WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PASSWORD", value)
-	require.NoError(t, err)
-	defer os.Unsetenv("WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PASSWORD")
+	t.Setenv("WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PASSWORD", value)
 
 	testGetSecretsFromFiles(t, "notification-email-server-password", value)
 }
@@ -60,18 +59,15 @@ func TestGetSecretsFromFilesWithFile(t *testing.T) {
 	value := "megasecretstring"
 
 	// Create the temporary file which will contain a secret.
-	file, err := ioutil.TempFile(os.TempDir(), "watchtower-")
+	file, err := os.CreateTemp(t.TempDir(), "watchtower-")
 	require.NoError(t, err)
-	defer os.Remove(file.Name()) // Make sure to remove the temporary file later.
 
 	// Write the secret to the temporary file.
-	secret := []byte(value)
-	_, err = file.Write(secret)
+	_, err = file.Write([]byte(value))
 	require.NoError(t, err)
+	require.NoError(t, file.Close())
 
-	err = os.Setenv("WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PASSWORD", file.Name())
-	require.NoError(t, err)
-	defer os.Unsetenv("WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PASSWORD")
+	t.Setenv("WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PASSWORD", file.Name())
 
 	testGetSecretsFromFiles(t, "notification-email-server-password", value)
 }
@@ -80,16 +76,15 @@ func TestGetSliceSecretsFromFiles(t *testing.T) {
 	values := []string{"entry2", "", "entry3"}
 
 	// Create the temporary file which will contain a secret.
-	file, err := ioutil.TempFile(os.TempDir(), "watchtower-")
+	file, err := os.CreateTemp(t.TempDir(), "watchtower-")
 	require.NoError(t, err)
-	defer os.Remove(file.Name()) // Make sure to remove the temporary file later.
 
 	// Write the secret to the temporary file.
 	for _, value := range values {
 		_, err = file.WriteString("\n" + value)
 		require.NoError(t, err)
 	}
-	file.Close()
+	require.NoError(t, file.Close())
 
 	testGetSecretsFromFiles(t, "notification-url", `[entry1,entry2,entry3]`,
 		`--notification-url`, "entry1",
@@ -99,6 +94,7 @@ func TestGetSliceSecretsFromFiles(t *testing.T) {
 func testGetSecretsFromFiles(t *testing.T, flagName string, expected string, args ...string) {
 	cmd := new(cobra.Command)
 	SetDefaults()
+	RegisterSystemFlags(cmd)
 	RegisterNotificationFlags(cmd)
 	require.NoError(t, cmd.ParseFlags(args))
 	GetSecretsFromFiles(cmd)
@@ -166,9 +162,7 @@ func TestProcessFlagAliases(t *testing.T) {
 
 func TestProcessFlagAliasesLogLevelFromEnvironment(t *testing.T) {
 	cmd := new(cobra.Command)
-	err := os.Setenv("WATCHTOWER_DEBUG", `true`)
-	require.NoError(t, err)
-	defer os.Unsetenv("WATCHTOWER_DEBUG")
+	t.Setenv("WATCHTOWER_DEBUG", `true`)
 
 	SetDefaults()
 	RegisterDockerFlags(cmd)
@@ -253,9 +247,7 @@ func TestProcessFlagAliasesSchedAndInterval(t *testing.T) {
 func TestProcessFlagAliasesScheduleFromEnvironment(t *testing.T) {
 	cmd := new(cobra.Command)
 
-	err := os.Setenv("WATCHTOWER_SCHEDULE", `@hourly`)
-	require.NoError(t, err)
-	defer os.Unsetenv("WATCHTOWER_SCHEDULE")
+	t.Setenv("WATCHTOWER_SCHEDULE", `@hourly`)
 
 	SetDefaults()
 	RegisterDockerFlags(cmd)
@@ -284,4 +276,64 @@ func TestProcessFlagAliasesInvalidPorcelaineVersion(t *testing.T) {
 	assert.PanicsWithValue(t, `FATAL`, func() {
 		ProcessFlagAliases(flags)
 	})
+}
+
+func TestFlagsArePrecentInDocumentation(t *testing.T) {
+
+	// Legacy notifcations are ignored, since they are (soft) deprecated
+	ignoredEnvs := map[string]string{
+		"WATCHTOWER_NOTIFICATION_SLACK_ICON_EMOJI": "legacy",
+		"WATCHTOWER_NOTIFICATION_SLACK_ICON_URL":   "legacy",
+	}
+
+	ignoredFlags := map[string]string{
+		"notification-gotify-url":       "legacy",
+		"notification-slack-icon-emoji": "legacy",
+		"notification-slack-icon-url":   "legacy",
+	}
+
+	cmd := new(cobra.Command)
+	SetDefaults()
+	RegisterDockerFlags(cmd)
+	RegisterSystemFlags(cmd)
+	RegisterNotificationFlags(cmd)
+
+	flags := cmd.PersistentFlags()
+
+	docFiles := []string{
+		"../../docs/arguments.md",
+		"../../docs/lifecycle-hooks.md",
+		"../../docs/notifications.md",
+	}
+	allDocs := ""
+	for _, f := range docFiles {
+		bytes, err := os.ReadFile(f)
+		if err != nil {
+			t.Fatalf("Could not load docs file %q: %v", f, err)
+		}
+		allDocs += string(bytes)
+	}
+
+	flags.VisitAll(func(f *pflag.Flag) {
+		if !strings.Contains(allDocs, "--"+f.Name) {
+			if _, found := ignoredFlags[f.Name]; !found {
+				t.Logf("Docs does not mention flag long name %q", f.Name)
+				t.Fail()
+			}
+		}
+		if !strings.Contains(allDocs, "-"+f.Shorthand) {
+			t.Logf("Docs does not mention flag shorthand %q (%q)", f.Shorthand, f.Name)
+			t.Fail()
+		}
+	})
+
+	for _, key := range viper.AllKeys() {
+		envKey := strings.ToUpper(key)
+		if !strings.Contains(allDocs, envKey) {
+			if _, found := ignoredEnvs[envKey]; !found {
+				t.Logf("Docs does not mention environment variable %q", envKey)
+				t.Fail()
+			}
+		}
+	}
 }

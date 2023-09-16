@@ -1,0 +1,17 @@
+services:
+  producer:
+    image: qmcgaw/gluetun:v3.35.0
+    cap_add:
+      - NET_ADMIN
+    environment:
+      - VPN_SERVICE_PROVIDER=${VPN_SERVICE_PROVIDER}
+      - OPENVPN_USER=${OPENVPN_USER}
+      - OPENVPN_PASSWORD=${OPENVPN_PASSWORD}
+      - SERVER_COUNTRIES=${SERVER_COUNTRIES}
+  consumer:
+    depends_on:
+      - producer
+    image: nginx:1.25.1
+    network_mode: "service:producer"
+    labels:
+      - "com.centurylinklabs.watchtower.depends-on=/wt-contnet-producer-1"

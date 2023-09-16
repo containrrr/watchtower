@@ -11,5 +11,5 @@ CONTAINER ID   IMAGE                   STATUS          PORTS                    
 6cc4d2a9d1a5   containrrr/watchtower   Up 15 minutes                            watchtower
 ```
 
-Every few minutes watchtower will pull the latest _centurylink/wetty-cli_ image and compare it to the one that was used to run the "wetty" container. If it sees that the image has changed it will stop/remove the "wetty" container and then restart it using the new image and the same `docker run` options that were used to start the container initially (in this case, that would include the `-p 8080:3000` port mapping).
+Every day watchtower will pull the latest _centurylink/wetty-cli_ image and compare it to the one that was used to run the "wetty" container. If it sees that the image has changed it will stop/remove the "wetty" container and then restart it using the new image and the same `docker run` options that were used to start the container initially (in this case, that would include the `-p 8080:3000` port mapping).
 

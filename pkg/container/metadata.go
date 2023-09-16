@@ -1,5 +1,7 @@
 package container
 
+import "strconv"
+
 const (
 	watchtowerLabel        = "com.centurylinklabs.watchtower"
 	signalLabel            = "com.centurylinklabs.watchtower.stop-signal"
@@ -54,4 +56,12 @@ func (c Container) getLabelValueOrEmpty(label string) string {
 func (c Container) getLabelValue(label string) (string, bool) {
 	val, ok := c.containerInfo.Config.Labels[label]
 	return val, ok
+}
+
+func (c Container) getBoolLabelValue(label string) (bool, error) {
+	if strVal, ok := c.containerInfo.Config.Labels[label]; ok {
+		value, err := strconv.ParseBool(strVal)
+		return value, err
+	}
+	return false, errorLabelNotFound
 }
