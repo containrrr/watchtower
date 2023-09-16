@@ -230,9 +230,18 @@ func (client dockerClient) GetNetworkConfig(c t.Container) *network.NetworkingCo
 	}
 
 	for _, ep := range config.EndpointsConfig {
-		// This keeps accumulating across upgrades with no apparent added value
-		// so throwing the information away to prevent overflows.
-		ep.Aliases = nil
+		aliases := make([]string, 0, len(ep.Aliases))
+		cidAlias := c.ID().ShortID()
+
+		// Remove the old container ID alias from the network aliases, as it would accumulate across updates otherwise
+		for _, alias := range ep.Aliases {
+			if alias == cidAlias {
+				continue
+			}
+			aliases = append(aliases, alias)
+		}
+
+		ep.Aliases = aliases
 	}
 	return config
 }
