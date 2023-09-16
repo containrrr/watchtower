@@ -66,6 +66,7 @@ type Container interface {
 	GetLifecyclePostUpdateCommand() string
 	VerifyConfiguration() error
 	SetStale(bool)
+	Labels() map[string]string
 	IsStale() bool
 	IsNoPull() bool
 	SetLinkedToRestarting(bool)

@@ -20,4 +20,5 @@ type ContainerReport interface {
 	ImageName() string
 	Error() string
 	State() string
+	Labels() map[string]string
 }

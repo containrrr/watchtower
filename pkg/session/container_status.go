@@ -25,7 +25,8 @@ type ContainerStatus struct {
 	containerName string
 	imageName     string
 	error
-	state State
+	state  State
+	labels map[string]string
 }
 
 // ID returns the container ID
@@ -59,6 +60,11 @@ func (u *ContainerStatus) Error() string {
 		return ""
 	}
 	return u.error.Error()
+}
+
+// Labels returns a map of all labels present on the container
+func (u *ContainerStatus) Labels() map[string]string {
+	return u.labels
 }
 
 // State returns the current State that the container is in

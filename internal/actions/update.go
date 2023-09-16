@@ -32,7 +32,7 @@ func Update(client container.Client, params types.UpdateParams) (types.Report, e
 
 	staleCheckFailed := 0
 
-	for i, targetContainer := range containers {
+	for _, targetContainer := range containers {
 		stale, newestImage, err := client.IsContainerStale(targetContainer)
 		shouldUpdate := stale && !params.NoRestart && !params.MonitorOnly && !targetContainer.IsMonitorOnly()
 		if err == nil && shouldUpdate {
@@ -57,7 +57,7 @@ func Update(client container.Client, params types.UpdateParams) (types.Report, e
 		} else {
 			progress.AddScanned(targetContainer, newestImage)
 		}
-		containers[i].SetStale(stale)
+		targetContainer.SetStale(stale)
 
 		if stale {
 			staleCount++
