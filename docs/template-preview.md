@@ -60,6 +60,7 @@
         overflow: auto;
         padding: 0.77em 1.18em;
         margin:0;
+        height: 540px;
     }
 
 </style>
@@ -69,23 +70,24 @@
         const form = document.querySelector('#tplprev');
         const input = form.template.value;
         console.log('Input: %o', input);
-        const actions = form.enablereport.checked ? [
-            [ form.skipped.valueAsNumber, "skipped" ],
-            [ form.scanned.valueAsNumber, "scanned" ],
-            [ form.updated.valueAsNumber, "updated" ],
-            [ form.failed.valueAsNumber,  "failed" ],
-            [ form.fresh.valueAsNumber,   "fresh" ],
-            [ form.stale.valueAsNumber,   "stale" ],
+        const arrFromCount = (key) => Array.from(Array(form[key]?.valueAsNumber ?? 0), () => key);
+        const states = form.enablereport.checked ? [
+            ...arrFromCount("skipped"),
+            ...arrFromCount("scanned"),
+            ...arrFromCount("updated"),
+            ...arrFromCount("failed" ),
+            ...arrFromCount("fresh"  ),
+            ...arrFromCount("stale"  ),
         ] : [];
-        console.log("Actions: %o", actions);
-        const logentries = form.enablelog.checked ? [
-            form.logerrors.valueAsNumber,
-            form.logwarnings.valueAsNumber,
-            form.loginfos.valueAsNumber,
-            form.logdebugs.valueAsNumber,
-        ] : [0, 0, 0, 0];
-        console.log("LogLevel counts: %o", logentries);
-        const output = WATCHTOWER.tplprev(input, actions, logentries);
+        console.log("States: %o", states);
+        const levels = form.enablelog.checked ? [
+            ...arrFromCount("error"),
+            ...arrFromCount("warning"),
+            ...arrFromCount("info"),
+            ...arrFromCount("debug"),
+        ] : [];
+        console.log("Levels: %o", levels);
+        const output = WATCHTOWER.tplprev(input, states, levels);
         console.log('Output: \n%o', output);
         document.querySelector('#result').innerText = output;
     }
@@ -99,6 +101,9 @@
         if(debounce) clearTimeout(debounce);
         debounce = setTimeout(() => updatePreview(), 400);
     }
+    const formChanged = (e) =>  {
+        console.log('form changed: %o', e);
+    }
     const go = new Go();
     WebAssembly.instantiateStreaming(fetch("../assets/tplprev.wasm"), go.importObject).then((result) => {
         document.querySelector('#loading').style.display = "none";
@@ -110,7 +115,7 @@
 
 
 
-<form id="tplprev" onsubmit="formSubmitted(event)" style="margin: 0;display: flex; flex-direction: column; row-gap: 1rem; box-sizing: border-box; position: relative; margin-right: -13.3rem">
+<form id="tplprev" onchange="inputUpdated()" onsubmit="formSubmitted(event)" style="margin: 0;display: flex; flex-direction: column; row-gap: 1rem; box-sizing: border-box; position: relative; margin-right: -13.3rem">
 <pre id="loading" style="position: absolute; inset: 0; display: flex; padding: 1rem; box-sizing: border-box; background: var(--md-code-bg-color); margin-top: 0">loading wasm...</pre>
 
 
@@ -170,19 +175,19 @@ Logs:
     <legend><label><input type="checkbox" name="enablelog" checked /> Log entries</label></legend>
     <label class="numfield">
         Error: 
-        <input type="number" name="logerrors" value="1" />
+        <input type="number" name="error" value="1" />
     </label>
     <label class="numfield">
         Warning:
-        <input type="number" name="logwarnings" value="2" />
+        <input type="number" name="warning" value="2" />
     </label>
     <label class="numfield">
         Info:
-        <input type="number" name="loginfos" value="3" />
+        <input type="number" name="info" value="3" />
     </label>
     <label class="numfield">
         Debug:
-        <input type="number" name="logdebugs" value="4" />
+        <input type="number" name="debug" value="4" />
     </label>
 </fieldset>
 <button type="submit" style="flex:1; min-width: 12ch; padding: 0.5rem">Update preview</button>

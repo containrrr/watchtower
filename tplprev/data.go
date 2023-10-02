@@ -24,34 +24,43 @@ type LogEntry struct {
 	Level   LogLevel
 }
 
-type LogLevel int
+type LogLevel string
 
 const (
-	PanicLevel LogLevel = iota
-	FatalLevel
-	ErrorLevel
-	WarnLevel
-	InfoLevel
-	DebugLevel
-	TraceLevel
+	TraceLevel LogLevel = "trace"
+	DebugLevel LogLevel = "debug"
+	InfoLevel  LogLevel = "info"
+	WarnLevel  LogLevel = "warning"
+	ErrorLevel LogLevel = "error"
+	FatalLevel LogLevel = "fatal"
+	PanicLevel LogLevel = "panic"
 )
 
-func (level LogLevel) String() string {
-	switch level {
-	case TraceLevel:
-		return "trace"
-	case DebugLevel:
-		return "debug"
-	case InfoLevel:
-		return "info"
-	case WarnLevel:
-		return "warning"
-	case ErrorLevel:
-		return "error"
-	case FatalLevel:
-		return "fatal"
-	case PanicLevel:
-		return "panic"
+func LevelsFromString(str string) []LogLevel {
+	levels := make([]LogLevel, 0, len(str))
+	for _, c := range str {
+		switch c {
+		case 'p':
+			levels = append(levels, PanicLevel)
+		case 'f':
+			levels = append(levels, FatalLevel)
+		case 'e':
+			levels = append(levels, ErrorLevel)
+		case 'w':
+			levels = append(levels, WarnLevel)
+		case 'i':
+			levels = append(levels, InfoLevel)
+		case 'd':
+			levels = append(levels, DebugLevel)
+		case 't':
+			levels = append(levels, TraceLevel)
+		default:
+			continue
+		}
 	}
-	return ""
+	return levels
+}
+
+func (level LogLevel) String() string {
+	return string(level)
 }

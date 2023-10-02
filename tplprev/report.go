@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"math/rand"
 	"sort"
 	"strconv"
@@ -30,30 +29,27 @@ func (rb *reportBuilder) Build() types.Report {
 	return &rb.report
 }
 
-func (rb *reportBuilder) AddNContainers(n int, state State) {
-	fmt.Printf("Adding %v containers with state %v", n, state)
-	for i := 0; i < n; i++ {
-		cid := types.ContainerID(rb.generateID())
-		old := types.ImageID(rb.generateID())
-		new := types.ImageID(rb.generateID())
-		name := rb.generateName()
-		image := rb.generateImageName(name)
-		var err error
-		if state == FailedState {
-			err = errors.New(rb.randomEntry(errorMessages))
-		} else if state == SkippedState {
-			err = errors.New(rb.randomEntry(skippedMessages))
-		}
-		rb.AddContainer(ContainerStatus{
-			containerID:   cid,
-			oldImage:      old,
-			newImage:      new,
-			containerName: name,
-			imageName:     image,
-			error:         err,
-			state:         state,
-		})
+func (rb *reportBuilder) AddFromState(state State) {
+	cid := types.ContainerID(rb.generateID())
+	old := types.ImageID(rb.generateID())
+	new := types.ImageID(rb.generateID())
+	name := rb.generateName()
+	image := rb.generateImageName(name)
+	var err error
+	if state == FailedState {
+		err = errors.New(rb.randomEntry(errorMessages))
+	} else if state == SkippedState {
+		err = errors.New(rb.randomEntry(skippedMessages))
 	}
+	rb.AddContainer(ContainerStatus{
+		containerID:   cid,
+		oldImage:      old,
+		newImage:      new,
+		containerName: name,
+		imageName:     image,
+		error:         err,
+		state:         state,
+	})
 }
 
 func (rb *reportBuilder) AddContainer(c ContainerStatus) {
@@ -125,6 +121,29 @@ type Report struct {
 	skipped []types.ContainerReport
 	stale   []types.ContainerReport
 	fresh   []types.ContainerReport
+}
+
+func StatesFromString(str string) []State {
+	states := make([]State, 0, len(str))
+	for _, c := range str {
+		switch c {
+		case 'c':
+			states = append(states, ScannedState)
+		case 'u':
+			states = append(states, UpdatedState)
+		case 'e':
+			states = append(states, FailedState)
+		case 'k':
+			states = append(states, SkippedState)
+		case 't':
+			states = append(states, StaleState)
+		case 'f':
+			states = append(states, FreshState)
+		default:
+			continue
+		}
+	}
+	return states
 }
 
 func (r *Report) Scanned() []types.ContainerReport {

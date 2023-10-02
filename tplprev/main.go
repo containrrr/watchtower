@@ -1,89 +1,47 @@
+//go:build !wasm
+
 package main
 
 import (
+	"flag"
 	"fmt"
-	"strings"
-	"text/template"
-	"time"
+	"os"
 
 	"github.com/containrrr/watchtower/internal/meta"
-	"github.com/containrrr/watchtower/pkg/notifications/templates"
-
-	"syscall/js"
 )
 
 func main() {
-	fmt.Println("watchtower/tplprev v" + meta.Version)
+	fmt.Fprintf(os.Stderr, "watchtower/tplprev v%v\n\n", meta.Version)
 
-	js.Global().Set("WATCHTOWER", js.ValueOf(map[string]any{
-		"tplprev": js.FuncOf(tplprev),
-	}))
-	<-make(chan bool)
+	var states string
+	var entries string
 
-}
+	flag.StringVar(&states, "states", "cccuuueeekkktttfff", "sCanned, Updated, failEd, sKipped, sTale, Fresh")
+	flag.StringVar(&entries, "entries", "ewwiiidddd", "Fatal,Error,Warn,Info,Debug,Trace")
 
-func tplprev(this js.Value, args []js.Value) any {
+	flag.Parse()
 
-	rb := ReportBuilder()
-
-	if len(args) < 2 {
-		return "Requires 3 argument passed"
+	if len(flag.Args()) < 1 {
+		fmt.Fprintln(os.Stderr, "Missing required argument TEMPLATE")
+		flag.Usage()
+		os.Exit(1)
+		return
 	}
 
-	input := args[0].String()
-	tpl, err := template.New("").Funcs(templates.Funcs).Parse(input)
+	input, err := os.ReadFile(flag.Arg(0))
 	if err != nil {
-		return "Failed to parse template: " + err.Error()
+
+		fmt.Fprintf(os.Stderr, "Failed to read template file %q: %v\n", flag.Arg(0), err)
+		os.Exit(1)
+		return
 	}
 
-	actionsArg := args[1]
-
-	for i := 0; i < actionsArg.Length(); i++ {
-		action := actionsArg.Index(i)
-		if action.Length() != 2 {
-			return fmt.Sprintf("Invalid size of action tuple, expected 2, got %v", action.Length())
-		}
-		count := action.Index(0).Int()
-		state := State(action.Index(1).String())
-		rb.AddNContainers(count, state)
-	}
-
-	entriesArg := args[2]
-	var entries []*LogEntry
-	for i := 0; i < entriesArg.Length(); i++ {
-		count := entriesArg.Index(i).Int()
-		level := ErrorLevel + LogLevel(i)
-		for m := 0; m < count; m++ {
-			var msg string
-			if level <= WarnLevel {
-				msg = rb.randomEntry(logErrors)
-			} else {
-				msg = rb.randomEntry(logMessages)
-			}
-			entries = append(entries, &LogEntry{
-				Message: msg,
-				Data:    map[string]any{},
-				Time:    time.Now(),
-				Level:   level,
-			})
-		}
-	}
-
-	report := rb.Build()
-	data := Data{
-		Entries: entries,
-		StaticData: StaticData{
-			Title: "Title",
-			Host:  "Host",
-		},
-		Report: report,
-	}
-
-	var buf strings.Builder
-	err = tpl.Execute(&buf, data)
+	result, err := TplPrev(string(input), StatesFromString(states), LevelsFromString(entries))
 	if err != nil {
-		return "Failed to execute template: " + err.Error()
+		fmt.Fprintf(os.Stderr, "Failed to read template file %q: %v\n", flag.Arg(0), err)
+		os.Exit(1)
+		return
 	}
 
-	return buf.String()
+	fmt.Println(result)
 }
