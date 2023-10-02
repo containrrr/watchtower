@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/containrrr/shoutrrr v0.8.0
 	github.com/docker/cli v24.0.6+incompatible
-	github.com/docker/distribution v2.8.2+incompatible
+	github.com/docker/distribution v2.8.3+incompatible
 	github.com/docker/docker v24.0.6+incompatible
 	github.com/docker/go-connections v0.4.0
 	github.com/onsi/ginkgo v1.16.5
@@ -19,6 +19,8 @@ require (
 	github.com/stretchr/testify v1.8.4
 	golang.org/x/net v0.15.0
 )
+
+require github.com/distribution/reference v0.5.0 // indirect
 
 require (
 	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
