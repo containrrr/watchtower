@@ -236,7 +236,3 @@ func getShoutrrrTemplate(tplString string, legacy bool) (tpl *template.Template,
 
 	return
 }
-
-func GetShoutrrrTemplate(tplString string) (tpl *template.Template, err error) {
-	return getShoutrrrTemplate(tplString, false)
-}
