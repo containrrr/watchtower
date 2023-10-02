@@ -171,7 +171,7 @@ func TestFilterByImage(t *testing.T) {
 func TestBuildFilter(t *testing.T) {
 	names := []string{"test", "valid"}
 
-	filter, desc := BuildFilter(names, false, "")
+	filter, desc := BuildFilter(names, []string{}, false, "")
 	assert.Contains(t, desc, "test")
 	assert.Contains(t, desc, "or")
 	assert.Contains(t, desc, "valid")
@@ -210,7 +210,7 @@ func TestBuildFilterEnableLabel(t *testing.T) {
 	var names []string
 	names = append(names, "test")
 
-	filter, desc := BuildFilter(names, true, "")
+	filter, desc := BuildFilter(names, []string{}, true, "")
 	assert.Contains(t, desc, "using enable label")
 
 	container := new(mocks.FilterableContainer)
@@ -228,6 +228,55 @@ func TestBuildFilterEnableLabel(t *testing.T) {
 	container.On("Name").Return("test")
 	container.On("Enabled").Twice().Return(true, true)
 	assert.True(t, filter(container))
+	container.AssertExpectations(t)
+
+	container = new(mocks.FilterableContainer)
+	container.On("Enabled").Return(false, true)
+	assert.False(t, filter(container))
+	container.AssertExpectations(t)
+}
+
+func TestBuildFilterDisableContainer(t *testing.T) {
+	filter, desc := BuildFilter([]string{}, []string{"excluded", "notfound"}, false, "")
+	assert.Contains(t, desc, "not named")
+	assert.Contains(t, desc, "excluded")
+	assert.Contains(t, desc, "or")
+	assert.Contains(t, desc, "notfound")
+
+	container := new(mocks.FilterableContainer)
+	container.On("Name").Return("Another")
+	container.On("Enabled").Return(false, false)
+	assert.True(t, filter(container))
+	container.AssertExpectations(t)
+
+	container = new(mocks.FilterableContainer)
+	container.On("Name").Return("AnotherOne")
+	container.On("Enabled").Return(true, true)
+	assert.True(t, filter(container))
+	container.AssertExpectations(t)
+
+	container = new(mocks.FilterableContainer)
+	container.On("Name").Return("test")
+	container.On("Enabled").Return(false, false)
+	assert.True(t, filter(container))
+	container.AssertExpectations(t)
+
+	container = new(mocks.FilterableContainer)
+	container.On("Name").Return("excluded")
+	container.On("Enabled").Return(true, true)
+	assert.False(t, filter(container))
+	container.AssertExpectations(t)
+
+	container = new(mocks.FilterableContainer)
+	container.On("Name").Return("excludedAsSubstring")
+	container.On("Enabled").Return(true, true)
+	assert.True(t, filter(container))
+	container.AssertExpectations(t)
+
+	container = new(mocks.FilterableContainer)
+	container.On("Name").Return("notfound")
+	container.On("Enabled").Return(true, true)
+	assert.False(t, filter(container))
 	container.AssertExpectations(t)
 
 	container = new(mocks.FilterableContainer)

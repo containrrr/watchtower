@@ -35,6 +35,7 @@ var (
 	noRestart       bool
 	monitorOnly     bool
 	enableLabel     bool
+	disableContainers []string
 	notifier        t.Notifier
 	timeout         time.Duration
 	lifecycleHooks  bool
@@ -93,6 +94,7 @@ func PreRun(cmd *cobra.Command, _ []string) {
 	}
 
 	enableLabel, _ = f.GetBool("label-enable")
+	disableContainers, _ = f.GetStringSlice("disable-containers")
 	lifecycleHooks, _ = f.GetBool("enable-lifecycle-hooks")
 	rollingRestart, _ = f.GetBool("rolling-restart")
 	scope, _ = f.GetString("scope")
@@ -134,7 +136,7 @@ func PreRun(cmd *cobra.Command, _ []string) {
 
 // Run is the main execution flow of the command
 func Run(c *cobra.Command, names []string) {
-	filter, filterDesc := filters.BuildFilter(names, enableLabel, scope)
+	filter, filterDesc := filters.BuildFilter(names, disableContainers, enableLabel, scope)
 	runOnce, _ := c.PersistentFlags().GetBool("run-once")
 	enableUpdateAPI, _ := c.PersistentFlags().GetBool("http-api-update")
 	enableMetricsAPI, _ := c.PersistentFlags().GetBool("http-api-metrics")
