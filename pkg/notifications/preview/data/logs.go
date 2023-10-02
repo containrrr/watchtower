@@ -1,29 +1,17 @@
-package main
+package data
 
 import (
 	"time"
-
-	"github.com/containrrr/watchtower/pkg/types"
 )
 
-type Data struct {
-	Entries    []*LogEntry
-	StaticData StaticData
-	Report     types.Report
-}
-
-type StaticData struct {
-	Title string
-	Host  string
-}
-
-type LogEntry struct {
+type logEntry struct {
 	Message string
 	Data    map[string]any
 	Time    time.Time
 	Level   LogLevel
 }
 
+// LogLevel is the analog of logrus.Level
 type LogLevel string
 
 const (
@@ -36,6 +24,7 @@ const (
 	PanicLevel LogLevel = "panic"
 )
 
+// LevelsFromString parses a string of level characters and returns a slice of the corresponding log levels
 func LevelsFromString(str string) []LogLevel {
 	levels := make([]LogLevel, 0, len(str))
 	for _, c := range str {
@@ -61,6 +50,7 @@ func LevelsFromString(str string) []LogLevel {
 	return levels
 }
 
+// String returns the log level as a string
 func (level LogLevel) String() string {
 	return string(level)
 }

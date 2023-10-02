@@ -8,10 +8,12 @@ import (
 	"os"
 
 	"github.com/containrrr/watchtower/internal/meta"
+	"github.com/containrrr/watchtower/pkg/notifications/preview"
+	"github.com/containrrr/watchtower/pkg/notifications/preview/data"
 )
 
 func main() {
-	fmt.Fprintf(os.Stderr, "watchtower/tplprev v%v\n\n", meta.Version)
+	fmt.Fprintf(os.Stderr, "watchtower/tplprev %v\n\n", meta.Version)
 
 	var states string
 	var entries string
@@ -36,7 +38,7 @@ func main() {
 		return
 	}
 
-	result, err := TplPrev(string(input), StatesFromString(states), LevelsFromString(entries))
+	result, err := preview.Render(string(input), data.StatesFromString(states), data.LevelsFromString(entries))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to read template file %q: %v\n", flag.Arg(0), err)
 		os.Exit(1)

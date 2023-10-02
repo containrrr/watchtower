@@ -89,10 +89,13 @@
         console.log("Levels: %o", levels);
         const output = WATCHTOWER.tplprev(input, states, levels);
         console.log('Output: \n%o', output);
-        document.querySelector('#result').innerText = output;
+        if (output.length) {
+            document.querySelector('#result').innerText = output;
+        } else {
+            document.querySelector('#result').innerHTML = '<i>empty (would not be sent as a notification)</i>';
+        }
     }
     const formSubmitted = (e) => {
-        console.log("Event: %o", e);
         e.preventDefault();
         updatePreview();
     }
@@ -115,7 +118,7 @@
 
 
 
-<form id="tplprev" onchange="inputUpdated()" onsubmit="formSubmitted(event)" style="margin: 0;display: flex; flex-direction: column; row-gap: 1rem; box-sizing: border-box; position: relative; margin-right: -13.3rem">
+<form id="tplprev" onchange="updatePreview()" onsubmit="formSubmitted(event)" style="margin: 0;display: flex; flex-direction: column; row-gap: 1rem; box-sizing: border-box; position: relative; margin-right: -13.3rem">
 <pre id="loading" style="position: absolute; inset: 0; display: flex; padding: 1rem; box-sizing: border-box; background: var(--md-code-bg-color); margin-top: 0">loading wasm...</pre>
 
 

@@ -1,4 +1,4 @@
-package main
+package data
 
 var containerNames = []string{
 	"cyberscribe",
@@ -43,7 +43,7 @@ var containerNames = []string{
 	"innoscan",
 }
 
-var companyNames = []string{
+var organizationNames = []string{
 	"techwave",
 	"codecrafters",
 	"innotechlabs",

@@ -6,6 +6,8 @@ import (
 	"fmt"
 
 	"github.com/containrrr/watchtower/internal/meta"
+	"github.com/containrrr/watchtower/pkg/notifications/preview"
+	"github.com/containrrr/watchtower/pkg/notifications/preview/data"
 
 	"syscall/js"
 )
@@ -29,30 +31,30 @@ func jsTplPrev(this js.Value, args []js.Value) any {
 	input := args[0].String()
 
 	statesArg := args[1]
-	var states []State
+	var states []data.State
 
 	if statesArg.Type() == js.TypeString {
-		states = StatesFromString(statesArg.String())
+		states = data.StatesFromString(statesArg.String())
 	} else {
 		for i := 0; i < statesArg.Length(); i++ {
-			state := State(statesArg.Index(i).String())
+			state := data.State(statesArg.Index(i).String())
 			states = append(states, state)
 		}
 	}
 
 	levelsArg := args[2]
-	var levels []LogLevel
+	var levels []data.LogLevel
 
 	if levelsArg.Type() == js.TypeString {
-		levels = LevelsFromString(statesArg.String())
+		levels = data.LevelsFromString(statesArg.String())
 	} else {
 		for i := 0; i < levelsArg.Length(); i++ {
-			level := LogLevel(levelsArg.Index(i).String())
+			level := data.LogLevel(levelsArg.Index(i).String())
 			levels = append(levels, level)
 		}
 	}
 
-	result, err := TplPrev(input, states, levels)
+	result, err := preview.Render(input, states, levels)
 	if err != nil {
 		return "Error: " + err.Error()
 	}
