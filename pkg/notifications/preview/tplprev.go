@@ -15,7 +15,7 @@ func Render(input string, states []data.State, loglevels []data.LogLevel) (strin
 
 	tpl, err := template.New("").Funcs(templates.Funcs).Parse(input)
 	if err != nil {
-		return "", fmt.Errorf("failed to parse template: %e", err)
+		return "", fmt.Errorf("failed to parse %v", err)
 	}
 
 	for _, state := range states {
@@ -29,7 +29,7 @@ func Render(input string, states []data.State, loglevels []data.LogLevel) (strin
 	var buf strings.Builder
 	err = tpl.Execute(&buf, data)
 	if err != nil {
-		return "", fmt.Errorf("failed to execute template: %e", err)
+		return "", fmt.Errorf("failed to execute template: %v", err)
 	}
 
 	return buf.String(), nil
