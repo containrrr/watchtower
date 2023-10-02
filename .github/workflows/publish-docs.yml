@@ -22,8 +22,7 @@ jobs:
         with:
           go-version: 1.18.x
       - name: Build tplprev
-        run: |
-          GOARCH=wasm GOOS=js go build -o ./docs/assets/tplprev.wasm ./tplprev
+        run: scripts/build-tplprev.sh
       - name: Setup python
         uses: actions/setup-python@v4
         with:
