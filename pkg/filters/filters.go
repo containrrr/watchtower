@@ -13,7 +13,7 @@ func WatchtowerContainersFilter(c t.FilterableContainer) bool { return c.IsWatch
 // NoFilter will not filter out any containers
 func NoFilter(t.FilterableContainer) bool { return true }
 
-// FilterByNames returns all containers that match the specified name
+// FilterByNames returns all containers that match one of the specified names
 func FilterByNames(names []string, baseFilter t.Filter) t.Filter {
 	if len(names) == 0 {
 		return baseFilter
@@ -38,6 +38,22 @@ func FilterByNames(names []string, baseFilter t.Filter) t.Filter {
 			}
 		}
 		return false
+	}
+}
+
+// FilterByDisableNames returns all containers that don't match any of the specified names
+func FilterByDisableNames(disableNames []string, baseFilter t.Filter) t.Filter {
+	if len(disableNames) == 0 {
+		return baseFilter
+	}
+
+	return func(c t.FilterableContainer) bool {
+		for _, name := range disableNames {
+			if name == c.Name() || name == c.Name()[1:] {
+				return false
+			}
+		}
+		return baseFilter(c)
 	}
 }
 
@@ -103,16 +119,27 @@ func FilterByImage(images []string, baseFilter t.Filter) t.Filter {
 }
 
 // BuildFilter creates the needed filter of containers
-func BuildFilter(names []string, enableLabel bool, scope string) (t.Filter, string) {
+func BuildFilter(names []string, disableNames []string, enableLabel bool, scope string) (t.Filter, string) {
 	sb := strings.Builder{}
 	filter := NoFilter
 	filter = FilterByNames(names, filter)
+	filter = FilterByDisableNames(disableNames, filter)
 
 	if len(names) > 0 {
 		sb.WriteString("which name matches \"")
 		for i, n := range names {
 			sb.WriteString(n)
 			if i < len(names)-1 {
+				sb.WriteString(`" or "`)
+			}
+		}
+		sb.WriteString(`", `)
+	}
+	if len(disableNames) > 0 {
+		sb.WriteString("not named one of \"")
+		for i, n := range disableNames {
+			sb.WriteString(n)
+			if i < len(disableNames)-1 {
 				sb.WriteString(`" or "`)
 			}
 		}
