@@ -2,82 +2,87 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://containrrr.dev/watchtower/</loc>
-         <lastmod>2022-11-07</lastmod>
+         <lastmod>2023-10-03</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://containrrr.dev/watchtower/arguments/</loc>
-         <lastmod>2022-11-07</lastmod>
+         <lastmod>2023-10-03</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://containrrr.dev/watchtower/container-selection/</loc>
-         <lastmod>2022-11-07</lastmod>
+         <lastmod>2023-10-03</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://containrrr.dev/watchtower/http-api-mode/</loc>
-         <lastmod>2022-11-07</lastmod>
+         <lastmod>2023-10-03</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://containrrr.dev/watchtower/introduction/</loc>
-         <lastmod>2022-11-07</lastmod>
+         <lastmod>2023-10-03</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://containrrr.dev/watchtower/lifecycle-hooks/</loc>
-         <lastmod>2022-11-07</lastmod>
+         <lastmod>2023-10-03</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://containrrr.dev/watchtower/linked-containers/</loc>
-         <lastmod>2022-11-07</lastmod>
+         <lastmod>2023-10-03</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://containrrr.dev/watchtower/metrics/</loc>
-         <lastmod>2022-11-07</lastmod>
+         <lastmod>2023-10-03</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://containrrr.dev/watchtower/notifications/</loc>
-         <lastmod>2022-11-07</lastmod>
+         <lastmod>2023-10-03</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://containrrr.dev/watchtower/private-registries/</loc>
-         <lastmod>2022-11-07</lastmod>
+         <lastmod>2023-10-03</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://containrrr.dev/watchtower/remote-hosts/</loc>
-         <lastmod>2022-11-07</lastmod>
+         <lastmod>2023-10-03</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://containrrr.dev/watchtower/running-multiple-instances/</loc>
-         <lastmod>2022-11-07</lastmod>
+         <lastmod>2023-10-03</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://containrrr.dev/watchtower/secure-connections/</loc>
-         <lastmod>2022-11-07</lastmod>
+         <lastmod>2023-10-03</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://containrrr.dev/watchtower/stop-signals/</loc>
-         <lastmod>2022-11-07</lastmod>
+         <lastmod>2023-10-03</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
+         <loc>https://containrrr.dev/watchtower/template-preview/</loc>
+         <lastmod>2023-10-03</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://containrrr.dev/watchtower/updating/</loc>
-         <lastmod>2022-11-07</lastmod>
+         <lastmod>2023-10-03</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://containrrr.dev/watchtower/usage-overview/</loc>
-         <lastmod>2022-11-07</lastmod>
+         <lastmod>2023-10-03</lastmod>
          <changefreq>daily</changefreq>
     </url>
 </urlset>

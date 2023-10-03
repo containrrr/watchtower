@@ -10,8 +10,15 @@
       
         <link rel="canonical" href="https://containrrr.dev/watchtower/private-registries/">
       
+      
+        <link rel="prev" href="../container-selection/">
+      
+      
+        <link rel="next" href="../linked-containers/">
+      
+      
       <link rel="icon" href="../images/favicon.ico">
-      <meta name="generator" content="mkdocs-1.4.2, mkdocs-material-8.5.8">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.4.3">
     
     
       
@@ -19,15 +26,17 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.20d9efc8.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.79e020e9.min.css">
       
         
-        <link rel="stylesheet" href="../assets/stylesheets/palette.815d1a91.min.css">
-        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.a5377069.min.css">
       
       
 
+
     
+    
+      
     
     
       
@@ -58,7 +67,7 @@
     
     
     
-    <body dir="ltr" data-md-color-scheme="containrrr" data-md-color-primary="" data-md-color-accent="">
+    <body dir="ltr" data-md-color-scheme="containrrr" data-md-color-primary="indigo" data-md-color-accent="indigo">
   
     
     
@@ -82,7 +91,9 @@
     
       
 
-<header class="md-header" data-md-component="header">
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
     <a href=".." title="Watchtower" class="md-header__button md-logo" aria-label="Watchtower" data-md-component="logo">
       
@@ -90,6 +101,7 @@
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
+      
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
     </label>
     <div class="md-header__title" data-md-component="header-title">
@@ -109,31 +121,36 @@
       </div>
     </div>
     
-      <form class="md-header__option" data-md-component="palette">
-        
-          
-          
-          <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="containrrr" data-md-color-primary="" data-md-color-accent=""  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
-          
-            <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3 3.19.09m3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95 2.06.05m-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31Z"/></svg>
-            </label>
-          
-        
-          
-          
-          <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="containrrr-dark" data-md-color-primary="" data-md-color-accent=""  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_2">
-          
-            <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5c-.84 0-1.65.15-2.39.42L12 2M3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29L3.34 7m.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14L3.36 17M20.65 7l-1.77 3.79a7.023 7.023 0 0 0-2.38-4.15l4.15.36m-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29L20.64 17M12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44L12 22Z"/></svg>
-            </label>
-          
-        
-      </form>
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="containrrr" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3 3.19.09m3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95 2.06.05m-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31Z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="containrrr-dark" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_2">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5c-.84 0-1.65.15-2.39.42L12 2M3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29L3.34 7m.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14L3.36 17M20.65 7l-1.77 3.79a7.023 7.023 0 0 0-2.38-4.15l4.15.36m-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29L20.64 17M12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44L12 22Z"/></svg>
+      </label>
+    
+  
+</form>
+      
     
     
     
       <label class="md-header__button md-icon" for="__search">
+        
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
       </label>
       <div class="md-search" data-md-component="search" role="dialog">
@@ -142,12 +159,15 @@
     <form class="md-search__form" name="search">
       <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
       <label class="md-search__icon md-icon" for="__search">
+        
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
       </label>
       <nav class="md-search__options" aria-label="Search">
         
         <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
         </button>
       </nav>
@@ -159,7 +179,7 @@
           <div class="md-search-result__meta">
             Initializing search
           </div>
-          <ol class="md-search-result__list"></ol>
+          <ol class="md-search-result__list" role="presentation"></ol>
         </div>
       </div>
     </div>
@@ -171,7 +191,7 @@
         <a href="https://github.com/containrrr/watchtower/" title="Go to repository" class="md-source" data-md-component="source">
   <div class="md-source__icon md-icon">
     
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
   </div>
   <div class="md-source__repository">
     GitHub
@@ -201,6 +221,7 @@
                     
 
 
+
 <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
     <a href=".." title="Watchtower" class="md-nav__button md-logo" aria-label="Watchtower" data-md-component="logo">
@@ -215,7 +236,7 @@
       <a href="https://github.com/containrrr/watchtower/" title="Go to repository" class="md-source" data-md-component="source">
   <div class="md-source__icon md-icon">
     
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
   </div>
   <div class="md-source__repository">
     GitHub
@@ -227,14 +248,18 @@
     
       
       
-      
-
   
   
   
     <li class="md-nav__item">
       <a href=".." class="md-nav__link">
-        Home
+        
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+  
+
       </a>
     </li>
   
@@ -242,14 +267,18 @@
     
       
       
-      
-
   
   
   
     <li class="md-nav__item">
       <a href="../introduction/" class="md-nav__link">
-        Introduction
+        
+  
+  <span class="md-ellipsis">
+    Introduction
+  </span>
+  
+
       </a>
     </li>
   
@@ -257,14 +286,18 @@
     
       
       
-      
-
   
   
   
     <li class="md-nav__item">
       <a href="../usage-overview/" class="md-nav__link">
-        Usage overview
+        
+  
+  <span class="md-ellipsis">
+    Usage overview
+  </span>
+  
+
       </a>
     </li>
   
@@ -272,14 +305,18 @@
     
       
       
-      
-
   
   
   
     <li class="md-nav__item">
       <a href="../arguments/" class="md-nav__link">
-        Arguments
+        
+  
+  <span class="md-ellipsis">
+    Arguments
+  </span>
+  
+
       </a>
     </li>
   
@@ -287,14 +324,18 @@
     
       
       
-      
-
   
   
   
     <li class="md-nav__item">
       <a href="../notifications/" class="md-nav__link">
-        Notifications
+        
+  
+  <span class="md-ellipsis">
+    Notifications
+  </span>
+  
+
       </a>
     </li>
   
@@ -302,14 +343,18 @@
     
       
       
-      
-
   
   
   
     <li class="md-nav__item">
       <a href="../container-selection/" class="md-nav__link">
-        Container selection
+        
+  
+  <span class="md-ellipsis">
+    Container selection
+  </span>
+  
+
       </a>
     </li>
   
@@ -317,8 +362,6 @@
     
       
       
-      
-
   
   
     
@@ -326,17 +369,29 @@
   
     <li class="md-nav__item md-nav__item--active">
       
-      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
       
       
       
         <label class="md-nav__link md-nav__link--active" for="__toc">
-          Private registries
+          
+  
+  <span class="md-ellipsis">
+    Private registries
+  </span>
+  
+
           <span class="md-nav__icon md-icon"></span>
         </label>
       
       <a href="./" class="md-nav__link md-nav__link--active">
-        Private registries
+        
+  
+  <span class="md-ellipsis">
+    Private registries
+  </span>
+  
+
       </a>
       
         
@@ -409,14 +464,18 @@
     
       
       
-      
-
   
   
   
     <li class="md-nav__item">
       <a href="../linked-containers/" class="md-nav__link">
-        Linked containers
+        
+  
+  <span class="md-ellipsis">
+    Linked containers
+  </span>
+  
+
       </a>
     </li>
   
@@ -424,14 +483,18 @@
     
       
       
-      
-
   
   
   
     <li class="md-nav__item">
       <a href="../remote-hosts/" class="md-nav__link">
-        Remote hosts
+        
+  
+  <span class="md-ellipsis">
+    Remote hosts
+  </span>
+  
+
       </a>
     </li>
   
@@ -439,14 +502,18 @@
     
       
       
-      
-
   
   
   
     <li class="md-nav__item">
       <a href="../secure-connections/" class="md-nav__link">
-        Secure connections
+        
+  
+  <span class="md-ellipsis">
+    Secure connections
+  </span>
+  
+
       </a>
     </li>
   
@@ -454,14 +521,18 @@
     
       
       
-      
-
   
   
   
     <li class="md-nav__item">
       <a href="../stop-signals/" class="md-nav__link">
-        Stop signals
+        
+  
+  <span class="md-ellipsis">
+    Stop signals
+  </span>
+  
+
       </a>
     </li>
   
@@ -469,14 +540,18 @@
     
       
       
-      
-
   
   
   
     <li class="md-nav__item">
       <a href="../lifecycle-hooks/" class="md-nav__link">
-        Lifecycle hooks
+        
+  
+  <span class="md-ellipsis">
+    Lifecycle hooks
+  </span>
+  
+
       </a>
     </li>
   
@@ -484,14 +559,18 @@
     
       
       
-      
-
   
   
   
     <li class="md-nav__item">
       <a href="../running-multiple-instances/" class="md-nav__link">
-        Running multiple instances
+        
+  
+  <span class="md-ellipsis">
+    Running multiple instances
+  </span>
+  
+
       </a>
     </li>
   
@@ -499,14 +578,37 @@
     
       
       
-      
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../http-api-mode/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    HTTP API Mode
+  </span>
+  
 
+      </a>
+    </li>
+  
+
+    
+      
+      
   
   
   
     <li class="md-nav__item">
       <a href="../metrics/" class="md-nav__link">
-        Metrics
+        
+  
+  <span class="md-ellipsis">
+    Metrics
+  </span>
+  
+
       </a>
     </li>
   
@@ -597,10 +699,8 @@
                 
                   
 
-  <a href="https://github.com/containrrr/watchtower/edit/main/docs/private-registries.md" title="Edit this page" class="md-content__button md-icon">
-    
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75L3 17.25Z"/></svg>
-  </a>
+  
+  
 
 
   <h1>Private registries</h1>
@@ -617,28 +717,40 @@ There are two ways to generate this configuration file:</p>
 <h3 id="create_the_configuration_file_manually">Create the configuration file manually<a class="headerlink" href="#create_the_configuration_file_manually" title="Permanent link">&para;</a></h3>
 <p>Create a new configuration file with the following syntax and a base64 encoded username and
 password <code>auth</code> string:</p>
-<div class="highlight"><pre><span></span><code><span class="p">{</span><span class="w"></span>
-<span class="w">    </span><span class="nt">&quot;auths&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">        </span><span class="nt">&quot;&lt;REGISTRY_NAME&gt;&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">            </span><span class="nt">&quot;auth&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;XXXXXXX&quot;</span><span class="w"></span>
-<span class="w">        </span><span class="p">}</span><span class="w"></span>
-<span class="w">    </span><span class="p">}</span><span class="w"></span>
-<span class="p">}</span><span class="w"></span>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;auths&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;&lt;REGISTRY_NAME&gt;&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;auth&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;XXXXXXX&quot;</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
 </code></pre></div>
 <p><code>&lt;REGISTRY_NAME&gt;</code> needs to be replaced by the name of your private registry
-(e.g., <code>my-private-registry.example.org</code>)</p>
+(e.g., <code>my-private-registry.example.org</code>).</p>
+<div class="admonition info">
+<p class="admonition-title">Using private images on Docker Hub</p>
+<p>To access private repositories on Docker Hub,
+<code>&lt;REGISTRY_NAME&gt;</code> should be <code>https://index.docker.io/v1/</code>.
+In this special case, the registry domain does not have to be specified
+in <code>docker run</code> or <code>docker-compose</code>. Like Docker, Watchtower will use the
+Docker Hub registry and its credentials when no registry domain is specified.</p>
+<p><sub>Watchtower will recognize credentials with <code>&lt;REGISTRY_NAME&gt;</code> <code>index.docker.io</code>,
+but the Docker CLI will not.</sub></p>
+</div>
 <div class="admonition important">
-<p class="admonition-title">Using private images on docker hub</p>
-<p>When using private images on docker hub, the containers beeing watched needs to use the full image name, including the repository prefix <code>index.docker.io</code>.
-So instead of
-<div class="highlight"><pre><span></span><code>docker run -d myuser/myimage
-</code></pre></div>
-you would run it as
-<div class="highlight"><pre><span></span><code>docker run -d index.docker.io/myuser/myimage
-</code></pre></div></p>
+<p class="admonition-title">Using a private registry on a local host</p>
+<p>To use a private registry hosted locally, make sure to correctly specify the registry host
+in both <code>config.json</code> and the <code>docker run</code> command or <code>docker-compose</code> file.
+Valid hosts are <code>localhost[:PORT]</code>, <code>HOST:PORT</code>,
+or any multi-part <code>domain.name</code> or IP-address with or without a port.</p>
+<p>Examples:
+* <code>localhost</code> -&gt; <code>localhost/myimage</code>
+* <code>127.0.0.1</code> -&gt; <code>127.0.0.1/myimage:mytag</code>
+* <code>host.domain</code> -&gt; <code>host.domain/myorganization/myimage</code>
+* <code>other-lan-host:80</code> -&gt; <code>other-lan-host:80/imagename:latest</code></p>
 </div>
 <p>The required <code>auth</code> string can be generated as follows:</p>
-<div class="highlight"><pre><span></span><code><span class="nb">echo</span> -n <span class="s1">&#39;username:password&#39;</span> <span class="p">|</span> base64
+<div class="highlight"><pre><span></span><code><span class="nb">echo</span><span class="w"> </span>-n<span class="w"> </span><span class="s1">&#39;username:password&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>base64
 </code></pre></div>
 <div class="admonition info">
 <p class="admonition-title">Username and Password for GCloud</p>
@@ -648,7 +760,7 @@ you would run it as
 </div>
 <p>When the watchtower Docker container is started, the created configuration file
 (<code>&lt;PATH&gt;/config.json</code> in this example) needs to be passed to the container:</p>
-<div class="highlight"><pre><span></span><code>docker run <span class="o">[</span>...<span class="o">]</span> -v &lt;PATH&gt;/config.json:/config.json containrrr/watchtower
+<div class="highlight"><pre><span></span><code>docker<span class="w"> </span>run<span class="w"> </span><span class="o">[</span>...<span class="o">]</span><span class="w"> </span>-v<span class="w"> </span>&lt;PATH&gt;/config.json:/config.json<span class="w"> </span>containrrr/watchtower
 </code></pre></div>
 <h3 id="share_the_docker_configuration_file">Share the Docker configuration file<a class="headerlink" href="#share_the_docker_configuration_file" title="Permanent link">&para;</a></h3>
 <p>To pull an image from a private registry, <code>docker login</code> needs to be called first, to get access
@@ -656,31 +768,31 @@ to the registry. The provided credentials are stored in a configuration file cal
 This configuration file can be directly used by watchtower. In this case, the creation of an
 additional configuration file is not necessary.</p>
 <p>When the Docker container is started, pass the configuration file to watchtower:</p>
-<div class="highlight"><pre><span></span><code>docker run <span class="o">[</span>...<span class="o">]</span> -v &lt;PATH_TO_HOME_DIR&gt;/.docker/config.json:/config.json containrrr/watchtower
+<div class="highlight"><pre><span></span><code>docker<span class="w"> </span>run<span class="w"> </span><span class="o">[</span>...<span class="o">]</span><span class="w"> </span>-v<span class="w"> </span>&lt;PATH_TO_HOME_DIR&gt;/.docker/config.json:/config.json<span class="w"> </span>containrrr/watchtower
 </code></pre></div>
 <p>When creating the watchtower container via docker-compose, use the following lines:</p>
-<div class="highlight"><pre><span></span><code><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;3.4&quot;</span><span class="w"></span>
-<span class="nt">services</span><span class="p">:</span><span class="w"></span>
-<span class="w">  </span><span class="nt">watchtower</span><span class="p">:</span><span class="w"></span>
-<span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">index.docker.io/containrrr/watchtower:latest</span><span class="w"></span>
-<span class="w">    </span><span class="nt">volumes</span><span class="p">:</span><span class="w"></span>
-<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/var/run/docker.sock:/var/run/docker.sock</span><span class="w"></span>
-<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;PATH_TO_HOME_DIR&gt;/.docker/config.json:/config.json</span><span class="w"></span>
-<span class="w">  </span><span class="l l-Scalar l-Scalar-Plain">...</span><span class="w"></span>
+<div class="highlight"><pre><span></span><code><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;3.4&quot;</span>
+<span class="nt">services</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">watchtower</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">containrrr/watchtower:latest</span>
+<span class="w">    </span><span class="nt">volumes</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/var/run/docker.sock:/var/run/docker.sock</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;PATH_TO_HOME_DIR&gt;/.docker/config.json:/config.json</span>
+<span class="w">  </span><span class="l l-Scalar l-Scalar-Plain">...</span>
 </code></pre></div>
 <h4 id="docker_config_path">Docker Config path<a class="headerlink" href="#docker_config_path" title="Permanent link">&para;</a></h4>
 <p>By default, watchtower will look for the <code>config.json</code> file in <code>/</code>, but this can be changed by setting the <code>DOCKER_CONFIG</code> environment variable to the directory path where your config is located. This is useful for setups where the config.json file is changed while the watchtower instance is running, as the changes will not be picked up for a mounted file if the inode changes.
 Example usage:</p>
-<div class="highlight"><pre><span></span><code><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;3.4&quot;</span><span class="w"></span>
+<div class="highlight"><pre><span></span><code><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;3.4&quot;</span>
 
 <span class="nt">services</span><span class="p">:</span><span class="w"> </span>
-<span class="w">  </span><span class="nt">watchtower</span><span class="p">:</span><span class="w"></span>
-<span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">containrrr/watchtower</span><span class="w"></span>
-<span class="w">    </span><span class="nt">environment</span><span class="p">:</span><span class="w"></span>
-<span class="w">        </span><span class="nt">DOCKER_CONFIG</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/config</span><span class="w"></span>
-<span class="w">    </span><span class="nt">volumes</span><span class="p">:</span><span class="w"></span>
-<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/etc/watchtower/config/:/config/</span><span class="w"></span>
-<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/var/run/docker.sock:/var/run/docker.sock</span><span class="w"></span>
+<span class="w">  </span><span class="nt">watchtower</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">containrrr/watchtower</span>
+<span class="w">    </span><span class="nt">environment</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">DOCKER_CONFIG</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/config</span>
+<span class="w">    </span><span class="nt">volumes</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/etc/watchtower/config/:/config/</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/var/run/docker.sock:/var/run/docker.sock</span>
 </code></pre></div>
 <h2 id="credential_helpers">Credential helpers<a class="headerlink" href="#credential_helpers" title="Permanent link">&para;</a></h2>
 <p>Some private Docker registries (the most prominent probably being AWS ECR) use non-standard ways of authentication.
@@ -694,19 +806,19 @@ in a volume that may be mounted onto your watchtower container.</p>
 <ol>
 <li>
 <p>Create the Dockerfile (contents below):
-    <div class="highlight"><pre><span></span><code><span class="k">FROM</span><span class="w"> </span><span class="s">golang:1.16</span>
+    <div class="highlight"><pre><span></span><code><span class="k">FROM</span><span class="w"> </span><span class="s">golang:1.17</span>
 
-<span class="k">ENV</span><span class="w"> </span>GO111MODULE off
-<span class="k">ENV</span><span class="w"> </span>CGO_ENABLED <span class="m">0</span>
-<span class="k">ENV</span><span class="w"> </span>REPO github.com/awslabs/amazon-ecr-credential-helper/ecr-login/cli/docker-credential-ecr-login
+<span class="k">ENV</span><span class="w"> </span>GO111MODULE<span class="w"> </span>off
+<span class="k">ENV</span><span class="w"> </span>CGO_ENABLED<span class="w"> </span><span class="m">0</span>
+<span class="k">ENV</span><span class="w"> </span>REPO<span class="w"> </span>github.com/awslabs/amazon-ecr-credential-helper/ecr-login/cli/docker-credential-ecr-login
 
-<span class="k">RUN</span><span class="w"> </span>go get -u <span class="nv">$REPO</span>
+<span class="k">RUN</span><span class="w"> </span>go<span class="w"> </span>get<span class="w"> </span>-u<span class="w"> </span><span class="nv">$REPO</span>
 
-<span class="k">RUN</span><span class="w"> </span>rm /go/bin/docker-credential-ecr-login
+<span class="k">RUN</span><span class="w"> </span>rm<span class="w"> </span>/go/bin/docker-credential-ecr-login
 
-<span class="k">RUN</span><span class="w"> </span>go build <span class="se">\</span>
- -o /go/bin/docker-credential-ecr-login <span class="se">\</span>
- /go/src/<span class="nv">$REPO</span>
+<span class="k">RUN</span><span class="w"> </span>go<span class="w"> </span>build<span class="w"> </span><span class="se">\</span>
+<span class="w"> </span>-o<span class="w"> </span>/go/bin/docker-credential-ecr-login<span class="w"> </span><span class="se">\</span>
+<span class="w"> </span>/go/src/<span class="nv">$REPO</span>
 
 <span class="k">WORKDIR</span><span class="w"> </span><span class="s">/go/bin/</span>
 </code></pre></div></p>
@@ -714,52 +826,52 @@ in a volume that may be mounted onto your watchtower container.</p>
 <li>
 <p>Use the following commands to build the aws-ecr-dock-cred-helper and store it's output in a volume:
     <div class="highlight"><pre><span></span><code><span class="c1"># Create a volume to store the command (once built)</span>
-docker volume create helper 
+docker<span class="w"> </span>volume<span class="w"> </span>create<span class="w"> </span>helper<span class="w"> </span>
 
 <span class="c1"># Build the container</span>
-docker build -t aws-ecr-dock-cred-helper .
+docker<span class="w"> </span>build<span class="w"> </span>-t<span class="w"> </span>aws-ecr-dock-cred-helper<span class="w"> </span>.
 
 <span class="c1"># Build the command and store it in the new volume in the /go/bin directory.</span>
-docker run  -d --rm --name aws-cred-helper <span class="se">\</span>
-  --volume helper:/go/bin aws-ecr-dock-cred-helper
+docker<span class="w"> </span>run<span class="w">  </span>-d<span class="w"> </span>--rm<span class="w"> </span>--name<span class="w"> </span>aws-cred-helper<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--volume<span class="w"> </span>helper:/go/bin<span class="w"> </span>aws-ecr-dock-cred-helper
 </code></pre></div></p>
 </li>
 <li>
 <p>Create a configuration file for docker, and store it in $HOME/.docker/config.json (replace the <AWS_ACCOUNT_ID>
    placeholders with your AWS Account ID and <AWS_ECR_REGION> with your AWS ECR Region):
-    <div class="highlight"><pre><span></span><code><span class="p">{</span><span class="w"></span>
-<span class="w">   </span><span class="nt">&quot;credsStore&quot;</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ecr-login&quot;</span><span class="p">,</span><span class="w"></span>
-<span class="w">   </span><span class="nt">&quot;HttpHeaders&quot;</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">     </span><span class="nt">&quot;User-Agent&quot;</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Docker-Client/19.03.1 (XXXXXX)&quot;</span><span class="w"></span>
-<span class="w">   </span><span class="p">},</span><span class="w"></span>
-<span class="w">   </span><span class="nt">&quot;auths&quot;</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">     </span><span class="nt">&quot;&lt;AWS_ACCOUNT_ID&gt;.dkr.ecr.&lt;AWS_ECR_REGION&gt;.amazonaws.com&quot;</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="p">{}</span><span class="w"></span>
-<span class="w">   </span><span class="p">},</span><span class="w"></span>
-<span class="w">   </span><span class="nt">&quot;credHelpers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"></span>
-<span class="w">     </span><span class="nt">&quot;&lt;AWS_ACCOUNT_ID&gt;.dkr.ecr.&lt;AWS_ECR_REGION&gt;.amazonaws.com&quot;</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ecr-login&quot;</span><span class="w"></span>
-<span class="w">   </span><span class="p">}</span><span class="w"></span>
-<span class="p">}</span><span class="w"></span>
+    <div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">   </span><span class="nt">&quot;credsStore&quot;</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ecr-login&quot;</span><span class="p">,</span>
+<span class="w">   </span><span class="nt">&quot;HttpHeaders&quot;</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">     </span><span class="nt">&quot;User-Agent&quot;</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Docker-Client/19.03.1 (XXXXXX)&quot;</span>
+<span class="w">   </span><span class="p">},</span>
+<span class="w">   </span><span class="nt">&quot;auths&quot;</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">     </span><span class="nt">&quot;&lt;AWS_ACCOUNT_ID&gt;.dkr.ecr.&lt;AWS_ECR_REGION&gt;.amazonaws.com&quot;</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="p">{}</span>
+<span class="w">   </span><span class="p">},</span>
+<span class="w">   </span><span class="nt">&quot;credHelpers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">     </span><span class="nt">&quot;&lt;AWS_ACCOUNT_ID&gt;.dkr.ecr.&lt;AWS_ECR_REGION&gt;.amazonaws.com&quot;</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ecr-login&quot;</span>
+<span class="w">   </span><span class="p">}</span>
+<span class="p">}</span>
 </code></pre></div></p>
 </li>
 <li>
 <p>Create a docker-compose file (as an example) to help launch the container:
-    <div class="highlight"><pre><span></span><code><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;3.4&quot;</span><span class="w"></span>
-<span class="nt">services</span><span class="p">:</span><span class="w"></span>
-<span class="w"> </span><span class="c1"># Check for new images and restart things if a new image exists</span><span class="w"></span>
-<span class="w"> </span><span class="c1"># for any of our containers.</span><span class="w"></span>
-<span class="w"> </span><span class="nt">watchtower</span><span class="p">:</span><span class="w"></span>
-<span class="w">   </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">containrrr/watchtower:latest</span><span class="w"></span>
-<span class="w">   </span><span class="nt">volumes</span><span class="p">:</span><span class="w"></span>
-<span class="w">     </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/var/run/docker.sock:/var/run/docker.sock</span><span class="w"></span>
-<span class="w">     </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">.docker/config.json:/config.json</span><span class="w"></span>
-<span class="w">     </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">helper:/go/bin</span><span class="w"></span>
-<span class="w">   </span><span class="nt">environment</span><span class="p">:</span><span class="w"></span>
-<span class="w">     </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">HOME=/</span><span class="w"></span>
-<span class="w">     </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PATH=$PATH:/go/bin</span><span class="w"></span>
-<span class="w">     </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">AWS_REGION=us-west-1</span><span class="w"></span>
-<span class="nt">volumes</span><span class="p">:</span><span class="w"></span>
+    <div class="highlight"><pre><span></span><code><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;3.4&quot;</span>
+<span class="nt">services</span><span class="p">:</span>
+<span class="w"> </span><span class="c1"># Check for new images and restart things if a new image exists</span>
+<span class="w"> </span><span class="c1"># for any of our containers.</span>
+<span class="w"> </span><span class="nt">watchtower</span><span class="p">:</span>
+<span class="w">   </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">containrrr/watchtower:latest</span>
+<span class="w">   </span><span class="nt">volumes</span><span class="p">:</span>
+<span class="w">     </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/var/run/docker.sock:/var/run/docker.sock</span>
+<span class="w">     </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">.docker/config.json:/config.json</span>
+<span class="w">     </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">helper:/go/bin</span>
+<span class="w">   </span><span class="nt">environment</span><span class="p">:</span>
+<span class="w">     </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">HOME=/</span>
+<span class="w">     </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PATH=$PATH:/go/bin</span>
+<span class="w">     </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">AWS_REGION=us-west-1</span>
+<span class="nt">volumes</span><span class="p">:</span>
 <span class="w"> </span><span class="nt">helper</span><span class="p">:</span><span class="w"> </span>
-<span class="w">   </span><span class="nt">external</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w"></span>
+<span class="w">   </span><span class="nt">external</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
 </code></pre></div></p>
 </li>
 </ol>
@@ -798,42 +910,6 @@ docker run  -d --rm --name aws-cred-helper <span class="se">\</span>
       
         <footer class="md-footer">
   
-    
-    <nav class="md-footer__inner md-grid" aria-label="Footer" >
-      
-        
-        <a href="../container-selection/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Container selection" rel="prev">
-          <div class="md-footer__button md-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
-          </div>
-          <div class="md-footer__title">
-            <div class="md-ellipsis">
-              <span class="md-footer__direction">
-                Previous
-              </span>
-              Container selection
-            </div>
-          </div>
-        </a>
-      
-      
-        
-        <a href="../linked-containers/" class="md-footer__link md-footer__link--next" aria-label="Next: Linked containers" rel="next">
-          <div class="md-footer__title">
-            <div class="md-ellipsis">
-              <span class="md-footer__direction">
-                Next
-              </span>
-              Linked containers
-            </div>
-          </div>
-          <div class="md-footer__button md-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11H4Z"/></svg>
-          </div>
-        </a>
-      
-    </nav>
-  
   <div class="md-footer-meta md-typeset">
     <div class="md-footer-meta__inner md-grid">
       <div class="md-copyright">
@@ -855,10 +931,11 @@ docker run  -d --rm --name aws-cred-helper <span class="se">\</span>
       <div class="md-dialog__inner md-typeset"></div>
     </div>
     
-    <script id="__config" type="application/json">{"base": "..", "features": [], "search": "../assets/javascripts/workers/search.16e2a7d4.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version.title": "Select version"}}</script>
+    
+    <script id="__config" type="application/json">{"base": "..", "features": [], "search": "../assets/javascripts/workers/search.a264c092.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
     
     
-      <script src="../assets/javascripts/bundle.d6c3db9e.min.js"></script>
+      <script src="../assets/javascripts/bundle.6eac0284.min.js"></script>
       
     
   </body>
