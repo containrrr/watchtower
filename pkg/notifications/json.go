@@ -59,13 +59,3 @@ func marshalReports(reports []t.ContainerReport) []jsonMap {
 }
 
 var _ json.Marshaler = &Data{}
-
-func toJSON(v interface{}) string {
-	var bytes []byte
-	var err error
-	if bytes, err = json.MarshalIndent(v, "", "  "); err != nil {
-		LocalLog.Errorf("failed to marshal JSON in notification template: %v", err)
-		return ""
-	}
-	return string(bytes)
-}

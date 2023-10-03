@@ -10,10 +10,9 @@ import (
 
 	"github.com/containrrr/shoutrrr"
 	"github.com/containrrr/shoutrrr/pkg/types"
+	"github.com/containrrr/watchtower/pkg/notifications/templates"
 	t "github.com/containrrr/watchtower/pkg/types"
 	log "github.com/sirupsen/logrus"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 )
 
 // LocalLog is a logrus logger that does not send entries as notifications
@@ -208,13 +207,8 @@ func (n *shoutrrrTypeNotifier) Fire(entry *log.Entry) error {
 }
 
 func getShoutrrrTemplate(tplString string, legacy bool) (tpl *template.Template, err error) {
-	funcs := template.FuncMap{
-		"ToUpper": strings.ToUpper,
-		"ToLower": strings.ToLower,
-		"ToJSON":  toJSON,
-		"Title":   cases.Title(language.AmericanEnglish).String,
-	}
-	tplBase := template.New("").Funcs(funcs)
+
+	tplBase := template.New("").Funcs(templates.Funcs)
 
 	if builtin, found := commonTemplates[tplString]; found {
 		log.WithField(`template`, tplString).Debug(`Using common template`)
