@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
@@ -84,6 +85,13 @@ func RegisterSystemFlags(rootCmd *cobra.Command) {
 		"e",
 		envBool("WATCHTOWER_LABEL_ENABLE"),
 		"Watch containers where the com.centurylinklabs.watchtower.enable label is true")
+
+	flags.StringSliceP(
+		"disable-containers",
+		"x",
+		// Due to issue spf13/viper#380, can't use viper.GetStringSlice:
+		regexp.MustCompile("[, ]+").Split(envString("WATCHTOWER_DISABLE_CONTAINERS"), -1),
+		"Comma-separated list of containers to explicitly exclude from watching.")
 
 	flags.StringP(
 		"log-format",
@@ -197,8 +205,8 @@ func RegisterSystemFlags(rootCmd *cobra.Command) {
 		"",
 		false,
 		"Do health check and exit")
-  
-  flags.BoolP(
+
+	flags.BoolP(
 		"label-take-precedence",
 		"",
 		envBool("WATCHTOWER_LABEL_TAKE_PRECEDENCE"),

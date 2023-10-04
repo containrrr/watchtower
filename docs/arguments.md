@@ -230,6 +230,19 @@ __Do not__ Monitor and update containers that have `com.centurylinklabs.watchtow
 no `--label-enable` argument is passed. Note that only one or the other (targeting by enable label) can be 
 used at the same time to target containers.
 
+## Filter by disabling specific container names
+Monitor and update containers whose names are not in a given set of names.
+
+This can be used to exclude specific containers, when setting labels is not an option.
+The listed containers will be excluded even if they have the enable filter set to true.
+
+```text
+            Argument: --disable-containers, -x
+Environment Variable: WATCHTOWER_DISABLE_CONTAINERS
+                Type: Comma- or space-separated string list
+             Default: ""
+```
+
 ## Without updating containers
 Will only monitor for new images, send notifications and invoke
 the [pre-check/post-check hooks](https://containrrr.dev/watchtower/lifecycle-hooks/), but will __not__ update the
