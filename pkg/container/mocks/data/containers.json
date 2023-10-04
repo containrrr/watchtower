@@ -1,10 +1,8 @@
 [
   {
     "Id": "ae8964ba86c7cd7522cf84e09781343d88e0e3543281c747d88b27e246578b65",
-    "Names": [
-      "/watchtower-stopped"
-    ],
-    "Image": "containrrr/watchtower:latest",
+    "Names": ["/watchtower-stopped"],
+    "Image": "nickfedor/watchtower:latest",
     "ImageID": "sha256:4dbc5f9c07028a985e14d1393e849ea07f68804c4293050d5a641b138db72daa",
     "Command": "/watchtower",
     "Created": 1554925882,
@@ -49,10 +47,8 @@
   },
   {
     "Id": "3d88e0e3543281c747d88b27e246578b65ae8964ba86c7cd7522cf84e0978134",
-    "Names": [
-      "/watchtower-running"
-    ],
-    "Image": "containrrr/watchtower:latest",
+    "Names": ["/watchtower-running"],
+    "Image": "nickfedor/watchtower:latest",
     "ImageID": "sha256:4dbc5f9c07028a985e14d1393e849ea07f68804c4293050d5a641b138db72daa",
     "Command": "/watchtower",
     "Created": 1554925882,
@@ -97,9 +93,7 @@
   },
   {
     "Id": "b978af0b858aa8855cce46b628817d4ed58e58f2c4f66c9b9c5449134ed4c008",
-    "Names": [
-      "/portainer"
-    ],
+    "Names": ["/portainer"],
     "Image": "portainer/portainer:latest",
     "ImageID": "sha256:19d07168491a3f9e2798a9bed96544e34d57ddc4757a4ac5bb199dea896c87fd",
     "Command": "/portainer",
@@ -160,9 +154,7 @@
   },
   {
     "Id": "ae8964ba86c7cd7522cf84e09781343d88e0e3543281c747d88b27e246578b67",
-    "Names": [
-      "/portainer"
-    ],
+    "Names": ["/portainer"],
     "Image": "portainer/portainer:latest",
     "ImageID": "sha256:19d07168491a3f9e2798a9bed96544e34d57ddc4757a4ac5bb199dea896c87fd",
     "Command": "/portainer",

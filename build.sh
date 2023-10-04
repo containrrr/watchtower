@@ -6,4 +6,4 @@ if [ -n "$MSYSTEM" ]; then
 fi
 VERSION=$(git describe --tags)
 echo "Building $VERSION..."
-go build -o $BINFILE -ldflags "-X github.com/containrrr/watchtower/internal/meta.Version=$VERSION"
+go build -o $BINFILE -ldflags "-X github.com/nicholas-fedor/watchtower/internal/meta.Version=$VERSION"

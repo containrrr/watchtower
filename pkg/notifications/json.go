@@ -3,7 +3,7 @@ package notifications
 import (
 	"encoding/json"
 
-	t "github.com/containrrr/watchtower/pkg/types"
+	t "github.com/nicholas-fedor/watchtower/pkg/types"
 )
 
 type jsonMap = map[string]interface{}

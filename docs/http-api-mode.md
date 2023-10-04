@@ -1,6 +1,6 @@
 Watchtower provides an HTTP API mode that enables an HTTP endpoint that can be requested to trigger container updating. The current available endpoint list is:
 
--   `/v1/update` - triggers an update for all of the containers monitored by this Watchtower instance.
+- `/v1/update` - triggers an update for all of the containers monitored by this Watchtower instance.
 
 ---
 
@@ -16,7 +16,7 @@ services:
       - "com.centurylinklabs.watchtower.enable=true"
 
   watchtower:
-    image: containrrr/watchtower
+    image: nickfedor/watchtower
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     command: --debug --http-api-update
@@ -34,4 +34,12 @@ Notice that there is an environment variable named WATCHTOWER_HTTP_API_TOKEN. To
 
 ```bash
 curl -H "Authorization: Bearer mytoken" localhost:8080/v1/update
+```
+
+---
+
+In order to update only certain images, the image names can be provided as URL query parameters. The following `curl` command would trigger an update for the images `foo/bar` and `foo/baz`:
+
+```bash
+curl -H "Authorization: Bearer mytoken" localhost:8080/v1/update?image=foo/bar,foo/baz
 ```

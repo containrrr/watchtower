@@ -6,11 +6,12 @@ build:
     - windows
   goarch:
     - amd64
-    - 386
+    - "386"
     - arm
     - arm64
   ldflags:
-    - -s -w -X github.com/containrrr/watchtower/internal/meta.Version={{.Version}}
+    - -s -w -X github.com/nicholas-fedor/watchtower/internal/meta.Version={{.Version}}
+
 archives:
   - 
     name_template: "{{.ProjectName}}_{{.Os}}_{{.Arch}}"
@@ -19,7 +20,7 @@ archives:
       arm: armhf
       arm64: arm64v8
       amd64: amd64
-      386: 386
+      "386": "i386"
       darwin: macOS
       linux: linux
     format_overrides:
@@ -36,26 +37,22 @@ dockers:
     goarm: ''
     dockerfile: dockerfiles/Dockerfile
     image_templates:
-      - containrrr/watchtower:amd64-{{ .Version }}
-      - containrrr/watchtower:amd64-latest
-      - ghcr.io/containrrr/watchtower:amd64-{{ .Version }}
-      - ghcr.io/containrrr/watchtower:amd64-latest
-    binaries:
-      - watchtower
+      - nickfedor/watchtower:amd64-{{ .Version }}
+      - nickfedor/watchtower:amd64-latest
+      - ghcr.io/nicholas-fedor/watchtower:amd64-{{ .Version }}
+      - ghcr.io/nicholas-fedor/watchtower:amd64-latest
   - 
     use_buildx: true
-    build_flag_templates: [ "--platform=linux/386" ]
+    build_flag_templates: [ "--platform=linux/i386" ]
     goos: linux
-    goarch: 386
+    goarch: "386"
     goarm: ''
     dockerfile: dockerfiles/Dockerfile
     image_templates:
-      - containrrr/watchtower:i386-{{ .Version }}
-      - containrrr/watchtower:i386-latest
-      - ghcr.io/containrrr/watchtower:i386-{{ .Version }}
-      - ghcr.io/containrrr/watchtower:i386-latest
-    binaries:
-      - watchtower
+      - nickfedor/watchtower:i386-{{ .Version }}
+      - nickfedor/watchtower:i386-latest
+      - ghcr.io/nicholas-fedor/watchtower:i386-{{ .Version }}
+      - ghcr.io/nicholas-fedor/watchtower:i386-latest
   - 
     use_buildx: true
     build_flag_templates: [ "--platform=linux/arm/v6" ]
@@ -64,12 +61,10 @@ dockers:
     goarm: 6
     dockerfile: dockerfiles/Dockerfile
     image_templates:
-      - containrrr/watchtower:armhf-{{ .Version }}
-      - containrrr/watchtower:armhf-latest
-      - ghcr.io/containrrr/watchtower:armhf-{{ .Version }}
-      - ghcr.io/containrrr/watchtower:armhf-latest
-    binaries:
-      - watchtower
+      - nickfedor/watchtower:armhf-{{ .Version }}
+      - nickfedor/watchtower:armhf-latest
+      - ghcr.io/nicholas-fedor/watchtower:armhf-{{ .Version }}
+      - ghcr.io/nicholas-fedor/watchtower:armhf-latest
   - 
     use_buildx: true
     build_flag_templates: [ "--platform=linux/arm64/v8" ]
@@ -78,9 +73,7 @@ dockers:
     goarm: ''
     dockerfile: dockerfiles/Dockerfile
     image_templates:
-      - containrrr/watchtower:arm64v8-{{ .Version }}
-      - containrrr/watchtower:arm64v8-latest
-      - ghcr.io/containrrr/watchtower:arm64v8-{{ .Version }}
-      - ghcr.io/containrrr/watchtower:arm64v8-latest
-    binaries:
-      - watchtower
+      - nickfedor/watchtower:arm64v8-{{ .Version }}
+      - nickfedor/watchtower:arm64v8-latest
+      - ghcr.io/nicholas-fedor/watchtower:arm64v8-{{ .Version }}
+      - ghcr.io/nicholas-fedor/watchtower:arm64v8-latest

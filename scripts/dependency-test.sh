@@ -63,7 +63,7 @@ if [ -z "$WATCHTOWER_TAG" ]; then
   #export CLICOLOR=1
   go run . --run-once $WatchArgs
 else
-  docker run -it --rm -v /var/run/docker.sock:/var/run/docker.sock containrrr/watchtower:"$WATCHTOWER_TAG" --run-once $WatchArgs
+  docker run -it --rm -v /var/run/docker.sock:/var/run/docker.sock nickfedor/watchtower:"$WATCHTOWER_TAG" --run-once $WatchArgs
 fi
 
 echo -e "\nSession results:"

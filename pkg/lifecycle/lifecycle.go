@@ -1,8 +1,8 @@
 package lifecycle
 
 import (
-	"github.com/containrrr/watchtower/pkg/container"
-	"github.com/containrrr/watchtower/pkg/types"
+	"github.com/nicholas-fedor/watchtower/pkg/container"
+	"github.com/nicholas-fedor/watchtower/pkg/types"
 	log "github.com/sirupsen/logrus"
 )
 

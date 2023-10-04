@@ -1,13 +1,15 @@
 package container
 
 import (
-	"github.com/docker/docker/api/types/network"
 	"time"
 
-	"github.com/containrrr/watchtower/internal/util"
-	"github.com/containrrr/watchtower/pkg/container/mocks"
-	"github.com/containrrr/watchtower/pkg/filters"
-	t "github.com/containrrr/watchtower/pkg/types"
+	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/network"
+
+	"github.com/nicholas-fedor/watchtower/internal/util"
+	"github.com/nicholas-fedor/watchtower/pkg/container/mocks"
+	"github.com/nicholas-fedor/watchtower/pkg/filters"
+	t "github.com/nicholas-fedor/watchtower/pkg/types"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/backend"
@@ -70,7 +72,8 @@ var _ = Describe("the client", func() {
 			It("should gracefully fail with a useful message", func() {
 				c := dockerClient{}
 				pinnedContainer := MockContainer(WithImageName("sha256:fa5269854a5e615e51a72b17ad3fd1e01268f278a6684c8ed3c5f0cdce3f230b"))
-				c.PullImage(context.Background(), pinnedContainer)
+				err := c.PullImage(context.Background(), pinnedContainer)
+				Expect(err).To(MatchError(`container uses a pinned image, and cannot be updated by watchtower`))
 			})
 		})
 	})
@@ -144,7 +147,7 @@ var _ = Describe("the client", func() {
 				mockServer.AppendHandlers(mocks.GetContainerHandlers(&mocks.Watchtower, &mocks.Running)...)
 				client := dockerClient{
 					api:           docker,
-					ClientOptions: ClientOptions{PullImages: false},
+					ClientOptions: ClientOptions{},
 				}
 				containers, err := client.ListContainers(filters.NoFilter)
 				Expect(err).NotTo(HaveOccurred())
@@ -158,7 +161,7 @@ var _ = Describe("the client", func() {
 				filter := filters.FilterByNames([]string{"lollercoaster"}, filters.NoFilter)
 				client := dockerClient{
 					api:           docker,
-					ClientOptions: ClientOptions{PullImages: false},
+					ClientOptions: ClientOptions{},
 				}
 				containers, err := client.ListContainers(filter)
 				Expect(err).NotTo(HaveOccurred())
@@ -171,11 +174,11 @@ var _ = Describe("the client", func() {
 				mockServer.AppendHandlers(mocks.GetContainerHandlers(&mocks.Watchtower, &mocks.Running)...)
 				client := dockerClient{
 					api:           docker,
-					ClientOptions: ClientOptions{PullImages: false},
+					ClientOptions: ClientOptions{},
 				}
 				containers, err := client.ListContainers(filters.WatchtowerContainersFilter)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(containers).To(ConsistOf(withContainerImageName(Equal("containrrr/watchtower:latest"))))
+				Expect(containers).To(ConsistOf(withContainerImageName(Equal("nickfedor/watchtower:latest"))))
 			})
 		})
 		When(`include stopped is enabled`, func() {
@@ -184,7 +187,7 @@ var _ = Describe("the client", func() {
 				mockServer.AppendHandlers(mocks.GetContainerHandlers(&mocks.Stopped, &mocks.Watchtower, &mocks.Running)...)
 				client := dockerClient{
 					api:           docker,
-					ClientOptions: ClientOptions{PullImages: false, IncludeStopped: true},
+					ClientOptions: ClientOptions{IncludeStopped: true},
 				}
 				containers, err := client.ListContainers(filters.NoFilter)
 				Expect(err).NotTo(HaveOccurred())
@@ -197,7 +200,7 @@ var _ = Describe("the client", func() {
 				mockServer.AppendHandlers(mocks.GetContainerHandlers(&mocks.Watchtower, &mocks.Running, &mocks.Restarting)...)
 				client := dockerClient{
 					api:           docker,
-					ClientOptions: ClientOptions{PullImages: false, IncludeRestarting: true},
+					ClientOptions: ClientOptions{IncludeRestarting: true},
 				}
 				containers, err := client.ListContainers(filters.NoFilter)
 				Expect(err).NotTo(HaveOccurred())
@@ -210,7 +213,7 @@ var _ = Describe("the client", func() {
 				mockServer.AppendHandlers(mocks.GetContainerHandlers(&mocks.Watchtower, &mocks.Running)...)
 				client := dockerClient{
 					api:           docker,
-					ClientOptions: ClientOptions{PullImages: false, IncludeRestarting: false},
+					ClientOptions: ClientOptions{IncludeRestarting: false},
 				}
 				containers, err := client.ListContainers(filters.NoFilter)
 				Expect(err).NotTo(HaveOccurred())
@@ -224,7 +227,7 @@ var _ = Describe("the client", func() {
 					mockServer.AppendHandlers(mocks.GetContainerHandlers(&consumerContainerRef)...)
 					client := dockerClient{
 						api:           docker,
-						ClientOptions: ClientOptions{PullImages: false},
+						ClientOptions: ClientOptions{},
 					}
 					container, err := client.GetContainer(consumerContainerRef.ContainerID())
 					Expect(err).NotTo(HaveOccurred())
@@ -238,7 +241,7 @@ var _ = Describe("the client", func() {
 					mockServer.AppendHandlers(mocks.GetContainerHandlers(&consumerContainerRef)...)
 					client := dockerClient{
 						api:           docker,
-						ClientOptions: ClientOptions{PullImages: false},
+						ClientOptions: ClientOptions{},
 					}
 					container, err := client.GetContainer(consumerContainerRef.ContainerID())
 					Expect(err).NotTo(HaveOccurred())
@@ -253,7 +256,7 @@ var _ = Describe("the client", func() {
 			It("should include container id field", func() {
 				client := dockerClient{
 					api:           docker,
-					ClientOptions: ClientOptions{PullImages: false},
+					ClientOptions: ClientOptions{},
 				}
 
 				// Capture logrus output in buffer
@@ -269,7 +272,7 @@ var _ = Describe("the client", func() {
 					// API.ContainerExecCreate
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("POST", HaveSuffix("containers/%v/exec", containerID)),
-						ghttp.VerifyJSONRepresenting(types.ExecConfig{
+						ghttp.VerifyJSONRepresenting(container.ExecOptions{
 							User:   user,
 							Detach: false,
 							Tty:    true,
@@ -284,7 +287,7 @@ var _ = Describe("the client", func() {
 					// API.ContainerExecStart
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("POST", HaveSuffix("exec/%v/start", execID)),
-						ghttp.VerifyJSONRepresenting(types.ExecStartCheck{
+						ghttp.VerifyJSONRepresenting(container.ExecStartOptions{
 							Detach: false,
 							Tty:    true,
 						}),
@@ -320,7 +323,7 @@ var _ = Describe("the client", func() {
 			It(`should omit the container ID alias`, func() {
 				client := dockerClient{
 					api:           docker,
-					ClientOptions: ClientOptions{PullImages: false, IncludeRestarting: false},
+					ClientOptions: ClientOptions{IncludeRestarting: false},
 				}
 				container := MockContainer(WithImageName("docker.io/prefix/imagename:latest"))
 

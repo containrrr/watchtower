@@ -10,8 +10,8 @@ import (
 
 	"github.com/containrrr/shoutrrr"
 	"github.com/containrrr/shoutrrr/pkg/types"
-	"github.com/containrrr/watchtower/pkg/notifications/templates"
-	t "github.com/containrrr/watchtower/pkg/types"
+	"github.com/nicholas-fedor/watchtower/pkg/notifications/templates"
+	t "github.com/nicholas-fedor/watchtower/pkg/types"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -60,7 +60,7 @@ func (n *shoutrrrTypeNotifier) GetNames() []string {
 	return names
 }
 
-// GetNames returns a list of URLs for notification services that has been added
+// GetURLs returns a list of URLs for notification services that has been added
 func (n *shoutrrrTypeNotifier) GetURLs() []string {
 	return n.Urls
 }
@@ -73,7 +73,7 @@ func (n *shoutrrrTypeNotifier) AddLogHook() {
 	n.receiving = true
 	log.AddHook(n)
 
-	// Do the sending in a separate goroutine so we don't block the main process.
+	// Do the sending in a separate goroutine, so we don't block the main process.
 	go sendNotifications(n)
 }
 

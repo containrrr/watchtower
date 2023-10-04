@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	ty "github.com/containrrr/watchtower/pkg/types"
+	ty "github.com/nicholas-fedor/watchtower/pkg/types"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )

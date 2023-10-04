@@ -11,17 +11,17 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containrrr/watchtower/internal/actions"
-	"github.com/containrrr/watchtower/internal/flags"
-	"github.com/containrrr/watchtower/internal/meta"
-	"github.com/containrrr/watchtower/pkg/api"
-	apiMetrics "github.com/containrrr/watchtower/pkg/api/metrics"
-	"github.com/containrrr/watchtower/pkg/api/update"
-	"github.com/containrrr/watchtower/pkg/container"
-	"github.com/containrrr/watchtower/pkg/filters"
-	"github.com/containrrr/watchtower/pkg/metrics"
-	"github.com/containrrr/watchtower/pkg/notifications"
-	t "github.com/containrrr/watchtower/pkg/types"
+	"github.com/nicholas-fedor/watchtower/internal/actions"
+	"github.com/nicholas-fedor/watchtower/internal/flags"
+	"github.com/nicholas-fedor/watchtower/internal/meta"
+	"github.com/nicholas-fedor/watchtower/pkg/api"
+	apiMetrics "github.com/nicholas-fedor/watchtower/pkg/api/metrics"
+	"github.com/nicholas-fedor/watchtower/pkg/api/update"
+	"github.com/nicholas-fedor/watchtower/pkg/container"
+	"github.com/nicholas-fedor/watchtower/pkg/filters"
+	"github.com/nicholas-fedor/watchtower/pkg/metrics"
+	"github.com/nicholas-fedor/watchtower/pkg/notifications"
+	t "github.com/nicholas-fedor/watchtower/pkg/types"
 	"github.com/robfig/cron"
 	log "github.com/sirupsen/logrus"
 
@@ -33,6 +33,7 @@ var (
 	scheduleSpec      string
 	cleanup           bool
 	noRestart         bool
+	noPull            bool
 	monitorOnly       bool
 	enableLabel       bool
 	disableContainers []string
@@ -53,7 +54,7 @@ func NewRootCommand() *cobra.Command {
 		Short: "Automatically updates running Docker containers",
 		Long: `
 	Watchtower automatically updates running Docker containers whenever a new image is released.
-	More information available at https://github.com/containrrr/watchtower/.
+	More information available at https://github.com/nicholas-fedor/watchtower/.
 	`,
 		Run:    Run,
 		PreRun: PreRun,
@@ -110,7 +111,7 @@ func PreRun(cmd *cobra.Command, _ []string) {
 		log.Fatal(err)
 	}
 
-	noPull, _ := f.GetBool("no-pull")
+	noPull, _ = f.GetBool("no-pull")
 	includeStopped, _ := f.GetBool("include-stopped")
 	includeRestarting, _ := f.GetBool("include-restarting")
 	reviveStopped, _ := f.GetBool("revive-stopped")
@@ -122,7 +123,6 @@ func PreRun(cmd *cobra.Command, _ []string) {
 	}
 
 	client = container.NewClient(container.ClientOptions{
-		PullImages:        !noPull,
 		IncludeStopped:    includeStopped,
 		ReviveStopped:     reviveStopped,
 		RemoveVolumes:     removeVolumes,
@@ -187,7 +187,7 @@ func Run(c *cobra.Command, names []string) {
 			metrics.RegisterScan(metric)
 		}, updateLock)
 		httpAPI.RegisterFunc(updateHandler.Path, updateHandler.Handle)
-		// If polling isn't enabled the scheduler is never started and
+		// If polling isn't enabled the scheduler is never started, and
 		// we need to trigger the startup messages manually.
 		if !unblockHTTPAPI {
 			writeStartupMessage(c, time.Time{}, filterDesc)
@@ -367,6 +367,7 @@ func runUpdatesWithNotifications(filter t.Filter) *metrics.Metric {
 		LifecycleHooks:  lifecycleHooks,
 		RollingRestart:  rollingRestart,
 		LabelPrecedence: labelPrecedence,
+		NoPull:          noPull,
 	}
 	result, err := actions.Update(client, updateParams)
 	if err != nil {

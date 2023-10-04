@@ -6,7 +6,7 @@ import (
 	"errors"
 	"os"
 
-	"github.com/containrrr/watchtower/pkg/registry/helpers"
+	"github.com/nicholas-fedor/watchtower/pkg/registry/helpers"
 	cliconfig "github.com/docker/cli/cli/config"
 	"github.com/docker/cli/cli/config/configfile"
 	"github.com/docker/cli/cli/config/credentials"

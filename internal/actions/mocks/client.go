@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	t "github.com/containrrr/watchtower/pkg/types"
+	t "github.com/nicholas-fedor/watchtower/pkg/types"
 )
 
 // MockClient is a mock that passes as a watchtower Client

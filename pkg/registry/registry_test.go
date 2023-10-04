@@ -1,8 +1,8 @@
 package registry_test
 
 import (
-	"github.com/containrrr/watchtower/internal/actions/mocks"
-	unit "github.com/containrrr/watchtower/pkg/registry"
+	"github.com/nicholas-fedor/watchtower/internal/actions/mocks"
+	unit "github.com/nicholas-fedor/watchtower/pkg/registry"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -13,7 +13,7 @@ var _ = Describe("Registry", func() {
 	Describe("WarnOnAPIConsumption", func() {
 		When("Given a container with an image from ghcr.io", func() {
 			It("should want to warn", func() {
-				Expect(testContainerWithImage("ghcr.io/containrrr/watchtower")).To(BeTrue())
+				Expect(testContainerWithImage("ghcr.io/nicholas-fedor/watchtower")).To(BeTrue())
 			})
 		})
 		When("Given a container with an image implicitly from dockerhub", func() {

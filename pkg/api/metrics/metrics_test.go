@@ -2,18 +2,18 @@ package metrics_test
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
-	"github.com/containrrr/watchtower/pkg/api"
-	metricsAPI "github.com/containrrr/watchtower/pkg/api/metrics"
-	"github.com/containrrr/watchtower/pkg/metrics"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
+	"github.com/nicholas-fedor/watchtower/pkg/api"
+	metricsAPI "github.com/nicholas-fedor/watchtower/pkg/api/metrics"
+	"github.com/nicholas-fedor/watchtower/pkg/metrics"
 )
 
 const (
@@ -36,7 +36,7 @@ func getWithToken(handler http.Handler) map[string]string {
 	handler.ServeHTTP(respWriter, req)
 
 	res := respWriter.Result()
-	body, _ := ioutil.ReadAll(res.Body)
+	body, _ := io.ReadAll(res.Body)
 
 	for _, line := range strings.Split(string(body), "\n") {
 		if len(line) < 1 || line[0] == '#' {

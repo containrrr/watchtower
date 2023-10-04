@@ -5,7 +5,7 @@ labels: ["Priority: Medium, Status: Available, Type: Bug"]
 body:
   - type: markdown
     attributes:
-      value: Before submitting your issue, please make sure you're using the containrrr/watchtower:latest image. If not, switch to this image prior to posting your report. Other forks, or the old `v2tec` image are **not** supported.
+      value: Before submitting your issue, please make sure you're using the nickfedor/watchtower:latest image. If not, switch to this image prior to posting your report. Other forks, or the old `v2tec` image are **not** supported.
 
   - type: textarea
     id: description

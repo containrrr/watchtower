@@ -1,8 +1,6 @@
 {
   "Id": "sha256:4dbc5f9c07028a985e14d1393e849ea07f68804c4293050d5a641b138db72daa",
-  "RepoTags": [
-    "containrrr/watchtower:latest"
-  ],
+  "RepoTags": ["nickfedor/watchtower:latest"],
   "RepoDigests": [],
   "Parent": "sha256:2753b9621e0d76153e1725d0cea015baf0ae4d829782a463b4ea9532ec976447",
   "Comment": "",
@@ -21,18 +19,11 @@
     "Env": [
       "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
     ],
-    "Cmd": [
-      "/bin/sh",
-      "-c",
-      "#(nop) ",
-      "ENTRYPOINT [\"/watchtower\"]"
-    ],
+    "Cmd": ["/bin/sh", "-c", "#(nop) ", "ENTRYPOINT [\"/watchtower\"]"],
     "Image": "sha256:2753b9621e0d76153e1725d0cea015baf0ae4d829782a463b4ea9532ec976447",
     "Volumes": null,
     "WorkingDir": "",
-    "Entrypoint": [
-      "/watchtower"
-    ],
+    "Entrypoint": ["/watchtower"],
     "OnBuild": null,
     "Labels": {
       "com.centurylinklabs.watchtower": "true"
@@ -57,9 +48,7 @@
     "Image": "sha256:2753b9621e0d76153e1725d0cea015baf0ae4d829782a463b4ea9532ec976447",
     "Volumes": null,
     "WorkingDir": "",
-    "Entrypoint": [
-      "/watchtower"
-    ],
+    "Entrypoint": ["/watchtower"],
     "OnBuild": null,
     "Labels": {
       "com.centurylinklabs.watchtower": "true"

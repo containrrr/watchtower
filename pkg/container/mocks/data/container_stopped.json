@@ -30,9 +30,7 @@
   "AppArmorProfile": "",
   "ExecIDs": null,
   "HostConfig": {
-    "Binds": [
-      "/var/run/docker.sock:/var/run/docker.sock"
-    ],
+    "Binds": ["/var/run/docker.sock:/var/run/docker.sock"],
     "ContainerIDFile": "",
     "LogConfig": {
       "Type": "json-file",
@@ -67,10 +65,7 @@
     "UsernsMode": "",
     "ShmSize": 67108864,
     "Runtime": "runc",
-    "ConsoleSize": [
-      0,
-      0
-    ],
+    "ConsoleSize": [0, 0],
     "Isolation": "",
     "CpuShares": 0,
     "Memory": 0,
@@ -155,12 +150,10 @@
       "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
     ],
     "Cmd": null,
-    "Image": "containrrr/watchtower:latest",
+    "Image": "nickfedor/watchtower:latest",
     "Volumes": null,
     "WorkingDir": "",
-    "Entrypoint": [
-      "/watchtower"
-    ],
+    "Entrypoint": ["/watchtower"],
     "OnBuild": null,
     "Labels": {
       "com.centurylinklabs.watchtower": "true"

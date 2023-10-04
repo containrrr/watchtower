@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	shoutrrrGotify "github.com/containrrr/shoutrrr/pkg/services/gotify"
-	t "github.com/containrrr/watchtower/pkg/types"
+	t "github.com/nicholas-fedor/watchtower/pkg/types"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"

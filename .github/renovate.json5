@@ -1,0 +1,207 @@
+{
+  $schema: 'https://docs.renovatebot.com/renovate-schema.json',
+  extends: [
+    'config:recommended',
+    'docker:enableMajor',
+    ':disableRateLimiting',
+    ':dependencyDashboard',
+    ':semanticCommits',
+    ':automergeBranch',
+  ],
+  dependencyDashboard: true,
+  dependencyDashboardTitle: 'Renovate Dashboard 🤖',
+  suppressNotifications: [
+    'prEditedNotification',
+    'prIgnoreNotification',
+  ],
+  rebaseWhen: 'conflicted',
+  schedule: [
+    'every weekend',
+  ],
+  commitMessageTopic: '{{depName}}',
+  commitMessageExtra: 'to {{newVersion}}',
+  commitMessageSuffix: '',
+  packageRules: [
+    {
+      description: [
+        'Auto merge Github Actions',
+      ],
+      matchManagers: [
+        'github-actions',
+      ],
+      automerge: true,
+      automergeType: 'branch',
+      ignoreTests: true,
+      matchUpdateTypes: [
+        'minor',
+        'patch',
+      ],
+    },
+    {
+      matchDatasources: [
+        'docker',
+      ],
+      commitMessageTopic: 'image {{depName}}',
+    },
+    {
+      matchDatasources: [
+        'docker',
+      ],
+      matchUpdateTypes: [
+        'major',
+      ],
+      commitMessagePrefix: 'feat(container)!: ',
+    },
+    {
+      matchDatasources: [
+        'docker',
+      ],
+      matchUpdateTypes: [
+        'minor',
+      ],
+      semanticCommitType: 'feat',
+      semanticCommitScope: 'container',
+    },
+    {
+      matchDatasources: [
+        'docker',
+      ],
+      matchUpdateTypes: [
+        'patch',
+      ],
+      semanticCommitType: 'fix',
+      semanticCommitScope: 'container',
+    },
+    {
+      matchDatasources: [
+        'docker',
+      ],
+      matchUpdateTypes: [
+        'digest',
+      ],
+      semanticCommitType: 'chore',
+      semanticCommitScope: 'container',
+    },
+    {
+      matchDatasources: [
+        'github-releases',
+        'github-tags',
+      ],
+      matchUpdateTypes: [
+        'major',
+      ],
+      commitMessagePrefix: 'feat(github-release)!: ',
+    },
+    {
+      matchDatasources: [
+        'github-releases',
+        'github-tags',
+      ],
+      matchUpdateTypes: [
+        'minor',
+      ],
+      semanticCommitType: 'feat',
+      semanticCommitScope: 'github-release',
+    },
+    {
+      matchDatasources: [
+        'github-releases',
+        'github-tags',
+      ],
+      matchUpdateTypes: [
+        'patch',
+      ],
+      semanticCommitType: 'fix',
+      semanticCommitScope: 'github-release',
+    },
+    {
+      matchManagers: [
+        'github-actions',
+      ],
+      matchUpdateTypes: [
+        'major',
+      ],
+      commitMessagePrefix: 'feat(github-action)!: ',
+    },
+    {
+      matchManagers: [
+        'github-actions',
+      ],
+      matchUpdateTypes: [
+        'minor',
+      ],
+      semanticCommitType: 'feat',
+      semanticCommitScope: 'github-action',
+    },
+    {
+      matchManagers: [
+        'github-actions',
+      ],
+      matchUpdateTypes: [
+        'patch',
+      ],
+      semanticCommitType: 'fix',
+      semanticCommitScope: 'github-action',
+    },
+    {
+      matchUpdateTypes: [
+        'major',
+      ],
+      labels: [
+        'type/major',
+      ],
+    },
+    {
+      matchUpdateTypes: [
+        'minor',
+      ],
+      labels: [
+        'type/minor',
+      ],
+    },
+    {
+      matchUpdateTypes: [
+        'patch',
+      ],
+      labels: [
+        'type/patch',
+      ],
+    },
+    {
+      matchDatasources: [
+        'docker',
+      ],
+      addLabels: [
+        'renovate/container',
+      ],
+    },
+    {
+      matchDatasources: [
+        'github-releases',
+        'github-tags',
+      ],
+      addLabels: [
+        'renovate/github-release',
+      ],
+    },
+    {
+      matchManagers: [
+        'github-actions',
+      ],
+      addLabels: [
+        'renovate/github-action',
+      ],
+    },
+  ],
+  customManagers: [
+    {
+      customType: "regex",
+      description: ["Process custom Docker dependencies"],
+      fileMatch: ["^Dockerfile$"], // Match only Dockerfile for Watchtower
+      matchStrings: [
+        "FROM (?<depName>[^\\s]+)(?<currentValue>:[^\\s]+)?\\s*", // Simplified for Docker images
+      ],
+      datasourceTemplate: "docker",
+    },
+  ],
+}

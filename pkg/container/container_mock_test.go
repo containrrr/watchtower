@@ -21,7 +21,8 @@ func MockContainer(updates ...MockContainerUpdate) *Container {
 		},
 	}
 	image := types.ImageInspect{
-		ID: "image_id",
+		ID:     "image_id",
+		Config: &dockerContainer.Config{},
 	}
 
 	for _, update := range updates {
@@ -62,5 +63,17 @@ func WithLabels(labels map[string]string) MockContainerUpdate {
 func WithContainerState(state types.ContainerState) MockContainerUpdate {
 	return func(cnt *types.ContainerJSON, img *types.ImageInspect) {
 		cnt.State = &state
+	}
+}
+
+func WithHealthcheck(healthConfig dockerContainer.HealthConfig) MockContainerUpdate {
+	return func(cnt *types.ContainerJSON, img *types.ImageInspect) {
+		cnt.Config.Healthcheck = &healthConfig
+	}
+}
+
+func WithImageHealthcheck(healthConfig dockerContainer.HealthConfig) MockContainerUpdate {
+	return func(cnt *types.ContainerJSON, img *types.ImageInspect) {
+		img.Config.Healthcheck = &healthConfig
 	}
 }
