@@ -11,7 +11,7 @@ import (
 
 	"github.com/containrrr/watchtower/pkg/registry/helpers"
 	"github.com/containrrr/watchtower/pkg/types"
-	ref "github.com/docker/distribution/reference"
+	ref "github.com/distribution/reference"
 	"github.com/sirupsen/logrus"
 )
 

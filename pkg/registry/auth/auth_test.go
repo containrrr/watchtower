@@ -12,7 +12,7 @@ import (
 	"github.com/containrrr/watchtower/pkg/registry/auth"
 
 	wtTypes "github.com/containrrr/watchtower/pkg/types"
-	ref "github.com/docker/distribution/reference"
+	ref "github.com/distribution/reference"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

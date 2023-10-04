@@ -3,7 +3,7 @@ package registry
 import (
 	"github.com/containrrr/watchtower/pkg/registry/helpers"
 	watchtowerTypes "github.com/containrrr/watchtower/pkg/types"
-	ref "github.com/docker/distribution/reference"
+	ref "github.com/distribution/reference"
 	"github.com/docker/docker/api/types"
 	log "github.com/sirupsen/logrus"
 )
