@@ -1,7 +1,7 @@
 package helpers
 
 import (
-	"github.com/docker/distribution/reference"
+	"github.com/distribution/reference"
 )
 
 // domains for Docker Hub, the default registry
