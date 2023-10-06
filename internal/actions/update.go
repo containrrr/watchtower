@@ -222,10 +222,12 @@ func restartStaleContainer(container types.Container, client container.Client, p
 
 	if !params.NoRestart {
 		if newContainerID, err := client.StartContainer(container); err != nil {
+			log.Info("Error occurred while starting the container.")
 			log.Error(err)
 			return err
 		} else if container.ToRestart() && params.LifecycleHooks {
 			lifecycle.ExecutePostUpdateCommand(client, newContainerID)
+			log.Info("Container updated successfully.")
 		}
 	}
 	return nil
