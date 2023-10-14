@@ -2,6 +2,7 @@ package container
 
 import (
 	"github.com/containrrr/watchtower/pkg/types"
+	dc "github.com/docker/docker/api/types/container"
 	"github.com/docker/go-connections/nat"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -64,6 +65,63 @@ var _ = Describe("the container", func() {
 				c.containerInfo.Config.ExposedPorts = map[nat.Port]struct{}{"80/tcp": {}}
 				err := c.VerifyConfiguration()
 				Expect(err).ToNot(HaveOccurred())
+			})
+		})
+	})
+	Describe("GetCreateConfig", func() {
+		When("container healthcheck config is equal to image config", func() {
+			It("should return empty healthcheck values", func() {
+				c := MockContainer(WithHealthcheck(dc.HealthConfig{
+					Test: []string{"/usr/bin/sleep", "1s"},
+				}), WithImageHealthcheck(dc.HealthConfig{
+					Test: []string{"/usr/bin/sleep", "1s"},
+				}))
+				Expect(c.GetCreateConfig().Healthcheck).To(Equal(&dc.HealthConfig{}))
+
+				c = MockContainer(WithHealthcheck(dc.HealthConfig{
+					Timeout: 30,
+				}), WithImageHealthcheck(dc.HealthConfig{
+					Timeout: 30,
+				}))
+				Expect(c.GetCreateConfig().Healthcheck).To(Equal(&dc.HealthConfig{}))
+
+				c = MockContainer(WithHealthcheck(dc.HealthConfig{
+					StartPeriod: 30,
+				}), WithImageHealthcheck(dc.HealthConfig{
+					StartPeriod: 30,
+				}))
+				Expect(c.GetCreateConfig().Healthcheck).To(Equal(&dc.HealthConfig{}))
+
+				c = MockContainer(WithHealthcheck(dc.HealthConfig{
+					Retries: 30,
+				}), WithImageHealthcheck(dc.HealthConfig{
+					Retries: 30,
+				}))
+				Expect(c.GetCreateConfig().Healthcheck).To(Equal(&dc.HealthConfig{}))
+			})
+		})
+		When("container healthcheck config is different to image config", func() {
+			It("should return the container healthcheck values", func() {
+				c := MockContainer(WithHealthcheck(dc.HealthConfig{
+					Test:        []string{"/usr/bin/sleep", "1s"},
+					Interval:    30,
+					Timeout:     30,
+					StartPeriod: 10,
+					Retries:     2,
+				}), WithImageHealthcheck(dc.HealthConfig{
+					Test:        []string{"/usr/bin/sleep", "10s"},
+					Interval:    10,
+					Timeout:     60,
+					StartPeriod: 30,
+					Retries:     10,
+				}))
+				Expect(c.GetCreateConfig().Healthcheck).To(Equal(&dc.HealthConfig{
+					Test:        []string{"/usr/bin/sleep", "1s"},
+					Interval:    30,
+					Timeout:     30,
+					StartPeriod: 10,
+					Retries:     2,
+				}))
 			})
 		})
 	})
