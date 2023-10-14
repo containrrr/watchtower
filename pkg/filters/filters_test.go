@@ -111,6 +111,33 @@ func TestFilterByScope(t *testing.T) {
 	container.AssertExpectations(t)
 }
 
+func TestFilterByNoneScope(t *testing.T) {
+	scope := "none"
+
+	filter := FilterByScope(scope, NoFilter)
+	assert.NotNil(t, filter)
+
+	container := new(mocks.FilterableContainer)
+	container.On("Scope").Return("anyscope", true)
+	assert.False(t, filter(container))
+	container.AssertExpectations(t)
+
+	container = new(mocks.FilterableContainer)
+	container.On("Scope").Return("", false)
+	assert.True(t, filter(container))
+	container.AssertExpectations(t)
+
+	container = new(mocks.FilterableContainer)
+	container.On("Scope").Return("", true)
+	assert.True(t, filter(container))
+	container.AssertExpectations(t)
+
+	container = new(mocks.FilterableContainer)
+	container.On("Scope").Return("none", true)
+	assert.True(t, filter(container))
+	container.AssertExpectations(t)
+}
+
 func TestFilterByDisabledLabel(t *testing.T) {
 	filter := FilterByDisabledLabel(NoFilter)
 	assert.NotNil(t, filter)
