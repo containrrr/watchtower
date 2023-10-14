@@ -3,14 +3,10 @@ package container
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"strings"
 	"time"
 
-	"github.com/containrrr/watchtower/pkg/registry"
-	"github.com/containrrr/watchtower/pkg/registry/digest"
-
-	t "github.com/containrrr/watchtower/pkg/types"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
@@ -18,6 +14,10 @@ import (
 	sdkClient "github.com/docker/docker/client"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
+
+	"github.com/containrrr/watchtower/pkg/registry"
+	"github.com/containrrr/watchtower/pkg/registry/digest"
+	t "github.com/containrrr/watchtower/pkg/types"
 )
 
 const defaultStopSignal = "SIGTERM"
@@ -399,7 +399,7 @@ func (client dockerClient) PullImage(ctx context.Context, container t.Container)
 
 	defer response.Close()
 	// the pull request will be aborted prematurely unless the response is read
-	if _, err = ioutil.ReadAll(response); err != nil {
+	if _, err = io.ReadAll(response); err != nil {
 		log.Error(err)
 		return err
 	}
