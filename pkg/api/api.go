@@ -1,8 +1,14 @@
 package api
 
 import (
-	"fmt"
+	"context"
+	"errors"
+	"github.com/containrrr/watchtower/pkg/api/metrics"
+	"github.com/containrrr/watchtower/pkg/api/middleware"
+	"github.com/containrrr/watchtower/pkg/api/prelude"
+	"github.com/containrrr/watchtower/pkg/api/updates"
 	"net/http"
+	"sync"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -11,46 +17,52 @@ const tokenMissingMsg = "api token is empty or has not been set. exiting"
 
 // API is the http server responsible for serving the HTTP API endpoints
 type API struct {
-	Token       string
-	hasHandlers bool
+	Token          string
+	hasHandlers    bool
+	mux            *http.ServeMux
+	server         *http.Server
+	running        *sync.Mutex
+	router         router
+	authMiddleware prelude.Middleware
+	registered     bool
 }
 
 // New is a factory function creating a new API instance
 func New(token string) *API {
 	return &API{
-		Token:       token,
-		hasHandlers: false,
+		Token:          token,
+		hasHandlers:    false,
+		mux:            http.NewServeMux(),
+		running:        &sync.Mutex{},
+		router:         router{},
+		authMiddleware: middleware.RequireToken(token),
+		registered:     false,
 	}
 }
 
-// RequireToken is wrapper around http.HandleFunc that checks token validity
-func (api *API) RequireToken(fn http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		auth := r.Header.Get("Authorization")
-		want := fmt.Sprintf("Bearer %s", api.Token)
-		if auth != want {
-			w.WriteHeader(http.StatusUnauthorized)
-			return
+func (api *API) route(route string) methodHandlers {
+	return api.router.route(route)
+}
+
+func (api *API) registerHandlers() {
+	if api.registered {
+		return
+	}
+	for path, route := range api.router {
+		if len(route) < 1 {
+			continue
 		}
-		log.Debug("Valid token found.")
-		fn(w, r)
+		api.hasHandlers = true
+		api.mux.Handle(path, api.authMiddleware(route.Handler))
 	}
-}
-
-// RegisterFunc is a wrapper around http.HandleFunc that also sets the flag used to determine whether to launch the API
-func (api *API) RegisterFunc(path string, fn http.HandlerFunc) {
-	api.hasHandlers = true
-	http.HandleFunc(path, api.RequireToken(fn))
-}
-
-// RegisterHandler is a wrapper around http.Handler that also sets the flag used to determine whether to launch the API
-func (api *API) RegisterHandler(path string, handler http.Handler) {
-	api.hasHandlers = true
-	http.Handle(path, api.RequireToken(handler.ServeHTTP))
+	api.registered = true
+	return
 }
 
 // Start the API and serve over HTTP. Requires an API Token to be set.
-func (api *API) Start(block bool) error {
+func (api *API) Start() error {
+
+	api.registerHandlers()
 
 	if !api.hasHandlers {
 		log.Debug("Watchtower HTTP API skipped.")
@@ -61,16 +73,49 @@ func (api *API) Start(block bool) error {
 		log.Fatal(tokenMissingMsg)
 	}
 
-	if block {
-		runHTTPServer()
-	} else {
-		go func() {
-			runHTTPServer()
-		}()
-	}
+	api.running.Lock()
+	go func() {
+		defer api.running.Unlock()
+		api.server = &http.Server{
+			Addr:    ":8080",
+			Handler: api.mux,
+		}
+
+		if err := api.server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
+			log.Errorf("HTTP Server error: %v", err)
+		}
+	}()
+
 	return nil
 }
 
-func runHTTPServer() {
-	log.Fatal(http.ListenAndServe(":8080", nil))
+// Stop tells the api server to shut down (if its running) and returns a sync.Mutex that is locked
+// until the server has handled all remaining requests and shut down
+func (api *API) Stop() *sync.Mutex {
+
+	if api.server != nil {
+		go func() {
+			if err := api.server.Shutdown(context.Background()); err != nil && !errors.Is(err, http.ErrServerClosed) {
+				log.Errorf("Error stopping HTTP Server: %v", err)
+			}
+		}()
+	}
+
+	return api.running
+}
+
+// Handler is used to get a http.Handler for testing
+func (api *API) Handler() http.Handler {
+	api.registerHandlers()
+	return api.mux
+}
+
+// EnableUpdates registers the `updates` endpoints
+func (api *API) EnableUpdates(f updates.InvokedFunc, updateLock *sync.Mutex) {
+	api.route("/v1/updates").post(updates.PostV1(f, updateLock))
+}
+
+// EnableMetrics registers the `metrics` endpoints
+func (api *API) EnableMetrics() {
+	api.route("/v1/metrics").get(metrics.GetV1())
 }
