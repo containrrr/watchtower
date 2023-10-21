@@ -113,6 +113,8 @@ func (api *API) Handler() http.Handler {
 // EnableUpdates registers the `updates` endpoints
 func (api *API) EnableUpdates(f updates.InvokedFunc, updateLock *sync.Mutex) {
 	api.route("/v1/updates").post(updates.PostV1(f, updateLock))
+	api.route("/v2/updates/apply").post(updates.PostV2Apply(f, updateLock))
+	api.route("/v2/updates/check").post(updates.PostV2Check(f, updateLock))
 }
 
 // EnableMetrics registers the `metrics` endpoints
