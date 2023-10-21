@@ -359,6 +359,11 @@ Environment Variable: WATCHTOWER_HTTP_API_PERIODIC_POLLS
 Update containers that have a `com.centurylinklabs.watchtower.scope` label set with the same value as the given argument. 
 This enables [running multiple instances](https://containrrr.dev/watchtower/running-multiple-instances).
 
+!!! note "Filter by lack of scope"
+    If you want other instances of watchtower to ignore the scoped containers, set this argument to `none`.
+    When omitted, watchtower will update all containers regardless of scope.
+
+
 ```text
             Argument: --scope
 Environment Variable: WATCHTOWER_SCOPE

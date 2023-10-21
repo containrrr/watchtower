@@ -86,13 +86,14 @@ func FilterByDisabledLabel(baseFilter t.Filter) t.Filter {
 
 // FilterByScope returns all containers that belongs to a specific scope
 func FilterByScope(scope string, baseFilter t.Filter) t.Filter {
-	if scope == "" {
-		return baseFilter
-	}
-
 	return func(c t.FilterableContainer) bool {
-		containerScope, ok := c.Scope()
-		if ok && containerScope == scope {
+		containerScope, containerHasScope := c.Scope()
+
+		if !containerHasScope || containerScope == "" {
+			containerScope = "none"
+		}
+
+		if containerScope == scope {
 			return baseFilter(c)
 		}
 
@@ -152,7 +153,13 @@ func BuildFilter(names []string, disableNames []string, enableLabel bool, scope 
 		filter = FilterByEnableLabel(filter)
 		sb.WriteString("using enable label, ")
 	}
-	if scope != "" {
+
+	if scope == "none" {
+		// If a scope has explicitly defined as "none", containers should only be considered
+		// if they do not have a scope defined, or if it's explicitly set to "none".
+		filter = FilterByScope(scope, filter)
+		sb.WriteString(`without a scope, "`)
+	} else if scope != "" {
 		// If a scope has been defined, containers should only be considered
 		// if the scope is specifically set.
 		filter = FilterByScope(scope, filter)
