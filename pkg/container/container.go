@@ -305,24 +305,26 @@ func (c Container) GetCreateConfig() *dockercontainer.Config {
 	}
 
 	// Clear HEALTHCHECK configuration (if default)
-	if util.SliceEqual(config.Healthcheck.Test, imageConfig.Healthcheck.Test) {
-		config.Healthcheck.Test = nil
-	}
+	if config.Healthcheck != nil && imageConfig.Healthcheck != nil {
+		if util.SliceEqual(config.Healthcheck.Test, imageConfig.Healthcheck.Test) {
+			config.Healthcheck.Test = nil
+		}
 
-	if config.Healthcheck.Retries == imageConfig.Healthcheck.Retries {
-		config.Healthcheck.Retries = 0
-	}
+		if config.Healthcheck.Retries == imageConfig.Healthcheck.Retries {
+			config.Healthcheck.Retries = 0
+		}
 
-	if config.Healthcheck.Interval == imageConfig.Healthcheck.Interval {
-		config.Healthcheck.Interval = 0
-	}
+		if config.Healthcheck.Interval == imageConfig.Healthcheck.Interval {
+			config.Healthcheck.Interval = 0
+		}
 
-	if config.Healthcheck.Timeout == imageConfig.Healthcheck.Timeout {
-		config.Healthcheck.Timeout = 0
-	}
+		if config.Healthcheck.Timeout == imageConfig.Healthcheck.Timeout {
+			config.Healthcheck.Timeout = 0
+		}
 
-	if config.Healthcheck.StartPeriod == imageConfig.Healthcheck.StartPeriod {
-		config.Healthcheck.StartPeriod = 0
+		if config.Healthcheck.StartPeriod == imageConfig.Healthcheck.StartPeriod {
+			config.Healthcheck.StartPeriod = 0
+		}
 	}
 
 	config.Env = util.SliceSubtract(config.Env, imageConfig.Env)
