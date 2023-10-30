@@ -6,7 +6,7 @@ require (
 	github.com/containrrr/shoutrrr v0.8.0
 	github.com/distribution/reference v0.5.0
 	github.com/docker/cli v24.0.6+incompatible
-	github.com/docker/docker v24.0.6+incompatible
+	github.com/docker/docker v24.0.7+incompatible
 	github.com/docker/go-connections v0.4.0
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.28.1
