@@ -1,6 +1,7 @@
 package session
 
 import (
+	"encoding/json"
 	"sort"
 
 	"github.com/containrrr/watchtower/pkg/types"
@@ -59,6 +60,38 @@ func (r *report) All() []types.ContainerReport {
 	sort.Sort(sortableContainers(all))
 
 	return all
+}
+
+type jsonMap = map[string]interface{}
+
+// MarshalJSON implements json.Marshaler
+func (r *report) MarshalJSON() ([]byte, error) {
+	return json.Marshal(jsonMap{
+		`scanned`: marshalReports(r.Scanned()),
+		`updated`: marshalReports(r.Updated()),
+		`failed`:  marshalReports(r.Failed()),
+		`skipped`: marshalReports(r.Skipped()),
+		`stale`:   marshalReports(r.Stale()),
+		`fresh`:   marshalReports(r.Fresh()),
+	})
+}
+
+func marshalReports(reports []types.ContainerReport) []jsonMap {
+	jsonReports := make([]jsonMap, len(reports))
+	for i, report := range reports {
+		jsonReports[i] = jsonMap{
+			`id`:             report.ID().ShortID(),
+			`name`:           report.Name(),
+			`currentImageId`: report.CurrentImageID().ShortID(),
+			`latestImageId`:  report.LatestImageID().ShortID(),
+			`imageName`:      report.ImageName(),
+			`state`:          report.State(),
+		}
+		if errorMessage := report.Error(); errorMessage != "" {
+			jsonReports[i][`error`] = errorMessage
+		}
+	}
+	return jsonReports
 }
 
 // NewReport creates a types.Report from the supplied Progress

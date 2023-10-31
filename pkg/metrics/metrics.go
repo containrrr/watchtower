@@ -45,12 +45,11 @@ func (metrics *Metrics) Register(metric *Metric) {
 	metrics.channel <- metric
 }
 
-// Default creates a new metrics handler if none exists, otherwise returns the existing one
-func Default() *Metrics {
+// Init creates a new metrics handler if none exists
+func Init() {
 	if metrics != nil {
-		return metrics
+		return
 	}
-
 	metrics = &Metrics{
 		scanned: promauto.NewGauge(prometheus.GaugeOpts{
 			Name: "watchtower_containers_scanned",
@@ -76,6 +75,11 @@ func Default() *Metrics {
 	}
 
 	go metrics.HandleUpdate(metrics.channel)
+}
+
+// Default creates a new metrics handler if none exists, otherwise returns the existing one
+func Default() *Metrics {
+	Init()
 
 	return metrics
 }

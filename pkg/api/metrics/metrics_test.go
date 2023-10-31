@@ -12,7 +12,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/containrrr/watchtower/pkg/api"
-	metricsAPI "github.com/containrrr/watchtower/pkg/api/metrics"
 	"github.com/containrrr/watchtower/pkg/metrics"
 )
 
@@ -51,10 +50,9 @@ func getWithToken(handler http.Handler) map[string]string {
 
 var _ = Describe("the metrics API", func() {
 	httpAPI := api.New(token)
-	m := metricsAPI.New()
+	httpAPI.EnableMetrics()
 
-	handleReq := httpAPI.RequireToken(m.Handle)
-	tryGetMetrics := func() map[string]string { return getWithToken(handleReq) }
+	tryGetMetrics := func() map[string]string { return getWithToken(httpAPI.Handler()) }
 
 	It("should serve metrics", func() {
 

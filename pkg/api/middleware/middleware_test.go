@@ -1,7 +1,7 @@
-package api
+package middleware
 
 import (
-	"io"
+	"github.com/containrrr/watchtower/pkg/api/prelude"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -11,55 +11,58 @@ import (
 )
 
 const (
-	token  = "123123123"
+	token = "123123123"
 )
 
 func TestAPI(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "API Suite")
+	RunSpecs(t, "Middleware Suite")
 }
 
 var _ = Describe("API", func() {
-	api := New(token)
+	requireToken := RequireToken(token)
 
 	Describe("RequireToken middleware", func() {
 		It("should return 401 Unauthorized when token is not provided", func() {
-			handlerFunc := api.RequireToken(testHandler)
-
 			rec := httptest.NewRecorder()
 			req := httptest.NewRequest("GET", "/hello", nil)
 
-			handlerFunc(rec, req)
+			requireToken(testHandler).ServeHTTP(rec, req)
 
 			Expect(rec.Code).To(Equal(http.StatusUnauthorized))
+			Expect(rec.Body).To(MatchJSON(`{
+				"code":  "MISSING_TOKEN",
+				"error": "No authentication token was supplied"
+			}`))
 		})
 
 		It("should return 401 Unauthorized when token is invalid", func() {
-			handlerFunc := api.RequireToken(testHandler)
-
 			rec := httptest.NewRecorder()
 			req := httptest.NewRequest("GET", "/hello", nil)
 			req.Header.Set("Authorization", "Bearer 123")
 
-			handlerFunc(rec, req)
+			requireToken(testHandler).ServeHTTP(rec, req)
 
 			Expect(rec.Code).To(Equal(http.StatusUnauthorized))
+			Expect(rec.Body).To(MatchJSON(`{
+				"code":  "INVALID_TOKEN",
+				"error": "The supplied token does not match the configured auth token"
+			}`))
 		})
 
 		It("should return 200 OK when token is valid", func() {
-			handlerFunc := api.RequireToken(testHandler)
 
 			rec := httptest.NewRecorder()
 			req := httptest.NewRequest("GET", "/hello", nil)
-			req.Header.Set("Authorization", "Bearer " + token)
+			req.Header.Set("Authorization", "Bearer "+token)
 
-			handlerFunc(rec, req)
+			requireToken(testHandler).ServeHTTP(rec, req)
 
 			Expect(rec.Code).To(Equal(http.StatusOK))
 		})
 	})
 })
 
-func testHandler(w http.ResponseWriter, req *http.Request) {
-	_, _ = io.WriteString(w, "Hello!")
+func testHandler(_ *prelude.Context) prelude.Response {
+	return prelude.OK("Hello!")
 }
