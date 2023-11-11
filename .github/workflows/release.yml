@@ -93,7 +93,7 @@ jobs:
           echo '{"experimental": "enabled"}' > ~/.docker/config.json
       - name: Create manifest for version
         run: |
-          export DH_TAG=$(echo $TAG | sed 's/^v*//')
+          export DH_TAG=$(git tag --points-at HEAD | sed 's/^v*//')
           docker manifest create \
             containrrr/watchtower:$DH_TAG \
             containrrr/watchtower:amd64-$DH_TAG \
