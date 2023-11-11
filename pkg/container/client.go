@@ -57,7 +57,6 @@ func NewClient(opts ClientOptions) Client {
 
 // ClientOptions contains the options for how the docker client wrapper should behave
 type ClientOptions struct {
-	PullImages        bool
 	RemoveVolumes     bool
 	IncludeStopped    bool
 	ReviveStopped     bool

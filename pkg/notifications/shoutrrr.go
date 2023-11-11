@@ -60,7 +60,7 @@ func (n *shoutrrrTypeNotifier) GetNames() []string {
 	return names
 }
 
-// GetNames returns a list of URLs for notification services that has been added
+// GetURLs returns a list of URLs for notification services that has been added
 func (n *shoutrrrTypeNotifier) GetURLs() []string {
 	return n.Urls
 }
@@ -73,7 +73,7 @@ func (n *shoutrrrTypeNotifier) AddLogHook() {
 	n.receiving = true
 	log.AddHook(n)
 
-	// Do the sending in a separate goroutine so we don't block the main process.
+	// Do the sending in a separate goroutine, so we don't block the main process.
 	go sendNotifications(n)
 }
 
