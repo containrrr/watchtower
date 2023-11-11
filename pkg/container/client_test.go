@@ -70,7 +70,8 @@ var _ = Describe("the client", func() {
 			It("should gracefully fail with a useful message", func() {
 				c := dockerClient{}
 				pinnedContainer := MockContainer(WithImageName("sha256:fa5269854a5e615e51a72b17ad3fd1e01268f278a6684c8ed3c5f0cdce3f230b"))
-				c.PullImage(context.Background(), pinnedContainer)
+				err := c.PullImage(context.Background(), pinnedContainer)
+				Expect(err).To(MatchError(`container uses a pinned image, and cannot be updated by watchtower`))
 			})
 		})
 	})
