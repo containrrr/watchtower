@@ -40,7 +40,7 @@
     }
     #tplprev button {
         border-radius: 0.1rem;
-        color: var(--md-typeset-color);
+        color: var(--md-primary-bg-color);
         background-color: var(--md-primary-fg-color);
         flex:1; 
         min-width: 12ch; 
@@ -78,6 +78,8 @@
         flex:1; 
         width:100%
     }
+    #result b {color: var(--md-code-hl-special-color)}
+    #result i {color: var(--md-code-hl-keyword-color)}
     #tplprev .loading {
         position: absolute; 
         inset: 0; 
@@ -90,12 +92,14 @@
 </style>
 <script src="../assets/wasm_exec.js"></script>
 <script>
+    let wasmLoaded = false;
     const updatePreview = () => {
+        if (!wasmLoaded) return;
         const form = document.querySelector('#tplprev');
         const input = form.template.value;
         console.log('Input: %o', input);
         const arrFromCount = (key) => Array.from(Array(form[key]?.valueAsNumber ?? 0), () => key);
-        const states = form.enablereport.checked ? [
+        const states = form.report.value === "yes" ? [
             ...arrFromCount("skipped"),
             ...arrFromCount("scanned"),
             ...arrFromCount("updated"),
@@ -104,7 +108,7 @@
             ...arrFromCount("stale"  ),
         ] : [];
         console.log("States: %o", states);
-        const levels = form.enablelog.checked ? [
+        const levels = form.log.value === "yes" ? [
             ...arrFromCount("error"),
             ...arrFromCount("warning"),
             ...arrFromCount("info"),
@@ -113,15 +117,17 @@
         console.log("Levels: %o", levels);
         const output = WATCHTOWER.tplprev(input, states, levels);
         console.log('Output: \n%o', output);
-        if (output.length) {
+        if (output.startsWith('Error: ')) {
+            document.querySelector('#result').innerHTML = `<b>Error</b>: ${output.substring(7)}`;
+        } else if (output.length) {
             document.querySelector('#result').innerText = output;
         } else {
             document.querySelector('#result').innerHTML = '<i>empty (would not be sent as a notification)</i>';
         }
     }
     const formSubmitted = (e) => {
-        e.preventDefault();
-        updatePreview();
+        //e.preventDefault();
+        //updatePreview();
     }
     let debounce;
     const inputUpdated = () => {
@@ -130,18 +136,24 @@
     }
     const formChanged = (e) =>  {
         console.log('form changed: %o', e);
+        const targetToggle = e.target.dataset['toggle'];
+        if (targetToggle) {
+            e.target.form[targetToggle].value = e.target.checked ? "yes" : "no";
+        }
+        updatePreview()
     }
     const go = new Go();
     WebAssembly.instantiateStreaming(fetch("../assets/tplprev.wasm"), go.importObject).then((result) => {
-        document.querySelector('#tplprev .loading').style.display = "none";
         go.run(result.instance);
+        document.querySelector('#tplprev .loading').style.display = "none";
+        wasmLoaded = true;
         updatePreview();
     });
 </script>
-<form id="tplprev" onchange="updatePreview()" onsubmit="formSubmitted(event)">
+<form id="tplprev" onchange="formChanged(event)" onsubmit="formSubmitted(event)">
 <pre class="loading">loading wasm...</pre>
 <div class="template-wrapper">
-<textarea name="template" type="text" style="flex: 1" onkeyup="inputUpdated()">{{- with .Report -}}
+<textarea name="template" type="text" onkeyup="inputUpdated()">{{- with .Report -}}
   {{- if ( or .Updated .Failed ) -}}
 {{len .Scanned}} Scanned, {{len .Updated}} Updated, {{len .Failed}} Failed
     {{- range .Updated}}
@@ -166,7 +178,8 @@ Logs:
 </div>
 <div class="controls">
 <fieldset>
-    <legend><label><input type="checkbox" name="enablereport" checked /> Container report</label></legend>
+    <input type="hidden" name="report" value="yes" />
+    <legend><label><input type="checkbox" data-toggle="report" checked /> Container report</label></legend>
     <label class="numfield">
         Skipped:
         <input type="number" name="skipped" value="3" />
@@ -193,7 +206,8 @@ Logs:
     </label>
 </fieldset>
 <fieldset>
-    <legend><label><input type="checkbox" name="enablelog" checked /> Log entries</label></legend>
+    <input type="hidden" name="log" value="yes" />
+    <legend><label><input type="checkbox" data-toggle="log" checked /> Log entries</label></legend>
     <label class="numfield">
         Error: 
         <input type="number" name="error" value="1" />
@@ -217,3 +231,21 @@ Logs:
     <pre id="result"></pre>
 </div>
 </form>
+<script>
+const loadQueryVals = () => {
+    const form = document.querySelector('#tplprev');
+    const params =  new URLSearchParams(location.search);
+    for(const [key, value] of params){
+        form[key].value = value;
+        const toggleInput = form.querySelector(`[data-toggle="${key}"]`);
+        if (toggleInput) {
+            toggleInput.checked = value === "yes";
+        }
+    }
+}
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", loadQueryVals());
+} else {
+    loadQueryVals();
+}
+</script>
