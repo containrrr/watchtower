@@ -6,6 +6,30 @@
   "commit": false,
   "contributors": [
     {
+      "login": "piksel",
+      "name": "nils måsén",
+      "avatar_url": "https://avatars2.githubusercontent.com/u/807383?v=4",
+      "profile": "https://piksel.se",
+      "contributions": [
+        "code",
+        "doc",
+        "maintenance",
+        "review"
+      ]
+    },
+    {
+      "login": "simskij",
+      "name": "Simon Aronsson",
+      "avatar_url": "https://avatars0.githubusercontent.com/u/1596025?v=4",
+      "profile": "http://simme.dev",
+      "contributions": [
+        "code",
+        "doc",
+        "maintenance",
+        "review"
+      ]
+    },
+    {
       "login": "Codelica",
       "name": "James",
       "avatar_url": "https://avatars3.githubusercontent.com/u/386101?v=4",
@@ -274,18 +298,6 @@
       ]
     },
     {
-      "login": "simskij",
-      "name": "Simon Aronsson",
-      "avatar_url": "https://avatars0.githubusercontent.com/u/1596025?v=4",
-      "profile": "http://simme.dev",
-      "contributions": [
-        "code",
-        "maintenance",
-        "review",
-        "doc"
-      ]
-    },
-    {
       "login": "Ansem93",
       "name": "Ansem93",
       "avatar_url": "https://avatars3.githubusercontent.com/u/6626218?v=4",
@@ -506,16 +518,6 @@
       "profile": "https://github.com/sixcorners",
       "contributions": [
         "doc"
-      ]
-    },
-    {
-      "login": "piksel",
-      "name": "nils måsén",
-      "avatar_url": "https://avatars2.githubusercontent.com/u/807383?v=4",
-      "profile": "https://piksel.se",
-      "contributions": [
-        "doc",
-        "code"
       ]
     },
     {
