@@ -18,7 +18,7 @@
       
       
       <link rel="icon" href="../images/favicon.ico">
-      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.4.3">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.4.8">
     
     
       
@@ -26,10 +26,10 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.79e020e9.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.4b4a2bd9.min.css">
       
         
-        <link rel="stylesheet" href="../assets/stylesheets/palette.a5377069.min.css">
+        <link rel="stylesheet" href="../assets/stylesheets/palette.356b1318.min.css">
       
       
 
@@ -691,9 +691,11 @@
 </div>
 </div>
 <p>If you wish to create a monitoring scope, you will need to <a href="https://containrrr.github.io/watchtower/running-multiple-instances">run multiple instances and set a scope for each of them</a>.</p>
-<p>Watchtower filters running containers by testing them against each configured criteria. A container is monitored if all criteria are met. For example:
--   If a container's name is on the monitoring name list (not empty <code>--name</code> argument) but it is not enabled (<em>centurylinklabs.watchtower.enable=false</em>), it won't be monitored;
--   If a container's name is not on the monitoring name list (not empty <code>--name</code> argument), even if it is enabled (<em>centurylinklabs.watchtower.enable=true</em> and <code>--label-enable</code> flag is set), it won't be monitored;</p>
+<p>Watchtower filters running containers by testing them against each configured criteria. A container is monitored if all criteria are met. For example:</p>
+<ul>
+<li>If a container's name is on the monitoring name list (not empty <code>--name</code> argument) but it is not enabled (<em>centurylinklabs.watchtower.enable=false</em>), it won't be monitored;</li>
+<li>If a container's name is not on the monitoring name list (not empty <code>--name</code> argument), even if it is enabled (<em>centurylinklabs.watchtower.enable=true</em> and <code>--label-enable</code> flag is set), it won't be monitored;</li>
+</ul>
 <h2 id="monitor_only">Monitor Only<a class="headerlink" href="#monitor_only" title="Permanent link">&para;</a></h2>
 <p>Individual containers can be marked to only be monitored (without being updated).</p>
 <p>To do so, set the <em>com.centurylinklabs.watchtower.monitor-only</em> label to <code>true</code> on that container.</p>
@@ -741,10 +743,10 @@
     </div>
     
     
-    <script id="__config" type="application/json">{"base": "..", "features": [], "search": "../assets/javascripts/workers/search.a264c092.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    <script id="__config" type="application/json">{"base": "..", "features": [], "search": "../assets/javascripts/workers/search.f886a092.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
     
     
-      <script src="../assets/javascripts/bundle.6eac0284.min.js"></script>
+      <script src="../assets/javascripts/bundle.81fa17fe.min.js"></script>
       
     
   </body>

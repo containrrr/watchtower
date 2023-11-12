@@ -18,7 +18,7 @@
       
       
       <link rel="icon" href="../images/favicon.ico">
-      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.4.3">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.4.8">
     
     
       
@@ -26,10 +26,10 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.79e020e9.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.4b4a2bd9.min.css">
       
         
-        <link rel="stylesheet" href="../assets/stylesheets/palette.a5377069.min.css">
+        <link rel="stylesheet" href="../assets/stylesheets/palette.356b1318.min.css">
       
       
 
@@ -485,6 +485,13 @@
         <li class="md-nav__item">
   <a href="#filter_by_disable_label" class="md-nav__link">
     Filter by disable label
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#filter_by_disabling_specific_container_names" class="md-nav__link">
+    Filter by disabling specific container names
   </a>
   
 </li>
@@ -996,6 +1003,13 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#filter_by_disabling_specific_container_names" class="md-nav__link">
+    Filter by disabling specific container names
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#without_updating_containers" class="md-nav__link">
     Without updating containers
   </a>
@@ -1311,6 +1325,15 @@ Environment Variable: WATCHTOWER_LABEL_ENABLE
 <p><strong>Do not</strong> Monitor and update containers that have <code>com.centurylinklabs.watchtower.enable</code> label set to false and 
 no <code>--label-enable</code> argument is passed. Note that only one or the other (targeting by enable label) can be 
 used at the same time to target containers.</p>
+<h2 id="filter_by_disabling_specific_container_names">Filter by disabling specific container names<a class="headerlink" href="#filter_by_disabling_specific_container_names" title="Permanent link">&para;</a></h2>
+<p>Monitor and update containers whose names are not in a given set of names.</p>
+<p>This can be used to exclude specific containers, when setting labels is not an option.
+The listed containers will be excluded even if they have the enable filter set to true.</p>
+<div class="highlight"><pre><span></span><code>            Argument: --disable-containers, -x
+Environment Variable: WATCHTOWER_DISABLE_CONTAINERS
+                Type: Comma- or space-separated string list
+             Default: &quot;&quot;
+</code></pre></div>
 <h2 id="without_updating_containers">Without updating containers<a class="headerlink" href="#without_updating_containers" title="Permanent link">&para;</a></h2>
 <p>Will only monitor for new images, send notifications and invoke
 the <a href="https://containrrr.dev/watchtower/lifecycle-hooks/">pre-check/post-check hooks</a>, but will <strong>not</strong> update the
@@ -1396,6 +1419,11 @@ Environment Variable: WATCHTOWER_HTTP_API_PERIODIC_POLLS
 <h2 id="filter_by_scope">Filter by scope<a class="headerlink" href="#filter_by_scope" title="Permanent link">&para;</a></h2>
 <p>Update containers that have a <code>com.centurylinklabs.watchtower.scope</code> label set with the same value as the given argument. 
 This enables <a href="https://containrrr.dev/watchtower/running-multiple-instances">running multiple instances</a>.</p>
+<div class="admonition note">
+<p class="admonition-title">Filter by lack of scope</p>
+<p>If you want other instances of watchtower to ignore the scoped containers, set this argument to <code>none</code>.
+When omitted, watchtower will update all containers regardless of scope.</p>
+</div>
 <div class="highlight"><pre><span></span><code>            Argument: --scope
 Environment Variable: WATCHTOWER_SCOPE
                 Type: String
@@ -1506,10 +1534,10 @@ Environment Variable: WATCHTOWER_PORCELAIN
     </div>
     
     
-    <script id="__config" type="application/json">{"base": "..", "features": [], "search": "../assets/javascripts/workers/search.a264c092.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    <script id="__config" type="application/json">{"base": "..", "features": [], "search": "../assets/javascripts/workers/search.f886a092.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
     
     
-      <script src="../assets/javascripts/bundle.6eac0284.min.js"></script>
+      <script src="../assets/javascripts/bundle.81fa17fe.min.js"></script>
       
     
   </body>

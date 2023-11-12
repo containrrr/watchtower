@@ -18,7 +18,7 @@
       
       
       <link rel="icon" href="../images/favicon.ico">
-      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.4.3">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.4.8">
     
     
       
@@ -26,10 +26,10 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.79e020e9.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.4b4a2bd9.min.css">
       
         
-        <link rel="stylesheet" href="../assets/stylesheets/palette.a5377069.min.css">
+        <link rel="stylesheet" href="../assets/stylesheets/palette.356b1318.min.css">
       
       
 
@@ -571,26 +571,44 @@
   <h1>Running multiple instances</h1>
 
 <p>By default, Watchtower will clean up other instances and won't allow multiple instances running on the same Docker host or swarm. It is possible to override this behavior by defining a <a href="https://containrrr.github.io/watchtower/arguments/#filter_by_scope">scope</a> to each running instance. </p>
-<p>Notice that:
--   Multiple instances can't run with the same scope;
--   An instance without a scope will clean up other running instances, even if they have a defined scope;</p>
-<p>To define an instance monitoring scope, use the <code>--scope</code> argument or the <code>WATCHTOWER_SCOPE</code> environment variable on startup and set the <em>com.centurylinklabs.watchtower.scope</em> label with the same value for the containers you want to include in this instance's scope (including the instance itself).</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<ul>
+<li>Multiple instances can't run with the same scope;</li>
+<li>An instance without a scope will clean up other running instances, even if they have a defined scope;</li>
+<li>Supplying <code>none</code> as the scope will treat <code>com.centurylinklabs.watchtower.scope=none</code>, <code>com.centurylinklabs.watchtower.scope=</code> and the lack of a <code>com.centurylinklabs.watchtower.scope</code> label as the scope <code>none</code>. This effectly enables you to run both scoped and unscoped watchtower instances on the same machine.</li>
+</ul>
+</div>
+<p>To define an instance monitoring scope, use the <code>--scope</code> argument or the <code>WATCHTOWER_SCOPE</code> environment variable on startup and set the <code>com.centurylinklabs.watchtower.scope</code> label with the same value for the containers you want to include in this instance's scope (including the instance itself).</p>
 <p>For example, in a Docker Compose config file:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;3&#39;</span>
 
 <span class="nt">services</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">app-monitored-by-watchtower</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">app-with-scope</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">myapps/monitored-by-watchtower</span>
-<span class="w">    </span><span class="nt">labels</span><span class="p">:</span>
-<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;com.centurylinklabs.watchtower.scope=myscope&quot;</span>
+<span class="w">    </span><span class="nt">labels</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="w"> </span><span class="s">&quot;com.centurylinklabs.watchtower.scope=myscope&quot;</span><span class="w"> </span><span class="p p-Indicator">]</span>
 
-<span class="w">  </span><span class="nt">watchtower</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">scoped-watchtower</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">containrrr/watchtower</span>
-<span class="w">    </span><span class="nt">volumes</span><span class="p">:</span>
-<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/var/run/docker.sock:/var/run/docker.sock</span>
+<span class="w">    </span><span class="nt">volumes</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="w"> </span><span class="s">&quot;/var/run/docker.sock:/var/run/docker.sock&quot;</span><span class="w"> </span><span class="p p-Indicator">]</span>
 <span class="w">    </span><span class="nt">command</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">--interval 30 --scope myscope</span>
-<span class="w">    </span><span class="nt">labels</span><span class="p">:</span>
-<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;com.centurylinklabs.watchtower.scope=myscope&quot;</span>
+<span class="w">    </span><span class="nt">labels</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="w"> </span><span class="s">&quot;com.centurylinklabs.watchtower.scope=myscope&quot;</span><span class="w"> </span><span class="p p-Indicator">]</span><span class="w"> </span>
+
+<span class="w">  </span><span class="nt">unscoped-app-a</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">myapps/app-a</span>
+
+<span class="w">  </span><span class="nt">unscoped-app-b</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">myapps/app-b</span>
+<span class="w">    </span><span class="nt">labels</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="w"> </span><span class="s">&quot;com.centurylinklabs.watchtower.scope=none&quot;</span><span class="w"> </span><span class="p p-Indicator">]</span>
+
+<span class="w">  </span><span class="nt">unscoped-app-c</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">myapps/app-b</span>
+<span class="w">    </span><span class="nt">labels</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="w"> </span><span class="s">&quot;com.centurylinklabs.watchtower.scope=&quot;</span><span class="w"> </span><span class="p p-Indicator">]</span>
+
+<span class="w">  </span><span class="nt">unscoped-watchtower</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">containrrr/watchtower</span>
+<span class="w">    </span><span class="nt">volumes</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="w"> </span><span class="s">&quot;/var/run/docker.sock:/var/run/docker.sock&quot;</span><span class="w"> </span><span class="p p-Indicator">]</span>
+<span class="w">    </span><span class="nt">command</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">--interval 30 --scope none</span>
 </code></pre></div>
 
 
@@ -630,10 +648,10 @@
     </div>
     
     
-    <script id="__config" type="application/json">{"base": "..", "features": [], "search": "../assets/javascripts/workers/search.a264c092.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    <script id="__config" type="application/json">{"base": "..", "features": [], "search": "../assets/javascripts/workers/search.f886a092.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
     
     
-      <script src="../assets/javascripts/bundle.6eac0284.min.js"></script>
+      <script src="../assets/javascripts/bundle.81fa17fe.min.js"></script>
       
     
   </body>
