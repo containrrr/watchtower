@@ -24,7 +24,7 @@ system, [logrus](http://github.com/sirupsen/logrus).
 -   `--notification-skip-title` (env. `WATCHTOWER_NOTIFICATION_SKIP_TITLE`): Do not pass the title param to notifications. This will not pass a dynamic title override to notification services. If no title is configured for the service, it will remove the title all together.
 -   `--notification-log-stdout` (env. `WATCHTOWER_NOTIFICATION_LOG_STDOUT`): Enable output from `logger://` shoutrrr service to stdout.
 
-## [shoutrrr](https://github.com/containrrr/shoutrrr) notifications
+## [Shoutrrr](https://github.com/containrrr/shoutrrr) notifications
 
 To send notifications via shoutrrr, the following command-line options, or their corresponding environment variables, can be set:
 
@@ -101,7 +101,7 @@ It will be used to send a summary of every session if there are any containers t
     Whenever the result of applying the template results in an empty string, no notifications will
     be sent. This is by default used to limit the notifications to only be sent when there something noteworthy occurred.
 
-    You can replace `{{- if ( or .Updated .Failed ) -}}` with any logic you want to decide when to send the notifications.
+    You can replace `{{- if ( or .Updated .Failed ) -}}` with any logic you want to decide when to send the notifications. To skip all empty inputs, you can wrap your template with `{{if .}}` and `{{end}}`.
 
 Example using a custom report template that always sends a session report after each run:
 
