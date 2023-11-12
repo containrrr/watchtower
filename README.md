@@ -31,6 +31,8 @@ $ docker run --detach \
     containrrr/watchtower
 ```
 
+Watchtower is intended to be used in homelabs, media centers, local dev environments, and similar. We do **not** recommend using Watchtower in a commercial or production environment. If that is you, you should be looking into using Kubernetes. If that feels like too big a step for you, please look into solutions like [MicroK8s](https://microk8s.io/) and [k3s](https://k3s.io/) that take away a lot of the toil of running a Kubernetes cluster. 
+
 ## Documentation
 The full documentation is available at https://containrrr.dev/watchtower.
 
