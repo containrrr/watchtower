@@ -57,6 +57,10 @@ outputs timestamp and log level.
     custom format.  
     i.e., The day of the year has to be 1, the month has to be 2 (february), the hour 3 (or 15 for 24h time) etc.
 
+!!! note "Skipping notifications"
+    To skip sending notifications that do not contain any information, you can wrap your template with `{{if .}}` and `{{end}}`.
+
+
 Example:
 
 ```bash
@@ -101,7 +105,7 @@ It will be used to send a summary of every session if there are any containers t
     Whenever the result of applying the template results in an empty string, no notifications will
     be sent. This is by default used to limit the notifications to only be sent when there something noteworthy occurred.
 
-    You can replace `{{- if ( or .Updated .Failed ) -}}` with any logic you want to decide when to send the notifications. To skip all empty inputs, you can wrap your template with `{{if .}}` and `{{end}}`.
+    You can replace `{{- if ( or .Updated .Failed ) -}}` with any logic you want to decide when to send the notifications.
 
 Example using a custom report template that always sends a session report after each run:
 
