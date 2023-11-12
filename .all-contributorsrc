@@ -860,6 +860,15 @@
       "contributions": [
         "doc"
       ]
+    },
+    {
+      "login": "nothub",
+      "name": "Florian Hübner",
+      "avatar_url": "https://avatars.githubusercontent.com/u/48992448?v=4",
+      "profile": "http://hub.lol",
+      "contributions": [
+        "doc"
+      ]
     }
   ],
   "contributorsPerLine": 7,
