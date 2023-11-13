@@ -2,12 +2,14 @@
 package container
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 
 	"github.com/containrrr/watchtower/internal/util"
 	wt "github.com/containrrr/watchtower/pkg/types"
+	"github.com/sirupsen/logrus"
 
 	"github.com/docker/docker/api/types"
 	dockercontainer "github.com/docker/docker/api/types/container"
@@ -30,6 +32,26 @@ type Container struct {
 
 	containerInfo *types.ContainerJSON
 	imageInfo     *types.ImageInspect
+}
+
+// IsLinkedToRestarting returns the current value of the LinkedToRestarting field for the container
+func (c *Container) IsLinkedToRestarting() bool {
+	return c.LinkedToRestarting
+}
+
+// IsStale returns the current value of the Stale field for the container
+func (c *Container) IsStale() bool {
+	return c.Stale
+}
+
+// SetLinkedToRestarting sets the LinkedToRestarting field for the container
+func (c *Container) SetLinkedToRestarting(value bool) {
+	c.LinkedToRestarting = value
+}
+
+// SetStale implements sets the Stale field for the container
+func (c *Container) SetStale(value bool) {
+	c.Stale = value
 }
 
 // ContainerInfo fetches JSON info for the container
@@ -109,20 +131,31 @@ func (c Container) Enabled() (bool, bool) {
 	return parsedBool, true
 }
 
-// IsMonitorOnly returns the value of the monitor-only label. If the label
-// is not set then false is returned.
-func (c Container) IsMonitorOnly() bool {
-	rawBool, ok := c.getLabelValue(monitorOnlyLabel)
-	if !ok {
-		return false
-	}
+// IsMonitorOnly returns whether the container should only be monitored based on values of
+// the monitor-only label, the monitor-only argument and the label-take-precedence argument.
+func (c Container) IsMonitorOnly(params wt.UpdateParams) bool {
+	return c.getContainerOrGlobalBool(params.MonitorOnly, monitorOnlyLabel, params.LabelPrecedence)
+}
 
-	parsedBool, err := strconv.ParseBool(rawBool)
-	if err != nil {
-		return false
-	}
+// IsNoPull returns whether the image should be pulled based on values of
+// the no-pull label, the no-pull argument and the label-take-precedence argument.
+func (c Container) IsNoPull(params wt.UpdateParams) bool {
+	return c.getContainerOrGlobalBool(params.NoPull, noPullLabel, params.LabelPrecedence)
+}
 
-	return parsedBool
+func (c Container) getContainerOrGlobalBool(globalVal bool, label string, contPrecedence bool) bool {
+	if contVal, err := c.getBoolLabelValue(label); err != nil {
+		if !errors.Is(err, errorLabelNotFound) {
+			logrus.WithField("error", err).WithField("label", label).Warn("Failed to parse label value")
+		}
+		return globalVal
+	} else {
+		if contPrecedence {
+			return contVal
+		} else {
+			return contVal || globalVal
+		}
+	}
 }
 
 // Scope returns the value of the scope UID label and if the label
@@ -144,7 +177,14 @@ func (c Container) Links() []string {
 	dependsOnLabelValue := c.getLabelValueOrEmpty(dependsOnLabel)
 
 	if dependsOnLabelValue != "" {
-		links := strings.Split(dependsOnLabelValue, ",")
+		for _, link := range strings.Split(dependsOnLabelValue, ",") {
+			// Since the container names need to start with '/', let's prepend it if it's missing
+			if !strings.HasPrefix(link, "/") {
+				link = "/" + link
+			}
+			links = append(links, link)
+		}
+
 		return links
 	}
 
@@ -152,6 +192,13 @@ func (c Container) Links() []string {
 		for _, link := range c.containerInfo.HostConfig.Links {
 			name := strings.Split(link, ":")[0]
 			links = append(links, name)
+		}
+
+		// If the container uses another container for networking, it can be considered an implicit link
+		// since the container would stop working if the network supplier were to be recreated
+		networkMode := c.containerInfo.HostConfig.NetworkMode
+		if networkMode.IsContainer() {
+			links = append(links, networkMode.ConnectedContainer())
 		}
 	}
 
@@ -217,18 +264,23 @@ func (c Container) StopSignal() string {
 	return c.getLabelValueOrEmpty(signalLabel)
 }
 
+// GetCreateConfig returns the container's current Config converted into a format
+// that can be re-submitted to the Docker create API.
+//
 // Ideally, we'd just be able to take the ContainerConfig from the old container
 // and use it as the starting point for creating the new container; however,
 // the ContainerConfig that comes back from the Inspect call merges the default
 // configuration (the stuff specified in the metadata for the image itself)
 // with the overridden configuration (the stuff that you might specify as part
-// of the "docker run"). In order to avoid unintentionally overriding the
+// of the "docker run").
+//
+// In order to avoid unintentionally overriding the
 // defaults in the new image we need to separate the override options from the
 // default options. To do this we have to compare the ContainerConfig for the
 // running container with the ContainerConfig from the image that container was
 // started from. This function returns a ContainerConfig which contains just
 // the options overridden at runtime.
-func (c Container) runtimeConfig() *dockercontainer.Config {
+func (c Container) GetCreateConfig() *dockercontainer.Config {
 	config := c.containerInfo.Config
 	hostConfig := c.containerInfo.HostConfig
 	imageConfig := c.imageInfo.Config
@@ -252,6 +304,29 @@ func (c Container) runtimeConfig() *dockercontainer.Config {
 		}
 	}
 
+	// Clear HEALTHCHECK configuration (if default)
+	if config.Healthcheck != nil && imageConfig.Healthcheck != nil {
+		if util.SliceEqual(config.Healthcheck.Test, imageConfig.Healthcheck.Test) {
+			config.Healthcheck.Test = nil
+		}
+
+		if config.Healthcheck.Retries == imageConfig.Healthcheck.Retries {
+			config.Healthcheck.Retries = 0
+		}
+
+		if config.Healthcheck.Interval == imageConfig.Healthcheck.Interval {
+			config.Healthcheck.Interval = 0
+		}
+
+		if config.Healthcheck.Timeout == imageConfig.Healthcheck.Timeout {
+			config.Healthcheck.Timeout = 0
+		}
+
+		if config.Healthcheck.StartPeriod == imageConfig.Healthcheck.StartPeriod {
+			config.Healthcheck.StartPeriod = 0
+		}
+	}
+
 	config.Env = util.SliceSubtract(config.Env, imageConfig.Env)
 
 	config.Labels = util.StringMapSubtract(config.Labels, imageConfig.Labels)
@@ -272,9 +347,9 @@ func (c Container) runtimeConfig() *dockercontainer.Config {
 	return config
 }
 
-// Any links in the HostConfig need to be re-written before they can be
-// re-submitted to the Docker create API.
-func (c Container) hostConfig() *dockercontainer.HostConfig {
+// GetCreateHostConfig returns the container's current HostConfig with any links
+// re-written so that they can be re-submitted to the Docker create API.
+func (c Container) GetCreateHostConfig() *dockercontainer.HostConfig {
 	hostConfig := c.containerInfo.HostConfig
 
 	for i, link := range hostConfig.Links {

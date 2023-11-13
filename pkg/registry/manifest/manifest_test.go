@@ -1,13 +1,14 @@
 package manifest_test
 
 import (
+	"testing"
+	"time"
+
 	"github.com/containrrr/watchtower/internal/actions/mocks"
 	"github.com/containrrr/watchtower/pkg/registry/manifest"
 	apiTypes "github.com/docker/docker/api/types"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"testing"
-	"time"
 )
 
 func TestManifest(t *testing.T) {
@@ -16,60 +17,58 @@ func TestManifest(t *testing.T) {
 }
 
 var _ = Describe("the manifest module", func() {
-	mockId := "mock-id"
-	mockName := "mock-container"
-	mockCreated := time.Now()
-
-	When("building a manifest url", func() {
+	Describe("BuildManifestURL", func() {
 		It("should return a valid url given a fully qualified image", func() {
-			expected := "https://ghcr.io/v2/containrrr/watchtower/manifests/latest"
-			imageInfo := apiTypes.ImageInspect{
-				RepoTags: []string{
-					"ghcr.io/k6io/operator:latest",
-				},
-			}
-			mock := mocks.CreateMockContainerWithImageInfo(mockId, mockName, "ghcr.io/containrrr/watchtower:latest", mockCreated, imageInfo)
-			res, err := manifest.BuildManifestURL(mock)
+			imageRef := "ghcr.io/containrrr/watchtower:mytag"
+			expected := "https://ghcr.io/v2/containrrr/watchtower/manifests/mytag"
+
+			URL, err := buildMockContainerManifestURL(imageRef)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(res).To(Equal(expected))
+			Expect(URL).To(Equal(expected))
 		})
-		It("should assume dockerhub for non-qualified images", func() {
+		It("should assume Docker Hub for image refs with no explicit registry", func() {
+			imageRef := "containrrr/watchtower:latest"
 			expected := "https://index.docker.io/v2/containrrr/watchtower/manifests/latest"
-			imageInfo := apiTypes.ImageInspect{
-				RepoTags: []string{
-					"containrrr/watchtower:latest",
-				},
-			}
 
-			mock := mocks.CreateMockContainerWithImageInfo(mockId, mockName, "containrrr/watchtower:latest", mockCreated, imageInfo)
-			res, err := manifest.BuildManifestURL(mock)
+			URL, err := buildMockContainerManifestURL(imageRef)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(res).To(Equal(expected))
+			Expect(URL).To(Equal(expected))
 		})
-		It("should assume latest for images that lack an explicit tag", func() {
+		It("should assume latest for image refs with no explicit tag", func() {
+			imageRef := "containrrr/watchtower"
 			expected := "https://index.docker.io/v2/containrrr/watchtower/manifests/latest"
-			imageInfo := apiTypes.ImageInspect{
 
-				RepoTags: []string{
-					"containrrr/watchtower",
-				},
-			}
-
-			mock := mocks.CreateMockContainerWithImageInfo(mockId, mockName, "containrrr/watchtower", mockCreated, imageInfo)
-
-			res, err := manifest.BuildManifestURL(mock)
+			URL, err := buildMockContainerManifestURL(imageRef)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(res).To(Equal(expected))
+			Expect(URL).To(Equal(expected))
 		})
-		It("should combine the tag name and digest pinning into one digest, given multiple colons", func() {
-			in := "containrrr/watchtower:latest@sha256:daf7034c5c89775afe3008393ae033529913548243b84926931d7c84398ecda7"
-			image, tag := "containrrr/watchtower", "latest@sha256:daf7034c5c89775afe3008393ae033529913548243b84926931d7c84398ecda7"
+		It("should not prepend library/ for single-part container names in registries other than Docker Hub", func() {
+			imageRef := "docker-registry.domain/imagename:latest"
+			expected := "https://docker-registry.domain/v2/imagename/manifests/latest"
 
-			imageOut, tagOut := manifest.ExtractImageAndTag(in)
-
-			Expect(imageOut).To(Equal(image))
-			Expect(tagOut).To(Equal(tag))
+			URL, err := buildMockContainerManifestURL(imageRef)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(URL).To(Equal(expected))
+		})
+		It("should throw an error on pinned images", func() {
+			imageRef := "docker-registry.domain/imagename@sha256:daf7034c5c89775afe3008393ae033529913548243b84926931d7c84398ecda7"
+			URL, err := buildMockContainerManifestURL(imageRef)
+			Expect(err).To(HaveOccurred())
+			Expect(URL).To(BeEmpty())
 		})
 	})
-
 })
+
+func buildMockContainerManifestURL(imageRef string) (string, error) {
+	imageInfo := apiTypes.ImageInspect{
+		RepoTags: []string{
+			imageRef,
+		},
+	}
+	mockID := "mock-id"
+	mockName := "mock-container"
+	mockCreated := time.Now()
+	mock := mocks.CreateMockContainerWithImageInfo(mockID, mockName, imageRef, mockCreated, imageInfo)
+
+	return manifest.BuildManifestURL(mock)
+}

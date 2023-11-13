@@ -13,7 +13,7 @@ func WatchtowerContainersFilter(c t.FilterableContainer) bool { return c.IsWatch
 // NoFilter will not filter out any containers
 func NoFilter(t.FilterableContainer) bool { return true }
 
-// FilterByNames returns all containers that match the specified name
+// FilterByNames returns all containers that match one of the specified names
 func FilterByNames(names []string, baseFilter t.Filter) t.Filter {
 	if len(names) == 0 {
 		return baseFilter
@@ -38,6 +38,22 @@ func FilterByNames(names []string, baseFilter t.Filter) t.Filter {
 			}
 		}
 		return false
+	}
+}
+
+// FilterByDisableNames returns all containers that don't match any of the specified names
+func FilterByDisableNames(disableNames []string, baseFilter t.Filter) t.Filter {
+	if len(disableNames) == 0 {
+		return baseFilter
+	}
+
+	return func(c t.FilterableContainer) bool {
+		for _, name := range disableNames {
+			if name == c.Name() || name == c.Name()[1:] {
+				return false
+			}
+		}
+		return baseFilter(c)
 	}
 }
 
@@ -70,13 +86,14 @@ func FilterByDisabledLabel(baseFilter t.Filter) t.Filter {
 
 // FilterByScope returns all containers that belongs to a specific scope
 func FilterByScope(scope string, baseFilter t.Filter) t.Filter {
-	if scope == "" {
-		return baseFilter
-	}
-
 	return func(c t.FilterableContainer) bool {
-		containerScope, ok := c.Scope()
-		if ok && containerScope == scope {
+		containerScope, containerHasScope := c.Scope()
+
+		if !containerHasScope || containerScope == "" {
+			containerScope = "none"
+		}
+
+		if containerScope == scope {
 			return baseFilter(c)
 		}
 
@@ -103,16 +120,27 @@ func FilterByImage(images []string, baseFilter t.Filter) t.Filter {
 }
 
 // BuildFilter creates the needed filter of containers
-func BuildFilter(names []string, enableLabel bool, scope string) (t.Filter, string) {
+func BuildFilter(names []string, disableNames []string, enableLabel bool, scope string) (t.Filter, string) {
 	sb := strings.Builder{}
 	filter := NoFilter
 	filter = FilterByNames(names, filter)
+	filter = FilterByDisableNames(disableNames, filter)
 
 	if len(names) > 0 {
 		sb.WriteString("which name matches \"")
 		for i, n := range names {
 			sb.WriteString(n)
 			if i < len(names)-1 {
+				sb.WriteString(`" or "`)
+			}
+		}
+		sb.WriteString(`", `)
+	}
+	if len(disableNames) > 0 {
+		sb.WriteString("not named one of \"")
+		for i, n := range disableNames {
+			sb.WriteString(n)
+			if i < len(disableNames)-1 {
 				sb.WriteString(`" or "`)
 			}
 		}
@@ -125,7 +153,13 @@ func BuildFilter(names []string, enableLabel bool, scope string) (t.Filter, stri
 		filter = FilterByEnableLabel(filter)
 		sb.WriteString("using enable label, ")
 	}
-	if scope != "" {
+
+	if scope == "none" {
+		// If a scope has explicitly defined as "none", containers should only be considered
+		// if they do not have a scope defined, or if it's explicitly set to "none".
+		filter = FilterByScope(scope, filter)
+		sb.WriteString(`without a scope, "`)
+	} else if scope != "" {
 		// If a scope has been defined, containers should only be considered
 		// if the scope is specifically set.
 		filter = FilterByScope(scope, filter)

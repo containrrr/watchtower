@@ -1,12 +1,13 @@
 package actions_test
 
 import (
-	"github.com/sirupsen/logrus"
 	"testing"
 	"time"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/containrrr/watchtower/internal/actions"
-	"github.com/containrrr/watchtower/pkg/container"
+	"github.com/containrrr/watchtower/pkg/types"
 
 	. "github.com/containrrr/watchtower/internal/actions/mocks"
 	. "github.com/onsi/ginkgo"
@@ -37,7 +38,7 @@ var _ = Describe("the actions package", func() {
 			It("should not do anything", func() {
 				client := CreateMockClient(
 					&TestData{
-						Containers: []container.Container{
+						Containers: []types.Container{
 							CreateMockContainer(
 								"test-container",
 								"test-container",
@@ -59,7 +60,7 @@ var _ = Describe("the actions package", func() {
 				client = CreateMockClient(
 					&TestData{
 						NameOfContainerToKeep: "test-container-02",
-						Containers: []container.Container{
+						Containers: []types.Container{
 							CreateMockContainer(
 								"test-container-01",
 								"test-container-01",
@@ -89,7 +90,7 @@ var _ = Describe("the actions package", func() {
 			BeforeEach(func() {
 				client = CreateMockClient(
 					&TestData{
-						Containers: []container.Container{
+						Containers: []types.Container{
 							CreateMockContainer(
 								"test-container-01",
 								"test-container-01",

@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM alpine:3.17.1 as alpine
+FROM --platform=$BUILDPLATFORM alpine:3.18.4 as alpine
 
 RUN apk add --no-cache \
     ca-certificates \
@@ -17,4 +17,7 @@ COPY --from=alpine \
 EXPOSE 8080
 
 COPY watchtower /
+
+HEALTHCHECK CMD [ "/watchtower", "--health-check"]
+
 ENTRYPOINT ["/watchtower"]

@@ -14,7 +14,7 @@ import (
 )
 
 // CreateMockContainer creates a container substitute valid for testing
-func CreateMockContainer(id string, name string, image string, created time.Time) container.Container {
+func CreateMockContainer(id string, name string, image string, created time.Time) wt.Container {
 	content := types.ContainerJSON{
 		ContainerJSONBase: &types.ContainerJSONBase{
 			ID:      id,
@@ -31,7 +31,7 @@ func CreateMockContainer(id string, name string, image string, created time.Time
 			ExposedPorts: map[nat.Port]struct{}{},
 		},
 	}
-	return *container.NewContainer(
+	return container.NewContainer(
 		&content,
 		CreateMockImageInfo(image),
 	)
@@ -48,12 +48,12 @@ func CreateMockImageInfo(image string) *types.ImageInspect {
 }
 
 // CreateMockContainerWithImageInfo should only be used for testing
-func CreateMockContainerWithImageInfo(id string, name string, image string, created time.Time, imageInfo types.ImageInspect) container.Container {
+func CreateMockContainerWithImageInfo(id string, name string, image string, created time.Time, imageInfo types.ImageInspect) wt.Container {
 	return CreateMockContainerWithImageInfoP(id, name, image, created, &imageInfo)
 }
 
 // CreateMockContainerWithImageInfoP should only be used for testing
-func CreateMockContainerWithImageInfoP(id string, name string, image string, created time.Time, imageInfo *types.ImageInspect) container.Container {
+func CreateMockContainerWithImageInfoP(id string, name string, image string, created time.Time, imageInfo *types.ImageInspect) wt.Container {
 	content := types.ContainerJSON{
 		ContainerJSONBase: &types.ContainerJSONBase{
 			ID:      id,
@@ -66,21 +66,21 @@ func CreateMockContainerWithImageInfoP(id string, name string, image string, cre
 			Labels: make(map[string]string),
 		},
 	}
-	return *container.NewContainer(
+	return container.NewContainer(
 		&content,
 		imageInfo,
 	)
 }
 
 // CreateMockContainerWithDigest should only be used for testing
-func CreateMockContainerWithDigest(id string, name string, image string, created time.Time, digest string) container.Container {
+func CreateMockContainerWithDigest(id string, name string, image string, created time.Time, digest string) wt.Container {
 	c := CreateMockContainer(id, name, image, created)
 	c.ImageInfo().RepoDigests = []string{digest}
 	return c
 }
 
 // CreateMockContainerWithConfig creates a container substitute valid for testing
-func CreateMockContainerWithConfig(id string, name string, image string, running bool, restarting bool, created time.Time, config *dockerContainer.Config) container.Container {
+func CreateMockContainerWithConfig(id string, name string, image string, running bool, restarting bool, created time.Time, config *dockerContainer.Config) wt.Container {
 	content := types.ContainerJSON{
 		ContainerJSONBase: &types.ContainerJSONBase{
 			ID:    id,
@@ -97,14 +97,14 @@ func CreateMockContainerWithConfig(id string, name string, image string, running
 		},
 		Config: config,
 	}
-	return *container.NewContainer(
+	return container.NewContainer(
 		&content,
 		CreateMockImageInfo(image),
 	)
 }
 
 // CreateContainerForProgress creates a container substitute for tracking session/update progress
-func CreateContainerForProgress(index int, idPrefix int, nameFormat string) (container.Container, wt.ImageID) {
+func CreateContainerForProgress(index int, idPrefix int, nameFormat string) (wt.Container, wt.ImageID) {
 	indexStr := strconv.Itoa(idPrefix + index)
 	mockID := indexStr + strings.Repeat("0", 61-len(indexStr))
 	contID := "c79" + mockID
@@ -120,7 +120,7 @@ func CreateContainerForProgress(index int, idPrefix int, nameFormat string) (con
 }
 
 // CreateMockContainerWithLinks should only be used for testing
-func CreateMockContainerWithLinks(id string, name string, image string, created time.Time, links []string, imageInfo *types.ImageInspect) container.Container {
+func CreateMockContainerWithLinks(id string, name string, image string, created time.Time, links []string, imageInfo *types.ImageInspect) wt.Container {
 	content := types.ContainerJSON{
 		ContainerJSONBase: &types.ContainerJSONBase{
 			ID:      id,
@@ -136,7 +136,7 @@ func CreateMockContainerWithLinks(id string, name string, image string, created 
 			Labels: make(map[string]string),
 		},
 	}
-	return *container.NewContainer(
+	return container.NewContainer(
 		&content,
 		imageInfo,
 	)

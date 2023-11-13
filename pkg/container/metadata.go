@@ -1,18 +1,21 @@
 package container
 
+import "strconv"
+
 const (
-	watchtowerLabel       = "com.centurylinklabs.watchtower"
-	signalLabel           = "com.centurylinklabs.watchtower.stop-signal"
-	enableLabel           = "com.centurylinklabs.watchtower.enable"
-	monitorOnlyLabel      = "com.centurylinklabs.watchtower.monitor-only"
-	dependsOnLabel        = "com.centurylinklabs.watchtower.depends-on"
-	zodiacLabel           = "com.centurylinklabs.zodiac.original-image"
-	scope                 = "com.centurylinklabs.watchtower.scope"
-	preCheckLabel         = "com.centurylinklabs.watchtower.lifecycle.pre-check"
-	postCheckLabel        = "com.centurylinklabs.watchtower.lifecycle.post-check"
-	preUpdateLabel        = "com.centurylinklabs.watchtower.lifecycle.pre-update"
-	postUpdateLabel       = "com.centurylinklabs.watchtower.lifecycle.post-update"
-	preUpdateTimeoutLabel = "com.centurylinklabs.watchtower.lifecycle.pre-update-timeout"
+	watchtowerLabel        = "com.centurylinklabs.watchtower"
+	signalLabel            = "com.centurylinklabs.watchtower.stop-signal"
+	enableLabel            = "com.centurylinklabs.watchtower.enable"
+	monitorOnlyLabel       = "com.centurylinklabs.watchtower.monitor-only"
+	noPullLabel            = "com.centurylinklabs.watchtower.no-pull"
+	dependsOnLabel         = "com.centurylinklabs.watchtower.depends-on"
+	zodiacLabel            = "com.centurylinklabs.zodiac.original-image"
+	scope                  = "com.centurylinklabs.watchtower.scope"
+	preCheckLabel          = "com.centurylinklabs.watchtower.lifecycle.pre-check"
+	postCheckLabel         = "com.centurylinklabs.watchtower.lifecycle.post-check"
+	preUpdateLabel         = "com.centurylinklabs.watchtower.lifecycle.pre-update"
+	postUpdateLabel        = "com.centurylinklabs.watchtower.lifecycle.post-update"
+	preUpdateTimeoutLabel  = "com.centurylinklabs.watchtower.lifecycle.pre-update-timeout"
 	postUpdateTimeoutLabel = "com.centurylinklabs.watchtower.lifecycle.post-update-timeout"
 )
 
@@ -53,4 +56,12 @@ func (c Container) getLabelValueOrEmpty(label string) string {
 func (c Container) getLabelValue(label string) (string, bool) {
 	val, ok := c.containerInfo.Config.Labels[label]
 	return val, ok
+}
+
+func (c Container) getBoolLabelValue(label string) (bool, error) {
+	if strVal, ok := c.containerInfo.Config.Labels[label]; ok {
+		value, err := strconv.ParseBool(strVal)
+		return value, err
+	}
+	return false, errorLabelNotFound
 }

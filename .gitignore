@@ -8,3 +8,6 @@ dist
 /site
 coverage.out
 *.coverprofile
+
+docs/assets/wasm_exec.js
+docs/assets/*.wasm

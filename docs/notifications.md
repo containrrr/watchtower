@@ -18,19 +18,20 @@ system, [logrus](http://github.com/sirupsen/logrus).
 
 -   `--notifications-level` (env. `WATCHTOWER_NOTIFICATIONS_LEVEL`): Controls the log level which is used for the notifications. If omitted, the default log level is `info`. Possible values are: `panic`, `fatal`, `error`, `warn`, `info`, `debug` or `trace`.
 -   `--notifications-hostname` (env. `WATCHTOWER_NOTIFICATIONS_HOSTNAME`): Custom hostname specified in subject/title. Useful to override the operating system hostname.
--   `--notifications-delay` (env. `WATCHTOWER_NOTIFICATION_DELAY`): Delay before sending notifications expressed in seconds.
+-   `--notifications-delay` (env. `WATCHTOWER_NOTIFICATIONS_DELAY`): Delay before sending notifications expressed in seconds.
 -   Watchtower will post a notification every time it is started. This behavior [can be changed](https://containrrr.github.io/watchtower/arguments/#without_sending_a_startup_message) with an argument.
--   `notification-title-tag` (env. `WATCHTOWER_NOTIFICATION_TITLE_TAG`): Prefix to include in the title. Useful when running multiple watchtowers.
--   `notification-skip-title` (env. `WATCHTOWER_NOTIFICATION_SKIP_TITLE`): Do not pass the title param to notifications. This will not pass a dynamic title override to notification services. If no title is configured for the service, it will remove the title all together.
+-   `--notification-title-tag` (env. `WATCHTOWER_NOTIFICATION_TITLE_TAG`): Prefix to include in the title. Useful when running multiple watchtowers.
+-   `--notification-skip-title` (env. `WATCHTOWER_NOTIFICATION_SKIP_TITLE`): Do not pass the title param to notifications. This will not pass a dynamic title override to notification services. If no title is configured for the service, it will remove the title all together.
+-   `--notification-log-stdout` (env. `WATCHTOWER_NOTIFICATION_LOG_STDOUT`): Enable output from `logger://` shoutrrr service to stdout.
 
-## [shoutrrr](https://github.com/containrrr/shoutrrr) notifications
+## [Shoutrrr](https://github.com/containrrr/shoutrrr) notifications
 
 To send notifications via shoutrrr, the following command-line options, or their corresponding environment variables, can be set:
 
 -   `--notification-url` (env. `WATCHTOWER_NOTIFICATION_URL`): The shoutrrr service URL to be used.  This option can also reference a file, in which case the contents of the file are used.
 
 
-Go to [containrrr.dev/shoutrrr/v0.7/services/overview](https://containrrr.dev/shoutrrr/v0.6/services/overview) to
+Go to [containrrr.dev/shoutrrr/v0.8/services/overview](https://containrrr.dev/shoutrrr/v0.8/services/overview) to
 learn more about the different service URLs you can use. You can define multiple services by space separating the
 URLs. (See example below)
 
@@ -55,6 +56,10 @@ outputs timestamp and log level.
     [reference time](https://golang.org/pkg/time/#pkg-constants) (_Mon Jan 2 15:04:05 MST 2006_) would be displayed in your
     custom format.  
     i.e., The day of the year has to be 1, the month has to be 2 (february), the hour 3 (or 15 for 24h time) etc.
+
+!!! note "Skipping notifications"
+    To skip sending notifications that do not contain any information, you can wrap your template with `{{if .}}` and `{{end}}`.
+
 
 Example:
 
@@ -110,7 +115,7 @@ Example using a custom report template that always sends a session report after 
     docker run -d \
       --name watchtower \
       -v /var/run/docker.sock:/var/run/docker.sock \
-      -e WATCHTOWER_NOTIFICATION_REPORT="true"
+      -e WATCHTOWER_NOTIFICATION_REPORT="true" \
       -e WATCHTOWER_NOTIFICATION_URL="discord://token@channel slack://watchtower@token-a/token-b/token-c" \
       -e WATCHTOWER_NOTIFICATION_TEMPLATE="
       {{- if .Report -}}
@@ -130,7 +135,7 @@ Example using a custom report template that always sends a session report after 
           {{- end -}}
         {{- end -}}
       {{- else -}}
-        {{range .Entries -}}{{.Message}}{{"\n"}}{{- end -}}
+        {{range .Entries -}}{{.Message}}{{\"\n\"}}{{- end -}}
       {{- end -}}
       " \
       containrrr/watchtower

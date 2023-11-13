@@ -6,15 +6,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
+	"net/http"
+	"strings"
+	"time"
+
 	"github.com/containrrr/watchtower/internal/meta"
 	"github.com/containrrr/watchtower/pkg/registry/auth"
 	"github.com/containrrr/watchtower/pkg/registry/manifest"
 	"github.com/containrrr/watchtower/pkg/types"
 	"github.com/sirupsen/logrus"
-	"net"
-	"net/http"
-	"strings"
-	"time"
 )
 
 // ContentDigestHeader is the key for the key-value pair containing the digest header
@@ -25,7 +26,7 @@ func CompareDigest(container types.Container, registryAuth string) (bool, error)
 	if !container.HasImageInfo() {
 		return false, errors.New("container image info missing")
 	}
-	
+
 	var digest string
 
 	registryAuth = TransformAuth(registryAuth)
@@ -93,11 +94,12 @@ func GetDigest(url string, token string) (string, error) {
 	req, _ := http.NewRequest("HEAD", url, nil)
 	req.Header.Set("User-Agent", meta.UserAgent)
 
-	if token != "" {
-		logrus.WithField("token", token).Trace("Setting request token")
-	} else {
+	if token == "" {
 		return "", errors.New("could not fetch token")
 	}
+
+	// CREDENTIAL: Uncomment to log the request token
+	// logrus.WithField("token", token).Trace("Setting request token")
 
 	req.Header.Add("Authorization", token)
 	req.Header.Add("Accept", "application/vnd.docker.distribution.manifest.v2+json")

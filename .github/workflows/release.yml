@@ -15,13 +15,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Set up Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v4
         with:
-          go-version: 1.18.x
+          go-version: 1.20.x
       - uses: dominikh/staticcheck-action@ba605356b4b29a60e87ab9404b712f3461e566dc #v1.3.0
         with:
           version: "2022.1.1"
@@ -32,7 +32,7 @@ jobs:
     strategy:
       matrix:
         go-version:
-          - 1.18.x
+          - 1.20.x
         platform:
           - ubuntu-latest
           - macos-latest
@@ -40,13 +40,13 @@ jobs:
     runs-on: ${{ matrix.platform }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Set up Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v4
         with:
-          go-version: 1.18.x
+          go-version: 1.20.x
       - name: Run tests
         run: |
           go test ./... -coverprofile coverage.out
@@ -62,26 +62,26 @@ jobs:
       TAG: ${{ github.event.release.tag_name }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Set up Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v4
         with:
-          go-version: 1.18.x
+          go-version: 1.20.x
       - name: Login to Docker Hub
-        uses: docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a #v2
+        uses: docker/login-action@465a07811f14bebb1938fbed4728c6a1ff8901fc #v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Login to GHCR
-        uses: docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a #v2
+        uses: docker/login-action@465a07811f14bebb1938fbed4728c6a1ff8901fc #v2
         with:
           username: ${{ secrets.BOT_USERNAME }}
           password: ${{ secrets.BOT_GHCR_PAT }}
           registry: ghcr.io
       - name: Build
-        uses: goreleaser/goreleaser-action@f82d6c1c344bcacabba2c841718984797f664a6b #v3
+        uses: goreleaser/goreleaser-action@7ec5c2b0c6cdda6e8bbb49444bc797dd33d74dd8 #v3
         with:
           version: v0.155.0
           args: --debug
@@ -93,7 +93,7 @@ jobs:
           echo '{"experimental": "enabled"}' > ~/.docker/config.json
       - name: Create manifest for version
         run: |
-          export DH_TAG=$(echo $TAG | sed 's/^v*//')
+          export DH_TAG=$(git tag --points-at HEAD | sed 's/^v*//')
           docker manifest create \
             containrrr/watchtower:$DH_TAG \
             containrrr/watchtower:amd64-$DH_TAG \
@@ -191,7 +191,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Pull new module version
-      uses: andrewslotin/go-proxy-pull-action@bfc19ec6536e1638181b2ad6a03e16c7ccfb122f #master@2022-10-14
+      uses: andrewslotin/go-proxy-pull-action@50fea06a976087614babb9508e5c528b464f4645 #master@2022-10-14
 
   
   

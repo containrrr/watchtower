@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"math"
 	"net/http"
 	"os"
@@ -28,17 +29,20 @@ import (
 )
 
 var (
-	client         container.Client
-	scheduleSpec   string
-	cleanup        bool
-	noRestart      bool
-	monitorOnly    bool
-	enableLabel    bool
-	notifier       t.Notifier
-	timeout        time.Duration
-	lifecycleHooks bool
-	rollingRestart bool
-	scope          string
+	client            container.Client
+	scheduleSpec      string
+	cleanup           bool
+	noRestart         bool
+	noPull            bool
+	monitorOnly       bool
+	enableLabel       bool
+	disableContainers []string
+	notifier          t.Notifier
+	timeout           time.Duration
+	lifecycleHooks    bool
+	rollingRestart    bool
+	scope             string
+	labelPrecedence   bool
 )
 
 var rootCmd = NewRootCommand()
@@ -77,23 +81,8 @@ func Execute() {
 func PreRun(cmd *cobra.Command, _ []string) {
 	f := cmd.PersistentFlags()
 	flags.ProcessFlagAliases(f)
-
-	if enabled, _ := f.GetBool("no-color"); enabled {
-		log.SetFormatter(&log.TextFormatter{
-			DisableColors: true,
-		})
-	} else {
-		// enable logrus built-in support for https://bixense.com/clicolors/
-		log.SetFormatter(&log.TextFormatter{
-			EnvironmentOverrideColors: true,
-		})
-	}
-
-	rawLogLevel, _ := f.GetString(`log-level`)
-	if logLevel, err := log.ParseLevel(rawLogLevel); err != nil {
-		log.Fatalf("Invalid log level: %s", err.Error())
-	} else {
-		log.SetLevel(logLevel)
+	if err := flags.SetupLogging(f); err != nil {
+		log.Fatalf("Failed to initialize logging: %s", err.Error())
 	}
 
 	scheduleSpec, _ = f.GetString("schedule")
@@ -106,9 +95,11 @@ func PreRun(cmd *cobra.Command, _ []string) {
 	}
 
 	enableLabel, _ = f.GetBool("label-enable")
+	disableContainers, _ = f.GetStringSlice("disable-containers")
 	lifecycleHooks, _ = f.GetBool("enable-lifecycle-hooks")
 	rollingRestart, _ = f.GetBool("rolling-restart")
 	scope, _ = f.GetString("scope")
+	labelPrecedence, _ = f.GetBool("label-take-precedence")
 
 	if scope != "" {
 		log.Debugf(`Using scope %q`, scope)
@@ -120,7 +111,7 @@ func PreRun(cmd *cobra.Command, _ []string) {
 		log.Fatal(err)
 	}
 
-	noPull, _ := f.GetBool("no-pull")
+	noPull, _ = f.GetBool("no-pull")
 	includeStopped, _ := f.GetBool("include-stopped")
 	includeRestarting, _ := f.GetBool("include-restarting")
 	reviveStopped, _ := f.GetBool("revive-stopped")
@@ -132,7 +123,6 @@ func PreRun(cmd *cobra.Command, _ []string) {
 	}
 
 	client = container.NewClient(container.ClientOptions{
-		PullImages:        !noPull,
 		IncludeStopped:    includeStopped,
 		ReviveStopped:     reviveStopped,
 		RemoveVolumes:     removeVolumes,
@@ -146,12 +136,22 @@ func PreRun(cmd *cobra.Command, _ []string) {
 
 // Run is the main execution flow of the command
 func Run(c *cobra.Command, names []string) {
-	filter, filterDesc := filters.BuildFilter(names, enableLabel, scope)
+	filter, filterDesc := filters.BuildFilter(names, disableContainers, enableLabel, scope)
 	runOnce, _ := c.PersistentFlags().GetBool("run-once")
 	enableUpdateAPI, _ := c.PersistentFlags().GetBool("http-api-update")
 	enableMetricsAPI, _ := c.PersistentFlags().GetBool("http-api-metrics")
 	unblockHTTPAPI, _ := c.PersistentFlags().GetBool("http-api-periodic-polls")
 	apiToken, _ := c.PersistentFlags().GetString("http-api-token")
+	healthCheck, _ := c.PersistentFlags().GetBool("health-check")
+
+	if healthCheck {
+		// health check should not have pid 1
+		if os.Getpid() == 1 {
+			time.Sleep(1 * time.Second)
+			log.Fatal("The health check flag should never be passed to the main watchtower container process")
+		}
+		os.Exit(0)
+	}
 
 	if rollingRestart && monitorOnly {
 		log.Fatal("Rolling restarts is not compatible with the global monitor only flag")
@@ -187,7 +187,7 @@ func Run(c *cobra.Command, names []string) {
 			metrics.RegisterScan(metric)
 		}, updateLock)
 		httpAPI.RegisterFunc(updateHandler.Path, updateHandler.Handle)
-		// If polling isn't enabled the scheduler is never started and
+		// If polling isn't enabled the scheduler is never started, and
 		// we need to trigger the startup messages manually.
 		if !unblockHTTPAPI {
 			writeStartupMessage(c, time.Time{}, filterDesc)
@@ -199,7 +199,7 @@ func Run(c *cobra.Command, names []string) {
 		httpAPI.RegisterHandler(metricsHandler.Path, metricsHandler.Handle)
 	}
 
-	if err := httpAPI.Start(enableUpdateAPI && !unblockHTTPAPI); err != nil && err != http.ErrServerClosed {
+	if err := httpAPI.Start(enableUpdateAPI && !unblockHTTPAPI); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		log.Error("failed to start API", err)
 	}
 
@@ -359,13 +359,15 @@ func runUpgradesOnSchedule(c *cobra.Command, filter t.Filter, filtering string, 
 func runUpdatesWithNotifications(filter t.Filter) *metrics.Metric {
 	notifier.StartNotification()
 	updateParams := t.UpdateParams{
-		Filter:         filter,
-		Cleanup:        cleanup,
-		NoRestart:      noRestart,
-		Timeout:        timeout,
-		MonitorOnly:    monitorOnly,
-		LifecycleHooks: lifecycleHooks,
-		RollingRestart: rollingRestart,
+		Filter:          filter,
+		Cleanup:         cleanup,
+		NoRestart:       noRestart,
+		Timeout:         timeout,
+		MonitorOnly:     monitorOnly,
+		LifecycleHooks:  lifecycleHooks,
+		RollingRestart:  rollingRestart,
+		LabelPrecedence: labelPrecedence,
+		NoPull:          noPull,
 	}
 	result, err := actions.Update(client, updateParams)
 	if err != nil {

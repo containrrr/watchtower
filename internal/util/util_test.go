@@ -1,8 +1,10 @@
 package util
 
 import (
-	"github.com/stretchr/testify/assert"
+	"regexp"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestSliceEqual_True(t *testing.T) {
@@ -61,4 +63,16 @@ func TestStructMapSubtract(t *testing.T) {
 	assert.Equal(t, map[string]struct{}{"b": x}, result)
 	assert.Equal(t, map[string]struct{}{"a": x, "b": x, "c": x}, m1)
 	assert.Equal(t, map[string]struct{}{"a": x, "c": x}, m2)
+}
+
+// GenerateRandomSHA256 generates a random 64 character SHA 256 hash string
+func TestGenerateRandomSHA256(t *testing.T) {
+	res := GenerateRandomSHA256()
+	assert.Len(t, res, 64)
+	assert.NotContains(t, res, "sha256:")
+}
+
+func TestGenerateRandomPrefixedSHA256(t *testing.T) {
+	res := GenerateRandomPrefixedSHA256()
+	assert.Regexp(t, regexp.MustCompile("sha256:[0-9|a-f]{64}"), res)
 }

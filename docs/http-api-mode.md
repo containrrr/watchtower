@@ -35,3 +35,11 @@ Notice that there is an environment variable named WATCHTOWER_HTTP_API_TOKEN. To
 ```bash
 curl -H "Authorization: Bearer mytoken" localhost:8080/v1/update
 ```
+
+---
+
+In order to update only certain images, the image names can be provided as URL query parameters. The following `curl` command would trigger an update for the images `foo/bar` and `foo/baz`:
+
+```bash
+curl -H "Authorization: Bearer mytoken" localhost:8080/v1/update?image=foo/bar,foo/baz
+```

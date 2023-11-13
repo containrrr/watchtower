@@ -2,13 +2,14 @@ package sorter
 
 import (
 	"fmt"
-	"github.com/containrrr/watchtower/pkg/container"
 	"time"
+
+	"github.com/containrrr/watchtower/pkg/types"
 )
 
 // ByCreated allows a list of Container structs to be sorted by the container's
 // created date.
-type ByCreated []container.Container
+type ByCreated []types.Container
 
 func (c ByCreated) Len() int      { return len(c) }
 func (c ByCreated) Swap(i, j int) { c[i], c[j] = c[j], c[i] }
@@ -34,18 +35,18 @@ func (c ByCreated) Less(i, j int) bool {
 // the front of the list while containers with links will be sorted after all
 // of their dependencies. This sort order ensures that linked containers can
 // be started in the correct order.
-func SortByDependencies(containers []container.Container) ([]container.Container, error) {
+func SortByDependencies(containers []types.Container) ([]types.Container, error) {
 	sorter := dependencySorter{}
 	return sorter.Sort(containers)
 }
 
 type dependencySorter struct {
-	unvisited []container.Container
+	unvisited []types.Container
 	marked    map[string]bool
-	sorted    []container.Container
+	sorted    []types.Container
 }
 
-func (ds *dependencySorter) Sort(containers []container.Container) ([]container.Container, error) {
+func (ds *dependencySorter) Sort(containers []types.Container) ([]types.Container, error) {
 	ds.unvisited = containers
 	ds.marked = map[string]bool{}
 
@@ -58,7 +59,7 @@ func (ds *dependencySorter) Sort(containers []container.Container) ([]container.
 	return ds.sorted, nil
 }
 
-func (ds *dependencySorter) visit(c container.Container) error {
+func (ds *dependencySorter) visit(c types.Container) error {
 
 	if _, ok := ds.marked[c.Name()]; ok {
 		return fmt.Errorf("circular reference to %s", c.Name())
@@ -84,7 +85,7 @@ func (ds *dependencySorter) visit(c container.Container) error {
 	return nil
 }
 
-func (ds *dependencySorter) findUnvisited(name string) *container.Container {
+func (ds *dependencySorter) findUnvisited(name string) *types.Container {
 	for _, c := range ds.unvisited {
 		if c.Name() == name {
 			return &c
@@ -94,7 +95,7 @@ func (ds *dependencySorter) findUnvisited(name string) *container.Container {
 	return nil
 }
 
-func (ds *dependencySorter) removeUnvisited(c container.Container) {
+func (ds *dependencySorter) removeUnvisited(c types.Container) {
 	var idx int
 	for i := range ds.unvisited {
 		if ds.unvisited[i].Name() == c.Name() {

@@ -1,6 +1,8 @@
 package container
 
 import (
+	"github.com/containrrr/watchtower/pkg/types"
+	dc "github.com/docker/docker/api/types/container"
 	"github.com/docker/go-connections/nat"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -63,6 +65,93 @@ var _ = Describe("the container", func() {
 				c.containerInfo.Config.ExposedPorts = map[nat.Port]struct{}{"80/tcp": {}}
 				err := c.VerifyConfiguration()
 				Expect(err).ToNot(HaveOccurred())
+			})
+		})
+	})
+	Describe("GetCreateConfig", func() {
+		When("container healthcheck config is equal to image config", func() {
+			It("should return empty healthcheck values", func() {
+				c := MockContainer(WithHealthcheck(dc.HealthConfig{
+					Test: []string{"/usr/bin/sleep", "1s"},
+				}), WithImageHealthcheck(dc.HealthConfig{
+					Test: []string{"/usr/bin/sleep", "1s"},
+				}))
+				Expect(c.GetCreateConfig().Healthcheck).To(Equal(&dc.HealthConfig{}))
+
+				c = MockContainer(WithHealthcheck(dc.HealthConfig{
+					Timeout: 30,
+				}), WithImageHealthcheck(dc.HealthConfig{
+					Timeout: 30,
+				}))
+				Expect(c.GetCreateConfig().Healthcheck).To(Equal(&dc.HealthConfig{}))
+
+				c = MockContainer(WithHealthcheck(dc.HealthConfig{
+					StartPeriod: 30,
+				}), WithImageHealthcheck(dc.HealthConfig{
+					StartPeriod: 30,
+				}))
+				Expect(c.GetCreateConfig().Healthcheck).To(Equal(&dc.HealthConfig{}))
+
+				c = MockContainer(WithHealthcheck(dc.HealthConfig{
+					Retries: 30,
+				}), WithImageHealthcheck(dc.HealthConfig{
+					Retries: 30,
+				}))
+				Expect(c.GetCreateConfig().Healthcheck).To(Equal(&dc.HealthConfig{}))
+			})
+		})
+		When("container healthcheck config is different to image config", func() {
+			It("should return the container healthcheck values", func() {
+				c := MockContainer(WithHealthcheck(dc.HealthConfig{
+					Test:        []string{"/usr/bin/sleep", "1s"},
+					Interval:    30,
+					Timeout:     30,
+					StartPeriod: 10,
+					Retries:     2,
+				}), WithImageHealthcheck(dc.HealthConfig{
+					Test:        []string{"/usr/bin/sleep", "10s"},
+					Interval:    10,
+					Timeout:     60,
+					StartPeriod: 30,
+					Retries:     10,
+				}))
+				Expect(c.GetCreateConfig().Healthcheck).To(Equal(&dc.HealthConfig{
+					Test:        []string{"/usr/bin/sleep", "1s"},
+					Interval:    30,
+					Timeout:     30,
+					StartPeriod: 10,
+					Retries:     2,
+				}))
+			})
+		})
+		When("container healthcheck config is empty", func() {
+			It("should not panic", func() {
+				c := MockContainer(WithImageHealthcheck(dc.HealthConfig{
+					Test:        []string{"/usr/bin/sleep", "10s"},
+					Interval:    10,
+					Timeout:     60,
+					StartPeriod: 30,
+					Retries:     10,
+				}))
+				Expect(c.GetCreateConfig().Healthcheck).To(BeNil())
+			})
+		})
+		When("container image healthcheck config is empty", func() {
+			It("should not panic", func() {
+				c := MockContainer(WithHealthcheck(dc.HealthConfig{
+					Test:        []string{"/usr/bin/sleep", "1s"},
+					Interval:    30,
+					Timeout:     30,
+					StartPeriod: 10,
+					Retries:     2,
+				}))
+				Expect(c.GetCreateConfig().Healthcheck).To(Equal(&dc.HealthConfig{
+					Test:        []string{"/usr/bin/sleep", "1s"},
+					Interval:    30,
+					Timeout:     30,
+					StartPeriod: 10,
+					Retries:     2,
+				}))
 			})
 		})
 	})
@@ -178,14 +267,21 @@ var _ = Describe("the container", func() {
 						"com.centurylinklabs.watchtower.depends-on": "postgres",
 					}))
 					links := c.Links()
-					Expect(links).To(SatisfyAll(ContainElement("postgres"), HaveLen(1)))
+					Expect(links).To(SatisfyAll(ContainElement("/postgres"), HaveLen(1)))
 				})
 				It("should fetch depending containers if there are many", func() {
 					c = MockContainer(WithLabels(map[string]string{
 						"com.centurylinklabs.watchtower.depends-on": "postgres,redis",
 					}))
 					links := c.Links()
-					Expect(links).To(SatisfyAll(ContainElement("postgres"), ContainElement("redis"), HaveLen(2)))
+					Expect(links).To(SatisfyAll(ContainElement("/postgres"), ContainElement("/redis"), HaveLen(2)))
+				})
+				It("should only add slashes to names when they are missing", func() {
+					c = MockContainer(WithLabels(map[string]string{
+						"com.centurylinklabs.watchtower.depends-on": "/postgres,redis",
+					}))
+					links := c.Links()
+					Expect(links).To(SatisfyAll(ContainElement("/postgres"), ContainElement("/redis")))
 				})
 				It("should fetch depending containers if label is blank", func() {
 					c = MockContainer(WithLabels(map[string]string{
@@ -203,6 +299,77 @@ var _ = Describe("the container", func() {
 					}))
 					links := c.Links()
 					Expect(links).To(SatisfyAll(ContainElement("redis"), ContainElement("postgres"), HaveLen(2)))
+				})
+			})
+		})
+
+		When("checking no-pull label", func() {
+			When("no-pull argument is not set", func() {
+				When("no-pull label is true", func() {
+					c := MockContainer(WithLabels(map[string]string{
+						"com.centurylinklabs.watchtower.no-pull": "true",
+					}))
+					It("should return true", func() {
+						Expect(c.IsNoPull(types.UpdateParams{})).To(Equal(true))
+					})
+				})
+				When("no-pull label is false", func() {
+					c := MockContainer(WithLabels(map[string]string{
+						"com.centurylinklabs.watchtower.no-pull": "false",
+					}))
+					It("should return false", func() {
+						Expect(c.IsNoPull(types.UpdateParams{})).To(Equal(false))
+					})
+				})
+				When("no-pull label is set to an invalid value", func() {
+					c := MockContainer(WithLabels(map[string]string{
+						"com.centurylinklabs.watchtower.no-pull": "maybe",
+					}))
+					It("should return false", func() {
+						Expect(c.IsNoPull(types.UpdateParams{})).To(Equal(false))
+					})
+				})
+				When("no-pull label is unset", func() {
+					c = MockContainer(WithLabels(map[string]string{}))
+					It("should return false", func() {
+						Expect(c.IsNoPull(types.UpdateParams{})).To(Equal(false))
+					})
+				})
+			})
+			When("no-pull argument is set to true", func() {
+				When("no-pull label is true", func() {
+					c := MockContainer(WithLabels(map[string]string{
+						"com.centurylinklabs.watchtower.no-pull": "true",
+					}))
+					It("should return true", func() {
+						Expect(c.IsNoPull(types.UpdateParams{NoPull: true})).To(Equal(true))
+					})
+				})
+				When("no-pull label is false", func() {
+					c := MockContainer(WithLabels(map[string]string{
+						"com.centurylinklabs.watchtower.no-pull": "false",
+					}))
+					It("should return true", func() {
+						Expect(c.IsNoPull(types.UpdateParams{NoPull: true})).To(Equal(true))
+					})
+				})
+				When("label-take-precedence argument is set to true", func() {
+					When("no-pull label is true", func() {
+						c := MockContainer(WithLabels(map[string]string{
+							"com.centurylinklabs.watchtower.no-pull": "true",
+						}))
+						It("should return true", func() {
+							Expect(c.IsNoPull(types.UpdateParams{LabelPrecedence: true, NoPull: true})).To(Equal(true))
+						})
+					})
+					When("no-pull label is false", func() {
+						c := MockContainer(WithLabels(map[string]string{
+							"com.centurylinklabs.watchtower.no-pull": "false",
+						}))
+						It("should return false", func() {
+							Expect(c.IsNoPull(types.UpdateParams{LabelPrecedence: true, NoPull: true})).To(Equal(false))
+						})
+					})
 				})
 			})
 		})

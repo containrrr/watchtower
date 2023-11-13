@@ -10,10 +10,9 @@ import (
 
 	"github.com/containrrr/shoutrrr"
 	"github.com/containrrr/shoutrrr/pkg/types"
+	"github.com/containrrr/watchtower/pkg/notifications/templates"
 	t "github.com/containrrr/watchtower/pkg/types"
 	log "github.com/sirupsen/logrus"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 )
 
 // LocalLog is a logrus logger that does not send entries as notifications
@@ -61,7 +60,7 @@ func (n *shoutrrrTypeNotifier) GetNames() []string {
 	return names
 }
 
-// GetNames returns a list of URLs for notification services that has been added
+// GetURLs returns a list of URLs for notification services that has been added
 func (n *shoutrrrTypeNotifier) GetURLs() []string {
 	return n.Urls
 }
@@ -74,7 +73,7 @@ func (n *shoutrrrTypeNotifier) AddLogHook() {
 	n.receiving = true
 	log.AddHook(n)
 
-	// Do the sending in a separate goroutine so we don't block the main process.
+	// Do the sending in a separate goroutine, so we don't block the main process.
 	go sendNotifications(n)
 }
 
@@ -110,6 +109,7 @@ func createNotifier(urls []string, level log.Level, tplString string, legacy boo
 		legacyTemplate: legacy,
 		data:           data,
 		params:         params,
+		delay:          delay,
 	}
 }
 
@@ -207,13 +207,8 @@ func (n *shoutrrrTypeNotifier) Fire(entry *log.Entry) error {
 }
 
 func getShoutrrrTemplate(tplString string, legacy bool) (tpl *template.Template, err error) {
-	funcs := template.FuncMap{
-		"ToUpper": strings.ToUpper,
-		"ToLower": strings.ToLower,
-		"ToJSON":  toJSON,
-		"Title":   cases.Title(language.AmericanEnglish).String,
-	}
-	tplBase := template.New("").Funcs(funcs)
+
+	tplBase := template.New("").Funcs(templates.Funcs)
 
 	if builtin, found := commonTemplates[tplString]; found {
 		log.WithField(`template`, tplString).Debug(`Using common template`)

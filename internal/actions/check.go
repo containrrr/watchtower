@@ -2,16 +2,15 @@ package actions
 
 import (
 	"fmt"
-	"github.com/containrrr/watchtower/pkg/types"
 	"sort"
 	"time"
 
+	"github.com/containrrr/watchtower/pkg/container"
 	"github.com/containrrr/watchtower/pkg/filters"
 	"github.com/containrrr/watchtower/pkg/sorter"
+	"github.com/containrrr/watchtower/pkg/types"
 
 	log "github.com/sirupsen/logrus"
-
-	"github.com/containrrr/watchtower/pkg/container"
 )
 
 // CheckForSanity makes sure everything is sane before starting
@@ -40,7 +39,11 @@ func CheckForSanity(client container.Client, filter types.Filter, rollingRestart
 // will stop and remove all but the most recently started container. This behaviour can be bypassed
 // if a scope UID is defined.
 func CheckForMultipleWatchtowerInstances(client container.Client, cleanup bool, scope string) error {
-	containers, err := client.ListContainers(filters.FilterByScope(scope, filters.WatchtowerContainersFilter))
+	filter := filters.WatchtowerContainersFilter
+	if scope != "" {
+		filter = filters.FilterByScope(scope, filter)
+	}
+	containers, err := client.ListContainers(filter)
 
 	if err != nil {
 		return err
@@ -55,7 +58,7 @@ func CheckForMultipleWatchtowerInstances(client container.Client, cleanup bool, 
 	return cleanupExcessWatchtowers(containers, client, cleanup)
 }
 
-func cleanupExcessWatchtowers(containers []container.Container, client container.Client, cleanup bool) error {
+func cleanupExcessWatchtowers(containers []types.Container, client container.Client, cleanup bool) error {
 	var stopErrors int
 
 	sort.Sort(sorter.ByCreated(containers))

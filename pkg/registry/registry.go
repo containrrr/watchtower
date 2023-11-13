@@ -3,7 +3,7 @@ package registry
 import (
 	"github.com/containrrr/watchtower/pkg/registry/helpers"
 	watchtowerTypes "github.com/containrrr/watchtower/pkg/types"
-	ref "github.com/docker/distribution/reference"
+	ref "github.com/distribution/reference"
 	"github.com/docker/docker/api/types"
 	log "github.com/sirupsen/logrus"
 )
@@ -19,7 +19,9 @@ func GetPullOptions(imageName string) (types.ImagePullOptions, error) {
 	if auth == "" {
 		return types.ImagePullOptions{}, nil
 	}
-	log.Tracef("Got auth value: %s", auth)
+
+	// CREDENTIAL: Uncomment to log docker config auth
+	// log.Tracef("Got auth value: %s", auth)
 
 	return types.ImagePullOptions{
 		RegistryAuth:  auth,
@@ -41,17 +43,17 @@ func DefaultAuthHandler() (string, error) {
 // Will return false if behavior for container is unknown.
 func WarnOnAPIConsumption(container watchtowerTypes.Container) bool {
 
-	normalizedName, err := ref.ParseNormalizedNamed(container.ImageName())
+	normalizedRef, err := ref.ParseNormalizedNamed(container.ImageName())
 	if err != nil {
 		return true
 	}
 
-	containerHost, err := helpers.NormalizeRegistry(normalizedName.String())
+	containerHost, err := helpers.GetRegistryAddress(normalizedRef.Name())
 	if err != nil {
 		return true
 	}
 
-	if containerHost == "index.docker.io" || containerHost == "ghcr.io" {
+	if containerHost == helpers.DefaultRegistryHost || containerHost == "ghcr.io" {
 		return true
 	}
 
