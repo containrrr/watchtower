@@ -165,6 +165,7 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
     <tr>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/testwill"><img src="https://avatars.githubusercontent.com/u/8717479?v=4?s=100" width="100px;" alt="guangwu"/><br /><sub><b>guangwu</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=testwill" title="Documentation">📖</a></td>
       <td align="center" valign="top" width="14.28%"><a href="http://hub.lol"><img src="https://avatars.githubusercontent.com/u/48992448?v=4?s=100" width="100px;" alt="Florian Hübner"/><br /><sub><b>Florian Hübner</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=nothub" title="Documentation">📖</a> <a href="https://github.com/containrrr/watchtower/commits?author=nothub" title="Code">💻</a></td>
+      <td align="center"><a href="https://github.com/andriibratanin"><img src="https://avatars.githubusercontent.com/u/20169213?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Andrii Bratanin</b></sub></a><br /><a href="https://github.com/containrrr/watchtower/commits?author=andriibratanin" title="Documentation">📖</a></td>
     </tr>
   </tbody>
 </table>
