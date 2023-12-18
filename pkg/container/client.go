@@ -372,7 +372,7 @@ func (client dockerClient) HasNewImage(ctx context.Context, container t.Containe
 			diffDays := int(time.Since(newImageDate).Hours() / 24)
 
 			if diffDays < requiredDays {
-				log.Infof("New image found for %s that is %d days since publication but update delayed until %d days", container.Name(), diffDays, requiredDays)
+				log.Infof("New image found for %s that was created %d day(s) ago but update delayed until %d day(s) after creation", container.Name(), diffDays, requiredDays)
 				return false, currentImageID, nil
 			}
 		}

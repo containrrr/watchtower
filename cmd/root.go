@@ -290,6 +290,10 @@ func writeStartupMessage(c *cobra.Command, sched time.Time, filtering string) {
 		until := formatDuration(time.Until(sched))
 		startupLog.Info("Scheduling first run: " + sched.Format("2006-01-02 15:04:05 -0700 MST"))
 		startupLog.Info("Note that the first check will be performed in " + until)
+		delayDays, _ = c.PersistentFlags().GetInt("delay-days")
+		if delayDays > 0 {
+			startupLog.Infof("Container updates will be delayed until %d day(s) after image creation.", delayDays)
+		}
 	} else if runOnce, _ := c.PersistentFlags().GetBool("run-once"); runOnce {
 		startupLog.Info("Running a one time update.")
 	} else {
