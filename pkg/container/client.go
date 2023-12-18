@@ -325,10 +325,25 @@ func (client dockerClient) IsContainerStale(container t.Container, params t.Upda
 		return false, container.SafeImageID(), err
 	}
 
-	return client.HasNewImage(ctx, container)
+	return client.HasNewImage(ctx, container, params)
 }
 
-func (client dockerClient) HasNewImage(ctx context.Context, container t.Container) (hasNew bool, latestImage t.ImageID, err error) {
+// Date strings sometimes vary in how many digits after the decimal point are present. This function
+// standardizes them by removing the milliseconds.
+func truncateMilliseconds(dateString string) string {
+	// Find the position of the dot (.) in the date string
+	dotIndex := strings.Index(dateString, ".")
+
+	// If the dot is found, truncate the string before the dot
+	if dotIndex != -1 {
+		return dateString[:dotIndex] + "Z"
+	}
+
+	// If the dot is not found, return the original string
+	return dateString
+}
+
+func (client dockerClient) HasNewImage(ctx context.Context, container t.Container, params t.UpdateParams) (hasNew bool, latestImage t.ImageID, err error) {
 	currentImageID := t.ImageID(container.ContainerInfo().ContainerJSONBase.Image)
 	imageName := container.ImageName()
 
@@ -339,8 +354,28 @@ func (client dockerClient) HasNewImage(ctx context.Context, container t.Containe
 
 	newImageID := t.ImageID(newImageInfo.ID)
 	if newImageID == currentImageID {
-		log.Debugf("No new images found for %s", container.Name())
+		log.Debugf("No new images found for %s [ imageID %s ]", container.Name(), newImageID.ShortID())
 		return false, currentImageID, nil
+	}
+
+	// Disabled by default
+	if params.DelayDays > 0 {
+		// Define the layout string for the date format without milliseconds
+		layout := "2006-01-02T15:04:05Z"
+		newImageDate, error := time.Parse(layout, truncateMilliseconds(newImageInfo.Created))
+
+		if error != nil {
+			log.Errorf("Error parsing Created date (%s) for container %s latest label. Error: %s", newImageInfo.Created, container.Name(), error)
+			return false, currentImageID, nil
+		} else {
+			requiredDays := params.DelayDays
+			diffDays := int(time.Since(newImageDate).Hours() / 24)
+
+			if diffDays < requiredDays {
+				log.Infof("New image found for %s that is %d days since publication but update delayed until %d days", container.Name(), diffDays, requiredDays)
+				return false, currentImageID, nil
+			}
+		}
 	}
 
 	log.Infof("Found new %s image (%s)", imageName, newImageID.ShortID())

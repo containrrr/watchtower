@@ -39,6 +39,7 @@ var (
 	disableContainers []string
 	notifier          t.Notifier
 	timeout           time.Duration
+	delayDays         int
 	lifecycleHooks    bool
 	rollingRestart    bool
 	scope             string
@@ -96,6 +97,7 @@ func PreRun(cmd *cobra.Command, _ []string) {
 
 	enableLabel, _ = f.GetBool("label-enable")
 	disableContainers, _ = f.GetStringSlice("disable-containers")
+	delayDays, _ = f.GetInt("delay-days")
 	lifecycleHooks, _ = f.GetBool("enable-lifecycle-hooks")
 	rollingRestart, _ = f.GetBool("rolling-restart")
 	scope, _ = f.GetString("scope")
@@ -364,6 +366,7 @@ func runUpdatesWithNotifications(filter t.Filter) *metrics.Metric {
 		NoRestart:       noRestart,
 		Timeout:         timeout,
 		MonitorOnly:     monitorOnly,
+		DelayDays:       delayDays,
 		LifecycleHooks:  lifecycleHooks,
 		RollingRestart:  rollingRestart,
 		LabelPrecedence: labelPrecedence,

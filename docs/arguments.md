@@ -381,6 +381,16 @@ Environment Variable: WATCHTOWER_HTTP_API_METRICS
              Default: false
 ```
 
+## Delayed Update
+Only update container to latest version of image if some number of days have passed since it has been published. This option may be useful for those who wish to avoid updating prior to the new version having some time in the field prior to updating in case there are critical defects found and released in a subsequent version.
+
+```text
+            Argument: --delay-days
+Environment Variable: WATCHTOWER_DELAY_DAYS
+                Type: Integer
+             Default: false
+```
+
 ## Scheduling
 [Cron expression](https://pkg.go.dev/github.com/robfig/cron@v1.2.0?tab=doc#hdr-CRON_Expression_Format) in 6 fields (rather than the traditional 5) which defines when and how often to check for new images. Either `--interval` or the schedule expression
 can be defined, but not both. An example: `--schedule "0 0 4 * * *"`
