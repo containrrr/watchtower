@@ -2,6 +2,8 @@ package actions
 
 import (
 	"errors"
+	"strings"
+	"time"
 
 	"github.com/containrrr/watchtower/internal/util"
 	"github.com/containrrr/watchtower/pkg/container"
@@ -33,13 +35,23 @@ func Update(client container.Client, params types.UpdateParams) (types.Report, e
 	staleCheckFailed := 0
 
 	for i, targetContainer := range containers {
+		// stale will be true if there is a more recent image than the current container is using
 		stale, newestImage, err := client.IsContainerStale(targetContainer, params)
 		shouldUpdate := stale && !params.NoRestart && !targetContainer.IsMonitorOnly(params)
+		imageUpdateDelayResolved := true
+		imageAgeDays := 0
 		if err == nil && shouldUpdate {
-			// Check to make sure we have all the necessary information for recreating the container
+			// Check to make sure we have all the necessary information for recreating the container, including ImageInfo
 			err = targetContainer.VerifyConfiguration()
-			// If the image information is incomplete and trace logging is enabled, log it for further diagnosis
-			if err != nil && log.IsLevelEnabled(log.TraceLevel) {
+			if err == nil {
+				if params.DelayDays > 0 {
+					imageAgeDays, err := getImageAgeDays(targetContainer.ImageInfo().Created)
+					if err == nil {
+						imageUpdateDelayResolved = imageAgeDays >= params.DelayDays
+					}
+				}
+			} else if log.IsLevelEnabled(log.TraceLevel) {
+				// If the image information is incomplete and trace logging is enabled, log it for further diagnosis
 				imageInfo := targetContainer.ImageInfo()
 				log.Tracef("Image info: %#v", imageInfo)
 				log.Tracef("Container info: %#v", targetContainer.ContainerInfo())
@@ -54,6 +66,11 @@ func Update(client container.Client, params types.UpdateParams) (types.Report, e
 			stale = false
 			staleCheckFailed++
 			progress.AddSkipped(targetContainer, err)
+		} else if !imageUpdateDelayResolved {
+			log.Infof("New image found for %s that was created %d day(s) ago but update delayed until %d day(s) after creation", targetContainer.Name(), imageAgeDays, params.DelayDays)
+			// technically the container is stale but we set it to false here because it is this stale flag that tells downstream methods whether to perform the update
+			stale = false
+			progress.AddScanned(targetContainer, newestImage)
 		} else {
 			progress.AddScanned(targetContainer, newestImage)
 		}
@@ -71,6 +88,8 @@ func Update(client container.Client, params types.UpdateParams) (types.Report, e
 
 	UpdateImplicitRestart(containers)
 
+	// containersToUpdate will contain all containers, not just those that need to be updated. The "stale" flag is checked via container.ToRestart()
+	// within stopContainersInReversedOrder and restartContainersInSortedOrder to skip containers with stale set to false (unless LinkedToRestarting set)
 	var containersToUpdate []types.Container
 	for _, c := range containers {
 		if !c.IsMonitorOnly(params) {
@@ -264,4 +283,28 @@ func linkedContainerMarkedForRestart(links []string, containers []types.Containe
 		}
 	}
 	return ""
+}
+
+// Finds the difference between now and a given date, in full days. Input date is expected to originate
+// from an image's Created attribute in ISO 8601, but since these do not always contain the same number of
+// digits for milliseconds, the function also accounts for variations.
+func getImageAgeDays(imageCreatedDateTime string) (int, error) {
+
+	// Date strings sometimes vary in how many digits after the decimal point are present. If present, drop millisecond portion to standardize.
+	dotIndex := strings.Index(imageCreatedDateTime, ".")
+	if dotIndex != -1 {
+		imageCreatedDateTime = imageCreatedDateTime[:dotIndex] + "Z"
+	}
+
+	// Define the layout string for the date format without milliseconds
+	layout := "2006-01-02T15:04:05Z"
+	imageCreatedDate, error := time.Parse(layout, imageCreatedDateTime)
+
+	if error != nil {
+		log.Errorf("Error parsing imageCreatedDateTime date (%s). Error: %s", imageCreatedDateTime, error)
+		return -1, error
+	}
+
+	return int(time.Since(imageCreatedDate).Hours() / 24), nil
+
 }
