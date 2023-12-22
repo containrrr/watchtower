@@ -89,7 +89,7 @@ func Update(client container.Client, params types.UpdateParams) (types.Report, e
 	UpdateImplicitRestart(containers)
 
 	// containersToUpdate will contain all containers, not just those that need to be updated. The "stale" flag is checked via container.ToRestart()
-	// within stopContainersInReversedOrder and restartContainersInSortedOrder to skip over containers with stale set to false (unless LinkedToRestarting set)
+	// within stopContainersInReversedOrder and restartContainersInSortedOrder to skip containers with stale set to false (unless LinkedToRestarting set)
 	var containersToUpdate []types.Container
 	for _, c := range containers {
 		if !c.IsMonitorOnly(params) {
@@ -286,7 +286,7 @@ func linkedContainerMarkedForRestart(links []string, containers []types.Containe
 }
 
 // Finds the difference between now and a given date, in full days. Input date is expected to originate
-// from an image's Created attribute, but since these are not always in ISO 8601 with the same number of
+// from an image's Created attribute in ISO 8601, but since these do not always contain the same number of
 // digits for milliseconds, the function also accounts for variations.
 func getImageAgeDays(imageCreatedDateTime string) (int, error) {
 
