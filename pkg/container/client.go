@@ -325,10 +325,10 @@ func (client dockerClient) IsContainerStale(container t.Container, params t.Upda
 		return false, container.SafeImageID(), err
 	}
 
-	return client.HasNewImage(ctx, container, params)
+	return client.HasNewImage(ctx, container)
 }
 
-func (client dockerClient) HasNewImage(ctx context.Context, container t.Container, params t.UpdateParams) (hasNew bool, latestImage t.ImageID, err error) {
+func (client dockerClient) HasNewImage(ctx context.Context, container t.Container) (hasNew bool, latestImage t.ImageID, err error) {
 	currentImageID := t.ImageID(container.ContainerInfo().ContainerJSONBase.Image)
 	imageName := container.ImageName()
 
