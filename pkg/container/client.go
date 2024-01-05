@@ -396,7 +396,10 @@ func (client dockerClient) PullImage(ctx context.Context, container t.Container)
 		return err
 	}
 
-	defer response.Close()
+	defer func() {
+		_ = response.Close()
+	}()
+
 	// the pull request will be aborted prematurely unless the response is read
 	if _, err = io.ReadAll(response); err != nil {
 		log.Error(err)
