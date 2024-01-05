@@ -27,31 +27,31 @@ func NewContainer(containerInfo *types.ContainerJSON, imageInfo *types.ImageInsp
 
 // Container represents a running Docker container.
 type Container struct {
-	LinkedToRestarting bool
-	Stale              bool
+	linkedToRestarting bool
+	markedForUpdate    bool
 
 	containerInfo *types.ContainerJSON
 	imageInfo     *types.ImageInspect
 }
 
-// IsLinkedToRestarting returns the current value of the LinkedToRestarting field for the container
+// IsLinkedToRestarting returns the current value of the linkedToRestarting field for the container
 func (c *Container) IsLinkedToRestarting() bool {
-	return c.LinkedToRestarting
+	return c.linkedToRestarting
 }
 
-// IsStale returns the current value of the Stale field for the container
-func (c *Container) IsStale() bool {
-	return c.Stale
+// IsMarkedForUpdate returns the current value of the markedForUpdate field for the container
+func (c *Container) IsMarkedForUpdate() bool {
+	return c.markedForUpdate
 }
 
-// SetLinkedToRestarting sets the LinkedToRestarting field for the container
+// SetLinkedToRestarting sets the linkedToRestarting field for the container
 func (c *Container) SetLinkedToRestarting(value bool) {
-	c.LinkedToRestarting = value
+	c.linkedToRestarting = value
 }
 
-// SetStale implements sets the Stale field for the container
-func (c *Container) SetStale(value bool) {
-	c.Stale = value
+// SetMarkedForUpdate sets the markedForUpdate field for the container
+func (c *Container) SetMarkedForUpdate(value bool) {
+	c.markedForUpdate = value
 }
 
 // ContainerInfo fetches JSON info for the container
@@ -208,7 +208,7 @@ func (c Container) Links() []string {
 // ToRestart return whether the container should be restarted, either because
 // is stale or linked to another stale container.
 func (c Container) ToRestart() bool {
-	return c.Stale || c.LinkedToRestarting
+	return c.markedForUpdate || c.linkedToRestarting
 }
 
 // IsWatchtower returns a boolean flag indicating whether or not the current

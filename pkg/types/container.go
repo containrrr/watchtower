@@ -64,8 +64,8 @@ type Container interface {
 	GetLifecycleCommand(LifecyclePhase) string
 	GetLifecycleTimeout(LifecyclePhase) time.Duration
 	VerifyConfiguration() error
-	SetStale(bool)
-	IsStale() bool
+	SetMarkedForUpdate(bool)
+	IsMarkedForUpdate() bool
 	IsNoPull(UpdateParams) bool
 	SetLinkedToRestarting(bool)
 	IsLinkedToRestarting() bool
