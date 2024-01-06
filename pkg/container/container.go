@@ -27,31 +27,31 @@ func NewContainer(containerInfo *types.ContainerJSON, imageInfo *types.ImageInsp
 
 // Container represents a running Docker container.
 type Container struct {
-	LinkedToRestarting bool
-	Stale              bool
+	linkedToRestarting bool
+	markedForUpdate    bool
 
 	containerInfo *types.ContainerJSON
 	imageInfo     *types.ImageInspect
 }
 
-// IsLinkedToRestarting returns the current value of the LinkedToRestarting field for the container
+// IsLinkedToRestarting returns the current value of the linkedToRestarting field for the container
 func (c *Container) IsLinkedToRestarting() bool {
-	return c.LinkedToRestarting
+	return c.linkedToRestarting
 }
 
-// IsStale returns the current value of the Stale field for the container
-func (c *Container) IsStale() bool {
-	return c.Stale
+// IsMarkedForUpdate returns the current value of the markedForUpdate field for the container
+func (c *Container) IsMarkedForUpdate() bool {
+	return c.markedForUpdate
 }
 
-// SetLinkedToRestarting sets the LinkedToRestarting field for the container
+// SetLinkedToRestarting sets the linkedToRestarting field for the container
 func (c *Container) SetLinkedToRestarting(value bool) {
-	c.LinkedToRestarting = value
+	c.linkedToRestarting = value
 }
 
-// SetStale implements sets the Stale field for the container
-func (c *Container) SetStale(value bool) {
-	c.Stale = value
+// SetMarkedForUpdate sets the markedForUpdate field for the container
+func (c *Container) SetMarkedForUpdate(value bool) {
+	c.markedForUpdate = value
 }
 
 // ContainerInfo fetches JSON info for the container
@@ -208,7 +208,7 @@ func (c Container) Links() []string {
 // ToRestart return whether the container should be restarted, either because
 // is stale or linked to another stale container.
 func (c Container) ToRestart() bool {
-	return c.Stale || c.LinkedToRestarting
+	return c.markedForUpdate || c.linkedToRestarting
 }
 
 // IsWatchtower returns a boolean flag indicating whether or not the current
@@ -217,44 +217,6 @@ func (c Container) ToRestart() bool {
 // the container metadata.
 func (c Container) IsWatchtower() bool {
 	return ContainsWatchtowerLabel(c.containerInfo.Config.Labels)
-}
-
-// PreUpdateTimeout checks whether a container has a specific timeout set
-// for how long the pre-update command is allowed to run. This value is expressed
-// either as an integer, in minutes, or as 0 which will allow the command/script
-// to run indefinitely. Users should be cautious with the 0 option, as that
-// could result in watchtower waiting forever.
-func (c Container) PreUpdateTimeout() int {
-	var minutes int
-	var err error
-
-	val := c.getLabelValueOrEmpty(preUpdateTimeoutLabel)
-
-	minutes, err = strconv.Atoi(val)
-	if err != nil || val == "" {
-		return 1
-	}
-
-	return minutes
-}
-
-// PostUpdateTimeout checks whether a container has a specific timeout set
-// for how long the post-update command is allowed to run. This value is expressed
-// either as an integer, in minutes, or as 0 which will allow the command/script
-// to run indefinitely. Users should be cautious with the 0 option, as that
-// could result in watchtower waiting forever.
-func (c Container) PostUpdateTimeout() int {
-	var minutes int
-	var err error
-
-	val := c.getLabelValueOrEmpty(postUpdateTimeoutLabel)
-
-	minutes, err = strconv.Atoi(val)
-	if err != nil || val == "" {
-		return 1
-	}
-
-	return minutes
 }
 
 // StopSignal returns the custom stop signal (if any) that is encoded in the
