@@ -6,6 +6,7 @@ import (
 	"github.com/docker/go-connections/nat"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"time"
 )
 
 var _ = Describe("the container", func() {
@@ -380,10 +381,10 @@ var _ = Describe("the container", func() {
 					"com.centurylinklabs.watchtower.lifecycle.pre-update-timeout":  "3",
 					"com.centurylinklabs.watchtower.lifecycle.post-update-timeout": "5",
 				}))
-				preTimeout := c.PreUpdateTimeout()
-				Expect(preTimeout).To(Equal(3))
-				postTimeout := c.PostUpdateTimeout()
-				Expect(postTimeout).To(Equal(5))
+				preTimeout := c.GetLifecycleTimeout(types.PreUpdate)
+				Expect(preTimeout).To(Equal(3 * time.Minute))
+				postTimeout := c.GetLifecycleTimeout(types.PostUpdate)
+				Expect(postTimeout).To(Equal(5 * time.Minute))
 			})
 		})
 
