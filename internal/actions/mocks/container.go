@@ -79,6 +79,13 @@ func CreateMockContainerWithDigest(id string, name string, image string, created
 	return c
 }
 
+// CreateMockContainerWithDigest should only be used for testing
+func CreateMockContainerWithImageCreatedTime(id string, name string, image string, created time.Time, imageCreated time.Time) wt.Container {
+	c := CreateMockContainer(id, name, image, created)
+	c.ImageInfo().Created = imageCreated.UTC().Format(time.RFC3339)
+	return c
+}
+
 // CreateMockContainerWithConfig creates a container substitute valid for testing
 func CreateMockContainerWithConfig(id string, name string, image string, running bool, restarting bool, created time.Time, config *dockerContainer.Config) wt.Container {
 	content := types.ContainerJSON{
