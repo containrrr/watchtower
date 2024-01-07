@@ -381,12 +381,12 @@ Environment Variable: WATCHTOWER_HTTP_API_METRICS
              Default: false
 ```
 
-## Delayed Update
+## Deferred Update
 Only update container to latest version of image if some number of days have passed since it has been published. This option may be useful for those who wish to avoid updating prior to the new version having some time in the field prior to updating in case there are critical defects found and released in a subsequent version.
 
 ```text
-            Argument: --delay-days
-Environment Variable: WATCHTOWER_DELAY_DAYS
+            Argument: --defer-days
+Environment Variable: WATCHTOWER_DEFER_DAYS
                 Type: Integer
              Default: false
 ```
