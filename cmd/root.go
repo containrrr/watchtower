@@ -39,6 +39,7 @@ var (
 	disableContainers []string
 	notifier          t.Notifier
 	timeout           time.Duration
+	deferDays         int
 	lifecycleHooks    bool
 	rollingRestart    bool
 	scope             string
@@ -96,6 +97,7 @@ func PreRun(cmd *cobra.Command, _ []string) {
 
 	enableLabel, _ = f.GetBool("label-enable")
 	disableContainers, _ = f.GetStringSlice("disable-containers")
+	deferDays, _ = f.GetInt("defer-days")
 	lifecycleHooks, _ = f.GetBool("enable-lifecycle-hooks")
 	rollingRestart, _ = f.GetBool("rolling-restart")
 	scope, _ = f.GetString("scope")
@@ -288,6 +290,10 @@ func writeStartupMessage(c *cobra.Command, sched time.Time, filtering string) {
 		until := formatDuration(time.Until(sched))
 		startupLog.Info("Scheduling first run: " + sched.Format("2006-01-02 15:04:05 -0700 MST"))
 		startupLog.Info("Note that the first check will be performed in " + until)
+		deferDays, _ = c.PersistentFlags().GetInt("defer-days")
+		if deferDays > 0 {
+			startupLog.Infof("Container updates will be deferred until %d day(s) after image creation.", deferDays)
+		}
 	} else if runOnce, _ := c.PersistentFlags().GetBool("run-once"); runOnce {
 		startupLog.Info("Running a one time update.")
 	} else {
@@ -364,6 +370,7 @@ func runUpdatesWithNotifications(filter t.Filter) *metrics.Metric {
 		NoRestart:       noRestart,
 		Timeout:         timeout,
 		MonitorOnly:     monitorOnly,
+		DeferDays:       deferDays,
 		LifecycleHooks:  lifecycleHooks,
 		RollingRestart:  rollingRestart,
 		LabelPrecedence: labelPrecedence,
@@ -376,9 +383,10 @@ func runUpdatesWithNotifications(filter t.Filter) *metrics.Metric {
 	notifier.SendNotification(result)
 	metricResults := metrics.NewMetric(result)
 	notifications.LocalLog.WithFields(log.Fields{
-		"Scanned": metricResults.Scanned,
-		"Updated": metricResults.Updated,
-		"Failed":  metricResults.Failed,
+		"Scanned":  metricResults.Scanned,
+		"Updated":  metricResults.Updated,
+		"Deferred": metricResults.Deferred,
+		"Failed":   metricResults.Failed,
 	}).Info("Session done")
 	return metricResults
 }

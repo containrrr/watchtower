@@ -2,6 +2,7 @@ package actions
 
 import (
 	"errors"
+	"time"
 
 	"github.com/containrrr/watchtower/internal/util"
 	"github.com/containrrr/watchtower/pkg/container"
@@ -33,13 +34,24 @@ func Update(client container.Client, params types.UpdateParams) (types.Report, e
 	staleCheckFailed := 0
 
 	for i, targetContainer := range containers {
+		// stale will be true if there is a more recent image than the current container is using
 		stale, newestImage, err := client.IsContainerStale(targetContainer, params)
 		shouldUpdate := stale && !params.NoRestart && !targetContainer.IsMonitorOnly(params)
+		imageUpdateDeferred := false
+		imageAgeDays := 0
 		if err == nil && shouldUpdate {
-			// Check to make sure we have all the necessary information for recreating the container
+			// Check to make sure we have all the necessary information for recreating the container, including ImageInfo
 			err = targetContainer.VerifyConfiguration()
-			// If the image information is incomplete and trace logging is enabled, log it for further diagnosis
-			if err != nil && log.IsLevelEnabled(log.TraceLevel) {
+			if err == nil {
+				if params.DeferDays > 0 {
+					imageAgeDays, imageErr := getImageAgeDays(targetContainer.ImageInfo().Created)
+					err = imageErr
+					if err == nil {
+						imageUpdateDeferred = imageAgeDays < params.DeferDays
+					}
+				}
+			} else if log.IsLevelEnabled(log.TraceLevel) {
+				// If the image information is incomplete and trace logging is enabled, log it for further diagnosis
 				imageInfo := targetContainer.ImageInfo()
 				log.Tracef("Image info: %#v", imageInfo)
 				log.Tracef("Container info: %#v", targetContainer.ContainerInfo())
@@ -54,6 +66,12 @@ func Update(client container.Client, params types.UpdateParams) (types.Report, e
 			stale = false
 			staleCheckFailed++
 			progress.AddSkipped(targetContainer, err)
+		} else if imageUpdateDeferred {
+			log.Infof("New image found for %s that was created %d day(s) ago but update deferred until %d day(s) after creation", targetContainer.Name(), imageAgeDays, params.DeferDays)
+			// technically the container is stale but we set it to false here because it is this stale flag that tells downstream methods whether to perform the update
+			stale = false
+			progress.AddScanned(targetContainer, newestImage)
+			progress.MarkDeferred(targetContainer.ID())
 		} else {
 			progress.AddScanned(targetContainer, newestImage)
 		}
@@ -71,9 +89,13 @@ func Update(client container.Client, params types.UpdateParams) (types.Report, e
 
 	UpdateImplicitRestart(containers)
 
+	// containersToUpdate will contain all containers, not just those that need to be updated. The "stale" flag is checked via container.ToRestart()
+	// within stopContainersInReversedOrder and restartContainersInSortedOrder to skip containers with stale set to false (unless LinkedToRestarting set)
+	// NOTE: This logic is changing with latest PR on main repo
 	var containersToUpdate []types.Container
 	for _, c := range containers {
-		if !c.IsMonitorOnly(params) {
+		// pulling this change in from PR 1895 for now to avoid updating status incorrectly
+		if c.ToRestart() && !c.IsMonitorOnly(params) {
 			containersToUpdate = append(containersToUpdate, c)
 			progress.MarkForUpdate(c.ID())
 		}
@@ -264,4 +286,19 @@ func linkedContainerMarkedForRestart(links []string, containers []types.Containe
 		}
 	}
 	return ""
+}
+
+// Finds the difference between now and a given date, in full days. Input date is expected to originate
+// from an image's Created attribute which will follow ISO 3339/8601 format.
+// Reference: https://docs.docker.com/engine/api/v1.43/#tag/Image/operation/ImageInspect
+func getImageAgeDays(imageCreatedDateTime string) (int, error) {
+	imageCreatedDate, error := time.Parse(time.RFC3339Nano, imageCreatedDateTime)
+
+	if error != nil {
+		log.Errorf("Error parsing imageCreatedDateTime date (%s). Error: %s", imageCreatedDateTime, error)
+		return -1, error
+	}
+
+	return int(time.Since(imageCreatedDate).Hours() / 24), nil
+
 }

@@ -10,19 +10,21 @@ var metrics *Metrics
 
 // Metric is the data points of a single scan
 type Metric struct {
-	Scanned int
-	Updated int
-	Failed  int
+	Scanned  int
+	Updated  int
+	Deferred int
+	Failed   int
 }
 
 // Metrics is the handler processing all individual scan metrics
 type Metrics struct {
-	channel chan *Metric
-	scanned prometheus.Gauge
-	updated prometheus.Gauge
-	failed  prometheus.Gauge
-	total   prometheus.Counter
-	skipped prometheus.Counter
+	channel  chan *Metric
+	scanned  prometheus.Gauge
+	updated  prometheus.Gauge
+	deferred prometheus.Gauge
+	failed   prometheus.Gauge
+	total    prometheus.Counter
+	skipped  prometheus.Counter
 }
 
 // NewMetric returns a Metric with the counts taken from the appropriate types.Report fields
@@ -30,8 +32,9 @@ func NewMetric(report types.Report) *Metric {
 	return &Metric{
 		Scanned: len(report.Scanned()),
 		// Note: This is for backwards compatibility. ideally, stale containers should be counted separately
-		Updated: len(report.Updated()) + len(report.Stale()),
-		Failed:  len(report.Failed()),
+		Updated:  len(report.Updated()) + len(report.Stale()),
+		Deferred: len(report.Deferred()),
+		Failed:   len(report.Failed()),
 	}
 }
 
@@ -59,6 +62,10 @@ func Default() *Metrics {
 		updated: promauto.NewGauge(prometheus.GaugeOpts{
 			Name: "watchtower_containers_updated",
 			Help: "Number of containers updated by watchtower during the last scan",
+		}),
+		deferred: promauto.NewGauge(prometheus.GaugeOpts{
+			Name: "watchtower_containers_deferred",
+			Help: "Number of containers deferred by watchtower during the last scan",
 		}),
 		failed: promauto.NewGauge(prometheus.GaugeOpts{
 			Name: "watchtower_containers_failed",
@@ -95,6 +102,7 @@ func (metrics *Metrics) HandleUpdate(channel <-chan *Metric) {
 			metrics.skipped.Inc()
 			metrics.scanned.Set(0)
 			metrics.updated.Set(0)
+			metrics.deferred.Set(0)
 			metrics.failed.Set(0)
 			continue
 		}
@@ -102,6 +110,7 @@ func (metrics *Metrics) HandleUpdate(channel <-chan *Metric) {
 		metrics.total.Inc()
 		metrics.scanned.Set(float64(change.Scanned))
 		metrics.updated.Set(float64(change.Updated))
+		metrics.deferred.Set(float64(change.Deferred))
 		metrics.failed.Set(float64(change.Failed))
 	}
 }

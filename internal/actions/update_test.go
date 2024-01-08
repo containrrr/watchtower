@@ -65,6 +65,35 @@ func getLinkedTestData(withImageInfo bool) *TestData {
 	}
 }
 
+func getMixedAgeTestData(keepContainer string) *TestData {
+	return &TestData{
+		NameOfContainerToKeep: keepContainer,
+		Containers: []types.Container{
+			// new container with 5 day old image
+			CreateMockContainerWithImageCreatedTime(
+				"test-container-01",
+				"test-container-01",
+				"fake-image-01:latest",
+				time.Now(),
+				time.Now().AddDate(0, 0, -5)),
+			// new container with 1 day old image
+			CreateMockContainerWithImageCreatedTime(
+				"test-container-02",
+				"test-container-02",
+				"fake-image-02:latest",
+				time.Now(),
+				time.Now().AddDate(0, 0, -1)),
+			// new container with 1 hour old image
+			CreateMockContainerWithImageCreatedTime(
+				"test-container-03",
+				"test-container-03",
+				"fake-image-03:latest",
+				time.Now(),
+				time.Now().Add(-1*time.Hour)),
+		},
+	}
+}
+
 var _ = Describe("the update action", func() {
 	When("watchtower has been instructed to clean up", func() {
 		When("there are multiple containers using the same image", func() {
@@ -255,6 +284,37 @@ var _ = Describe("the update action", func() {
 				})
 
 			})
+		})
+	})
+
+	When("watchtower has been instructed to defer updates by some number of days", func() {
+		It("should only update the 1 container with image at least 2 days old when DeferDays is 2", func() {
+			client := CreateMockClient(getMixedAgeTestData(""), false, false)
+			report, err := actions.Update(client, types.UpdateParams{DeferDays: 2})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(report.Updated()).To(HaveLen(1))
+			Expect(report.Deferred()).To(HaveLen(2))
+		})
+		It("should only update the 2 containers with image at least 1 day old when DeferDays is 1", func() {
+			client := CreateMockClient(getMixedAgeTestData(""), false, false)
+			report, err := actions.Update(client, types.UpdateParams{DeferDays: 1})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(report.Updated()).To(HaveLen(2))
+			Expect(report.Deferred()).To(HaveLen(1))
+		})
+		It("should update all containers when DeferDays is 0", func() {
+			client := CreateMockClient(getMixedAgeTestData(""), false, false)
+			report, err := actions.Update(client, types.UpdateParams{DeferDays: 0})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(report.Updated()).To(HaveLen(3))
+			Expect(report.Deferred()).To(HaveLen(0))
+		})
+		It("should update all containers when DeferDays is not specified", func() {
+			client := CreateMockClient(getMixedAgeTestData(""), false, false)
+			report, err := actions.Update(client, types.UpdateParams{})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(report.Updated()).To(HaveLen(3))
+			Expect(report.Deferred()).To(HaveLen(0))
 		})
 	})
 

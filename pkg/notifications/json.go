@@ -23,12 +23,13 @@ func (d Data) MarshalJSON() ([]byte, error) {
 	var report jsonMap
 	if d.Report != nil {
 		report = jsonMap{
-			`scanned`: marshalReports(d.Report.Scanned()),
-			`updated`: marshalReports(d.Report.Updated()),
-			`failed`:  marshalReports(d.Report.Failed()),
-			`skipped`: marshalReports(d.Report.Skipped()),
-			`stale`:   marshalReports(d.Report.Stale()),
-			`fresh`:   marshalReports(d.Report.Fresh()),
+			`scanned`:  marshalReports(d.Report.Scanned()),
+			`updated`:  marshalReports(d.Report.Updated()),
+			`deferred`: marshalReports(d.Report.Deferred()),
+			`failed`:   marshalReports(d.Report.Failed()),
+			`skipped`:  marshalReports(d.Report.Skipped()),
+			`stale`:    marshalReports(d.Report.Stale()),
+			`fresh`:    marshalReports(d.Report.Fresh()),
 		}
 	}
 

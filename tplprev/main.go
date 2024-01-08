@@ -18,7 +18,7 @@ func main() {
 	var states string
 	var entries string
 
-	flag.StringVar(&states, "states", "cccuuueeekkktttfff", "sCanned, Updated, failEd, sKipped, sTale, Fresh")
+	flag.StringVar(&states, "states", "cccuuudddeeekkktttfff", "sCanned, Updated, Deferred, failEd, sKipped, sTale, Fresh")
 	flag.StringVar(&entries, "entries", "ewwiiidddd", "Fatal,Error,Warn,Info,Debug,Trace")
 
 	flag.Parse()

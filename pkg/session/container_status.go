@@ -12,6 +12,7 @@ const (
 	SkippedState
 	ScannedState
 	UpdatedState
+	DeferredState
 	FailedState
 	FreshState
 	StaleState
@@ -70,6 +71,8 @@ func (u *ContainerStatus) State() string {
 		return "Scanned"
 	case UpdatedState:
 		return "Updated"
+	case DeferredState:
+		return "Deferred"
 	case FailedState:
 		return "Failed"
 	case FreshState:

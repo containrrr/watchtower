@@ -50,6 +50,11 @@ func (m Progress) MarkForUpdate(containerID types.ContainerID) {
 	m[containerID].state = UpdatedState
 }
 
+// MarkForUpdate marks the container identified by containerID for deferral
+func (m Progress) MarkDeferred(containerID types.ContainerID) {
+	m[containerID].state = DeferredState
+}
+
 // Report creates a new Report from a Progress instance
 func (m Progress) Report() types.Report {
 	return NewReport(m)
