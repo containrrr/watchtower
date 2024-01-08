@@ -12,7 +12,7 @@ type UpdateParams struct {
 	Timeout         time.Duration
 	MonitorOnly     bool
 	NoPull          bool
-	DelayDays       int
+	DeferDays       int
 	LifecycleHooks  bool
 	RollingRestart  bool
 	LabelPrecedence bool

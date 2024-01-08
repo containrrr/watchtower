@@ -148,9 +148,9 @@ func RegisterSystemFlags(rootCmd *cobra.Command) {
 		"Enable the execution of commands triggered by pre- and post-update lifecycle hooks")
 
 	flags.IntP(
-		"delay-days",
+		"defer-days",
 		"0",
-		envInt("WATCHTOWER_DELAY_DAYS"),
+		envInt("WATCHTOWER_DEFER_DAYS"),
 		"Number of days to wait for new image version to be in place prior to installing it")
 
 	flags.BoolP(
