@@ -82,7 +82,7 @@ func CreateMockContainerWithDigest(id string, name string, image string, created
 // CreateMockContainerWithDigest should only be used for testing
 func CreateMockContainerWithImageCreatedTime(id string, name string, image string, created time.Time, imageCreated time.Time) wt.Container {
 	c := CreateMockContainer(id, name, image, created)
-	c.ImageInfo().Created = imageCreated.UTC().Format(time.RFC3339)
+	c.ImageInfo().Created = imageCreated.UTC().Format(time.RFC3339Nano)
 	return c
 }
 
