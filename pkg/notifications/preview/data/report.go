@@ -10,12 +10,13 @@ import (
 type State string
 
 const (
-	ScannedState State = "scanned"
-	UpdatedState State = "updated"
-	FailedState  State = "failed"
-	SkippedState State = "skipped"
-	StaleState   State = "stale"
-	FreshState   State = "fresh"
+	ScannedState  State = "scanned"
+	UpdatedState  State = "updated"
+	DeferredState State = "deferred"
+	FailedState   State = "failed"
+	SkippedState  State = "skipped"
+	StaleState    State = "stale"
+	FreshState    State = "fresh"
 )
 
 // StatesFromString parses a string of state characters and returns a slice of the corresponding report states
@@ -27,6 +28,8 @@ func StatesFromString(str string) []State {
 			states = append(states, ScannedState)
 		case 'u':
 			states = append(states, UpdatedState)
+		case 'd':
+			states = append(states, DeferredState)
 		case 'e':
 			states = append(states, FailedState)
 		case 'k':
@@ -43,12 +46,13 @@ func StatesFromString(str string) []State {
 }
 
 type report struct {
-	scanned []types.ContainerReport
-	updated []types.ContainerReport
-	failed  []types.ContainerReport
-	skipped []types.ContainerReport
-	stale   []types.ContainerReport
-	fresh   []types.ContainerReport
+	scanned  []types.ContainerReport
+	updated  []types.ContainerReport
+	deferred []types.ContainerReport
+	failed   []types.ContainerReport
+	skipped  []types.ContainerReport
+	stale    []types.ContainerReport
+	fresh    []types.ContainerReport
 }
 
 func (r *report) Scanned() []types.ContainerReport {
@@ -56,6 +60,9 @@ func (r *report) Scanned() []types.ContainerReport {
 }
 func (r *report) Updated() []types.ContainerReport {
 	return r.updated
+}
+func (r *report) Deferred() []types.ContainerReport {
+	return r.deferred
 }
 func (r *report) Failed() []types.ContainerReport {
 	return r.failed
@@ -87,6 +94,7 @@ func (r *report) All() []types.ContainerReport {
 	}
 
 	appendUnique(r.updated)
+	appendUnique(r.deferred)
 	appendUnique(r.failed)
 	appendUnique(r.skipped)
 	appendUnique(r.stale)

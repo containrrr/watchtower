@@ -4,6 +4,7 @@ package types
 type Report interface {
 	Scanned() []ContainerReport
 	Updated() []ContainerReport
+	Deferred() []ContainerReport
 	Failed() []ContainerReport
 	Skipped() []ContainerReport
 	Stale() []ContainerReport
