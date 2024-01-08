@@ -37,7 +37,7 @@ func Update(client container.Client, params types.UpdateParams) (types.Report, e
 		// stale will be true if there is a more recent image than the current container is using
 		stale, newestImage, err := client.IsContainerStale(targetContainer, params)
 		shouldUpdate := stale && !params.NoRestart && !targetContainer.IsMonitorOnly(params)
-		imageUpdateDelayed := false
+		imageUpdateDeferred := false
 		imageAgeDays := 0
 		if err == nil && shouldUpdate {
 			// Check to make sure we have all the necessary information for recreating the container, including ImageInfo
@@ -47,7 +47,7 @@ func Update(client container.Client, params types.UpdateParams) (types.Report, e
 					imageAgeDays, imageErr := getImageAgeDays(targetContainer.ImageInfo().Created)
 					err = imageErr
 					if err == nil {
-						imageUpdateDelayed = imageAgeDays < params.DeferDays
+						imageUpdateDeferred = imageAgeDays < params.DeferDays
 					}
 				}
 			} else if log.IsLevelEnabled(log.TraceLevel) {
@@ -66,7 +66,7 @@ func Update(client container.Client, params types.UpdateParams) (types.Report, e
 			stale = false
 			staleCheckFailed++
 			progress.AddSkipped(targetContainer, err)
-		} else if imageUpdateDelayed {
+		} else if imageUpdateDeferred {
 			log.Infof("New image found for %s that was created %d day(s) ago but update deferred until %d day(s) after creation", targetContainer.Name(), imageAgeDays, params.DeferDays)
 			// technically the container is stale but we set it to false here because it is this stale flag that tells downstream methods whether to perform the update
 			stale = false
