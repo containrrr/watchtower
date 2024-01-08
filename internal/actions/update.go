@@ -2,7 +2,6 @@ package actions
 
 import (
 	"errors"
-	"strings"
 	"time"
 
 	"github.com/containrrr/watchtower/internal/util"
@@ -38,16 +37,17 @@ func Update(client container.Client, params types.UpdateParams) (types.Report, e
 		// stale will be true if there is a more recent image than the current container is using
 		stale, newestImage, err := client.IsContainerStale(targetContainer, params)
 		shouldUpdate := stale && !params.NoRestart && !targetContainer.IsMonitorOnly(params)
-		imageUpdateDelayResolved := true
+		imageUpdateDelayed := false
 		imageAgeDays := 0
 		if err == nil && shouldUpdate {
 			// Check to make sure we have all the necessary information for recreating the container, including ImageInfo
 			err = targetContainer.VerifyConfiguration()
 			if err == nil {
-				if params.DelayDays > 0 {
-					imageAgeDays, err := getImageAgeDays(targetContainer.ImageInfo().Created)
+				if params.DeferDays > 0 {
+					imageAgeDays, imageErr := getImageAgeDays(targetContainer.ImageInfo().Created)
+					err = imageErr
 					if err == nil {
-						imageUpdateDelayResolved = imageAgeDays >= params.DelayDays
+						imageUpdateDelayed = imageAgeDays < params.DeferDays
 					}
 				}
 			} else if log.IsLevelEnabled(log.TraceLevel) {
@@ -66,11 +66,12 @@ func Update(client container.Client, params types.UpdateParams) (types.Report, e
 			stale = false
 			staleCheckFailed++
 			progress.AddSkipped(targetContainer, err)
-		} else if !imageUpdateDelayResolved {
-			log.Infof("New image found for %s that was created %d day(s) ago but update delayed until %d day(s) after creation", targetContainer.Name(), imageAgeDays, params.DelayDays)
+		} else if imageUpdateDelayed {
+			log.Infof("New image found for %s that was created %d day(s) ago but update deferred until %d day(s) after creation", targetContainer.Name(), imageAgeDays, params.DeferDays)
 			// technically the container is stale but we set it to false here because it is this stale flag that tells downstream methods whether to perform the update
 			stale = false
 			progress.AddScanned(targetContainer, newestImage)
+			progress.MarkDeferred(targetContainer.ID())
 		} else {
 			progress.AddScanned(targetContainer, newestImage)
 		}
@@ -90,9 +91,11 @@ func Update(client container.Client, params types.UpdateParams) (types.Report, e
 
 	// containersToUpdate will contain all containers, not just those that need to be updated. The "stale" flag is checked via container.ToRestart()
 	// within stopContainersInReversedOrder and restartContainersInSortedOrder to skip containers with stale set to false (unless LinkedToRestarting set)
+	// NOTE: This logic is changing with latest PR on main repo
 	var containersToUpdate []types.Container
 	for _, c := range containers {
-		if !c.IsMonitorOnly(params) {
+		// pulling this change in from PR 1895 for now to avoid updating status incorrectly
+		if c.ToRestart() && !c.IsMonitorOnly(params) {
 			containersToUpdate = append(containersToUpdate, c)
 			progress.MarkForUpdate(c.ID())
 		}
@@ -286,19 +289,10 @@ func linkedContainerMarkedForRestart(links []string, containers []types.Containe
 }
 
 // Finds the difference between now and a given date, in full days. Input date is expected to originate
-// from an image's Created attribute in ISO 8601, but since these do not always contain the same number of
-// digits for milliseconds, the function also accounts for variations.
+// from an image's Created attribute which will follow ISO 3339/8601 format.
+// Reference: https://docs.docker.com/engine/api/v1.43/#tag/Image/operation/ImageInspect
 func getImageAgeDays(imageCreatedDateTime string) (int, error) {
-
-	// Date strings sometimes vary in how many digits after the decimal point are present. If present, drop millisecond portion to standardize.
-	dotIndex := strings.Index(imageCreatedDateTime, ".")
-	if dotIndex != -1 {
-		imageCreatedDateTime = imageCreatedDateTime[:dotIndex] + "Z"
-	}
-
-	// Define the layout string for the date format without milliseconds
-	layout := "2006-01-02T15:04:05Z"
-	imageCreatedDate, error := time.Parse(layout, imageCreatedDateTime)
+	imageCreatedDate, error := time.Parse(time.RFC3339Nano, imageCreatedDateTime)
 
 	if error != nil {
 		log.Errorf("Error parsing imageCreatedDateTime date (%s). Error: %s", imageCreatedDateTime, error)
