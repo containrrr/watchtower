@@ -24,7 +24,7 @@ system, [logrus](http://github.com/sirupsen/logrus).
 -   `--notification-skip-title` (env. `WATCHTOWER_NOTIFICATION_SKIP_TITLE`): Do not pass the title param to notifications. This will not pass a dynamic title override to notification services. If no title is configured for the service, it will remove the title all together.
 -   `--notification-log-stdout` (env. `WATCHTOWER_NOTIFICATION_LOG_STDOUT`): Enable output from `logger://` shoutrrr service to stdout.
 
-## [shoutrrr](https://github.com/containrrr/shoutrrr) notifications
+## [Shoutrrr](https://github.com/containrrr/shoutrrr) notifications
 
 To send notifications via shoutrrr, the following command-line options, or their corresponding environment variables, can be set:
 
@@ -56,6 +56,10 @@ outputs timestamp and log level.
     [reference time](https://golang.org/pkg/time/#pkg-constants) (_Mon Jan 2 15:04:05 MST 2006_) would be displayed in your
     custom format.  
     i.e., The day of the year has to be 1, the month has to be 2 (february), the hour 3 (or 15 for 24h time) etc.
+
+!!! note "Skipping notifications"
+    To skip sending notifications that do not contain any information, you can wrap your template with `{{if .}}` and `{{end}}`.
+
 
 Example:
 

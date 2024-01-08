@@ -2,8 +2,8 @@ package util
 
 import (
 	"bytes"
+	"crypto/rand"
 	"fmt"
-	"math/rand"
 )
 
 // GenerateRandomSHA256 generates a random 64 character SHA 256 hash string

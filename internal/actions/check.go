@@ -39,7 +39,11 @@ func CheckForSanity(client container.Client, filter types.Filter, rollingRestart
 // will stop and remove all but the most recently started container. This behaviour can be bypassed
 // if a scope UID is defined.
 func CheckForMultipleWatchtowerInstances(client container.Client, cleanup bool, scope string) error {
-	containers, err := client.ListContainers(filters.FilterByScope(scope, filters.WatchtowerContainersFilter))
+	filter := filters.WatchtowerContainersFilter
+	if scope != "" {
+		filter = filters.FilterByScope(scope, filter)
+	}
+	containers, err := client.ListContainers(filter)
 
 	if err != nil {
 		return err

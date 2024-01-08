@@ -2,9 +2,7 @@ name: Release (Production)
 
 on:
   workflow_dispatch: {}
-  release:
-    types:
-      - created
+  push:
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+'
       - '**/v[0-9]+.[0-9]+.[0-9]+'
@@ -21,7 +19,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: 1.18.x
+          go-version: 1.20.x
       - uses: dominikh/staticcheck-action@ba605356b4b29a60e87ab9404b712f3461e566dc #v1.3.0
         with:
           version: "2022.1.1"
@@ -32,7 +30,7 @@ jobs:
     strategy:
       matrix:
         go-version:
-          - 1.18.x
+          - 1.20.x
         platform:
           - ubuntu-latest
           - macos-latest
@@ -46,7 +44,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: 1.18.x
+          go-version: 1.20.x
       - name: Run tests
         run: |
           go test ./... -coverprofile coverage.out
@@ -59,7 +57,7 @@ jobs:
       - lint
     env:
       CGO_ENABLED: 0
-      TAG: ${{ github.event.release.tag_name }}
+      TAG: ${{ github.ref_name }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -68,7 +66,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: 1.18.x
+          go-version: 1.20.x
       - name: Login to Docker Hub
         uses: docker/login-action@465a07811f14bebb1938fbed4728c6a1ff8901fc #v2
         with:
@@ -93,7 +91,7 @@ jobs:
           echo '{"experimental": "enabled"}' > ~/.docker/config.json
       - name: Create manifest for version
         run: |
-          export DH_TAG=$(echo $TAG | sed 's/^v*//')
+          export DH_TAG=$(git tag --points-at HEAD | sed 's/^v*//')
           docker manifest create \
             containrrr/watchtower:$DH_TAG \
             containrrr/watchtower:amd64-$DH_TAG \

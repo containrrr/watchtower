@@ -11,10 +11,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: 1.18
+          go-version: 1.20.x
       - name: Build
         run: ./build.sh
   test:
@@ -24,7 +26,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: 1.18
+          go-version: 1.20.x
       - name: Test
         run: go test -v -coverprofile coverage.out -covermode atomic ./... 
       - name: Publish coverage

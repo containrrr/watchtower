@@ -33,6 +33,7 @@ var (
 	scheduleSpec      string
 	cleanup           bool
 	noRestart         bool
+	noPull            bool
 	monitorOnly       bool
 	enableLabel       bool
 	disableContainers []string
@@ -110,7 +111,7 @@ func PreRun(cmd *cobra.Command, _ []string) {
 		log.Fatal(err)
 	}
 
-	noPull, _ := f.GetBool("no-pull")
+	noPull, _ = f.GetBool("no-pull")
 	includeStopped, _ := f.GetBool("include-stopped")
 	includeRestarting, _ := f.GetBool("include-restarting")
 	reviveStopped, _ := f.GetBool("revive-stopped")
@@ -122,7 +123,6 @@ func PreRun(cmd *cobra.Command, _ []string) {
 	}
 
 	client = container.NewClient(container.ClientOptions{
-		PullImages:        !noPull,
 		IncludeStopped:    includeStopped,
 		ReviveStopped:     reviveStopped,
 		RemoveVolumes:     removeVolumes,
@@ -187,7 +187,7 @@ func Run(c *cobra.Command, names []string) {
 			metrics.RegisterScan(metric)
 		}, updateLock)
 		httpAPI.RegisterFunc(updateHandler.Path, updateHandler.Handle)
-		// If polling isn't enabled the scheduler is never started and
+		// If polling isn't enabled the scheduler is never started, and
 		// we need to trigger the startup messages manually.
 		if !unblockHTTPAPI {
 			writeStartupMessage(c, time.Time{}, filterDesc)
@@ -367,6 +367,7 @@ func runUpdatesWithNotifications(filter t.Filter) *metrics.Metric {
 		LifecycleHooks:  lifecycleHooks,
 		RollingRestart:  rollingRestart,
 		LabelPrecedence: labelPrecedence,
+		NoPull:          noPull,
 	}
 	result, err := actions.Update(client, updateParams)
 	if err != nil {

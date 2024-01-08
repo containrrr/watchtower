@@ -124,7 +124,7 @@ in a volume that may be mounted onto your watchtower container.
 
 1.  Create the Dockerfile (contents below):
     ```Dockerfile
-    FROM golang:1.17
+    FROM golang:1.20
     
     ENV GO111MODULE off
     ENV CGO_ENABLED 0
