@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"regexp"
 	"strings"
@@ -199,6 +200,16 @@ func RegisterSystemFlags(rootCmd *cobra.Command) {
 		"log-level",
 		envString("WATCHTOWER_LOG_LEVEL"),
 		"The maximum log level that will be written to STDERR. Possible values: panic, fatal, error, warn, info, debug or trace")
+
+	flags.Bool(
+		"enable-log-file",
+		envBool("WATCHTOWER_ENABLE_LOG_FILE"),
+		"Enable logging to file")
+
+	flags.String(
+		"log-file-path",
+		envString("WATCHTOWER_LOG_FILE_PATH"),
+		"The file to write logs to. If not specified, logs will be written to STDERR")
 
 	flags.BoolP(
 		"health-check",
@@ -430,6 +441,8 @@ func SetDefaults() {
 	viper.SetDefault("WATCHTOWER_NOTIFICATION_SLACK_IDENTIFIER", "watchtower")
 	viper.SetDefault("WATCHTOWER_LOG_LEVEL", "info")
 	viper.SetDefault("WATCHTOWER_LOG_FORMAT", "auto")
+	viper.SetDefault("WATCHTOWER_ENABLE_LOG_FILE", false)
+	viper.SetDefault("WATCHTOWER_LOG_FILE_PATH", "/var/log/watchtower.log")
 }
 
 // EnvConfig translates the command-line options into environment variables
@@ -636,6 +649,8 @@ func ProcessFlagAliases(flags *pflag.FlagSet) {
 func SetupLogging(f *pflag.FlagSet) error {
 	logFormat, _ := f.GetString(`log-format`)
 	noColor, _ := f.GetBool("no-color")
+	logToFile := flagIsEnabled(f, `enable-log-file`)
+	path, _ := f.GetString(`log-file-path`)
 
 	switch strings.ToLower(logFormat) {
 	case "auto":
@@ -667,6 +682,18 @@ func SetupLogging(f *pflag.FlagSet) error {
 		return fmt.Errorf("invalid log level: %e", err)
 	} else {
 		log.SetLevel(logLevel)
+	}
+
+	if logToFile {
+		logFile, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+		if err != nil {
+			logFile, err = os.Create(path)
+			if err != nil {
+				return fmt.Errorf("failed to open log file: %e", err)
+			}
+		}
+		multiWriter := io.MultiWriter(os.Stdout, os.Stderr, logFile)
+		log.SetOutput(multiWriter)
 	}
 
 	return nil
