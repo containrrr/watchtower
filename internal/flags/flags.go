@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"regexp"
 	"strings"
@@ -691,7 +692,8 @@ func SetupLogging(f *pflag.FlagSet) error {
 				return fmt.Errorf("failed to open log file: %e", err)
 			}
 		}
-		log.SetOutput(logFile)
+		multiWriter := io.MultiWriter(os.Stdout, os.Stderr, logFile)
+		log.SetOutput(multiWriter)
 	}
 
 	return nil
