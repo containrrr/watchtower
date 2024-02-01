@@ -11,6 +11,10 @@ docker run -d \
   containrrr/watchtower
 ```
 
+!!! note "On SELinux enabled systems you cannot mount the docker socket by default"
+  Watchman will start and show "Permission Denied" errors. To fix this add [`--security-opt label=disable`](https://docs.docker.com/engine/security/seccomp/#pass-a-profile-for-a-container) to the docker command to disable 
+  the protection for this container and allow it to mount the docker socket.
+
 If pulling images from private Docker registries, supply registry authentication credentials with the environment variables `REPO_USER` and `REPO_PASS`
 or by mounting the host's docker config file into the container (at the root of the container filesystem `/`).
 
