@@ -12,7 +12,7 @@ LABEL "org.opencontainers.image.url"="https://containrrr.dev/watchtower/" \
       "org.opencontainers.image.licenses"="Apache-2.0" \
 # unsure about capitalization
       "org.opencontainers.image.title"="watchtower" \
-      "org.opencontainers.image.title"="A process for automating Docker container base image updates." \
+      "org.opencontainers.image.description"="A process for automating Docker container base image updates." \
 # The version might be forgotten. The version could be extraced into a `ARG` before the initial `FROM` or removed.
       "org.opencontainers.image.base.name"="alpine:3.19.0"
 
