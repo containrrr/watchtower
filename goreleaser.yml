@@ -30,7 +30,11 @@ archives:
 dockers:
   -
     use_buildx: true
-    build_flag_templates: [ "--platform=linux/amd64" ]
+    build_flag_templates:
+      - "--platform=linux/amd64"
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
     goos: linux
     goarch: amd64
     goarm: ''
@@ -44,7 +48,11 @@ dockers:
       - watchtower
   - 
     use_buildx: true
-    build_flag_templates: [ "--platform=linux/386" ]
+    build_flag_templates:
+      - "--platform=linux/386"
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
     goos: linux
     goarch: 386
     goarm: ''
@@ -58,7 +66,11 @@ dockers:
       - watchtower
   - 
     use_buildx: true
-    build_flag_templates: [ "--platform=linux/arm/v6" ]
+    build_flag_templates:
+      - "--platform=linux/arm/v6"
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
     goos: linux
     goarch: arm
     goarm: 6
@@ -72,7 +84,11 @@ dockers:
       - watchtower
   - 
     use_buildx: true
-    build_flag_templates: [ "--platform=linux/arm64/v8" ]
+    build_flag_templates:
+      - "--platform=linux/arm64/v8"
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
     goos: linux
     goarch: arm64
     goarm: ''
