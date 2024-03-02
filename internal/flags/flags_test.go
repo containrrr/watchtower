@@ -278,9 +278,9 @@ func TestProcessFlagAliasesInvalidPorcelaineVersion(t *testing.T) {
 	})
 }
 
-func TestFlagsArePrecentInDocumentation(t *testing.T) {
+func TestFlagsArePresentInDocumentation(t *testing.T) {
 
-	// Legacy notifcations are ignored, since they are (soft) deprecated
+	// Legacy notifications are ignored, since they are (soft) deprecated
 	ignoredEnvs := map[string]string{
 		"WATCHTOWER_NOTIFICATION_SLACK_ICON_EMOJI": "legacy",
 		"WATCHTOWER_NOTIFICATION_SLACK_ICON_URL":   "legacy",
