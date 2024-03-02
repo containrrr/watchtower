@@ -448,7 +448,7 @@ Returns a success exit code to enable usage with docker `HEALTHCHECK`. This chec
             Argument: --health-check
 ```
 
-## Programatic Output (porcelain)
+## Programmatic Output (porcelain)
 
 Writes the session results to STDOUT using a stable, machine-readable format (indicated by the argument VERSION).  
   
