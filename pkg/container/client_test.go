@@ -282,15 +282,6 @@ var _ = Describe("the client", func() {
 						}),
 						ghttp.RespondWithJSONEncoded(http.StatusOK, types.IDResponse{ID: execID}),
 					),
-					// API.ContainerExecStart
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("POST", HaveSuffix("exec/%v/start", execID)),
-						ghttp.VerifyJSONRepresenting(types.ExecStartCheck{
-							Detach: false,
-							Tty:    true,
-						}),
-						ghttp.RespondWith(http.StatusOK, nil),
-					),
 					// API.ContainerExecInspect
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", HaveSuffix("exec/ex-exec-id/json")),
