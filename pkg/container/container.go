@@ -103,7 +103,11 @@ func (c Container) SafeImageID() wt.ImageID {
 // "latest" tag is assumed.
 func (c Container) ImageName() string {
 	// Compatibility w/ Zodiac deployments
-	imageName, ok := c.getLabelValue(originalImageNameLabel)
+	imageName, ok := c.getLabelValue(zodiacLabel)
+	// If the original-image-name label is set, it overwrites the image name reported by docker
+	if !ok {
+		imageName, ok = c.getLabelValue(originalImageNameLabel)
+	}
 	if !ok {
 		imageName = c.containerInfo.Config.Image
 	}
