@@ -10,6 +10,8 @@ const (
 	noPullLabel            = "com.centurylinklabs.watchtower.no-pull"
 	dependsOnLabel         = "com.centurylinklabs.watchtower.depends-on"
 	zodiacLabel            = "com.centurylinklabs.zodiac.original-image"
+	originalImageNameLabel = "com.centurylinklabs.watchtower.original-image"
+	originalImageIDLabel   = "com.centurylinklabs.watchtower.original-image-id"
 	scope                  = "com.centurylinklabs.watchtower.scope"
 	preCheckLabel          = "com.centurylinklabs.watchtower.lifecycle.pre-check"
 	postCheckLabel         = "com.centurylinklabs.watchtower.lifecycle.post-check"

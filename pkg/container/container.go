@@ -103,7 +103,7 @@ func (c Container) SafeImageID() wt.ImageID {
 // "latest" tag is assumed.
 func (c Container) ImageName() string {
 	// Compatibility w/ Zodiac deployments
-	imageName, ok := c.getLabelValue(zodiacLabel)
+	imageName, ok := c.getLabelValue(originalImageNameLabel)
 	if !ok {
 		imageName = c.containerInfo.Config.Image
 	}
