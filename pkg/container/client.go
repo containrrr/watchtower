@@ -337,7 +337,7 @@ func (client dockerClient) HasNewImage(ctx context.Context, container t.Containe
 	imageIDSetByLabel, ok := container_info.Config.Labels[originalImageIDLabel]
 	if ok {
 		currentImageID = t.ImageID(imageIDSetByLabel)
-		log.Infof("Original image id for %s found: (%s)", imageName, currentImageID.ShortID())
+		log.Debugf("Original image id for %s found: (%s)", imageName, currentImageID.ShortID())
 	}
 
 	newImageInfo, _, err := client.api.ImageInspectWithRaw(ctx, imageName)
