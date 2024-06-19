@@ -56,7 +56,6 @@ the following command:
 === "docker-compose.yml"
 
     ```yaml
-    version: "3"
     services:
       watchtower:
         image: containrrr/watchtower
