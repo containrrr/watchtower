@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
+	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/api/types/network"
 	sdkClient "github.com/docker/docker/client"
 	log "github.com/sirupsen/logrus"
@@ -109,7 +109,7 @@ func (client dockerClient) ListContainers(fn t.Filter) ([]t.Container, error) {
 	filter := client.createListFilter()
 	containers, err := client.api.ContainerList(
 		bg,
-		types.ContainerListOptions{
+		container.ListOptions{
 			Filters: filter,
 		})
 
@@ -206,7 +206,7 @@ func (client dockerClient) StopContainer(c t.Container, timeout time.Duration) e
 	} else {
 		log.Debugf("Removing container %s", shortID)
 
-		if err := client.api.ContainerRemove(bg, idStr, types.ContainerRemoveOptions{Force: true, RemoveVolumes: client.RemoveVolumes}); err != nil {
+		if err := client.api.ContainerRemove(bg, idStr, container.RemoveOptions{Force: true, RemoveVolumes: client.RemoveVolumes}); err != nil {
 			if sdkClient.IsErrNotFound(err) {
 				log.Debugf("Container %s not found, skipping removal.", shortID)
 				return nil
@@ -303,7 +303,7 @@ func (client dockerClient) doStartContainer(bg context.Context, c t.Container, c
 	name := c.Name()
 
 	log.Debugf("Starting container %s (%s)", name, t.ContainerID(creation.ID).ShortID())
-	err := client.api.ContainerStart(bg, creation.ID, types.ContainerStartOptions{})
+	err := client.api.ContainerStart(bg, creation.ID, container.StartOptions{})
 	if err != nil {
 		return err
 	}
@@ -411,7 +411,7 @@ func (client dockerClient) RemoveImageByID(id t.ImageID) error {
 	items, err := client.api.ImageRemove(
 		context.Background(),
 		string(id),
-		types.ImageRemoveOptions{
+		image.RemoveOptions{
 			Force: true,
 		})
 
@@ -444,7 +444,7 @@ func (client dockerClient) ExecuteCommand(containerID t.ContainerID, command str
 	clog := log.WithField("containerID", containerID)
 
 	// Create the exec
-	execConfig := types.ExecConfig{
+	execConfig := container.ExecOptions{
 		Tty:    true,
 		Detach: false,
 		Cmd:    []string{"sh", "-c", command},
@@ -455,7 +455,7 @@ func (client dockerClient) ExecuteCommand(containerID t.ContainerID, command str
 		return false, err
 	}
 
-	response, attachErr := client.api.ContainerExecAttach(bg, exec.ID, types.ExecStartCheck{
+	response, attachErr := client.api.ContainerExecAttach(bg, exec.ID, container.ExecStartOptions{
 		Tty:    true,
 		Detach: false,
 	})
@@ -464,7 +464,7 @@ func (client dockerClient) ExecuteCommand(containerID t.ContainerID, command str
 	}
 
 	// Run the exec
-	execStartCheck := types.ExecStartCheck{Detach: false, Tty: true}
+	execStartCheck := container.ExecStartOptions{Detach: false, Tty: true}
 	err = client.api.ContainerExecStart(bg, exec.ID, execStartCheck)
 	if err != nil {
 		return false, err

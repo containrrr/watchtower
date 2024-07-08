@@ -13,6 +13,7 @@ import (
 	t "github.com/beatkind/watchtower/pkg/types"
 
 	"github.com/docker/docker/api/types"
+	I "github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/api/types/filters"
 	O "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
@@ -262,12 +263,12 @@ func RemoveImageHandler(imagesWithParents map[string][]string) http.HandlerFunc 
 			image := parts[len(parts)-1]
 
 			if parents, found := imagesWithParents[image]; found {
-				items := []types.ImageDeleteResponseItem{
+				items := []I.DeleteResponse{
 					{Untagged: image},
 					{Deleted: image},
 				}
 				for _, parent := range parents {
-					items = append(items, types.ImageDeleteResponseItem{Deleted: parent})
+					items = append(items, I.DeleteResponse{Deleted: parent})
 				}
 				ghttp.RespondWithJSONEncoded(http.StatusOK, items)(w, r)
 			} else {
