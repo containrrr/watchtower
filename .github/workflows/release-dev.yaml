@@ -44,16 +44,7 @@ jobs:
         uses: jerray/publish-docker-action@87d84711629b0dc9f6bb127b568413cc92a2088e #master@2022-10-14
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
           file: dockerfiles/Dockerfile.self-contained
-          repository: containrrr/watchtower
-          tags: latest-dev
-      - name: Publish to GHCR
-        uses: jerray/publish-docker-action@87d84711629b0dc9f6bb127b568413cc92a2088e #master@2022-10-14
-        with:
-          username: ${{ secrets.BOT_USERNAME }}
-          password: ${{ secrets.BOT_GHCR_PAT }}
-          file: dockerfiles/Dockerfile.self-contained
-          registry: ghcr.io
-          repository: containrrr/watchtower
+          repository: beatkind/watchtower
           tags: latest-dev
