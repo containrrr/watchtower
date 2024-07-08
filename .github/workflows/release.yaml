@@ -19,10 +19,10 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.20.x
+          go-version: 1.22.x
       - uses: dominikh/staticcheck-action@fe1dd0c3658873b46f8c9bb3291096a617310ca6 # v1.3.1
         with:
-          version: "2022.1.1"
+          version: "latest"
           install-go: "false" # StaticCheck uses go v1.17 which does not support `any`
 
   test:
@@ -30,7 +30,7 @@ jobs:
     strategy:
       matrix:
         go-version:
-          - 1.20.x
+          - 1.22.x
         platform:
           - ubuntu-latest
           - macos-latest
@@ -44,7 +44,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.20.x
+          go-version: 1.22.x
       - name: Run tests
         run: |
           go test ./... -coverprofile coverage.out
@@ -66,7 +66,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.20.x
+          go-version: 1.22.x
       - name: Login to Docker Hub
         uses: docker/login-action@0d4c9c5ea7693da7b068278f7b52bda2a190a446 # v3
         with:
