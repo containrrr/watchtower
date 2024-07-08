@@ -72,12 +72,6 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Login to GHCR
-        uses: docker/login-action@465a07811f14bebb1938fbed4728c6a1ff8901fc #v2
-        with:
-          username: ${{ secrets.BOT_USERNAME }}
-          password: ${{ secrets.BOT_GHCR_PAT }}
-          registry: ghcr.io
       - name: Build
         uses: goreleaser/goreleaser-action@b508e2e3ef3b19d4e4146d4f8fb3ba9db644a757 # v3
         with:
@@ -98,12 +92,6 @@ jobs:
             beatkind/watchtower:i386-$DH_TAG \
             beatkind/watchtower:armhf-$DH_TAG \
             beatkind/watchtower:arm64v8-$DH_TAG
-          docker manifest create \
-            ghcr.io/beatkind/watchtower:$DH_TAG \
-            ghcr.io/beatkind/watchtower:amd64-$DH_TAG \
-            ghcr.io/beatkind/watchtower:i386-$DH_TAG \
-            ghcr.io/beatkind/watchtower:armhf-$DH_TAG \
-            ghcr.io/beatkind/watchtower:arm64v8-$DH_TAG
       - name: Annotate manifest for version
         run: |
           for REPO in '' ghcr.io/ ; do
@@ -136,12 +124,6 @@ jobs:
             beatkind/watchtower:i386-latest \
             beatkind/watchtower:armhf-latest \
             beatkind/watchtower:arm64v8-latest
-          docker manifest create \
-            ghcr.io/beatkind/watchtower:latest \
-            ghcr.io/beatkind/watchtower:amd64-latest \
-            ghcr.io/beatkind/watchtower:i386-latest \
-            ghcr.io/beatkind/watchtower:armhf-latest \
-            ghcr.io/beatkind/watchtower:arm64v8-latest
       - name: Annotate manifest for latest
         run: |
           for REPO in '' ghcr.io/ ; do
@@ -174,14 +156,6 @@ jobs:
           docker login -u $DOCKER_USER -p $DOCKER_TOKEN && \
             docker manifest push beatkind/watchtower:$(echo $TAG | sed 's/^v*//') && \
             docker manifest push beatkind/watchtower:latest
-      - name: Push manifests to GitHub Container Registry
-        env:
-          DOCKER_USER: ${{ secrets.BOT_USERNAME }}
-          DOCKER_TOKEN: ${{ secrets.BOT_GHCR_PAT }}
-        run: |
-          docker login -u $DOCKER_USER -p $DOCKER_TOKEN ghcr.io && \
-            docker manifest push ghcr.io/beatkind/watchtower:$(echo $TAG | sed 's/^v*//') && \
-            docker manifest push ghcr.io/beatkind/watchtower:latest
 
   renew-docs:
     name: Refresh pkg.go.dev
@@ -190,8 +164,3 @@ jobs:
     steps:
     - name: Pull new module version
       uses: andrewslotin/go-proxy-pull-action@89382de145eeb7a85de72f8a27f686a50727bc7a #master@2022-10-14
-
-  
-  
-
-  
