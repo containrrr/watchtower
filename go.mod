@@ -6,7 +6,7 @@ require (
 	github.com/containrrr/shoutrrr v0.8.0
 	github.com/distribution/reference v0.5.0
 	github.com/docker/cli v27.0.3+incompatible
-	github.com/docker/docker v24.0.9+incompatible
+	github.com/docker/docker v27.0.3+incompatible
 	github.com/docker/go-connections v0.5.0
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/ginkgo/v2 v2.19.0
@@ -21,7 +21,17 @@ require (
 	golang.org/x/net v0.27.0
 )
 
-require github.com/matttproud/golang_protobuf_extensions/v2 v2.0.0 // indirect
+require (
+	github.com/felixge/httpsnoop v1.0.4 // indirect
+	github.com/go-logr/logr v1.4.1 // indirect
+	github.com/go-logr/stdr v1.2.2 // indirect
+	github.com/matttproud/golang_protobuf_extensions/v2 v2.0.0 // indirect
+	github.com/moby/docker-image-spec v1.3.1 // indirect
+	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.49.0 // indirect
+	go.opentelemetry.io/otel v1.24.0 // indirect
+	go.opentelemetry.io/otel/metric v1.24.0 // indirect
+	go.opentelemetry.io/otel/trace v1.24.0 // indirect
+)
 
 require (
 	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
