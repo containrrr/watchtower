@@ -1,7 +1,7 @@
 package container
 
 import (
-	"github.com/containrrr/watchtower/pkg/types"
+	"github.com/beatkind/watchtower/pkg/types"
 	dc "github.com/docker/docker/api/types/container"
 	"github.com/docker/go-connections/nat"
 	. "github.com/onsi/ginkgo"

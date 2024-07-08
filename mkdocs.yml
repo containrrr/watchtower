@@ -1,6 +1,6 @@
 site_name: Watchtower
 site_url: https://containrrr.dev/watchtower/
-repo_url: https://github.com/containrrr/watchtower/
+repo_url: https://github.com/beatkind/watchtower/
 edit_uri: edit/main/docs/
 theme:
   name: 'material'

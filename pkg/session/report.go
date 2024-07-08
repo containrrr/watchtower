@@ -3,7 +3,7 @@ package session
 import (
 	"sort"
 
-	"github.com/containrrr/watchtower/pkg/types"
+	"github.com/beatkind/watchtower/pkg/types"
 )
 
 type report struct {

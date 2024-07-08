@@ -14,13 +14,13 @@
   <a href="https://codecov.io/gh/containrrr/watchtower">
     <img alt="Codecov" src="https://codecov.io/gh/containrrr/watchtower/branch/main/graph/badge.svg">
   </a>
-  <a href="https://godoc.org/github.com/containrrr/watchtower">
-    <img alt="GoDoc" src="https://godoc.org/github.com/containrrr/watchtower?status.svg" />
+  <a href="https://godoc.org/github.com/beatkind/watchtower">
+    <img alt="GoDoc" src="https://godoc.org/github.com/beatkind/watchtower?status.svg" />
   </a>
-  <a href="https://goreportcard.com/report/github.com/containrrr/watchtower">
-    <img alt="Go Report Card" src="https://goreportcard.com/badge/github.com/containrrr/watchtower" />
+  <a href="https://goreportcard.com/report/github.com/beatkind/watchtower">
+    <img alt="Go Report Card" src="https://goreportcard.com/badge/github.com/beatkind/watchtower" />
   </a>
-  <a href="https://github.com/containrrr/watchtower/releases">
+  <a href="https://github.com/beatkind/watchtower/releases">
     <img alt="latest version" src="https://img.shields.io/github/tag/containrrr/watchtower.svg" />
   </a>
   <a href="https://www.apache.org/licenses/LICENSE-2.0">
@@ -29,7 +29,7 @@
   <a href="https://www.codacy.com/gh/containrrr/watchtower/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=containrrr/watchtower&amp;utm_campaign=Badge_Grade">
     <img alt="Codacy Badge" src="https://app.codacy.com/project/badge/Grade/1c48cfb7646d4009aa8c6f71287670b8"/>
   </a>
-  <a href="https://github.com/containrrr/watchtower/#contributors">
+  <a href="https://github.com/beatkind/watchtower/#contributors">
     <img alt="All Contributors" src="https://img.shields.io/github/all-contributors/containrrr/watchtower" />
   </a>
   <a href="https://hub.docker.com/r/containrrr/watchtower">

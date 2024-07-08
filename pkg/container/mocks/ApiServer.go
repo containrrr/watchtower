@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	t "github.com/containrrr/watchtower/pkg/types"
+	t "github.com/beatkind/watchtower/pkg/types"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"

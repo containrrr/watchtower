@@ -1,7 +1,7 @@
 package metrics
 
 import (
-	"github.com/containrrr/watchtower/pkg/types"
+	"github.com/beatkind/watchtower/pkg/types"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )

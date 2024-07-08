@@ -1,6 +1,6 @@
 package data
 
-import wt "github.com/containrrr/watchtower/pkg/types"
+import wt "github.com/beatkind/watchtower/pkg/types"
 
 type containerStatus struct {
 	containerID   wt.ContainerID

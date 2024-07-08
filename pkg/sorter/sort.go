@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/containrrr/watchtower/pkg/types"
+	"github.com/beatkind/watchtower/pkg/types"
 )
 
 // ByCreated allows a list of Container structs to be sorted by the container's
