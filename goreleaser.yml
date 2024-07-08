@@ -38,8 +38,6 @@ dockers:
     image_templates:
       - beatkind/watchtower:amd64-{{ .Version }}
       - beatkind/watchtower:amd64-latest
-    binaries:
-      - watchtower
   - 
     use_buildx: true
     build_flag_templates: [ "--platform=linux/386" ]
@@ -50,8 +48,6 @@ dockers:
     image_templates:
       - beatkind/watchtower:i386-{{ .Version }}
       - beatkind/watchtower:i386-latest
-    binaries:
-      - watchtower
   - 
     use_buildx: true
     build_flag_templates: [ "--platform=linux/arm/v6" ]
@@ -62,8 +58,6 @@ dockers:
     image_templates:
       - beatkind/watchtower:armhf-{{ .Version }}
       - beatkind/watchtower:armhf-latest
-    binaries:
-      - watchtower
   - 
     use_buildx: true
     build_flag_templates: [ "--platform=linux/arm64/v8" ]
@@ -74,5 +68,3 @@ dockers:
     image_templates:
       - beatkind/watchtower:arm64v8-{{ .Version }}
       - beatkind/watchtower:arm64v8-latest
-    binaries:
-      - watchtower
