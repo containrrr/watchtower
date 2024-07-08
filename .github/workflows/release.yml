@@ -93,36 +93,36 @@ jobs:
         run: |
           export DH_TAG=$(git tag --points-at HEAD | sed 's/^v*//')
           docker manifest create \
-            containrrr/watchtower:$DH_TAG \
-            containrrr/watchtower:amd64-$DH_TAG \
-            containrrr/watchtower:i386-$DH_TAG \
-            containrrr/watchtower:armhf-$DH_TAG \
-            containrrr/watchtower:arm64v8-$DH_TAG
+            beatkind/watchtower:$DH_TAG \
+            beatkind/watchtower:amd64-$DH_TAG \
+            beatkind/watchtower:i386-$DH_TAG \
+            beatkind/watchtower:armhf-$DH_TAG \
+            beatkind/watchtower:arm64v8-$DH_TAG
           docker manifest create \
-            ghcr.io/containrrr/watchtower:$DH_TAG \
-            ghcr.io/containrrr/watchtower:amd64-$DH_TAG \
-            ghcr.io/containrrr/watchtower:i386-$DH_TAG \
-            ghcr.io/containrrr/watchtower:armhf-$DH_TAG \
-            ghcr.io/containrrr/watchtower:arm64v8-$DH_TAG
+            ghcr.io/beatkind/watchtower:$DH_TAG \
+            ghcr.io/beatkind/watchtower:amd64-$DH_TAG \
+            ghcr.io/beatkind/watchtower:i386-$DH_TAG \
+            ghcr.io/beatkind/watchtower:armhf-$DH_TAG \
+            ghcr.io/beatkind/watchtower:arm64v8-$DH_TAG
       - name: Annotate manifest for version
         run: |
           for REPO in '' ghcr.io/ ; do
           
           docker manifest annotate \
-            ${REPO}containrrr/watchtower:$(echo $TAG | sed 's/^v*//') \
-            ${REPO}containrrr/watchtower:i386-$(echo $TAG | sed 's/^v*//') \
+            ${REPO}beatkind/watchtower:$(echo $TAG | sed 's/^v*//') \
+            ${REPO}beatkind/watchtower:i386-$(echo $TAG | sed 's/^v*//') \
             --os linux \
             --arch 386
           
           docker manifest annotate \
-            ${REPO}containrrr/watchtower:$(echo $TAG | sed 's/^v*//') \
-            ${REPO}containrrr/watchtower:armhf-$(echo $TAG | sed 's/^v*//') \
+            ${REPO}beatkind/watchtower:$(echo $TAG | sed 's/^v*//') \
+            ${REPO}beatkind/watchtower:armhf-$(echo $TAG | sed 's/^v*//') \
             --os linux \
             --arch arm
       
           docker manifest annotate \
-            ${REPO}containrrr/watchtower:$(echo $TAG | sed 's/^v*//') \
-            ${REPO}containrrr/watchtower:arm64v8-$(echo $TAG | sed 's/^v*//') \
+            ${REPO}beatkind/watchtower:$(echo $TAG | sed 's/^v*//') \
+            ${REPO}beatkind/watchtower:arm64v8-$(echo $TAG | sed 's/^v*//') \
             --os linux \
             --arch arm64 \
             --variant v8
@@ -131,36 +131,36 @@ jobs:
       - name: Create manifest for latest
         run: |
           docker manifest create \
-            containrrr/watchtower:latest \
-            containrrr/watchtower:amd64-latest \
-            containrrr/watchtower:i386-latest \
-            containrrr/watchtower:armhf-latest \
-            containrrr/watchtower:arm64v8-latest
+            beatkind/watchtower:latest \
+            beatkind/watchtower:amd64-latest \
+            beatkind/watchtower:i386-latest \
+            beatkind/watchtower:armhf-latest \
+            beatkind/watchtower:arm64v8-latest
           docker manifest create \
-            ghcr.io/containrrr/watchtower:latest \
-            ghcr.io/containrrr/watchtower:amd64-latest \
-            ghcr.io/containrrr/watchtower:i386-latest \
-            ghcr.io/containrrr/watchtower:armhf-latest \
-            ghcr.io/containrrr/watchtower:arm64v8-latest
+            ghcr.io/beatkind/watchtower:latest \
+            ghcr.io/beatkind/watchtower:amd64-latest \
+            ghcr.io/beatkind/watchtower:i386-latest \
+            ghcr.io/beatkind/watchtower:armhf-latest \
+            ghcr.io/beatkind/watchtower:arm64v8-latest
       - name: Annotate manifest for latest
         run: |
           for REPO in '' ghcr.io/ ; do
 
           docker manifest annotate \
-            ${REPO}containrrr/watchtower:latest \
-            ${REPO}containrrr/watchtower:i386-latest \
+            ${REPO}beatkind/watchtower:latest \
+            ${REPO}beatkind/watchtower:i386-latest \
             --os linux \
             --arch 386
       
           docker manifest annotate \
-            ${REPO}containrrr/watchtower:latest \
-            ${REPO}containrrr/watchtower:armhf-latest \
+            ${REPO}beatkind/watchtower:latest \
+            ${REPO}beatkind/watchtower:armhf-latest \
             --os linux \
             --arch arm
             
           docker manifest annotate \
-            ${REPO}containrrr/watchtower:latest \
-            ${REPO}containrrr/watchtower:arm64v8-latest \
+            ${REPO}beatkind/watchtower:latest \
+            ${REPO}beatkind/watchtower:arm64v8-latest \
             --os linux \
             --arch arm64 \
             --variant v8
@@ -172,16 +172,16 @@ jobs:
           DOCKER_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
           docker login -u $DOCKER_USER -p $DOCKER_TOKEN && \
-            docker manifest push containrrr/watchtower:$(echo $TAG | sed 's/^v*//') && \
-            docker manifest push containrrr/watchtower:latest
+            docker manifest push beatkind/watchtower:$(echo $TAG | sed 's/^v*//') && \
+            docker manifest push beatkind/watchtower:latest
       - name: Push manifests to GitHub Container Registry
         env:
           DOCKER_USER: ${{ secrets.BOT_USERNAME }}
           DOCKER_TOKEN: ${{ secrets.BOT_GHCR_PAT }}
         run: |
           docker login -u $DOCKER_USER -p $DOCKER_TOKEN ghcr.io && \
-            docker manifest push ghcr.io/containrrr/watchtower:$(echo $TAG | sed 's/^v*//') && \
-            docker manifest push ghcr.io/containrrr/watchtower:latest
+            docker manifest push ghcr.io/beatkind/watchtower:$(echo $TAG | sed 's/^v*//') && \
+            docker manifest push ghcr.io/beatkind/watchtower:latest
 
   renew-docs:
     name: Refresh pkg.go.dev
