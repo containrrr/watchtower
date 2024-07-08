@@ -92,30 +92,6 @@ jobs:
             beatkind/watchtower:i386-$DH_TAG \
             beatkind/watchtower:armhf-$DH_TAG \
             beatkind/watchtower:arm64v8-$DH_TAG
-      - name: Annotate manifest for version
-        run: |
-          for REPO in '' ghcr.io/ ; do
-          
-          docker manifest annotate \
-            ${REPO}beatkind/watchtower:$(echo $TAG | sed 's/^v*//') \
-            ${REPO}beatkind/watchtower:i386-$(echo $TAG | sed 's/^v*//') \
-            --os linux \
-            --arch 386
-          
-          docker manifest annotate \
-            ${REPO}beatkind/watchtower:$(echo $TAG | sed 's/^v*//') \
-            ${REPO}beatkind/watchtower:armhf-$(echo $TAG | sed 's/^v*//') \
-            --os linux \
-            --arch arm
-      
-          docker manifest annotate \
-            ${REPO}beatkind/watchtower:$(echo $TAG | sed 's/^v*//') \
-            ${REPO}beatkind/watchtower:arm64v8-$(echo $TAG | sed 's/^v*//') \
-            --os linux \
-            --arch arm64 \
-            --variant v8
-            
-            done
       - name: Create manifest for latest
         run: |
           docker manifest create \
@@ -124,30 +100,6 @@ jobs:
             beatkind/watchtower:i386-latest \
             beatkind/watchtower:armhf-latest \
             beatkind/watchtower:arm64v8-latest
-      - name: Annotate manifest for latest
-        run: |
-          for REPO in '' ghcr.io/ ; do
-
-          docker manifest annotate \
-            ${REPO}beatkind/watchtower:latest \
-            ${REPO}beatkind/watchtower:i386-latest \
-            --os linux \
-            --arch 386
-      
-          docker manifest annotate \
-            ${REPO}beatkind/watchtower:latest \
-            ${REPO}beatkind/watchtower:armhf-latest \
-            --os linux \
-            --arch arm
-            
-          docker manifest annotate \
-            ${REPO}beatkind/watchtower:latest \
-            ${REPO}beatkind/watchtower:arm64v8-latest \
-            --os linux \
-            --arch arm64 \
-            --variant v8
-
-          done
       - name: Push manifests to Dockerhub
         env:
           DOCKER_USER: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -156,7 +108,6 @@ jobs:
           docker login -u $DOCKER_USER -p $DOCKER_TOKEN && \
             docker manifest push beatkind/watchtower:$(echo $TAG | sed 's/^v*//') && \
             docker manifest push beatkind/watchtower:latest
-
   renew-docs:
     name: Refresh pkg.go.dev
     needs: build
