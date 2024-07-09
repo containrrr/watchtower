@@ -7,7 +7,7 @@ launching watchtower.
 $ docker run -d \
     --name watchtower \
     -v /var/run/docker.sock:/var/run/docker.sock \
-    containrrr/watchtower \
+    beatkind/watchtower \
     nginx redis
 ```
 
@@ -18,7 +18,7 @@ the watchtower container after its execution.
 ```bash
 $ docker run --rm \
     -v /var/run/docker.sock:/var/run/docker.sock \
-    containrrr/watchtower \
+    beatkind/watchtower \
     --run-once \
     nginx redis
 ```
@@ -245,7 +245,7 @@ Environment Variable: WATCHTOWER_DISABLE_CONTAINERS
 
 ## Without updating containers
 Will only monitor for new images, send notifications and invoke
-the [pre-check/post-check hooks](https://containrrr.dev/watchtower/lifecycle-hooks/), but will __not__ update the
+the [pre-check/post-check hooks](https://watchtower.devcdn.nelifecycle-hooks/), but will __not__ update the
 containers.
 
 !!! note
@@ -325,7 +325,7 @@ Environment Variable: WATCHTOWER_RUN_ONCE
 
 ## HTTP API Mode
 Runs Watchtower in HTTP API mode, only allowing image updates to be triggered by an HTTP request. 
-For details see [HTTP API](https://containrrr.dev/watchtower/http-api-mode).
+For details see [HTTP API](https://watchtower.devcdn.nehttp-api-mode).
 
 ```text
             Argument: --http-api-update
@@ -357,7 +357,7 @@ Environment Variable: WATCHTOWER_HTTP_API_PERIODIC_POLLS
 
 ## Filter by scope
 Update containers that have a `com.centurylinklabs.watchtower.scope` label set with the same value as the given argument. 
-This enables [running multiple instances](https://containrrr.dev/watchtower/running-multiple-instances).
+This enables [running multiple instances](https://watchtower.devcdn.nerunning-multiple-instances).
 
 !!! note "Filter by lack of scope"
     If you want other instances of watchtower to ignore the scoped containers, set this argument to `none`.

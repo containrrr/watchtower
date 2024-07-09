@@ -16,7 +16,7 @@ services:
       - "com.centurylinklabs.watchtower.enable=true"
 
   watchtower:
-    image: containrrr/watchtower
+    image: beatkind/watchtower
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     command: --debug --http-api-update

@@ -63,7 +63,7 @@ When the watchtower Docker container is started, the created configuration file
 (`<PATH>/config.json` in this example) needs to be passed to the container:
 
 ```bash
-docker run [...] -v <PATH>/config.json:/config.json containrrr/watchtower
+docker run [...] -v <PATH>/config.json:/config.json beatkind/watchtower
 ```
 
 ### Share the Docker configuration file
@@ -76,7 +76,7 @@ additional configuration file is not necessary.
 When the Docker container is started, pass the configuration file to watchtower:
 
 ```bash
-docker run [...] -v <PATH_TO_HOME_DIR>/.docker/config.json:/config.json containrrr/watchtower
+docker run [...] -v <PATH_TO_HOME_DIR>/.docker/config.json:/config.json beatkind/watchtower
 ```
 
 When creating the watchtower container via docker-compose, use the following lines:
@@ -85,7 +85,7 @@ When creating the watchtower container via docker-compose, use the following lin
 version: "3.4"
 services:
   watchtower:
-    image: containrrr/watchtower:latest
+    image: beatkind/watchtower:latest
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - <PATH_TO_HOME_DIR>/.docker/config.json:/config.json
@@ -101,7 +101,7 @@ version: "3.4"
 
 services: 
   watchtower:
-    image: containrrr/watchtower
+    image: beatkind/watchtower
     environment:
         DOCKER_CONFIG: /config
     volumes:
@@ -178,7 +178,7 @@ in a volume that may be mounted onto your watchtower container.
      # Check for new images and restart things if a new image exists
      # for any of our containers.
      watchtower:
-       image: containrrr/watchtower:latest
+       image: beatkind/watchtower:latest
        volumes:
          - /var/run/docker.sock:/var/run/docker.sock
          - .docker/config.json:/config.json

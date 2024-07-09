@@ -1,4 +1,4 @@
-By default, Watchtower will clean up other instances and won't allow multiple instances running on the same Docker host or swarm. It is possible to override this behavior by defining a [scope](https://containrrr.github.io/watchtower/arguments/#filter_by_scope) to each running instance. 
+By default, Watchtower will clean up other instances and won't allow multiple instances running on the same Docker host or swarm. It is possible to override this behavior by defining a [scope](https://watchtower.devcdn.net/arguments/#filter_by_scope) to each running instance. 
 
 !!! note
     - Multiple instances can't run with the same scope;
@@ -18,7 +18,7 @@ services:
     labels: [ "com.centurylinklabs.watchtower.scope=myscope" ]
 
   scoped-watchtower:
-    image: containrrr/watchtower
+    image: beatkind/watchtower
     volumes: [ "/var/run/docker.sock:/var/run/docker.sock" ]
     command: --interval 30 --scope myscope
     labels: [ "com.centurylinklabs.watchtower.scope=myscope" ] 
@@ -35,7 +35,7 @@ services:
     labels: [ "com.centurylinklabs.watchtower.scope=" ]
     
   unscoped-watchtower:
-    image: containrrr/watchtower
+    image: beatkind/watchtower
     volumes: [ "/var/run/docker.sock:/var/run/docker.sock" ]
     command: --interval 30 --scope none
 ```
