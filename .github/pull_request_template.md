@@ -8,7 +8,7 @@ To make your PR experience as smooth as possible, make sure that you
 include the following in your PR:
 
 - What your PR contributes
-- Which issues it solves (preferrably using auto closing instructions like "closes #123".
+- Which issues it solves (preferably using auto closing instructions like "closes #123".
 - Tests that verify the code your contributing
 - Updates to the documentation
 
