@@ -14,6 +14,7 @@ import (
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
+	"github.com/docker/docker/api/types/image"
 	O "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
 )
@@ -259,15 +260,15 @@ func RemoveImageHandler(imagesWithParents map[string][]string) http.HandlerFunc 
 		ghttp.VerifyRequest("DELETE", O.MatchRegexp("/images/.*")),
 		func(w http.ResponseWriter, r *http.Request) {
 			parts := strings.Split(r.URL.Path, `/`)
-			image := parts[len(parts)-1]
+			testimage := parts[len(parts)-1]
 
-			if parents, found := imagesWithParents[image]; found {
-				items := []types.ImageDeleteResponseItem{
-					{Untagged: image},
-					{Deleted: image},
+			if parents, found := imagesWithParents[testimage]; found {
+				items := []image.DeleteResponse{
+					{Untagged: testimage},
+					{Deleted: testimage},
 				}
 				for _, parent := range parents {
-					items = append(items, types.ImageDeleteResponseItem{Deleted: parent})
+					items = append(items, image.DeleteResponse{Deleted: parent})
 				}
 				ghttp.RespondWithJSONEncoded(http.StatusOK, items)(w, r)
 			} else {
