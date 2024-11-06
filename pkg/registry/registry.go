@@ -31,6 +31,9 @@ func GetPullOptions(imageName string) (image.PullOptions, error) {
 	}, nil
 }
 
+// DefaultAuthHandler will be invoked if an AuthConfig is rejected
+// It could be used to return a new value for the "X-Registry-Auth" authentication header,
+// but there's no point trying again with the same value as used in AuthConfig
 func DefaultAuthHandler(ctx context.Context) (string, error) {
 	log.Debug("Authentication request was rejected. Trying again without authentication")
 	return "", nil
