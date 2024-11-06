@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/image"
@@ -243,6 +242,7 @@ func (client dockerClient) GetNetworkConfig(c t.Container) *network.NetworkingCo
 
 		ep.Aliases = aliases
 	}
+
 	return config
 }
 
@@ -263,6 +263,17 @@ func (client dockerClient) StartContainer(c t.Container) (t.ContainerID, error) 
 		}
 		return &network.NetworkingConfig{EndpointsConfig: oneEndpoint}
 	}()
+
+	// Docker Client API Version 1.43 and below Conflict setting MAC address
+	// See: https://github.com/moby/moby/blob/f0cec02a403496e2b1dd1aaf12b2530922e210db/client/container_create.go#L40
+	if client.api.ClientVersion() < "1.44" {
+		for _, endpoint := range networkConfig.EndpointsConfig {
+			endpoint.MacAddress = ""
+		}
+		log.Infof("Detected Docker API version %s, which is incompatible with setting MAC address for endpoints.",
+			client.api.ClientVersion())
+		log.Infof("Skipping MAC address configuration to maintain api compatibility.")
+	}
 
 	name := c.Name()
 
@@ -445,7 +456,7 @@ func (client dockerClient) ExecuteCommand(containerID t.ContainerID, command str
 	clog := log.WithField("containerID", containerID)
 
 	// Create the exec
-	execConfig := types.ExecConfig{
+	execConfig := container.ExecOptions{
 		Tty:    true,
 		Detach: false,
 		Cmd:    []string{"sh", "-c", command},
@@ -456,7 +467,7 @@ func (client dockerClient) ExecuteCommand(containerID t.ContainerID, command str
 		return false, err
 	}
 
-	response, attachErr := client.api.ContainerExecAttach(bg, exec.ID, types.ExecStartCheck{
+	response, attachErr := client.api.ContainerExecAttach(bg, exec.ID, container.ExecStartOptions{
 		Tty:    true,
 		Detach: false,
 	})
@@ -465,7 +476,7 @@ func (client dockerClient) ExecuteCommand(containerID t.ContainerID, command str
 	}
 
 	// Run the exec
-	execStartCheck := types.ExecStartCheck{Detach: false, Tty: true}
+	execStartCheck := container.ExecStartOptions{Detach: false, Tty: true}
 	err = client.api.ContainerExecStart(bg, exec.ID, execStartCheck)
 	if err != nil {
 		return false, err
