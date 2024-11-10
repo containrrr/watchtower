@@ -55,7 +55,7 @@ outputs timestamp and log level.
     If you want to adjust the date/time format it must show how the
     [reference time](https://golang.org/pkg/time/#pkg-constants) (_Mon Jan 2 15:04:05 MST 2006_) would be displayed in your
     custom format.  
-    i.e., The day of the year has to be 1, the month has to be 2 (february), the hour 3 (or 15 for 24h time) etc.
+    i.e., The day of the year has to be 2, the month has to be 1 (january), the hour 3 (or 15 for 24h time) etc.
 
 !!! note "Skipping notifications"
     To skip sending notifications that do not contain any information, you can wrap your template with `{{if .}}` and `{{end}}`.
