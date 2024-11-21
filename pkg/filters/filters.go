@@ -108,9 +108,15 @@ func FilterByImage(images []string, baseFilter t.Filter) t.Filter {
 	}
 
 	return func(c t.FilterableContainer) bool {
-		image := strings.Split(c.ImageName(), ":")[0]
+		imageParts := strings.Split(c.ImageName(), ":")
 		for _, targetImage := range images {
-			if image == targetImage {
+			targetImageParts := strings.Split(targetImage, ":")
+			if imageParts[0] == targetImageParts[0] {
+				if len(imageParts) == 2 && len(targetImageParts) == 2 {
+					if imageParts[1] != targetImageParts[1] {
+						continue
+					}
+				}
 				return baseFilter(c)
 			}
 		}
