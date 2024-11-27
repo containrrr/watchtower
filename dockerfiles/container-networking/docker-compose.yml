@@ -11,7 +11,7 @@ services:
   consumer:
     depends_on:
       - producer
-    image: nginx:1.27.2
+    image: nginx:1.27.3
     network_mode: "service:producer"
     labels:
       - "com.centurylinklabs.watchtower.depends-on=/wt-contnet-producer-1"
