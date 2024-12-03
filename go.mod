@@ -2,7 +2,7 @@ module github.com/beatkind/watchtower
 
 go 1.22.0
 
-toolchain go1.23.3
+toolchain go1.23.4
 
 require (
 	github.com/containrrr/shoutrrr v0.8.0
