@@ -4,26 +4,25 @@ on:
   workflow_dispatch: {}
   push:
     tags:
-      - 'v[0-9]+.[0-9]+.[0-9]+'
-      - '**/v[0-9]+.[0-9]+.[0-9]+'
+      - "v[0-9]+.[0-9]+.[0-9]+"
+      - "**/v[0-9]+.[0-9]+.[0-9]+"
+
+permissions:
+  contents: read
 
 jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
         with:
-          fetch-depth: 0
-      - name: Set up Go
-        uses: actions/setup-go@v5
+          go-version: stable
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
         with:
-          go-version: 1.23.x
-      - uses: dominikh/staticcheck-action@fe1dd0c3658873b46f8c9bb3291096a617310ca6 # v1.3.1
-        with:
-          version: "latest"
-          install-go: "false" # StaticCheck uses go v1.17 which does not support `any`
+          version: v1.60
 
   test:
     name: Test
@@ -52,7 +51,7 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
-    needs: 
+    needs:
       - test
       - lint
     env:
@@ -113,5 +112,5 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-    - name: Pull new module version
-      uses: andrewslotin/go-proxy-pull-action@89382de145eeb7a85de72f8a27f686a50727bc7a #master@2022-10-14
+      - name: Pull new module version
+        uses: andrewslotin/go-proxy-pull-action@89382de145eeb7a85de72f8a27f686a50727bc7a #master@2022-10-14

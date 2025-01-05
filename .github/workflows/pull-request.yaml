@@ -6,23 +6,22 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
         with:
-          fetch-depth: 0
-      - name: Set up Go
-        uses: actions/setup-go@v5
+          go-version: stable
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
         with:
-          go-version: 1.23.x
-      - uses: dominikh/staticcheck-action@fe1dd0c3658873b46f8c9bb3291096a617310ca6 # v1.3.1
-        with:
-          version: "2023.1.6"
-          install-go: "false" # StaticCheck uses go v1.17 which does not support `any`
+          version: v1.60
   test:
     name: Test
     strategy:
@@ -46,7 +45,7 @@ jobs:
           go-version: 1.23.x
       - name: Run tests
         run: |
-          go test -v -coverprofile coverage.out -covermode atomic ./... 
+          go test -v -coverprofile coverage.out -covermode atomic ./...
       - name: Publish coverage
         uses: codecov/codecov-action@v5
         with:
