@@ -14,18 +14,14 @@ jobs:
     name: Lint
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
         with:
-          fetch-depth: 0
-      - name: Set up Go
-        uses: actions/setup-go@v5
+          go-version: stable
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
         with:
-          go-version: 1.23.x
-      - uses: dominikh/staticcheck-action@v1.3.1
-        with:
-          # version: "2024.1.1"
-          install-go: "false" # StaticCheck uses go v1.17 which does not support `any`
+          version: v1.60
   test:
     name: Test
     strategy:
