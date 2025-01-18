@@ -70,4 +70,4 @@ jobs:
         uses: goreleaser/goreleaser-action@9ed2f89a662bf1735a48bc8557fd212fa902bebf # v6
         with:
           version: '~> v2'
-          args: --snapshot --skip-publish --debug
+          args: --snapshot --skip=publish --debug
