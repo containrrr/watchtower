@@ -46,10 +46,10 @@ jobs:
       - name: Run tests
         run: |
           go test -v -coverprofile coverage.out -covermode atomic ./... 
-      # - name: Publish coverage
-      #   uses: codecov/codecov-action@v5
-      #   with:
-      #     token: ${{ secrets.CODECOV_TOKEN }}
+      - name: Publish coverage
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
   build:
     name: Build
     runs-on: ubuntu-latest
@@ -65,5 +65,5 @@ jobs:
       - name: Build
         uses: goreleaser/goreleaser-action@9ed2f89a662bf1735a48bc8557fd212fa902bebf # v6
         with:
-          version: '~> v2'
+          version: v0.155.0
           args: --snapshot --skip=publish --debug
