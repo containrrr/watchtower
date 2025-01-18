@@ -8,8 +8,7 @@ require (
 	github.com/docker/cli v27.5.0+incompatible
 	github.com/docker/docker v27.5.0+incompatible
 	github.com/docker/go-connections v0.5.0
-	github.com/onsi/ginkgo v1.16.5
-	github.com/onsi/ginkgo/v2 v2.22.2 // indirect
+	github.com/onsi/ginkgo/v2 v2.22.2
 	github.com/onsi/gomega v1.36.2
 	github.com/prometheus/client_golang v1.20.5
 	github.com/robfig/cron v1.2.0
@@ -73,6 +72,8 @@ require (
 	go.opentelemetry.io/otel/sdk v1.34.0 // indirect
 	go.opentelemetry.io/otel/trace v1.34.0 // indirect
 )
+
+require github.com/onsi/ginkgo v1.16.5
 
 require (
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
