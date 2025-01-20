@@ -2,6 +2,9 @@ module github.com/nicholas-fedor/watchtower
 
 go 1.23.5
 
+// Retract prematurely published versions
+retract [v1.7.2, v1.7.9]
+
 require (
 	github.com/containrrr/shoutrrr v0.8.0
 	github.com/distribution/reference v0.6.0
