@@ -211,6 +211,12 @@ func RegisterSystemFlags(rootCmd *cobra.Command) {
 		"",
 		envBool("WATCHTOWER_LABEL_TAKE_PRECEDENCE"),
 		"Label applied to containers take precedence over arguments")
+
+	flags.BoolP(
+		"disable-memory-swappiness",
+		"",
+		envBool("WATCHTOWER_DISABLE_MEMORY_SWAPPINESS"),
+		"Label used for setting memory swappiness as nil when recreating the container, used for compatibility with podman")
 }
 
 // RegisterNotificationFlags that are used by watchtower to send notifications
@@ -437,6 +443,7 @@ func SetDefaults() {
 	viper.SetDefault("WATCHTOWER_NOTIFICATION_SLACK_IDENTIFIER", "watchtower")
 	viper.SetDefault("WATCHTOWER_LOG_LEVEL", "info")
 	viper.SetDefault("WATCHTOWER_LOG_FORMAT", "auto")
+	viper.SetDefault("WATCHTOWER_DISABLE_MEMORY_SWAPPINESS", false)
 }
 
 // EnvConfig translates the command-line options into environment variables

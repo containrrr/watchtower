@@ -498,3 +498,15 @@ Environment Variable: WATCHTOWER_PORCELAIN
      Possible values: v1
              Default: -
 ```
+
+## Compatibility with podman (Disable memory swappiness)
+
+Disable memory swappiness. By default, podman sets the memory-swappiness value to 0 when no memory-swappiness is defined
+When this flag is specified, watchtower will set the memory-swappiness to nil, fixing a compatibility issue with podman running with crun and cgroupv2
+
+```text
+            Argument: --disable-memory-swappiness
+Environment Variable: WATCHTOWER_DISABLE_MEMORY_SWAPPINESS
+                Type: Boolean
+             Default: false
+```
