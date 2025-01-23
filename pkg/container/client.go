@@ -57,11 +57,12 @@ func NewClient(opts ClientOptions) Client {
 
 // ClientOptions contains the options for how the docker client wrapper should behave
 type ClientOptions struct {
-	RemoveVolumes     bool
-	IncludeStopped    bool
-	ReviveStopped     bool
-	IncludeRestarting bool
-	WarnOnHeadFailed  WarningStrategy
+	RemoveVolumes           bool
+	IncludeStopped          bool
+	ReviveStopped           bool
+	IncludeRestarting       bool
+	DisableMemorySwappiness bool
+	WarnOnHeadFailed        WarningStrategy
 }
 
 // WarningStrategy is a value determining when to show warnings
@@ -250,6 +251,11 @@ func (client dockerClient) StartContainer(c t.Container) (t.ContainerID, error) 
 	config := c.GetCreateConfig()
 	hostConfig := c.GetCreateHostConfig()
 	networkConfig := client.GetNetworkConfig(c)
+
+	// this is a flag set for podman compatibility
+	if client.DisableMemorySwappiness {
+		hostConfig.MemorySwappiness = nil
+	}
 
 	// simpleNetworkConfig is a networkConfig with only 1 network.
 	// see: https://github.com/docker/docker/issues/29265

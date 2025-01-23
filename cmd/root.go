@@ -117,17 +117,19 @@ func PreRun(cmd *cobra.Command, _ []string) {
 	reviveStopped, _ := f.GetBool("revive-stopped")
 	removeVolumes, _ := f.GetBool("remove-volumes")
 	warnOnHeadPullFailed, _ := f.GetString("warn-on-head-failure")
+	disableMemorySwappiness, _ := f.GetBool("disable-memory-swappiness")
 
 	if monitorOnly && noPull {
 		log.Warn("Using `WATCHTOWER_NO_PULL` and `WATCHTOWER_MONITOR_ONLY` simultaneously might lead to no action being taken at all. If this is intentional, you may safely ignore this message.")
 	}
 
 	client = container.NewClient(container.ClientOptions{
-		IncludeStopped:    includeStopped,
-		ReviveStopped:     reviveStopped,
-		RemoveVolumes:     removeVolumes,
-		IncludeRestarting: includeRestarting,
-		WarnOnHeadFailed:  container.WarningStrategy(warnOnHeadPullFailed),
+		IncludeStopped:          includeStopped,
+		ReviveStopped:           reviveStopped,
+		RemoveVolumes:           removeVolumes,
+		IncludeRestarting:       includeRestarting,
+		DisableMemorySwappiness: disableMemorySwappiness,
+		WarnOnHeadFailed:        container.WarningStrategy(warnOnHeadPullFailed),
 	})
 
 	notifier = notifications.NewNotifier(cmd)
