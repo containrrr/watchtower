@@ -9,13 +9,13 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/onsi/ginkgo"
 
 	t "github.com/nicholas-fedor/watchtower/pkg/types"
 
 	"github.com/docker/docker/api/types"
 	i "github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/api/types/filters"
+	"github.com/onsi/ginkgo/v2"
 	O "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
 )

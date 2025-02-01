@@ -3,7 +3,7 @@ package registry_test
 import (
 	"github.com/nicholas-fedor/watchtower/internal/actions/mocks"
 	unit "github.com/nicholas-fedor/watchtower/pkg/registry"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"time"

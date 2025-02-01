@@ -13,7 +13,7 @@ import (
 
 	ref "github.com/distribution/reference"
 	wtTypes "github.com/nicholas-fedor/watchtower/pkg/types"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
