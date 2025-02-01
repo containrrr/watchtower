@@ -7,7 +7,7 @@ import (
 	apiTypes "github.com/docker/docker/api/types"
 	"github.com/nicholas-fedor/watchtower/internal/actions/mocks"
 	"github.com/nicholas-fedor/watchtower/pkg/registry/manifest"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 

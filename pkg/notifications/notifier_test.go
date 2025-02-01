@@ -8,7 +8,7 @@ import (
 	"github.com/nicholas-fedor/watchtower/cmd"
 	"github.com/nicholas-fedor/watchtower/internal/flags"
 	"github.com/nicholas-fedor/watchtower/pkg/notifications"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
