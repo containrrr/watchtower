@@ -18,6 +18,7 @@
   schedule: [
     'every weekend',
   ],
+  commitMessageAction: 'Update digest',
   commitMessageTopic: '{{depName}}',
   commitMessageExtra: 'to {{newVersion}}',
   commitMessageSuffix: '',
@@ -29,12 +30,14 @@
       matchManagers: [
         'github-actions',
       ],
+      pinDigests: true,
       automerge: true,
       automergeType: 'branch',
       ignoreTests: true,
       matchUpdateTypes: [
         'minor',
         'patch',
+        'digest',
       ],
     },
     {
@@ -202,6 +205,15 @@
         "FROM (?<depName>[^\\s]+)(?<currentValue>:[^\\s]+)?\\s*", // Simplified for Docker images
       ],
       datasourceTemplate: "docker",
+    },
+    {
+      customType: "regex",
+      description: ["Process GitHub Actions commits"],
+      fileMatch: ["\\.github/workflows/.*\\.ya?ml$"],
+      matchStrings: [
+        "uses: (?<depName>[^@/]+/[^@/]+)@(?<currentValue>[a-f0-9]{40})", // Matches SHA for GitHub Actions
+      ],
+      datasourceTemplate: "github",
     },
   ],
 }
