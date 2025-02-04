@@ -7,6 +7,12 @@ on:
       - "v[0-9]+.[0-9]+.[0-9]+"
       - "**/v[0-9]+.[0-9]+.[0-9]+"
 
+permissions:
+  contents: read  # Needed for all jobs to checkout the repository
+  packages: write # For the build job to push to GHCR
+  attestations: write # For managing attestations in the build job
+  id-token: write # For OIDC token usage in the build and potentially in the renew-docs job
+
 jobs:
   lint:
     name: Lint
