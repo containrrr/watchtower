@@ -47,7 +47,7 @@ jobs:
         run: |
           go test -v -coverprofile coverage.out -covermode atomic ./... 
       - name: Publish coverage
-        uses: codecov/codecov-action@2d2cd3c094b82daf4a85daabc9d1aba59a7dde3c
+        uses: codecov/codecov-action@61d31d2d5425eb33e2c4ece1abd1a27c7b26a48e
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
   build:
