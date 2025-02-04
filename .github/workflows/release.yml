@@ -83,7 +83,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Login to GHCR
-        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3
+        uses: docker/login-action@327cd5a69de6c009b9ce71bce8395f28e651bf99 # v3.3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
