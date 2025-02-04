@@ -7,17 +7,22 @@ on:
   issues:
     types: [opened]
 
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
 jobs:
   greeting:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/first-interaction@v1
-      with:
-        repo-token: ${{ secrets.GITHUB_TOKEN }}
-        issue-message: >
-          Hi there! 👋🏼
-          As you're new to this repo, we'd like to suggest that you read our [code of conduct](https://github.com/nicholas-fedor/.github/blob/master/CODE_OF_CONDUCT.md)
-          as well as our [contribution guidelines](https://github.com/nicholas-fedor/watchtower/blob/master/CONTRIBUTING.md).
-          Thanks a bunch for opening your first issue! 🙏
-        pr-message: >
-          Congratulations on opening your first pull request! We'll get back to you as soon as possible. In the meantime, please make sure you've updated the documentation to reflect your changes and have added test automation as needed. Thanks! 🙏🏼
+      - uses: actions/first-interaction@v1
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          issue-message: >
+            Hi there! 👋🏼
+            As you're new to this repo, we'd like to suggest that you read our [code of conduct](https://github.com/nicholas-fedor/.github/blob/master/CODE_OF_CONDUCT.md)
+            as well as our [contribution guidelines](https://github.com/nicholas-fedor/watchtower/blob/master/CONTRIBUTING.md).
+            Thanks a bunch for opening your first issue! 🙏
+          pr-message: >
+            Congratulations on opening your first pull request! We'll get back to you as soon as possible. In the meantime, please make sure you've updated the documentation to reflect your changes and have added test automation as needed. Thanks! 🙏🏼
