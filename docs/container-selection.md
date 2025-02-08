@@ -3,7 +3,7 @@ By default, watchtower will watch all containers. However, sometimes only some c
 There are two options:
 
 -   **Fully exclude**: You can choose to exclude containers entirely from being watched by watchtower.
--   **Monitor only**: In this mode, watchtower checks for container updates, sends notifications and invokes the [pre-check/post-check hooks](https://containrrr.dev/watchtower/lifecycle-hooks/) on the containers but does **not** perform the update.
+-   **Monitor only**: In this mode, watchtower checks for container updates, sends notifications and invokes the [pre-check/post-check hooks](https://nicholas-fedor.github.io/watchtower/lifecycle-hooks/) on the containers but does **not** perform the update.
 
 ## Full Exclude 
 
@@ -31,7 +31,7 @@ If you need to exclude some containers, set the _com.centurylinklabs.watchtower.
           - "com.centurylinklabs.watchtower.enable=false"
     ```
 
-If instead you want to [only include containers with the enable label](https://containrrr.github.io/watchtower/arguments/#filter_by_enable_label), pass the `--label-enable` flag or the `WATCHTOWER_LABEL_ENABLE` environment variable on startup for watchtower and set the _com.centurylinklabs.watchtower.enable_ label with a value of `true` on the containers you want to watch.
+If instead you want to [only include containers with the enable label](https://nicholas-fedor.github.io/watchtower/arguments/#filter_by_enable_label), pass the `--label-enable` flag or the `WATCHTOWER_LABEL_ENABLE` environment variable on startup for watchtower and set the _com.centurylinklabs.watchtower.enable_ label with a value of `true` on the containers you want to watch.
 
 === "dockerfile"
 
@@ -55,7 +55,7 @@ If instead you want to [only include containers with the enable label](https://c
           - "com.centurylinklabs.watchtower.enable=true"
     ```
 
-If you wish to create a monitoring scope, you will need to [run multiple instances and set a scope for each of them](https://containrrr.github.io/watchtower/running-multiple-instances).
+If you wish to create a monitoring scope, you will need to [run multiple instances and set a scope for each of them](https://nicholas-fedor.github.io/watchtower/running-multiple-instances).
 
 Watchtower filters running containers by testing them against each configured criteria. A container is monitored if all criteria are met. For example:
 
@@ -78,4 +78,4 @@ Or, it can be specified as part of the `docker run` command line:
 docker run -d --label=com.centurylinklabs.watchtower.monitor-only=true someimage
 ```
 
-When the label is specified on a container, watchtower treats that container exactly as if [`WATCHTOWER_MONITOR_ONLY`](https://containrrr.dev/watchtower/arguments/#without_updating_containers) was set, but the effect is limited to the individual container. 
+When the label is specified on a container, watchtower treats that container exactly as if [`WATCHTOWER_MONITOR_ONLY`](https://nicholas-fedor.github.io/watchtower/arguments/#without_updating_containers) was set, but the effect is limited to the individual container. 
