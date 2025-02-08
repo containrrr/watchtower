@@ -7,7 +7,7 @@ As the software by default is set to auto-update if you use the `latest` tag, yo
 
 ## Reporting a Vulnerability
 
-Critical vulnerabilities that might open up for external attacks are best reported directly either to simme@arcticbit.se or nils@piksel.se.
-We'll always try to get back to you as swiftly as possible, but keep in mind that since this is a community project, we can't really leave any guarantees about the speed.
+Critical vulnerabilities that might open up for external attacks are best reported directly to nick@nickfedor.com.
+I'll always try to get back to you as swiftly as possible, but keep in mind that since this is a personal fork of a community project, I can't really leave any guarantees about the speed.
 
 Non-critical vulnerabilities may be reported as regular GitHub issues.
