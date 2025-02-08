@@ -10,11 +10,11 @@ build:
     - arm
     - arm64
   ldflags:
-    - -s -w -X github.com/nicholas-fedor/watchtower/internal/meta.Version={{.Version}}
+    - -s -w -X github.com/nicholas-fedor/watchtower/internal/meta.Version={{ .Version }}
 
 archives:
   - 
-    name_template: "{{.ProjectName}}_{{.Os}}_{{.Arch}}"
+    name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
     format: tar.gz
     replacements:
       arm: armhf
@@ -31,7 +31,11 @@ archives:
 dockers:
   -
     use_buildx: true
-    build_flag_templates: [ "--platform=linux/amd64" ]
+    build_flag_templates:
+      - "--platform=linux/amd64"
+      - "--label=org.opencontainers.image.created={{ .Date }}"
+      - "--label=org.opencontainers.image.version={{ .Version }}"
+      - "--label=org.opencontainers.image.revision={{ .FullCommit }}"
     goos: linux
     goarch: amd64
     goarm: ''
@@ -43,7 +47,11 @@ dockers:
       - ghcr.io/nicholas-fedor/watchtower:amd64-latest
   - 
     use_buildx: true
-    build_flag_templates: [ "--platform=linux/i386" ]
+    build_flag_templates:
+      - "--platform=linux/i386"
+      - "--label=org.opencontainers.image.created={{ .Date }}"
+      - "--label=org.opencontainers.image.version={{ .Version }}"
+      - "--label=org.opencontainers.image.revision={{ .FullCommit }}"
     goos: linux
     goarch: "386"
     goarm: ''
@@ -55,7 +63,11 @@ dockers:
       - ghcr.io/nicholas-fedor/watchtower:i386-latest
   - 
     use_buildx: true
-    build_flag_templates: [ "--platform=linux/arm/v6" ]
+    build_flag_templates:
+      - "--platform=linux/arm/v6"
+      - "--label=org.opencontainers.image.created={{ .Date }}"
+      - "--label=org.opencontainers.image.version={{ .Version }}"
+      - "--label=org.opencontainers.image.revision={{ .FullCommit }}"
     goos: linux
     goarch: arm
     goarm: 6
@@ -67,7 +79,11 @@ dockers:
       - ghcr.io/nicholas-fedor/watchtower:armhf-latest
   - 
     use_buildx: true
-    build_flag_templates: [ "--platform=linux/arm64/v8" ]
+    build_flag_templates:
+      - "--platform=linux/arm64/v8"
+      - "--label=org.opencontainers.image.created={{ .Date }}"
+      - "--label=org.opencontainers.image.version={{ .Version }}"
+      - "--label=org.opencontainers.image.revision={{ .FullCommit }}"
     goos: linux
     goarch: arm64
     goarm: ''
