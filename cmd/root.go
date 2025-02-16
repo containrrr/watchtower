@@ -122,17 +122,6 @@ func PreRun(cmd *cobra.Command, _ []string) {
 		log.Warn("Using `WATCHTOWER_NO_PULL` and `WATCHTOWER_MONITOR_ONLY` simultaneously might lead to no action being taken at all. If this is intentional, you may safely ignore this message.")
 	}
 
-	// check if DOCKER_API_VERSION is set
-	if os.Getenv("DOCKER_API_VERSION") == "" {
-		log.Warn("The DOCKER_API_VERSION environment variable is not set. This may cause unexpected behavior while recreating docker containers. Defaulting to 1.44")
-		// set DOCKER_API_VERSION to 1.44
-		os.Setenv("DOCKER_API_VERSION", "1.44")
-	}
-	// check if DOCKER_API_VERSION is set to minimum 1.44 or higher
-	if os.Getenv("DOCKER_API_VERSION") < "1.44" {
-		log.Warn("The DOCKER_API_VERSION environment variable is set to a version lower than 1.44. This may cause unexpected behavior while recreating docker containers.")
-	}
-
 	client = container.NewClient(container.ClientOptions{
 		IncludeStopped:    includeStopped,
 		ReviveStopped:     reviveStopped,
