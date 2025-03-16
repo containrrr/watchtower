@@ -172,7 +172,7 @@ The API version to use by the Docker client for connecting to the Docker daemon.
             Argument: --api-version, -a
 Environment Variable: DOCKER_API_VERSION
                 Type: String
-             Default: "1.44"
+             Default: "1.45"
 ```
 
 ## Include restarting
