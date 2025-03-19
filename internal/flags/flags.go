@@ -247,6 +247,12 @@ func RegisterNotificationFlags(rootCmd *cobra.Command) {
 		"Address to send notification emails from")
 
 	flags.StringP(
+		"notification-email-from-name",
+		"",
+		envString("WATCHTOWER_NOTIFICATION_EMAIL_FROM_NAME"),
+		"Name to send notification emails from")
+
+	flags.StringP(
 		"notification-email-to",
 		"",
 		envString("WATCHTOWER_NOTIFICATION_EMAIL_TO"),
@@ -425,6 +431,7 @@ func SetDefaults() {
 	viper.SetDefault("WATCHTOWER_TIMEOUT", time.Second*10)
 	viper.SetDefault("WATCHTOWER_NOTIFICATIONS", []string{})
 	viper.SetDefault("WATCHTOWER_NOTIFICATIONS_LEVEL", "info")
+	viper.SetDefault("WATCHTOWER_NOTIFICATION_EMAIL_FROM", "Watchtower")
 	viper.SetDefault("WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PORT", 25)
 	viper.SetDefault("WATCHTOWER_NOTIFICATION_EMAIL_SUBJECTTAG", "")
 	viper.SetDefault("WATCHTOWER_NOTIFICATION_SLACK_IDENTIFIER", "watchtower")

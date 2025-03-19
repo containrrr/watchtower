@@ -15,7 +15,7 @@ const (
 )
 
 type emailTypeNotifier struct {
-	From, To               string
+	From, FromName, To     string
 	Server, User, Password string
 	Port                   int
 	tlsSkipVerify          bool
@@ -27,6 +27,7 @@ func newEmailNotifier(c *cobra.Command) t.ConvertibleNotifier {
 	flags := c.Flags()
 
 	from, _ := flags.GetString("notification-email-from")
+	fromName, _ := flags.GetString("notification-email-from-name")
 	to, _ := flags.GetString("notification-email-to")
 	server, _ := flags.GetString("notification-email-server")
 	user, _ := flags.GetString("notification-email-server-user")
@@ -38,6 +39,7 @@ func newEmailNotifier(c *cobra.Command) t.ConvertibleNotifier {
 	n := &emailTypeNotifier{
 		entries:       []*log.Entry{},
 		From:          from,
+		FromName:      fromName,
 		To:            to,
 		Server:        server,
 		User:          user,
@@ -53,7 +55,7 @@ func newEmailNotifier(c *cobra.Command) t.ConvertibleNotifier {
 func (e *emailTypeNotifier) GetURL(c *cobra.Command) (string, error) {
 	conf := &shoutrrrSmtp.Config{
 		FromAddress: e.From,
-		FromName:    "Watchtower",
+		FromName:    e.FromName,
 		ToAddresses: []string{e.To},
 		Port:        uint16(e.Port),
 		Host:        e.Server,
