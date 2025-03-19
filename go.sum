@@ -32,6 +32,8 @@ github.com/docker/cli v28.0.0+incompatible h1:ido37VmLUqEp+5NFb9icd6BuBB+SNDgCn+
 github.com/docker/cli v28.0.0+incompatible/go.mod h1:JLrzqnKDaYBop7H2jaqPtU4hHvMKP+vjCwu2uszcLI8=
 github.com/docker/cli v28.0.1+incompatible h1:g0h5NQNda3/CxIsaZfH4Tyf6vpxFth7PYl3hgCPOKzs=
 github.com/docker/cli v28.0.1+incompatible/go.mod h1:JLrzqnKDaYBop7H2jaqPtU4hHvMKP+vjCwu2uszcLI8=
+github.com/docker/cli v28.0.2+incompatible h1:cRPZ77FK3/IXTAIQQj1vmhlxiLS5m+MIUDwS6f57lrE=
+github.com/docker/cli v28.0.2+incompatible/go.mod h1:JLrzqnKDaYBop7H2jaqPtU4hHvMKP+vjCwu2uszcLI8=
 github.com/docker/docker v27.3.1+incompatible h1:KttF0XoteNTicmUtBO0L2tP+J7FGRFTjaEF4k6WdhfI=
 github.com/docker/docker v27.3.1+incompatible/go.mod h1:eEKB0N0r5NX/I1kEveEz05bcu8tLC/8azJZsviup8Sk=
 github.com/docker/docker v27.4.1+incompatible h1:ZJvcY7gfwHn1JF48PfbyXg7Jyt9ZCWDW+GGXOIxEwp4=
