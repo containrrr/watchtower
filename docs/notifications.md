@@ -1,11 +1,11 @@
 # Notifications
 
 Watchtower can send notifications when containers are updated. Notifications are sent via hooks in the logging
-system, [logrus](http://github.com/sirupsen/logrus). 
+system, [logrus](http://github.com/sirupsen/logrus).
 
 !!! note "Using multiple notifications with environment variables"
     There is currently a bug in Viper (https://github.com/spf13/viper/issues/380), which prevents comma-separated slices to
-    be used when using the environment variable.  
+    be used when using the environment variable.
     A workaround is available where we instead put quotes around the environment variable value and replace the commas with
     spaces:
     ```
@@ -54,7 +54,7 @@ outputs timestamp and log level.
 !!! tip "Custom date format"
     If you want to adjust the date/time format it must show how the
     [reference time](https://golang.org/pkg/time/#pkg-constants) (_Mon Jan 2 15:04:05 MST 2006_) would be displayed in your
-    custom format.  
+    custom format.
     i.e., The day of the year has to be 1, the month has to be 2 (february), the hour 3 (or 15 for 24h time) etc.
 
 !!! note "Skipping notifications"
@@ -179,7 +179,7 @@ Example using a custom report template that always sends a session report after 
 
 ## Legacy notifications
 
-For backwards compatibility, the notifications can also be configured using legacy notification options. These will automatically be converted to shoutrrr URLs when used.  
+For backwards compatibility, the notifications can also be configured using legacy notification options. These will automatically be converted to shoutrrr URLs when used.
 The types of notifications to send are set by passing a comma-separated list of values to the `--notifications` option
 (or corresponding environment variable `WATCHTOWER_NOTIFICATIONS`), which has the following valid values:
 
@@ -249,6 +249,7 @@ You can then copy this file from the container (a message with the full command 
 To receive notifications by email, the following command-line options, or their corresponding environment variables, can be set:
 
 -   `--notification-email-from` (env. `WATCHTOWER_NOTIFICATION_EMAIL_FROM`): The e-mail address from which notifications will be sent.
+-   `--notification-email-from-name` (env. `WATCHTOWER_NOTIFICATION_EMAIL_FROM_NAME`): The name from which notifications will be sent.
 -   `--notification-email-to` (env. `WATCHTOWER_NOTIFICATION_EMAIL_TO`): The e-mail address to which notifications will be sent.
 -   `--notification-email-server` (env. `WATCHTOWER_NOTIFICATION_EMAIL_SERVER`): The SMTP server to send e-mails through.
 -   `--notification-email-server-tls-skip-verify` (env. `WATCHTOWER_NOTIFICATION_EMAIL_SERVER_TLS_SKIP_VERIFY`): Do not verify the TLS certificate of the mail server. This should be used only for testing.
@@ -387,4 +388,3 @@ docker run -d \
 `-e WATCHTOWER_NOTIFICATION_GOTIFY_TOKEN` or `--notification-gotify-token` can also reference a file, in which case the contents of the file are used.
 
 If you want to disable TLS verification for the Gotify instance, you can use either `-e WATCHTOWER_NOTIFICATION_GOTIFY_TLS_SKIP_VERIFY=true` or `--notification-gotify-tls-skip-verify`.
-

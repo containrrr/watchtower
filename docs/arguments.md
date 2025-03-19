@@ -98,8 +98,8 @@ Environment Variable: WATCHTOWER_REMOVE_VOLUMES
 ## Debug
 Enable debug mode with verbose logging.
 
-!!! note "Notes"  
-    Alias for `--log-level debug`. See [Maximum log level](#maximum-log-level).  
+!!! note "Notes"
+    Alias for `--log-level debug`. See [Maximum log level](#maximum-log-level).
     Does _not_ take an argument when used as an argument. Using `--debug true` will **not** work.
 
 ```text
@@ -112,8 +112,8 @@ Environment Variable: WATCHTOWER_DEBUG
 ## Trace
 Enable trace mode with very verbose logging. Caution: exposes credentials!
 
-!!! note "Notes"  
-    Alias for `--log-level trace`. See [Maximum log level](#maximum-log-level).  
+!!! note "Notes"
+    Alias for `--log-level trace`. See [Maximum log level](#maximum-log-level).
     Does _not_ take an argument when used as an argument. Using `--trace true` will **not** work.
 
 ```text
@@ -226,8 +226,8 @@ Environment Variable: WATCHTOWER_LABEL_ENABLE
 ```
 
 ## Filter by disable label
-__Do not__ Monitor and update containers that have `com.centurylinklabs.watchtower.enable` label set to false and 
-no `--label-enable` argument is passed. Note that only one or the other (targeting by enable label) can be 
+__Do not__ Monitor and update containers that have `com.centurylinklabs.watchtower.enable` label set to false and
+no `--label-enable` argument is passed. Note that only one or the other (targeting by enable label) can be
 used at the same time to target containers.
 
 ## Filter by disabling specific container names
@@ -324,7 +324,7 @@ Environment Variable: WATCHTOWER_RUN_ONCE
 ```
 
 ## HTTP API Mode
-Runs Watchtower in HTTP API mode, only allowing image updates to be triggered by an HTTP request. 
+Runs Watchtower in HTTP API mode, only allowing image updates to be triggered by an HTTP request.
 For details see [HTTP API](https://watchtower.devcdn.net/http-api-mode).
 
 ```text
@@ -346,7 +346,7 @@ Environment Variable: WATCHTOWER_HTTP_API_TOKEN
 ```
 
 ## HTTP API periodic polls
-Keep running periodic updates if the HTTP API mode is enabled, otherwise the HTTP API would prevent periodic polls.  
+Keep running periodic updates if the HTTP API mode is enabled, otherwise the HTTP API would prevent periodic polls.
 
 ```text
             Argument: --http-api-periodic-polls
@@ -356,7 +356,7 @@ Environment Variable: WATCHTOWER_HTTP_API_PERIODIC_POLLS
 ```
 
 ## Filter by scope
-Update containers that have a `com.centurylinklabs.watchtower.scope` label set with the same value as the given argument. 
+Update containers that have a `com.centurylinklabs.watchtower.scope` label set with the same value as the given argument.
 This enables [running multiple instances](https://watchtower.devcdn.net/running-multiple-instances).
 
 !!! note "Filter by lack of scope"
@@ -369,10 +369,10 @@ This enables [running multiple instances](https://watchtower.devcdn.net/running-
 Environment Variable: WATCHTOWER_SCOPE
                 Type: String
              Default: -
-``` 
+```
 
 ## HTTP API Metrics
-Enables a metrics endpoint, exposing prometheus metrics via HTTP. See [Metrics](metrics.md) for details.  
+Enables a metrics endpoint, exposing prometheus metrics via HTTP. See [Metrics](metrics.md) for details.
 
 ```text
             Argument: --http-api-metrics
@@ -450,8 +450,8 @@ Returns a success exit code to enable usage with docker `HEALTHCHECK`. This chec
 
 ## Programatic Output (porcelain)
 
-Writes the session results to STDOUT using a stable, machine-readable format (indicated by the argument VERSION).  
-  
+Writes the session results to STDOUT using a stable, machine-readable format (indicated by the argument VERSION).
+
 Alias for:
 
 ```text

@@ -308,6 +308,8 @@ var _ = Describe("notifications", func() {
 					"email",
 					"--notification-email-from",
 					fromAddress,
+					"--notification-email-from-name",
+					"Watchtower1",
 					"--notification-email-to",
 					"mail@example.com",
 					"--notification-email-server-user",
@@ -334,6 +336,8 @@ var _ = Describe("notifications", func() {
 					"email",
 					"--notification-email-from",
 					fromAddress,
+					"--notification-email-from-name",
+					"Watchtower1",
 					"--notification-email-to",
 					toAddress,
 					"--notification-email-server-user",
@@ -342,7 +346,7 @@ var _ = Describe("notifications", func() {
 					"secret-password",
 					"--notification-email-server",
 					"mail.containrrr.dev",
-					"--notification-email-delay",
+					"--notifications-delay",
 					fmt.Sprint(expectedDelay.Seconds()),
 				}
 
@@ -353,7 +357,7 @@ var _ = Describe("notifications", func() {
 })
 
 func buildExpectedURL(username string, password string, host string, port int, from string, to string, auth string) string {
-	var template = "smtp://%s:%s@%s:%d/?auth=%s&fromaddress=%s&fromname=Watchtower&subject=&toaddresses=%s"
+	var template = "smtp://%s:%s@%s:%d/?auth=%s&fromaddress=%s&fromname=Watchtower1&subject=&toaddresses=%s"
 	return fmt.Sprintf(template,
 		url.QueryEscape(username),
 		url.QueryEscape(password),
