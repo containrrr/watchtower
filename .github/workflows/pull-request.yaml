@@ -28,7 +28,7 @@ jobs:
       fail-fast: false
       matrix:
         go-version:
-          - 1.23.x
+          - 1.24.x
         platform:
           - macos-latest
           - windows-latest
