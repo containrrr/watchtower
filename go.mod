@@ -1,6 +1,6 @@
 module github.com/beatkind/watchtower
 
-go 1.23
+go 1.24
 
 require (
 	github.com/containrrr/shoutrrr v0.8.0
@@ -28,7 +28,6 @@ require (
 	github.com/klauspost/compress v1.17.11 // indirect
 	github.com/moby/docker-image-spec v1.3.1 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
-	github.com/onsi/ginkgo/v2 v2.22.1 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.53.0 // indirect
 	go.opentelemetry.io/otel v1.28.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.28.0 // indirect
