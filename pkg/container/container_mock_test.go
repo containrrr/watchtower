@@ -1,16 +1,16 @@
 package container
 
 import (
-	"github.com/docker/docker/api/types"
 	dockerContainer "github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/image"
 	"github.com/docker/go-connections/nat"
 )
 
-type MockContainerUpdate func(*types.ContainerJSON, *types.ImageInspect)
+type MockContainerUpdate func(*dockerContainer.InspectResponse, *image.InspectResponse)
 
 func MockContainer(updates ...MockContainerUpdate) *Container {
-	containerInfo := types.ContainerJSON{
-		ContainerJSONBase: &types.ContainerJSONBase{
+	containerInfo := dockerContainer.InspectResponse{
+		ContainerJSONBase: &dockerContainer.ContainerJSONBase{
 			ID:         "container_id",
 			Image:      "image",
 			Name:       "test-containrrr",
@@ -20,7 +20,7 @@ func MockContainer(updates ...MockContainerUpdate) *Container {
 			Labels: map[string]string{},
 		},
 	}
-	image := types.ImageInspect{
+	image := image.InspectResponse{
 		ID:     "image_id",
 		Config: &dockerContainer.Config{},
 	}
@@ -32,7 +32,7 @@ func MockContainer(updates ...MockContainerUpdate) *Container {
 }
 
 func WithPortBindings(portBindingSources ...string) MockContainerUpdate {
-	return func(c *types.ContainerJSON, i *types.ImageInspect) {
+	return func(c *dockerContainer.InspectResponse, i *image.InspectResponse) {
 		portBindings := nat.PortMap{}
 		for _, pbs := range portBindingSources {
 			portBindings[nat.Port(pbs)] = []nat.PortBinding{}
@@ -42,38 +42,38 @@ func WithPortBindings(portBindingSources ...string) MockContainerUpdate {
 }
 
 func WithImageName(name string) MockContainerUpdate {
-	return func(c *types.ContainerJSON, i *types.ImageInspect) {
+	return func(c *dockerContainer.InspectResponse, i *image.InspectResponse) {
 		c.Config.Image = name
 		i.RepoTags = append(i.RepoTags, name)
 	}
 }
 
 func WithLinks(links []string) MockContainerUpdate {
-	return func(c *types.ContainerJSON, i *types.ImageInspect) {
+	return func(c *dockerContainer.InspectResponse, i *image.InspectResponse) {
 		c.HostConfig.Links = links
 	}
 }
 
 func WithLabels(labels map[string]string) MockContainerUpdate {
-	return func(c *types.ContainerJSON, i *types.ImageInspect) {
+	return func(c *dockerContainer.InspectResponse, i *image.InspectResponse) {
 		c.Config.Labels = labels
 	}
 }
 
-func WithContainerState(state types.ContainerState) MockContainerUpdate {
-	return func(cnt *types.ContainerJSON, img *types.ImageInspect) {
+func WithContainerState(state dockerContainer.State) MockContainerUpdate {
+	return func(cnt *dockerContainer.InspectResponse, img *image.InspectResponse) {
 		cnt.State = &state
 	}
 }
 
 func WithHealthcheck(healthConfig dockerContainer.HealthConfig) MockContainerUpdate {
-	return func(cnt *types.ContainerJSON, img *types.ImageInspect) {
+	return func(cnt *dockerContainer.InspectResponse, img *image.InspectResponse) {
 		cnt.Config.Healthcheck = &healthConfig
 	}
 }
 
 func WithImageHealthcheck(healthConfig dockerContainer.HealthConfig) MockContainerUpdate {
-	return func(cnt *types.ContainerJSON, img *types.ImageInspect) {
+	return func(cnt *dockerContainer.InspectResponse, img *image.InspectResponse) {
 		img.Config.Healthcheck = &healthConfig
 	}
 }

@@ -5,8 +5,8 @@ import (
 
 	"github.com/beatkind/watchtower/internal/actions"
 	"github.com/beatkind/watchtower/pkg/types"
-	dockerTypes "github.com/docker/docker/api/types"
 	dockerContainer "github.com/docker/docker/api/types/container"
+	dockerImage "github.com/docker/docker/api/types/image"
 	"github.com/docker/go-connections/nat"
 
 	. "github.com/beatkind/watchtower/internal/actions/mocks"
@@ -44,7 +44,7 @@ func getLinkedTestData(withImageInfo bool) *TestData {
 		"fake-image1:latest",
 		time.Now().AddDate(0, 0, -1))
 
-	var imageInfo *dockerTypes.ImageInspect
+	var imageInfo *dockerImage.InspectResponse
 	if withImageInfo {
 		imageInfo = CreateMockImageInfo("test-container-02")
 	}

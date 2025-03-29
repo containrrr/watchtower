@@ -2,7 +2,7 @@ package container
 
 import (
 	"github.com/beatkind/watchtower/pkg/types"
-	dc "github.com/docker/docker/api/types/container"
+	dockerContainer "github.com/docker/docker/api/types/container"
 	"github.com/docker/go-connections/nat"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -71,51 +71,51 @@ var _ = Describe("the container", func() {
 	Describe("GetCreateConfig", func() {
 		When("container healthcheck config is equal to image config", func() {
 			It("should return empty healthcheck values", func() {
-				c := MockContainer(WithHealthcheck(dc.HealthConfig{
+				c := MockContainer(WithHealthcheck(dockerContainer.HealthConfig{
 					Test: []string{"/usr/bin/sleep", "1s"},
-				}), WithImageHealthcheck(dc.HealthConfig{
+				}), WithImageHealthcheck(dockerContainer.HealthConfig{
 					Test: []string{"/usr/bin/sleep", "1s"},
 				}))
-				Expect(c.GetCreateConfig().Healthcheck).To(Equal(&dc.HealthConfig{}))
+				Expect(c.GetCreateConfig().Healthcheck).To(Equal(&dockerContainer.HealthConfig{}))
 
-				c = MockContainer(WithHealthcheck(dc.HealthConfig{
+				c = MockContainer(WithHealthcheck(dockerContainer.HealthConfig{
 					Timeout: 30,
-				}), WithImageHealthcheck(dc.HealthConfig{
+				}), WithImageHealthcheck(dockerContainer.HealthConfig{
 					Timeout: 30,
 				}))
-				Expect(c.GetCreateConfig().Healthcheck).To(Equal(&dc.HealthConfig{}))
+				Expect(c.GetCreateConfig().Healthcheck).To(Equal(&dockerContainer.HealthConfig{}))
 
-				c = MockContainer(WithHealthcheck(dc.HealthConfig{
+				c = MockContainer(WithHealthcheck(dockerContainer.HealthConfig{
 					StartPeriod: 30,
-				}), WithImageHealthcheck(dc.HealthConfig{
+				}), WithImageHealthcheck(dockerContainer.HealthConfig{
 					StartPeriod: 30,
 				}))
-				Expect(c.GetCreateConfig().Healthcheck).To(Equal(&dc.HealthConfig{}))
+				Expect(c.GetCreateConfig().Healthcheck).To(Equal(&dockerContainer.HealthConfig{}))
 
-				c = MockContainer(WithHealthcheck(dc.HealthConfig{
+				c = MockContainer(WithHealthcheck(dockerContainer.HealthConfig{
 					Retries: 30,
-				}), WithImageHealthcheck(dc.HealthConfig{
+				}), WithImageHealthcheck(dockerContainer.HealthConfig{
 					Retries: 30,
 				}))
-				Expect(c.GetCreateConfig().Healthcheck).To(Equal(&dc.HealthConfig{}))
+				Expect(c.GetCreateConfig().Healthcheck).To(Equal(&dockerContainer.HealthConfig{}))
 			})
 		})
 		When("container healthcheck config is different to image config", func() {
 			It("should return the container healthcheck values", func() {
-				c := MockContainer(WithHealthcheck(dc.HealthConfig{
+				c := MockContainer(WithHealthcheck(dockerContainer.HealthConfig{
 					Test:        []string{"/usr/bin/sleep", "1s"},
 					Interval:    30,
 					Timeout:     30,
 					StartPeriod: 10,
 					Retries:     2,
-				}), WithImageHealthcheck(dc.HealthConfig{
+				}), WithImageHealthcheck(dockerContainer.HealthConfig{
 					Test:        []string{"/usr/bin/sleep", "10s"},
 					Interval:    10,
 					Timeout:     60,
 					StartPeriod: 30,
 					Retries:     10,
 				}))
-				Expect(c.GetCreateConfig().Healthcheck).To(Equal(&dc.HealthConfig{
+				Expect(c.GetCreateConfig().Healthcheck).To(Equal(&dockerContainer.HealthConfig{
 					Test:        []string{"/usr/bin/sleep", "1s"},
 					Interval:    30,
 					Timeout:     30,
@@ -126,7 +126,7 @@ var _ = Describe("the container", func() {
 		})
 		When("container healthcheck config is empty", func() {
 			It("should not panic", func() {
-				c := MockContainer(WithImageHealthcheck(dc.HealthConfig{
+				c := MockContainer(WithImageHealthcheck(dockerContainer.HealthConfig{
 					Test:        []string{"/usr/bin/sleep", "10s"},
 					Interval:    10,
 					Timeout:     60,
@@ -138,14 +138,14 @@ var _ = Describe("the container", func() {
 		})
 		When("container image healthcheck config is empty", func() {
 			It("should not panic", func() {
-				c := MockContainer(WithHealthcheck(dc.HealthConfig{
+				c := MockContainer(WithHealthcheck(dockerContainer.HealthConfig{
 					Test:        []string{"/usr/bin/sleep", "1s"},
 					Interval:    30,
 					Timeout:     30,
 					StartPeriod: 10,
 					Retries:     2,
 				}))
-				Expect(c.GetCreateConfig().Healthcheck).To(Equal(&dc.HealthConfig{
+				Expect(c.GetCreateConfig().Healthcheck).To(Equal(&dockerContainer.HealthConfig{
 					Test:        []string{"/usr/bin/sleep", "1s"},
 					Interval:    30,
 					Timeout:     30,
