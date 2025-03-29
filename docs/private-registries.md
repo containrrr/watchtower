@@ -1,6 +1,8 @@
+# Private Registries
+
 Watchtower supports private Docker image registries. In many cases, accessing a private registry
 requires a valid username and password (i.e., _credentials_). In order to operate in such an
-environment, watchtower needs to know the credentials to access the registry. 
+environment, watchtower needs to know the credentials to access the registry.
 
 The credentials can be provided to watchtower in a configuration file called `config.json`.
 There are two ways to generate this configuration file:
@@ -8,7 +10,8 @@ There are two ways to generate this configuration file:
 *   The configuration file can be created manually.
 *   Call `docker login <REGISTRY_NAME>` and share the resulting configuration file.
 
-### Create the configuration file manually
+## Create the configuration file manually
+
 Create a new configuration file with the following syntax and a base64 encoded username and
 password `auth` string:
 
@@ -31,7 +34,7 @@ password `auth` string:
     In this special case, the registry domain does not have to be specified
     in `docker run` or `docker-compose`. Like Docker, Watchtower will use the
     Docker Hub registry and its credentials when no registry domain is specified.
-    
+
     <sub>Watchtower will recognize credentials with `<REGISTRY_NAME>` `index.docker.io`,
     but the Docker CLI will not.</sub>
 
@@ -40,7 +43,7 @@ password `auth` string:
     in both `config.json` and the `docker run` command or `docker-compose` file.
     Valid hosts are `localhost[:PORT]`, `HOST:PORT`,
     or any multi-part `domain.name` or IP-address with or without a port.
-    
+
     Examples:
     * `localhost` -> `localhost/myimage`
     * `127.0.0.1` -> `127.0.0.1/myimage:mytag`
@@ -66,7 +69,7 @@ When the watchtower Docker container is started, the created configuration file
 docker run [...] -v <PATH>/config.json:/config.json beatkind/watchtower
 ```
 
-### Share the Docker configuration file
+## Share the Docker configuration file
 
 To pull an image from a private registry, `docker login` needs to be called first, to get access
 to the registry. The provided credentials are stored in a configuration file called `<PATH_TO_HOME_DIR>/.docker/config.json`.
@@ -92,14 +95,15 @@ services:
   ...
 ```
 
-#### Docker Config path
+### Docker Config path
+
 By default, watchtower will look for the `config.json` file in `/`, but this can be changed by setting the `DOCKER_CONFIG` environment variable to the directory path where your config is located. This is useful for setups where the config.json file is changed while the watchtower instance is running, as the changes will not be picked up for a mounted file if the inode changes.
 Example usage:
 
 ```yaml
 version: "3.4"
 
-services: 
+services:
   watchtower:
     image: beatkind/watchtower
     environment:
@@ -110,6 +114,7 @@ services:
 ```
 
 ## Credential helpers
+
 Some private Docker registries (the most prominent probably being AWS ECR) use non-standard ways of authentication.
 To be able to use this together with watchtower, we need to use a credential helper.
 
@@ -117,6 +122,7 @@ To keep the image size small we've decided to not include any helpers in the wat
 helper in a separate container and mount it using volumes.
 
 ### Example
+
 Example implementation for use with [amazon-ecr-credential-helper](https://github.com/awslabs/amazon-ecr-credential-helper):
 
 Use the dockerfile below to build the [amazon-ecr-credential-helper](https://github.com/awslabs/amazon-ecr-credential-helper),
@@ -125,30 +131,30 @@ in a volume that may be mounted onto your watchtower container.
 1.  Create the Dockerfile (contents below):
     ```Dockerfile
     FROM golang:1.20
-    
+
     ENV GO111MODULE off
     ENV CGO_ENABLED 0
     ENV REPO github.com/awslabs/amazon-ecr-credential-helper/ecr-login/cli/docker-credential-ecr-login
-    
+
     RUN go get -u $REPO
-    
+
     RUN rm /go/bin/docker-credential-ecr-login
-    
+
     RUN go build \
      -o /go/bin/docker-credential-ecr-login \
      /go/src/$REPO
-    
+
     WORKDIR /go/bin/
     ```
 
 2.  Use the following commands to build the aws-ecr-dock-cred-helper and store it's output in a volume:
     ```bash
     # Create a volume to store the command (once built)
-    docker volume create helper 
-    
+    docker volume create helper
+
     # Build the container
     docker build -t aws-ecr-dock-cred-helper .
-    
+
     # Build the command and store it in the new volume in the /go/bin directory.
     docker run  -d --rm --name aws-cred-helper \
       --volume helper:/go/bin aws-ecr-dock-cred-helper
@@ -188,20 +194,20 @@ in a volume that may be mounted onto your watchtower container.
          - PATH=$PATH:/go/bin
          - AWS_REGION=us-west-1
     volumes:
-     helper: 
+     helper:
        external: true
     ```
 
 A few additional notes:
 
-1.  With docker-compose the volume (helper, in this case) MUST be set to `external: true`, otherwise docker-compose 
+1.  With docker-compose the volume (helper, in this case) MUST be set to `external: true`, otherwise docker-compose
     will preface it with the directory name.
 
-2.  Note that "credsStore" : "ecr-login" is needed - and in theory if you have that you can remove the 
+2.  Note that "credsStore" : "ecr-login" is needed - and in theory if you have that you can remove the
     credHelpers section
 
-3.  I have this running on an EC2 instance that has credentials assigned to it - so no keys are needed; however, 
+3.  I have this running on an EC2 instance that has credentials assigned to it - so no keys are needed; however,
     you may need to include the `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` environment variables as well.
 
-4.  An alternative to adding the various variables is to create a ~/.aws/config and ~/.aws/credentials files and 
+4.  An alternative to adding the various variables is to create a ~/.aws/config and ~/.aws/credentials files and
     place the settings there, then mount the ~/.aws directory to / in the container.

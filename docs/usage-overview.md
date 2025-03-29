@@ -1,3 +1,5 @@
+# Usage
+
 Watchtower is itself packaged as a Docker container so installation is as simple as pulling the `beatkind/watchtower` image. If you are using ARM based architecture, pull the appropriate `beatkind/watchtower:armhf-<tag>` image from the [beatkind Docker Hub](https://hub.docker.com/r/beatkind/watchtower/tags/).
 
 Since the watchtower code needs to interact with the Docker API in order to monitor the running containers, you need to mount _/var/run/docker.sock_ into the container with the `-v` flag when you run it.
@@ -41,8 +43,8 @@ docker run -d \
     If you mount `config.json` in the manner above, changes from the host system will (generally) not be propagated to the
     running container. Mounting files into the Docker daemon uses bind mounts, which are based on inodes. Most
     applications (including `docker login` and `vim`) will not directly edit the file, but instead make a copy and replace
-    the original file, which results in a new inode which in turn _breaks_ the bind mount.  
-    **As a workaround**, you can create a symlink to your `config.json` file and then mount the symlink in the container. 
+    the original file, which results in a new inode which in turn _breaks_ the bind mount.
+    **As a workaround**, you can create a symlink to your `config.json` file and then mount the symlink in the container.
     The symlinked file will always have the same inode, which keeps the bind mount intact and will ensure changes
     to the original file are propagated to the running container (regardless of the inode of the source file!).
 
@@ -52,7 +54,7 @@ from a private repo on the GitHub Registry and monitors it with watchtower. Note
 to 30s rather than the default 24 hours.
 
 ```yaml
-version: "3"
+
 services:
   cavo:
     image: ghcr.io/<org>/<image>:<tag>

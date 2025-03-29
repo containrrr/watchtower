@@ -144,7 +144,7 @@ Example using a custom report template that always sends a session report after 
 === "docker-compose"
 
     ``` yaml
-    version: "3"
+
     services:
       watchtower:
         image: beatkind/watchtower
@@ -206,7 +206,7 @@ If watchtower is started with `notify-upgrade` as it's first argument, it will g
 === "docker-compose.yml"
 
     ```yaml
-    version: "3"
+
     services:
       watchtower:
         image: beatkind/watchtower
@@ -234,7 +234,7 @@ You can then copy this file from the container (a message with the full command 
 === "docker-compose.yml"
 
     ```yaml
-    version: "3"
+
     services:
       watchtower:
         image: beatkind/watchtower
@@ -283,7 +283,6 @@ The following example assumes, that your domain is called `your-domain.com` and 
 Example including an SMTP relay:
 
 ```yaml
-version: '3.8'
 services:
   watchtower:
     image: beatkind/watchtower:latest

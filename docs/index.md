@@ -32,7 +32,7 @@
 
 !!! note "Watchtower fork"
     This is a fork of the really nice project from [containrrr](https://github.com/containrrr) called [watchtower](https://github.com/containrrr/watchtower).
-    I am not the original author of this project. I just forked it to make some changes to it and keep it up-to-date as properly as I can. 
+    I am not the original author of this project. I just forked it to make some changes to it and keep it up-to-date as properly as I can.
     Contributions, tips and hints are welcome. Just open an issue or a pull request. Please be aware that I am by no means a professional developer. I am just a Platform Engineer.
 
 ## Quick Start
@@ -54,7 +54,6 @@ the following command:
 === "docker-compose.yml"
 
     ```yaml
-    version: "3"
     services:
       watchtower:
         image: beatkind/watchtower

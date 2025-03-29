@@ -12,7 +12,7 @@ You can check your current version of the go language as follows:
 
 ```bash
   ~ $ go version
-  go version go1.22.x darwin/amd64
+  go version go1.24.x darwin/amd64
 ```
 
 ## Checking out the code
@@ -44,5 +44,5 @@ To build a Watchtower image of your own, use the self-contained Dockerfiles. As 
 e.g.:
 
 ```bash
-sudo docker build . -f dockerfiles/Dockerfile.dev-self-contained -t containrrr/watchtower # to build an image from local files
+sudo docker build . -f dockerfiles/Dockerfile.dev-self-contained -t beatkind/watchtower # to build an image from local files
 ```

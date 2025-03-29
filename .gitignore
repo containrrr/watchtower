@@ -12,3 +12,5 @@ coverage.out
 docs/assets/wasm_exec.js
 docs/assets/*.wasm
 .vscode/settings.json
+
+.env
