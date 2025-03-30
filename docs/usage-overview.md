@@ -4,6 +4,11 @@ Watchtower is itself packaged as a Docker container so installation is as simple
 
 Since the watchtower code needs to interact with the Docker API in order to monitor the running containers, you need to mount _/var/run/docker.sock_ into the container with the `-v` flag when you run it.
 
+!!! warning "Minimum Docker API version"
+    Watchtower is by default supporting the last supported version of Docker, which can be found [here](https://endoflife.date/docker-engine). The maximum version number for the oldest supported version of Docker can be found inside the [Docker docs](https://docs.docker.com/reference/api/engine/#api-version-matrix).
+
+    If you are using a version of Docker that is older than the minimum supported version, you will need to set the environment variable `DOCKER_API_VERSION` to the minimum supported version. For example, if you are using Docker 24.0, you would set `DOCKER_API_VERSION=1.43`.
+
 Run the `watchtower` container with the following command:
 
 ```bash
