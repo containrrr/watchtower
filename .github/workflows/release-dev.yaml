@@ -79,7 +79,6 @@ jobs:
             org.opencontainers.image.licenses=Apache-2.0
           tags: |
             type=raw,value=latest-dev
-            type=raw,value=latest-dev-${{ github.sha }}
 
       - name: Build and push Docker image
         id: push
@@ -96,7 +95,7 @@ jobs:
         with:
           subject-name: index.docker.io/beatkind/watchtower
           subject-digest: ${{ steps.push.outputs.digest }}
-          push-to-registry: true
+          push-to-registry: false
 
   publish-github:
     needs:
@@ -131,7 +130,7 @@ jobs:
             org.opencontainers.image.licenses=Apache-2.0
           tags: |
             type=raw,value=latest-dev
-            type=raw,value=latest-dev-${{ github.sha }}
+
       - name: Build and push Docker image
         id: push
         uses: docker/build-push-action@84ad562665bb303b549fec655d1b64f9945f3f91
@@ -141,9 +140,10 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@v2
         with:
           subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}
           subject-digest: ${{ steps.push.outputs.digest }}
-          push-to-registry: true
+          push-to-registry: false
