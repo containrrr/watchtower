@@ -69,7 +69,7 @@ jobs:
         with:
           images: beatkind/watchtower
           labels: |
-            org.opencontainers.image.created={{commit_date 'YYYY-MM-DDTHH:mm:ss.SSS[Z]'}}
+            org.opencontainers.image.created={{date 'YYYY-MM-DDTHH:mm:ss.SSS[Z]'}}
             org.opencontainers.image.authors=${{github.actor}}
             org.opencontainers.image.source=${{github.repository}}
             org.opencontainers.image.documentation=https://watchtower.devcdn.net
@@ -120,7 +120,7 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           labels: |
-            org.opencontainers.image.created={{commit_date 'YYYY-MM-DDTHH:mm:ss.SSS[Z]'}}
+            org.opencontainers.image.created={{date 'YYYY-MM-DDTHH:mm:ss.SSS[Z]'}}
             org.opencontainers.image.authors=${{github.actor}}
             org.opencontainers.image.source=${{github.repository}}
             org.opencontainers.image.documentation=https://watchtower.devcdn.net
