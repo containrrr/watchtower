@@ -14,3 +14,4 @@ docs/assets/*.wasm
 .vscode/settings.json
 
 .env
+.venv

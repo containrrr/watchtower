@@ -6,6 +6,12 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+  packages: write
+  attestations: write
+  id-token: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -28,23 +34,115 @@ jobs:
         with:
           go-version: 1.24.x
       - name: Test
-        run: go test -v -coverprofile coverage.out -covermode atomic ./... 
+        run: go test -v -coverprofile coverage.out -covermode atomic ./...
       - name: Publish coverage
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-  publish:
+  publish-docker-hub:
     needs:
       - build
       - test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Publish to Docker Hub
-        uses: jerray/publish-docker-action@87d84711629b0dc9f6bb127b568413cc92a2088e #master@2022-10-14
+      # - uses: actions/checkout@v4
+      # - name: Publish to Docker Hub
+      #   uses: jerray/publish-docker-action@87d84711629b0dc9f6bb127b568413cc92a2088e #master@2022-10-14
+      #   with:
+      #     username: ${{ secrets.DOCKERHUB_USERNAME }}
+      #     password: ${{ secrets.DOCKERHUB_TOKEN }}
+      #     file: dockerfiles/Dockerfile.self-contained
+      #     repository: beatkind/watchtower
+      #     tags: latest-dev
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
+        with:
+          images: beatkind/watchtower
+          labels: |
+            org.opencontainers.image.created={{commit_date 'YYYY-MM-DDTHH:mm:ss.SSS[Z]'}}
+            org.opencontainers.image.authors={{github.actor}}
+            org.opencontainers.image.source={{repository}}
+            org.opencontainers.image.documentation=https://watchtower.devcdn.net
+            org.opencontainers.image.version=latest-dev
+            org.opencontainers.image.revision={{sha}}
+            org.opencontainers.image.vendor=beatkind
+            org.opencontainers.image.licenses=Apache-2.0
+          tags: |
+            type=raw,value=latest-dev
+            type=raw,value=${{ github.sha }}
+            type=raw,value=${{ github.ref_name }}
+
+      - name: Build and push Docker image
+        id: push
+        uses: docker/build-push-action@3b5e8027fcad23fda98b2e3ac259d8d67585f671
+        with:
+          context: .
           file: dockerfiles/Dockerfile.self-contained
-          repository: beatkind/watchtower
-          tags: latest-dev
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Generate artifact attestation
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: index.docker.io/beatkind/watchtower
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true
+
+  publish-github:
+    env:
+      REGISTRY: ghcr.io
+      IMAGE_NAME: ${{ github.repository }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Log in to the Container registry
+        uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          labels: |
+            org.opencontainers.image.created={{commit_date 'YYYY-MM-DDTHH:mm:ss.SSS[Z]'}}
+            org.opencontainers.image.authors={{github.actor}}
+            org.opencontainers.image.source={{repository}}
+            org.opencontainers.image.documentation=https://watchtower.devcdn.net
+            org.opencontainers.image.version=latest-dev
+            org.opencontainers.image.revision={{sha}}
+            org.opencontainers.image.vendor=beatkind
+            org.opencontainers.image.licenses=Apache-2.0
+          tags: |
+            type=raw,value=latest-dev
+            type=raw,value=${{ github.sha }}
+            type=raw,value=${{ github.ref_name }}
+      - name: Build and push Docker image
+        id: push
+        uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
+        with:
+          context: .
+          file: dockerfiles/Dockerfile.self-contained
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+      - name: Generate artifact attestation
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true
