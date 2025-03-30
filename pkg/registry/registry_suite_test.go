@@ -1,10 +1,11 @@
 package registry_test
 
 import (
-	"github.com/sirupsen/logrus"
 	"testing"
 
-	. "github.com/onsi/ginkgo"
+	"github.com/sirupsen/logrus"
+
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 

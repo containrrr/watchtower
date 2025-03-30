@@ -8,7 +8,7 @@ import (
 	"github.com/beatkind/watchtower/cmd"
 	"github.com/beatkind/watchtower/internal/flags"
 	"github.com/beatkind/watchtower/pkg/notifications"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 

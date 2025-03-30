@@ -7,7 +7,7 @@ import (
 	"github.com/beatkind/watchtower/internal/actions/mocks"
 	"github.com/beatkind/watchtower/pkg/registry/manifest"
 	"github.com/docker/docker/api/types/image"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 

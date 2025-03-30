@@ -2,7 +2,7 @@ package container_test
 
 import (
 	wt "github.com/beatkind/watchtower/pkg/types"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 

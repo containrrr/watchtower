@@ -10,7 +10,7 @@ import (
 	"github.com/docker/go-connections/nat"
 
 	. "github.com/beatkind/watchtower/internal/actions/mocks"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 

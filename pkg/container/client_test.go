@@ -1,8 +1,9 @@
 package container
 
 import (
-	"github.com/docker/docker/api/types/network"
 	"time"
+
+	"github.com/docker/docker/api/types/network"
 
 	"github.com/beatkind/watchtower/internal/util"
 	"github.com/beatkind/watchtower/pkg/container/mocks"
@@ -17,7 +18,7 @@ import (
 	"github.com/onsi/gomega/ghttp"
 	"github.com/sirupsen/logrus"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	gt "github.com/onsi/gomega/types"
 

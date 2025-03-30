@@ -13,7 +13,7 @@ import (
 
 	wtTypes "github.com/beatkind/watchtower/pkg/types"
 	ref "github.com/distribution/reference"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
