@@ -192,7 +192,6 @@ func (client dockerClient) StopContainer(c t.Container, timeout time.Duration) e
 	shortID := c.ID().ShortID()
 
 	if c.IsRunning() {
-		log.Infof("Stopping %s (%s) with %s", c.Name(), shortID, signal)
 		var maxWaitSeconds int = int(timeout.Milliseconds())
 		stopOptions := container.StopOptions{
 			Signal:  "",
