@@ -65,7 +65,7 @@ jobs:
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
-        uses: docker/metadata-action@902fa8ec7d6ecbf8d84d538b9b233a880e428804
+        uses: docker/metadata-action@418e4b98bf2841bd337d0b24fe63cb36dc8afa55
         with:
           images: beatkind/watchtower
           labels: |
@@ -116,7 +116,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Extract metadata (tags, labels) for Docker
         id: meta
-        uses: docker/metadata-action@902fa8ec7d6ecbf8d84d538b9b233a880e428804
+        uses: docker/metadata-action@418e4b98bf2841bd337d0b24fe63cb36dc8afa55
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           labels: |
