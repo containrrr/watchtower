@@ -82,7 +82,7 @@ jobs:
 
       - name: Build and push Docker image
         id: push
-        uses: docker/build-push-action@0788c444d8b4d67580213712e34a148cae3a6c4e
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83
         with:
           context: .
           file: dockerfiles/Dockerfile.self-contained
@@ -133,7 +133,7 @@ jobs:
 
       - name: Build and push Docker image
         id: push
-        uses: docker/build-push-action@0788c444d8b4d67580213712e34a148cae3a6c4e
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83
         with:
           context: .
           file: dockerfiles/Dockerfile.self-contained
