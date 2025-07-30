@@ -3,12 +3,13 @@ package mocks
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/onsi/ginkgo"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/onsi/ginkgo"
 
 	t "github.com/containrrr/watchtower/pkg/types"
 
@@ -260,14 +261,18 @@ func RemoveImageHandler(imagesWithParents map[string][]string) http.HandlerFunc 
 		func(w http.ResponseWriter, r *http.Request) {
 			parts := strings.Split(r.URL.Path, `/`)
 			image := parts[len(parts)-1]
-
 			if parents, found := imagesWithParents[image]; found {
-				items := []types.ImageDeleteResponseItem{
+				// Create a struct type that matches what Docker API returns for image removal
+				type imageDeleteResponseItem struct {
+					Untagged string `json:"Untagged,omitempty"`
+					Deleted  string `json:"Deleted,omitempty"`
+				}
+				items := []imageDeleteResponseItem{
 					{Untagged: image},
 					{Deleted: image},
 				}
 				for _, parent := range parents {
-					items = append(items, types.ImageDeleteResponseItem{Deleted: parent})
+					items = append(items, imageDeleteResponseItem{Deleted: parent})
 				}
 				ghttp.RespondWithJSONEncoded(http.StatusOK, items)(w, r)
 			} else {
