@@ -1,6 +1,13 @@
-Watchtower is itself packaged as a Docker container so installation is as simple as pulling the `containrrr/watchtower` image. If you are using ARM based architecture, pull the appropriate `containrrr/watchtower:armhf-<tag>` image from the [containrrr Docker Hub](https://hub.docker.com/r/containrrr/watchtower/tags/).
+# Usage
+
+Watchtower is itself packaged as a Docker container so installation is as simple as pulling the `beatkind/watchtower` image. If you are using ARM based architecture, pull the appropriate `beatkind/watchtower:armhf-<tag>` image from the [beatkind Docker Hub](https://hub.docker.com/r/beatkind/watchtower/tags/).
 
 Since the watchtower code needs to interact with the Docker API in order to monitor the running containers, you need to mount _/var/run/docker.sock_ into the container with the `-v` flag when you run it.
+
+!!! warning "Minimum Docker API version"
+    Watchtower is by default supporting the last supported version of Docker, which can be found [here](https://endoflife.date/docker-engine). The maximum version number for the oldest supported version of Docker can be found inside the [Docker docs](https://docs.docker.com/reference/api/engine/#api-version-matrix).
+
+    If you are using a version of Docker that is older than the minimum supported version, you will need to set the environment variable `DOCKER_API_VERSION` to the minimum supported version. For example, if you are using Docker 24.0, you would set `DOCKER_API_VERSION=1.43`.
 
 Run the `watchtower` container with the following command:
 
@@ -8,7 +15,7 @@ Run the `watchtower` container with the following command:
 docker run -d \
   --name watchtower \
   -v /var/run/docker.sock:/var/run/docker.sock \
-  containrrr/watchtower
+  beatkind/watchtower
 ```
 
 If pulling images from private Docker registries, supply registry authentication credentials with the environment variables `REPO_USER` and `REPO_PASS`
@@ -22,7 +29,7 @@ docker run -d \
   -e REPO_USER=username \
   -e REPO_PASS=password \
   -v /var/run/docker.sock:/var/run/docker.sock \
-  containrrr/watchtower container_to_watch --debug
+  beatkind/watchtower container_to_watch --debug
 ```
 
 Also check out [this Stack Overflow answer](https://stackoverflow.com/a/30494145/7872793) for more options on how to pass environment variables.
@@ -34,15 +41,15 @@ docker run -d \
   --name watchtower \
   -v $HOME/.docker/config.json:/config.json \
   -v /var/run/docker.sock:/var/run/docker.sock \
-  containrrr/watchtower container_to_watch --debug
+  beatkind/watchtower container_to_watch --debug
 ```
 
 !!! note "Changes to config.json while running"
     If you mount `config.json` in the manner above, changes from the host system will (generally) not be propagated to the
     running container. Mounting files into the Docker daemon uses bind mounts, which are based on inodes. Most
     applications (including `docker login` and `vim`) will not directly edit the file, but instead make a copy and replace
-    the original file, which results in a new inode which in turn _breaks_ the bind mount.  
-    **As a workaround**, you can create a symlink to your `config.json` file and then mount the symlink in the container. 
+    the original file, which results in a new inode which in turn _breaks_ the bind mount.
+    **As a workaround**, you can create a symlink to your `config.json` file and then mount the symlink in the container.
     The symlinked file will always have the same inode, which keeps the bind mount intact and will ensure changes
     to the original file are propagated to the running container (regardless of the inode of the source file!).
 
@@ -52,7 +59,7 @@ from a private repo on the GitHub Registry and monitors it with watchtower. Note
 to 30s rather than the default 24 hours.
 
 ```yaml
-version: "3"
+
 services:
   cavo:
     image: ghcr.io/<org>/<image>:<tag>
@@ -60,7 +67,7 @@ services:
       - "443:3443"
       - "80:3080"
   watchtower:
-    image: containrrr/watchtower
+    image: beatkind/watchtower
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - /root/.docker/config.json:/config.json

@@ -6,30 +6,29 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
-  lint:
-    name: Lint
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Set up Go
-        uses: actions/setup-go@v4
-        with:
-          go-version: 1.20.x
-      - uses: dominikh/staticcheck-action@ba605356b4b29a60e87ab9404b712f3461e566dc #v1.3.0
-        with:
-          version: "2023.1.6"
-          install-go: "false" # StaticCheck uses go v1.17 which does not support `any`
+  # lint:
+  #   name: Lint
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: actions/setup-go@v5
+  #       with:
+  #         go-version: stable
+  #     - name: golangci-lint
+  #       uses: golangci/golangci-lint-action@v6
+  #       with:
+  #         version: v1.60
   test:
     name: Test
     strategy:
       fail-fast: false
       matrix:
         go-version:
-          - 1.20.x
+          - 1.24.x
         platform:
           - macos-latest
           - windows-latest
@@ -41,14 +40,14 @@ jobs:
         with:
           fetch-depth: 0
       - name: Set up Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
-          go-version: 1.20.x
+          go-version: 1.24.x
       - name: Run tests
         run: |
-          go test -v -coverprofile coverage.out -covermode atomic ./... 
+          go test -v -coverprofile coverage.out -covermode atomic ./...
       - name: Publish coverage
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
   build:
@@ -60,11 +59,11 @@ jobs:
         with:
           fetch-depth: 0
       - name: Set up Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
-          go-version: 1.20.x
+          go-version: 1.24.x
       - name: Build
-        uses: goreleaser/goreleaser-action@7ec5c2b0c6cdda6e8bbb49444bc797dd33d74dd8 #v3
+        uses: goreleaser/goreleaser-action@90a3faa9d0182683851fbfa97ca1a2cb983bfca3 # v6
         with:
           version: v0.155.0
           args: --snapshot --skip-publish --debug

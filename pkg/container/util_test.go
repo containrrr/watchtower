@@ -1,8 +1,8 @@
 package container_test
 
 import (
-	wt "github.com/containrrr/watchtower/pkg/types"
-	. "github.com/onsi/ginkgo"
+	wt "github.com/beatkind/watchtower/pkg/types"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 

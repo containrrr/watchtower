@@ -3,7 +3,7 @@ package helpers
 import (
 	"testing"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
@@ -31,7 +31,7 @@ var _ = Describe("the helpers", func() {
 			Expect(GetRegistryAddress("localhost/watchtower")).To(Equal("localhost"))
 		})
 		It("should return the server address if passed a fully qualified image name", func() {
-			Expect(GetRegistryAddress("github.com/containrrr/config")).To(Equal("github.com"))
+			Expect(GetRegistryAddress("github.com/beatkind/config")).To(Equal("github.com"))
 		})
 	})
 })

@@ -1,3 +1,5 @@
+# HTTP API Mode
+
 Watchtower provides an HTTP API mode that enables an HTTP endpoint that can be requested to trigger container updating. The current available endpoint list is:
 
 -   `/v1/update` - triggers an update for all of the containers monitored by this Watchtower instance.
@@ -7,7 +9,7 @@ Watchtower provides an HTTP API mode that enables an HTTP endpoint that can be r
 To enable this mode, use the flag `--http-api-update`. For example, in a Docker Compose config file:
 
 ```yaml
-version: '3'
+
 
 services:
   app-monitored-by-watchtower:
@@ -16,7 +18,7 @@ services:
       - "com.centurylinklabs.watchtower.enable=true"
 
   watchtower:
-    image: containrrr/watchtower
+    image: beatkind/watchtower
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     command: --debug --http-api-update

@@ -10,7 +10,7 @@ build:
     - arm
     - arm64
   ldflags:
-    - -s -w -X github.com/containrrr/watchtower/internal/meta.Version={{.Version}}
+    - -s -w -X github.com/beatkind/watchtower/internal/meta.Version={{.Version}}
 archives:
   - 
     name_template: "{{.ProjectName}}_{{.Os}}_{{.Arch}}"
@@ -36,12 +36,8 @@ dockers:
     goarm: ''
     dockerfile: dockerfiles/Dockerfile
     image_templates:
-      - containrrr/watchtower:amd64-{{ .Version }}
-      - containrrr/watchtower:amd64-latest
-      - ghcr.io/containrrr/watchtower:amd64-{{ .Version }}
-      - ghcr.io/containrrr/watchtower:amd64-latest
-    binaries:
-      - watchtower
+      - beatkind/watchtower:amd64-{{ .Version }}
+      - beatkind/watchtower:amd64-latest
   - 
     use_buildx: true
     build_flag_templates: [ "--platform=linux/386" ]
@@ -50,12 +46,8 @@ dockers:
     goarm: ''
     dockerfile: dockerfiles/Dockerfile
     image_templates:
-      - containrrr/watchtower:i386-{{ .Version }}
-      - containrrr/watchtower:i386-latest
-      - ghcr.io/containrrr/watchtower:i386-{{ .Version }}
-      - ghcr.io/containrrr/watchtower:i386-latest
-    binaries:
-      - watchtower
+      - beatkind/watchtower:i386-{{ .Version }}
+      - beatkind/watchtower:i386-latest
   - 
     use_buildx: true
     build_flag_templates: [ "--platform=linux/arm/v6" ]
@@ -64,12 +56,8 @@ dockers:
     goarm: 6
     dockerfile: dockerfiles/Dockerfile
     image_templates:
-      - containrrr/watchtower:armhf-{{ .Version }}
-      - containrrr/watchtower:armhf-latest
-      - ghcr.io/containrrr/watchtower:armhf-{{ .Version }}
-      - ghcr.io/containrrr/watchtower:armhf-latest
-    binaries:
-      - watchtower
+      - beatkind/watchtower:armhf-{{ .Version }}
+      - beatkind/watchtower:armhf-latest
   - 
     use_buildx: true
     build_flag_templates: [ "--platform=linux/arm64/v8" ]
@@ -78,9 +66,5 @@ dockers:
     goarm: ''
     dockerfile: dockerfiles/Dockerfile
     image_templates:
-      - containrrr/watchtower:arm64v8-{{ .Version }}
-      - containrrr/watchtower:arm64v8-latest
-      - ghcr.io/containrrr/watchtower:arm64v8-{{ .Version }}
-      - ghcr.io/containrrr/watchtower:arm64v8-latest
-    binaries:
-      - watchtower
+      - beatkind/watchtower:arm64v8-{{ .Version }}
+      - beatkind/watchtower:arm64v8-latest

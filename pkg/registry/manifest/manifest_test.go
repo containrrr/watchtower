@@ -4,10 +4,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/containrrr/watchtower/internal/actions/mocks"
-	"github.com/containrrr/watchtower/pkg/registry/manifest"
-	apiTypes "github.com/docker/docker/api/types"
-	. "github.com/onsi/ginkgo"
+	"github.com/beatkind/watchtower/internal/actions/mocks"
+	"github.com/beatkind/watchtower/pkg/registry/manifest"
+	"github.com/docker/docker/api/types/image"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
@@ -60,7 +60,7 @@ var _ = Describe("the manifest module", func() {
 })
 
 func buildMockContainerManifestURL(imageRef string) (string, error) {
-	imageInfo := apiTypes.ImageInspect{
+	imageInfo := image.InspectResponse{
 		RepoTags: []string{
 			imageRef,
 		},

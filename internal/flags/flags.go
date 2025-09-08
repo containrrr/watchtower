@@ -17,7 +17,7 @@ import (
 
 // DockerAPIMinVersion is the minimum version of the docker api required to
 // use watchtower
-const DockerAPIMinVersion string = "1.25"
+const DockerAPIMinVersion string = "1.44"
 
 var defaultInterval = int((time.Hour * 24).Seconds())
 
@@ -211,6 +211,12 @@ func RegisterSystemFlags(rootCmd *cobra.Command) {
 		"",
 		envBool("WATCHTOWER_LABEL_TAKE_PRECEDENCE"),
 		"Label applied to containers take precedence over arguments")
+
+	flags.BoolP(
+		"disable-memory-swappiness",
+		"",
+		envBool("WATCHTOWER_DISABLE_MEMORY_SWAPPINESS"),
+		"Label used for setting memory swappiness as nil when recreating the container, used for compatibility with podman")
 }
 
 // RegisterNotificationFlags that are used by watchtower to send notifications
@@ -245,6 +251,12 @@ func RegisterNotificationFlags(rootCmd *cobra.Command) {
 		"",
 		envString("WATCHTOWER_NOTIFICATION_EMAIL_FROM"),
 		"Address to send notification emails from")
+
+	flags.StringP(
+		"notification-email-from-name",
+		"",
+		envString("WATCHTOWER_NOTIFICATION_EMAIL_FROM_NAME"),
+		"Name to send notification emails from")
 
 	flags.StringP(
 		"notification-email-to",
@@ -425,11 +437,13 @@ func SetDefaults() {
 	viper.SetDefault("WATCHTOWER_TIMEOUT", time.Second*10)
 	viper.SetDefault("WATCHTOWER_NOTIFICATIONS", []string{})
 	viper.SetDefault("WATCHTOWER_NOTIFICATIONS_LEVEL", "info")
+	viper.SetDefault("WATCHTOWER_NOTIFICATION_EMAIL_FROM", "Watchtower")
 	viper.SetDefault("WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PORT", 25)
 	viper.SetDefault("WATCHTOWER_NOTIFICATION_EMAIL_SUBJECTTAG", "")
 	viper.SetDefault("WATCHTOWER_NOTIFICATION_SLACK_IDENTIFIER", "watchtower")
 	viper.SetDefault("WATCHTOWER_LOG_LEVEL", "info")
 	viper.SetDefault("WATCHTOWER_LOG_FORMAT", "auto")
+	viper.SetDefault("WATCHTOWER_DISABLE_MEMORY_SWAPPINESS", false)
 }
 
 // EnvConfig translates the command-line options into environment variables

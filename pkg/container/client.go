@@ -7,20 +7,23 @@ import (
 	"strings"
 	"time"
 
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
+	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/api/types/network"
 	sdkClient "github.com/docker/docker/client"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 
-	"github.com/containrrr/watchtower/pkg/registry"
-	"github.com/containrrr/watchtower/pkg/registry/digest"
-	t "github.com/containrrr/watchtower/pkg/types"
+	"github.com/beatkind/watchtower/pkg/registry"
+	"github.com/beatkind/watchtower/pkg/registry/digest"
+	t "github.com/beatkind/watchtower/pkg/types"
 )
 
-const defaultStopSignal = "SIGTERM"
+const (
+	defaultStopSignal    = "SIGTERM"
+	openContainerVersion = "org.opencontainers.image.version"
+)
 
 // A Client is the interface through which watchtower interacts with the
 // Docker API.
@@ -57,11 +60,12 @@ func NewClient(opts ClientOptions) Client {
 
 // ClientOptions contains the options for how the docker client wrapper should behave
 type ClientOptions struct {
-	RemoveVolumes     bool
-	IncludeStopped    bool
-	ReviveStopped     bool
-	IncludeRestarting bool
-	WarnOnHeadFailed  WarningStrategy
+	RemoveVolumes           bool
+	IncludeStopped          bool
+	ReviveStopped           bool
+	IncludeRestarting       bool
+	DisableMemorySwappiness bool
+	WarnOnHeadFailed        WarningStrategy
 }
 
 // WarningStrategy is a value determining when to show warnings
@@ -77,7 +81,7 @@ const (
 )
 
 type dockerClient struct {
-	api sdkClient.CommonAPIClient
+	api sdkClient.APIClient
 	ClientOptions
 }
 
@@ -109,7 +113,7 @@ func (client dockerClient) ListContainers(fn t.Filter) ([]t.Container, error) {
 	filter := client.createListFilter()
 	containers, err := client.api.ContainerList(
 		bg,
-		types.ContainerListOptions{
+		container.ListOptions{
 			Filters: filter,
 		})
 
@@ -172,7 +176,7 @@ func (client dockerClient) GetContainer(containerID t.ContainerID) (t.Container,
 		}
 	}
 
-	imageInfo, _, err := client.api.ImageInspectWithRaw(bg, containerInfo.Image)
+	imageInfo, err := client.api.ImageInspect(bg, containerInfo.Image)
 	if err != nil {
 		log.Warnf("Failed to retrieve container image info: %v", err)
 		return &Container{containerInfo: &containerInfo, imageInfo: nil}, nil
@@ -192,6 +196,10 @@ func (client dockerClient) StopContainer(c t.Container, timeout time.Duration) e
 	shortID := c.ID().ShortID()
 
 	if c.IsRunning() {
+		openVer, ok := c.ContainerInfo().Config.Labels[openContainerVersion]
+		if ok {
+			shortID = fmt.Sprintf("%s - %s", shortID, openVer)
+		}
 		log.Infof("Stopping %s (%s) with %s", c.Name(), shortID, signal)
 		if err := client.api.ContainerKill(bg, idStr, signal); err != nil {
 			return err
@@ -206,7 +214,7 @@ func (client dockerClient) StopContainer(c t.Container, timeout time.Duration) e
 	} else {
 		log.Debugf("Removing container %s", shortID)
 
-		if err := client.api.ContainerRemove(bg, idStr, types.ContainerRemoveOptions{Force: true, RemoveVolumes: client.RemoveVolumes}); err != nil {
+		if err := client.api.ContainerRemove(bg, idStr, container.RemoveOptions{Force: true, RemoveVolumes: client.RemoveVolumes}); err != nil {
 			if sdkClient.IsErrNotFound(err) {
 				log.Debugf("Container %s not found, skipping removal.", shortID)
 				return nil
@@ -250,6 +258,11 @@ func (client dockerClient) StartContainer(c t.Container) (t.ContainerID, error) 
 	config := c.GetCreateConfig()
 	hostConfig := c.GetCreateHostConfig()
 	networkConfig := client.GetNetworkConfig(c)
+
+	// this is a flag set for podman compatibility
+	if client.DisableMemorySwappiness {
+		hostConfig.MemorySwappiness = nil
+	}
 
 	// simpleNetworkConfig is a networkConfig with only 1 network.
 	// see: https://github.com/docker/docker/issues/29265
@@ -303,7 +316,7 @@ func (client dockerClient) doStartContainer(bg context.Context, c t.Container, c
 	name := c.Name()
 
 	log.Debugf("Starting container %s (%s)", name, t.ContainerID(creation.ID).ShortID())
-	err := client.api.ContainerStart(bg, creation.ID, types.ContainerStartOptions{})
+	err := client.api.ContainerStart(bg, creation.ID, container.StartOptions{})
 	if err != nil {
 		return err
 	}
@@ -332,7 +345,7 @@ func (client dockerClient) HasNewImage(ctx context.Context, container t.Containe
 	currentImageID := t.ImageID(container.ContainerInfo().ContainerJSONBase.Image)
 	imageName := container.ImageName()
 
-	newImageInfo, _, err := client.api.ImageInspectWithRaw(ctx, imageName)
+	newImageInfo, err := client.api.ImageInspect(ctx, imageName)
 	if err != nil {
 		return false, currentImageID, err
 	}
@@ -343,7 +356,13 @@ func (client dockerClient) HasNewImage(ctx context.Context, container t.Containe
 		return false, currentImageID, nil
 	}
 
-	log.Infof("Found new %s image (%s)", imageName, newImageID.ShortID())
+	imageID := newImageID.ShortID()
+	openImageVer, ok := newImageInfo.Config.Labels[openContainerVersion]
+	if ok {
+		imageID = fmt.Sprintf("%s - %s", imageID, openImageVer)
+	}
+
+	log.Infof("Found new %s image (%s)", imageName, imageID)
 	return true, newImageID, nil
 }
 
@@ -411,7 +430,7 @@ func (client dockerClient) RemoveImageByID(id t.ImageID) error {
 	items, err := client.api.ImageRemove(
 		context.Background(),
 		string(id),
-		types.ImageRemoveOptions{
+		image.RemoveOptions{
 			Force: true,
 		})
 
@@ -444,7 +463,7 @@ func (client dockerClient) ExecuteCommand(containerID t.ContainerID, command str
 	clog := log.WithField("containerID", containerID)
 
 	// Create the exec
-	execConfig := types.ExecConfig{
+	execConfig := container.ExecOptions{
 		Tty:    true,
 		Detach: false,
 		Cmd:    []string{"sh", "-c", command},
@@ -455,7 +474,7 @@ func (client dockerClient) ExecuteCommand(containerID t.ContainerID, command str
 		return false, err
 	}
 
-	response, attachErr := client.api.ContainerExecAttach(bg, exec.ID, types.ExecStartCheck{
+	response, attachErr := client.api.ContainerExecAttach(bg, exec.ID, container.ExecStartOptions{
 		Tty:    true,
 		Detach: false,
 	})
@@ -464,7 +483,7 @@ func (client dockerClient) ExecuteCommand(containerID t.ContainerID, command str
 	}
 
 	// Run the exec
-	execStartCheck := types.ExecStartCheck{Detach: false, Tty: true}
+	execStartCheck := container.ExecStartOptions{Detach: false, Tty: true}
 	err = client.api.ContainerExecStart(bg, exec.ID, execStartCheck)
 	if err != nil {
 		return false, err

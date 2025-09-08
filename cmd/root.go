@@ -11,17 +11,17 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containrrr/watchtower/internal/actions"
-	"github.com/containrrr/watchtower/internal/flags"
-	"github.com/containrrr/watchtower/internal/meta"
-	"github.com/containrrr/watchtower/pkg/api"
-	apiMetrics "github.com/containrrr/watchtower/pkg/api/metrics"
-	"github.com/containrrr/watchtower/pkg/api/update"
-	"github.com/containrrr/watchtower/pkg/container"
-	"github.com/containrrr/watchtower/pkg/filters"
-	"github.com/containrrr/watchtower/pkg/metrics"
-	"github.com/containrrr/watchtower/pkg/notifications"
-	t "github.com/containrrr/watchtower/pkg/types"
+	"github.com/beatkind/watchtower/internal/actions"
+	"github.com/beatkind/watchtower/internal/flags"
+	"github.com/beatkind/watchtower/internal/meta"
+	"github.com/beatkind/watchtower/pkg/api"
+	apiMetrics "github.com/beatkind/watchtower/pkg/api/metrics"
+	"github.com/beatkind/watchtower/pkg/api/update"
+	"github.com/beatkind/watchtower/pkg/container"
+	"github.com/beatkind/watchtower/pkg/filters"
+	"github.com/beatkind/watchtower/pkg/metrics"
+	"github.com/beatkind/watchtower/pkg/notifications"
+	t "github.com/beatkind/watchtower/pkg/types"
 	"github.com/robfig/cron"
 	log "github.com/sirupsen/logrus"
 
@@ -54,7 +54,7 @@ func NewRootCommand() *cobra.Command {
 		Short: "Automatically updates running Docker containers",
 		Long: `
 	Watchtower automatically updates running Docker containers whenever a new image is released.
-	More information available at https://github.com/containrrr/watchtower/.
+	More information available at https://github.com/beatkind/watchtower/.
 	`,
 		Run:    Run,
 		PreRun: PreRun,
@@ -117,17 +117,19 @@ func PreRun(cmd *cobra.Command, _ []string) {
 	reviveStopped, _ := f.GetBool("revive-stopped")
 	removeVolumes, _ := f.GetBool("remove-volumes")
 	warnOnHeadPullFailed, _ := f.GetString("warn-on-head-failure")
+	disableMemorySwappiness, _ := f.GetBool("disable-memory-swappiness")
 
 	if monitorOnly && noPull {
 		log.Warn("Using `WATCHTOWER_NO_PULL` and `WATCHTOWER_MONITOR_ONLY` simultaneously might lead to no action being taken at all. If this is intentional, you may safely ignore this message.")
 	}
 
 	client = container.NewClient(container.ClientOptions{
-		IncludeStopped:    includeStopped,
-		ReviveStopped:     reviveStopped,
-		RemoveVolumes:     removeVolumes,
-		IncludeRestarting: includeRestarting,
-		WarnOnHeadFailed:  container.WarningStrategy(warnOnHeadPullFailed),
+		IncludeStopped:          includeStopped,
+		ReviveStopped:           reviveStopped,
+		RemoveVolumes:           removeVolumes,
+		IncludeRestarting:       includeRestarting,
+		DisableMemorySwappiness: disableMemorySwappiness,
+		WarnOnHeadFailed:        container.WarningStrategy(warnOnHeadPullFailed),
 	})
 
 	notifier = notifications.NewNotifier(cmd)

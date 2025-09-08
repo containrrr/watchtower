@@ -1,3 +1,3 @@
-### Containrrr Community Code of Conduct
+# Containrrr Community Code of Conduct
 
-Please refer to out [Containrrr Community Code of Conduct](https://github.com/containrrr/.github/blob/master/CODE_OF_CONDUCT.md)
+Nothing here yet. We'll figure it our, once it is at that point.

@@ -8,12 +8,12 @@ import (
 	"strings"
 	"testing"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/containrrr/watchtower/pkg/api"
-	metricsAPI "github.com/containrrr/watchtower/pkg/api/metrics"
-	"github.com/containrrr/watchtower/pkg/metrics"
+	"github.com/beatkind/watchtower/pkg/api"
+	metricsAPI "github.com/beatkind/watchtower/pkg/api/metrics"
+	"github.com/beatkind/watchtower/pkg/metrics"
 )
 
 const (

@@ -3,12 +3,12 @@ package actions
 import (
 	"errors"
 
-	"github.com/containrrr/watchtower/internal/util"
-	"github.com/containrrr/watchtower/pkg/container"
-	"github.com/containrrr/watchtower/pkg/lifecycle"
-	"github.com/containrrr/watchtower/pkg/session"
-	"github.com/containrrr/watchtower/pkg/sorter"
-	"github.com/containrrr/watchtower/pkg/types"
+	"github.com/beatkind/watchtower/internal/util"
+	"github.com/beatkind/watchtower/pkg/container"
+	"github.com/beatkind/watchtower/pkg/lifecycle"
+	"github.com/beatkind/watchtower/pkg/session"
+	"github.com/beatkind/watchtower/pkg/sorter"
+	"github.com/beatkind/watchtower/pkg/types"
 	log "github.com/sirupsen/logrus"
 )
 

@@ -1,8 +1,8 @@
 package notifications
 
 import (
-	s "github.com/containrrr/watchtower/pkg/session"
-	. "github.com/onsi/ginkgo"
+	s "github.com/beatkind/watchtower/pkg/session"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 

@@ -5,7 +5,7 @@ import (
 	"os"
 	"regexp"
 
-	"github.com/containrrr/watchtower/pkg/types"
+	"github.com/beatkind/watchtower/pkg/types"
 )
 
 var dockerContainerPattern = regexp.MustCompile(`[0-9]+:.*:/docker/([a-f|0-9]{64})`)

@@ -4,8 +4,8 @@ import (
 	"net/url"
 	"strings"
 
+	t "github.com/beatkind/watchtower/pkg/types"
 	shoutrrrGotify "github.com/containrrr/shoutrrr/pkg/services/gotify"
-	t "github.com/containrrr/watchtower/pkg/types"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"

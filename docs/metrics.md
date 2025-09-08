@@ -1,3 +1,5 @@
+# Watchtower Metrics
+
 !!! warning "Experimental feature"
     This feature was added in v1.0.4 and is still considered experimental. If you notice any strange behavior, please raise
     a ticket in the repository issues.
@@ -9,7 +11,7 @@ as well as creating a port mapping for your container for port `8080`.
 
 The metrics API endpoint is `/v1/metrics`.
 
-## Available Metrics 
+## Available Metrics
 
 | Name                            | Type    | Description                                                                 |
 | ------------------------------- | ------- | --------------------------------------------------------------------------- |
