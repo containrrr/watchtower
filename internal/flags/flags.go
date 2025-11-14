@@ -385,6 +385,21 @@ Should only be used for testing.`)
 		envString("WATCHTOWER_WARN_ON_HEAD_FAILURE"),
 		"When to warn about HEAD pull requests failing. Possible values: always, auto or never")
 
+    flags.Bool(
+        "insecure-registry",
+        envBool("WATCHTOWER_INSECURE_REGISTRY"),
+        "Disable TLS verification when contacting registries for HEAD/manifest requests (INSECURE; use only for testing)")
+
+	flags.String(
+		"registry-ca",
+		envString("WATCHTOWER_REGISTRY_CA"),
+		"Path to a PEM encoded CA certificate bundle to trust for private registries")
+
+	flags.Bool(
+		"registry-ca-validate",
+		envBool("WATCHTOWER_REGISTRY_CA_VALIDATE"),
+		"If set, watchtower will fail to start if the provided registry CA bundle cannot be loaded or parsed")
+
 	flags.Bool(
 		"notification-log-stdout",
 		envBool("WATCHTOWER_NOTIFICATION_LOG_STDOUT"),
