@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/containrrr/watchtower/pkg/registry/helpers"
 	"github.com/containrrr/watchtower/pkg/types"
@@ -75,10 +77,18 @@ func GetChallengeRequest(URL url.URL) (*http.Request, error) {
 // GetBearerHeader tries to fetch a bearer token from the registry based on the challenge instructions
 func GetBearerHeader(challenge string, imageRef ref.Named, registryAuth string) (string, error) {
 	client := http.Client{}
-	authURL, err := GetAuthURL(challenge, imageRef)
 
+	authURL, err := GetAuthURL(challenge, imageRef)
 	if err != nil {
 		return "", err
+	}
+
+	// Build cache key from the auth realm, service and scope
+	cacheKey := authURL.String()
+
+	// Check cache first
+	if token := getCachedToken(cacheKey); token != "" {
+		return fmt.Sprintf("Bearer %s", token), nil
 	}
 
 	var r *http.Request
@@ -88,8 +98,6 @@ func GetBearerHeader(challenge string, imageRef ref.Named, registryAuth string) 
 
 	if registryAuth != "" {
 		logrus.Debug("Credentials found.")
-		// CREDENTIAL: Uncomment to log registry credentials
-		// logrus.Tracef("Credentials: %v", registryAuth)
 		r.Header.Add("Authorization", fmt.Sprintf("Basic %s", registryAuth))
 	} else {
 		logrus.Debug("No credentials found.")
@@ -99,6 +107,7 @@ func GetBearerHeader(challenge string, imageRef ref.Named, registryAuth string) 
 	if authResponse, err = client.Do(r); err != nil {
 		return "", err
 	}
+	defer authResponse.Body.Close()
 
 	body, _ := io.ReadAll(authResponse.Body)
 	tokenResponse := &types.TokenResponse{}
@@ -108,7 +117,52 @@ func GetBearerHeader(challenge string, imageRef ref.Named, registryAuth string) 
 		return "", err
 	}
 
+	// Cache token if ExpiresIn provided
+	if tokenResponse.Token != "" {
+		storeToken(cacheKey, tokenResponse.Token, tokenResponse.ExpiresIn)
+	}
+
 	return fmt.Sprintf("Bearer %s", tokenResponse.Token), nil
+}
+
+// token cache implementation
+type cachedToken struct {
+	token     string
+	expiresAt time.Time
+}
+
+var (
+	tokenCache   = map[string]cachedToken{}
+	tokenCacheMu = &sync.Mutex{}
+)
+
+// now is a package-level function returning current time. It is a variable so tests
+// can override it for deterministic behavior.
+var now = time.Now
+
+// getCachedToken returns token string if present and not expired, otherwise empty
+func getCachedToken(key string) string {
+	tokenCacheMu.Lock()
+	defer tokenCacheMu.Unlock()
+	if ct, ok := tokenCache[key]; ok {
+		if ct.expiresAt.IsZero() || now().Before(ct.expiresAt) {
+			return ct.token
+		}
+		// expired
+		delete(tokenCache, key)
+	}
+	return ""
+}
+
+// storeToken stores token with optional ttl (seconds). ttl<=0 means no expiry.
+func storeToken(key, token string, ttl int) {
+	tokenCacheMu.Lock()
+	defer tokenCacheMu.Unlock()
+	ct := cachedToken{token: token}
+	if ttl > 0 {
+		ct.expiresAt = now().Add(time.Duration(ttl) * time.Second)
+	}
+	tokenCache[key] = ct
 }
 
 // GetAuthURL from the instructions in the challenge

@@ -205,3 +205,45 @@ A few additional notes:
 
 4.  An alternative to adding the various variables is to create a ~/.aws/config and ~/.aws/credentials files and 
     place the settings there, then mount the ~/.aws directory to / in the container.
+
+## Token caching and required scopes
+
+Watchtower attempts to minimize calls to registry auth endpoints by caching short-lived bearer tokens when available.
+
+- Token cache: When Watchtower requests a bearer token from a registry auth endpoint, it will cache the token in-memory keyed by the auth realm + service + scope. If the token response includes an `expires_in` field, Watchtower will honor it and refresh the token only after expiry. This reduces load and rate-limit pressure on registry auth servers.
+
+- Required scope: Watchtower requests tokens with the following scope format: `repository:<image-path>:pull`. This is sufficient for read-only operations required by Watchtower (HEAD or pull). For registries enforcing fine-grained scopes, ensure the provided credentials can request tokens with `pull` scope for the repositories you want to monitor.
+
+- Credential sources: Watchtower supports these sources (in priority order):
+  1. Environment variables: `REPO_USER` and `REPO_PASS`.
+  2. Docker config file (`DOCKER_CONFIG` path or default location, typically `/root/.docker/config.json` when running in container) including support for credential helpers and native stores.
+
+When possible, prefer using short-lived tokens or credential helpers and avoid embedding long-lived plaintext credentials in environment variables.
+
+### Providing a custom CA bundle
+
+For private registries using certificates signed by an internal CA, prefer providing a PEM encoded CA bundle to disable verification bypassing. Use the `--registry-ca` flag or the `WATCHTOWER_REGISTRY_CA` environment variable to point to a file inside the container with one or more PEM encoded certificates. Watchtower will merge the provided bundle with system roots and validate registry certificates accordingly.
+
+Example (docker run):
+
+```bash
+docker run -v /etc/ssl/private-certs:/certs -e WATCHTOWER_REGISTRY_CA=/certs/my-registry-ca.pem containrrr/watchtower
+```
+
+This is the recommended approach instead of `--insecure-registry` for production deployments.
+
+#### Quick example: validate CA at startup
+
+If you want Watchtower to fail fast when the provided CA bundle is invalid or missing, mount the CA into the container and enable validation:
+
+```bash
+docker run --detach \
+  --name watchtower \
+  --volume /var/run/docker.sock:/var/run/docker.sock \
+  --volume /etc/ssl/private-certs:/certs \
+  containrrr/watchtower \
+  --registry-ca /certs/my-registry-ca.pem \
+  --registry-ca-validate=true
+```
++
+This makes misconfiguration explicit during startup and is recommended for unattended deployments.

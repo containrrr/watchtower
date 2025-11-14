@@ -33,6 +33,21 @@ $ docker run --detach \
 
 Watchtower is intended to be used in homelabs, media centers, local dev environments, and similar. We do **not** recommend using Watchtower in a commercial or production environment. If that is you, you should be looking into using Kubernetes. If that feels like too big a step for you, please look into solutions like [MicroK8s](https://microk8s.io/) and [k3s](https://k3s.io/) that take away a lot of the toil of running a Kubernetes cluster. 
 
+### Using a custom registry CA (private registries)
+
+If you run Watchtower against a private registry that uses a custom TLS certificate, provide the CA bundle and enable validation at startup so Watchtower fails fast on misconfiguration:
+
+```
+$ docker run --detach \
+  --name watchtower \
+  --volume /var/run/docker.sock:/var/run/docker.sock \
+  containrrr/watchtower \
+  --registry-ca /etc/ssl/certs/my-registry-ca.pem \
+  --registry-ca-validate=true
+```
+
+Prefer providing a CA bundle and enabling `--registry-ca-validate` over disabling TLS verification with `--insecure-registry` in production environments.
+
 ## Documentation
 The full documentation is available at https://containrrr.dev/watchtower.
 
