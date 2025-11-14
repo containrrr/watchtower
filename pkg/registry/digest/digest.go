@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/containrrr/watchtower/internal/meta"
+	"github.com/containrrr/watchtower/pkg/registry"
 	"github.com/containrrr/watchtower/pkg/registry/auth"
 	"github.com/containrrr/watchtower/pkg/registry/manifest"
 	"github.com/containrrr/watchtower/pkg/types"
@@ -76,19 +77,7 @@ func TransformAuth(registryAuth string) string {
 
 // GetDigest from registry using a HEAD request to prevent rate limiting
 func GetDigest(url string, token string) (string, error) {
-	tr := &http.Transport{
-		Proxy: http.ProxyFromEnvironment,
-		DialContext: (&net.Dialer{
-			Timeout:   30 * time.Second,
-			KeepAlive: 30 * time.Second,
-		}).DialContext,
-		ForceAttemptHTTP2:     true,
-		MaxIdleConns:          100,
-		IdleConnTimeout:       90 * time.Second,
-		TLSHandshakeTimeout:   10 * time.Second,
-		ExpectContinueTimeout: 1 * time.Second,
-		TLSClientConfig:       &tls.Config{InsecureSkipVerify: true},
-	}
+	tr := newTransport()
 	client := &http.Client{Transport: tr}
 
 	req, _ := http.NewRequest("HEAD", url, nil)
@@ -123,4 +112,36 @@ func GetDigest(url string, token string) (string, error) {
 		return "", fmt.Errorf("registry responded to head request with %q, auth: %q", res.Status, wwwAuthHeader)
 	}
 	return res.Header.Get(ContentDigestHeader), nil
+}
+
+// newTransport constructs an *http.Transport used for registry HEAD/token requests.
+// It respects the package-level `registry.InsecureSkipVerify` toggle.
+func newTransport() *http.Transport {
+	tr := &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		DialContext: (&net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).DialContext,
+		ForceAttemptHTTP2:     true,
+		MaxIdleConns:          100,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+	}
+
+	certPool := registry.GetRegistryCertPool()
+	if registry.InsecureSkipVerify {
+		// Insecure mode requested: disable verification entirely
+		tr.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	} else if certPool != nil {
+		// Create TLS config with custom root CAs merged into system pool
+		tr.TLSClientConfig = &tls.Config{RootCAs: certPool}
+	}
+	return tr
+}
+
+// NewTransportForTest exposes the transport construction for unit tests.
+func NewTransportForTest() *http.Transport {
+	return newTransport()
 }

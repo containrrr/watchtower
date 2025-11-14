@@ -1,0 +1,46 @@
+@startuml
+title Watchtower Update Flow
+actor User as CLI
+participant "cmd (root)" as CMD
+participant "internal/actions.Update" as ACT
+participant "container.Client" as CLIENT
+participant "pkg/registry/digest" as DIG
+participant "pkg/registry/auth" as AUTH
+participant "pkg/registry" as REG
+database "Docker Engine" as DOCKER
+
+CLI -> CMD: trigger runUpdatesWithNotifications()
+CMD -> ACT: Update(client, UpdateParams)
+ACT -> CLIENT: ListContainers(filter)
+loop per container
+    ACT -> CLIENT: IsContainerStale(container, params)
+    CLIENT -> CLIENT: PullImage (maybe)
+    CLIENT -> DIG: CompareDigest(container, registryAuth)
+    DIG -> AUTH: GetToken(challenge)
+    AUTH -> AUTH: getCachedToken / storeToken
+    DIG -> REG: newTransport() (uses --insecure-registry / --registry-ca)
+    DIG -> DOCKER: HEAD manifest with token
+    alt digest matches
+        CLIENT --> ACT: no pull needed
+    else
+        CLIENT -> DOCKER: ImagePull(image)
+    end
+    CLIENT --> ACT: HasNewImage -> stale/newestImage
+end
+ACT -> ACT: SortByDependencies
+ACT -> CLIENT: StopContainer / StartContainer (with lifecycle hooks)
+ACT -> CLIENT: RemoveImageByID (cleanup)
+ACT --> CMD: progress.Report()
+
+note right of AUTH
+  Tokens are cached by auth URL (realm+service+scope)
+  ExpiresIn (seconds) sets TTL when provided
+end note
+
+note left of REG
+  TLS is secure-by-default
+  `--registry-ca` provides PEM bundle
+  `--registry-ca-validate` fails startup on invalid bundle
+end note
+
+@enduml
