@@ -1,4 +1,10 @@
 <div align="center">
+
+  ### ⚠️ This project is no longer maintained
+  See https://github.com/containrrr/watchtower/discussions/2135 for details.
+
+  ---
+  
   <img src="./logo.png" width="450" />
   
   # Watchtower
