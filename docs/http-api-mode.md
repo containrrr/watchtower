@@ -43,3 +43,8 @@ In order to update only certain images, the image names can be provided as URL q
 ```bash
 curl -H "Authorization: Bearer mytoken" localhost:8080/v1/update?image=foo/bar,foo/baz
 ```
+
+tags are also supported:
+```bash
+curl -H "Authorization: Bearer mytoken" localhost:8080/v1/update?image=foo/baz:latest
+```
