@@ -125,20 +125,21 @@ in a volume that may be mounted onto your watchtower container.
 1.  Create the Dockerfile (contents below):
     ```Dockerfile
     FROM golang:1.20
-    
-    ENV GO111MODULE off
-    ENV CGO_ENABLED 0
-    ENV REPO github.com/awslabs/amazon-ecr-credential-helper/ecr-login/cli/docker-credential-ecr-login
-    
-    RUN go get -u $REPO
-    
-    RUN rm /go/bin/docker-credential-ecr-login
-    
-    RUN go build \
-     -o /go/bin/docker-credential-ecr-login \
-     /go/src/$REPO
-    
+
+    # Enable Go modules and disable CGO
+    ENV GO111MODULE=on
+    ENV CGO_ENABLED=0
+    # Define the repository to install from
+    ENV REPO=github.com/awslabs/amazon-ecr-credential-helper/ecr-login/cli/docker-credential-ecr-login@latest
+
+    # Install the necessary dependencies and build the binary
+    RUN go install $REPO
+
+    # Set the final working directory
     WORKDIR /go/bin/
+
+    # Set the default command
+    CMD ["docker-credential-ecr-login"]
     ```
 
 2.  Use the following commands to build the aws-ecr-dock-cred-helper and store it's output in a volume:
