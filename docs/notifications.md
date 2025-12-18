@@ -46,6 +46,21 @@ Simple templates are used unless the `notification-report` flag is specified:
 
 -   `--notification-report` (env. `WATCHTOWER_NOTIFICATION_REPORT`): Use the session report as the notification template data.
 
+Whenever the `$` character is being used, for example in the case of [custom data fields](https://containrrr.dev/shoutrrr/v0.8/services/generic/#custom_data_fields) of a `generic` service url, the `$` character needs to be
+escaped with docker compose:
+``` yaml
+version: "3"
+services:
+  watchtower:
+    image: containrrr/watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    env:
+      WATCHTOWER_NOTIFICATION_URL: 'generic://signal-cli-rest-api:8080/v2/send?template=json&disabletls=yes&$$number=%2b123456&$$recipient=%2b123456'
+```
+
+
+
 ## Simple templates
 
 The default value if not set is `{{range .}}{{.Message}}{{println}}{{end}}`. The example below uses a template that also
