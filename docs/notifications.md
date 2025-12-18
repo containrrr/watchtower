@@ -150,7 +150,7 @@ Example using a custom report template that always sends a session report after 
         image: containrrr/watchtower
         volumes:
           - /var/run/docker.sock:/var/run/docker.sock
-        env:
+        environment:
           WATCHTOWER_NOTIFICATION_REPORT: "true"
           WATCHTOWER_NOTIFICATION_URL: >
             discord://token@channel
@@ -212,7 +212,7 @@ If watchtower is started with `notify-upgrade` as it's first argument, it will g
         image: containrrr/watchtower
         volumes:
           - /var/run/docker.sock:/var/run/docker.sock
-        env:
+        environment:
           WATCHTOWER_NOTIFICATIONS: slack
           WATCHTOWER_NOTIFICATION_SLACK_HOOK_URL: https://hooks.slack.com/services/xxx/yyyyyyyyyyyyyyy
         command: notify-upgrade
