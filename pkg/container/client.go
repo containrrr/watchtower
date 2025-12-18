@@ -329,8 +329,16 @@ func (client dockerClient) IsContainerStale(container t.Container, params t.Upda
 }
 
 func (client dockerClient) HasNewImage(ctx context.Context, container t.Container) (hasNew bool, latestImage t.ImageID, err error) {
-	currentImageID := t.ImageID(container.ContainerInfo().ContainerJSONBase.Image)
+	container_info := container.ContainerInfo()
+	currentImageID := t.ImageID(container_info.ContainerJSONBase.Image)
 	imageName := container.ImageName()
+
+	// If the original-image-id label is set, it overwrites the image id reported by docker
+	imageIDSetByLabel, ok := container_info.Config.Labels[originalImageIDLabel]
+	if ok {
+		currentImageID = t.ImageID(imageIDSetByLabel)
+		log.Debugf("Original image id for %s found: (%s)", imageName, currentImageID.ShortID())
+	}
 
 	newImageInfo, _, err := client.api.ImageInspectWithRaw(ctx, imageName)
 	if err != nil {
