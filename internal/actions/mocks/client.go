@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	c "github.com/containrrr/watchtower/pkg/container"
 	t "github.com/containrrr/watchtower/pkg/types"
 )
 
@@ -72,21 +73,21 @@ func (client MockClient) GetContainer(_ t.ContainerID) (t.Container, error) {
 }
 
 // ExecuteCommand is a mock method
-func (client MockClient) ExecuteCommand(_ t.ContainerID, command string, _ int) (SkipUpdate bool, err error) {
+func (client MockClient) ExecuteCommand(_ t.ContainerID, command string, _ time.Duration) error {
 	switch command {
 	case "/PreUpdateReturn0.sh":
-		return false, nil
+		return nil
 	case "/PreUpdateReturn1.sh":
-		return false, fmt.Errorf("command exited with code 1")
+		return fmt.Errorf("command exited with code 1")
 	case "/PreUpdateReturn75.sh":
-		return true, nil
+		return c.ErrorLifecycleSkip
 	default:
-		return false, nil
+		return nil
 	}
 }
 
 // IsContainerStale is true if not explicitly stated in TestData for the mock client
-func (client MockClient) IsContainerStale(cont t.Container, params t.UpdateParams) (bool, t.ImageID, error) {
+func (client MockClient) IsContainerStale(cont t.Container, _ t.UpdateParams) (bool, t.ImageID, error) {
 	stale, found := client.TestData.Staleness[cont.Name()]
 	if !found {
 		stale = true

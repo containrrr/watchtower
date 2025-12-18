@@ -2,6 +2,7 @@ package types
 
 import (
 	"strings"
+	"time"
 
 	"github.com/docker/docker/api/types"
 	dc "github.com/docker/docker/api/types/container"
@@ -60,18 +61,14 @@ type Container interface {
 	StopSignal() string
 	HasImageInfo() bool
 	ImageInfo() *types.ImageInspect
-	GetLifecyclePreCheckCommand() string
-	GetLifecyclePostCheckCommand() string
-	GetLifecyclePreUpdateCommand() string
-	GetLifecyclePostUpdateCommand() string
+	GetLifecycleCommand(LifecyclePhase) string
+	GetLifecycleTimeout(LifecyclePhase) time.Duration
 	VerifyConfiguration() error
-	SetStale(bool)
-	IsStale() bool
+	SetMarkedForUpdate(bool)
+	IsMarkedForUpdate() bool
 	IsNoPull(UpdateParams) bool
 	SetLinkedToRestarting(bool)
 	IsLinkedToRestarting() bool
-	PreUpdateTimeout() int
-	PostUpdateTimeout() int
 	IsRestarting() bool
 	GetCreateConfig() *dc.Config
 	GetCreateHostConfig() *dc.HostConfig

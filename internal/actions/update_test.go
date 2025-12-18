@@ -371,7 +371,7 @@ var _ = Describe("the update action", func() {
 						ExposedPorts: map[nat.Port]struct{}{},
 					})
 
-				provider.SetStale(true)
+				provider.SetMarkedForUpdate(true)
 
 				consumer := CreateMockContainerWithConfig(
 					"test-container-consumer",
