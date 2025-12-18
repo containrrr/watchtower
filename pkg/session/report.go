@@ -7,12 +7,13 @@ import (
 )
 
 type report struct {
-	scanned []types.ContainerReport
-	updated []types.ContainerReport
-	failed  []types.ContainerReport
-	skipped []types.ContainerReport
-	stale   []types.ContainerReport
-	fresh   []types.ContainerReport
+	scanned  []types.ContainerReport
+	updated  []types.ContainerReport
+	deferred []types.ContainerReport
+	failed   []types.ContainerReport
+	skipped  []types.ContainerReport
+	stale    []types.ContainerReport
+	fresh    []types.ContainerReport
 }
 
 func (r *report) Scanned() []types.ContainerReport {
@@ -20,6 +21,9 @@ func (r *report) Scanned() []types.ContainerReport {
 }
 func (r *report) Updated() []types.ContainerReport {
 	return r.updated
+}
+func (r *report) Deferred() []types.ContainerReport {
+	return r.deferred
 }
 func (r *report) Failed() []types.ContainerReport {
 	return r.failed
@@ -50,6 +54,7 @@ func (r *report) All() []types.ContainerReport {
 	}
 
 	appendUnique(r.updated)
+	appendUnique(r.deferred)
 	appendUnique(r.failed)
 	appendUnique(r.skipped)
 	appendUnique(r.stale)
@@ -64,12 +69,13 @@ func (r *report) All() []types.ContainerReport {
 // NewReport creates a types.Report from the supplied Progress
 func NewReport(progress Progress) types.Report {
 	report := &report{
-		scanned: []types.ContainerReport{},
-		updated: []types.ContainerReport{},
-		failed:  []types.ContainerReport{},
-		skipped: []types.ContainerReport{},
-		stale:   []types.ContainerReport{},
-		fresh:   []types.ContainerReport{},
+		scanned:  []types.ContainerReport{},
+		updated:  []types.ContainerReport{},
+		deferred: []types.ContainerReport{},
+		failed:   []types.ContainerReport{},
+		skipped:  []types.ContainerReport{},
+		stale:    []types.ContainerReport{},
+		fresh:    []types.ContainerReport{},
 	}
 
 	for _, update := range progress {
@@ -88,9 +94,13 @@ func NewReport(progress Progress) types.Report {
 		switch update.state {
 		case UpdatedState:
 			report.updated = append(report.updated, update)
+		case DeferredState:
+			report.deferred = append(report.deferred, update)
 		case FailedState:
 			report.failed = append(report.failed, update)
 		default:
+			// TODO: should this be changed to something lke UnknownState since it shouldn't be possible for a container
+			// to be stale but its state to not be either UpdatedState, DeferredState, or FailedState?
 			update.state = StaleState
 			report.stale = append(report.stale, update)
 		}
@@ -98,6 +108,7 @@ func NewReport(progress Progress) types.Report {
 
 	sort.Sort(sortableContainers(report.scanned))
 	sort.Sort(sortableContainers(report.updated))
+	sort.Sort(sortableContainers(report.deferred))
 	sort.Sort(sortableContainers(report.failed))
 	sort.Sort(sortableContainers(report.skipped))
 	sort.Sort(sortableContainers(report.stale))

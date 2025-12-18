@@ -21,6 +21,7 @@ var _ = Describe("JSON template", func() {
 		],
 		"host": "Mock",
 		"report": {
+		"deferred": [],
 		"failed": [
 			{
 				"currentImageId": "01d210000000",
@@ -110,7 +111,7 @@ var _ = Describe("JSON template", func() {
 		},
 		"title": "Watchtower updates on Mock"
 }`
-				data := mockDataFromStates(s.UpdatedState, s.FreshState, s.FailedState, s.SkippedState, s.UpdatedState)
+				data := mockDataFromStates(s.UpdatedState, s.DeferredState, s.FreshState, s.FailedState, s.SkippedState, s.UpdatedState)
 				Expect(getTemplatedResult(`json.v1`, false, data)).To(MatchJSON(expected))
 			})
 		})

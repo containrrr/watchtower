@@ -72,6 +72,8 @@ func (pb *previewData) addContainer(c containerStatus) {
 		pb.report.scanned = append(pb.report.scanned, &c)
 	case UpdatedState:
 		pb.report.updated = append(pb.report.updated, &c)
+	case DeferredState:
+		pb.report.deferred = append(pb.report.deferred, &c)
 	case FailedState:
 		pb.report.failed = append(pb.report.failed, &c)
 	case SkippedState:
