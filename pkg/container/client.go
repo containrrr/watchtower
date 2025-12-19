@@ -463,13 +463,6 @@ func (client dockerClient) ExecuteCommand(containerID t.ContainerID, command str
 		clog.Errorf("Failed to extract command exec logs: %v", attachErr)
 	}
 
-	// Run the exec
-	execStartCheck := types.ExecStartCheck{Detach: false, Tty: true}
-	err = client.api.ContainerExecStart(bg, exec.ID, execStartCheck)
-	if err != nil {
-		return false, err
-	}
-
 	var output string
 	if attachErr == nil {
 		defer response.Close()
