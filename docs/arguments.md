@@ -123,6 +123,25 @@ Environment Variable: WATCHTOWER_TRACE
              Default: false
 ```
 
+## Enable Log File
+Enable logging to a file. The file will be located at `/var/log/watchtower.log` by default inside the container.
+
+```text
+            Argument: --enable-log-file
+Environment Variable: WATCHTOWER_ENABLE_LOG_FILE
+                Type: Boolean
+             Default: false
+```
+
+To change the location of the log file, use the `--log-file-path` argument.
+
+```text
+            Argument: --log-file-path
+Environment Variable: WATCHTOWER_LOG_FILE_PATH
+                Type: String
+             Default: "/var/log/watchtower.log"
+```
+
 ## Maximum log level
 
 The maximum log level that will be written to STDERR (shown in `docker log` when used in a container).
