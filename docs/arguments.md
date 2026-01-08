@@ -460,8 +460,34 @@ Alias for:
 		--notification-report
 		--notification-template porcelain.VERSION.summary-no-log
 
+
             Argument: --porcelain, -P
 Environment Variable: WATCHTOWER_PORCELAIN
      Possible values: v1
              Default: -
+```
+
+## Registry TLS options
+
+Options to configure TLS verification when Watchtower talks to image registries.
+
+```text
+            Argument: --insecure-registry
+Environment Variable: WATCHTOWER_INSECURE_REGISTRY
+                Type: Boolean
+             Default: false
+```
+
+```text
+            Argument: --registry-ca
+Environment Variable: WATCHTOWER_REGISTRY_CA
+                Type: String (path to PEM bundle inside container)
+             Default: -
+```
+
+```text
+            Argument: --registry-ca-validate
+Environment Variable: WATCHTOWER_REGISTRY_CA_VALIDATE
+                Type: Boolean
+             Default: false
 ```
