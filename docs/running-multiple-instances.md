@@ -3,7 +3,7 @@ By default, Watchtower will clean up other instances and won't allow multiple in
 !!! note
     - Multiple instances can't run with the same scope;
     - An instance without a scope will clean up other running instances, even if they have a defined scope;
-    - Supplying `none` as the scope will treat `com.centurylinklabs.watchtower.scope=none`, `com.centurylinklabs.watchtower.scope=` and the lack of a `com.centurylinklabs.watchtower.scope` label as the scope `none`. This effectly enables you to run both scoped and unscoped watchtower instances on the same machine.
+    - Supplying `none` as the scope will treat `com.centurylinklabs.watchtower.scope=none`, `com.centurylinklabs.watchtower.scope=` and the lack of a `com.centurylinklabs.watchtower.scope` label as the scope `none`. This effectively enables you to run both scoped and unscoped watchtower instances on the same machine.
 
 To define an instance monitoring scope, use the `--scope` argument or the `WATCHTOWER_SCOPE` environment variable on startup and set the `com.centurylinklabs.watchtower.scope` label with the same value for the containers you want to include in this instance's scope (including the instance itself).
 
