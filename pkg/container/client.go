@@ -343,7 +343,7 @@ func (client dockerClient) HasNewImage(ctx context.Context, container t.Containe
 		return false, currentImageID, nil
 	}
 
-	log.Infof("Found new %s image (%s)", imageName, newImageID.ShortID())
+	log.Infof("Found new %s image (%s) for container %s", imageName, newImageID.ShortID(), container.Name())
 	return true, newImageID, nil
 }
 
