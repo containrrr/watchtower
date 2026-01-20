@@ -20,6 +20,7 @@ import (
 	"github.com/containrrr/watchtower/pkg/container"
 	"github.com/containrrr/watchtower/pkg/filters"
 	"github.com/containrrr/watchtower/pkg/metrics"
+	"github.com/containrrr/watchtower/pkg/registry"
 	"github.com/containrrr/watchtower/pkg/notifications"
 	t "github.com/containrrr/watchtower/pkg/types"
 	"github.com/robfig/cron"
@@ -117,6 +118,30 @@ func PreRun(cmd *cobra.Command, _ []string) {
 	reviveStopped, _ := f.GetBool("revive-stopped")
 	removeVolumes, _ := f.GetBool("remove-volumes")
 	warnOnHeadPullFailed, _ := f.GetString("warn-on-head-failure")
+
+	// Configure TLS verification for registry HEAD/token requests. Default is secure (verify certs).
+	insecureRegistry, _ := f.GetBool("insecure-registry")
+	registry.InsecureSkipVerify = insecureRegistry
+	if insecureRegistry {
+		log.Warn("TLS certificate verification for registry requests is disabled (insecure). This should only be used for testing.)")
+	}
+
+	registryCABundle, _ := f.GetString("registry-ca")
+	if registryCABundle != "" {
+		registry.RegistryCABundle = registryCABundle
+		log.Debugf("Using registry CA bundle: %s", registryCABundle)
+	}
+
+	// Optionally validate CA bundle at startup
+	validateCABundle, _ := f.GetBool("registry-ca-validate")
+	if validateCABundle && registry.RegistryCABundle != "" {
+		if pool := registry.GetRegistryCertPool(); pool == nil {
+			log.Fatalf("Failed to validate registry CA bundle at %s", registry.RegistryCABundle)
+		}
+		log.Info("Registry CA bundle validated successfully")
+	} else if validateCABundle && registry.RegistryCABundle == "" {
+		log.Fatalf("--registry-ca-validate was set but no --registry-ca was provided")
+	}
 
 	if monitorOnly && noPull {
 		log.Warn("Using `WATCHTOWER_NO_PULL` and `WATCHTOWER_MONITOR_ONLY` simultaneously might lead to no action being taken at all. If this is intentional, you may safely ignore this message.")
