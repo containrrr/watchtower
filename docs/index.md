@@ -63,3 +63,17 @@ the following command:
         volumes:
           - /var/run/docker.sock:/var/run/docker.sock
     ```
+
+Quick note: if your registry uses a custom TLS certificate, mount the CA bundle and enable startup validation so Watchtower fails fast on misconfiguration:
+
+```bash
+docker run --detach \
+  --name watchtower \
+  --volume /var/run/docker.sock:/var/run/docker.sock \
+  --volume /etc/ssl/private-certs:/certs \
+  containrrr/watchtower \
+  --registry-ca /certs/my-registry-ca.pem \
+  --registry-ca-validate=true
+```
++
+Prefer this over `--insecure-registry` for production.
