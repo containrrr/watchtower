@@ -373,6 +373,33 @@
     },
     {
       "data": {
+        "container": "app",
+        "depends_on": "missing-db"
+      },
+      "level": "debug",
+      "message": "Ignoring depends-on entry that names no container",
+      "time": "2026-10-07T12:00:39Z"
+    },
+    {
+      "data": {
+        "container": "app",
+        "id": "abcdef123456"
+      },
+      "level": "info",
+      "message": "Skipping container update (self-dependency)",
+      "time": "2026-10-07T12:00:40Z"
+    },
+    {
+      "data": {
+        "container": "app",
+        "id": "abcdef123456"
+      },
+      "level": "warning",
+      "message": "Skipping container update (circular dependency)",
+      "time": "2026-10-07T12:00:41Z"
+    },
+    {
+      "data": {
         "alpha": "one",
         "beta": 2
       },

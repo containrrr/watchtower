@@ -154,6 +154,46 @@ func TestMarkImplicitRestarts(t *testing.T) {
 				{name: "project1-db-1", project: "project1", service: "db", number: "1", stale: true},
 				{name: "project2-db-1", project: "project2", service: "db", number: "1"},
 			},
+			want: []string{"app"},
+		},
+		{
+			name: "hyphenated service in two other projects, one by container name",
+			specs: []restartSpec{
+				{
+					name: "app-web-1", project: "app", service: "web", number: "1",
+					dependsOn: "watchtower-test-database",
+				},
+				{
+					name: "app-web-2", project: "app", service: "web", number: "2",
+					dependsOn: "watchtower-test-database",
+				},
+				{
+					name: "database1-watchtower-test-database-1", project: "database1",
+					service: "watchtower-test-database", number: "1",
+				},
+				{
+					name: "watchtower-test-database2", project: "database2",
+					service: "watchtower-test-database", number: "1", stale: true,
+				},
+			},
+			want: []string{"app-web-1", "app-web-2"},
+		},
+		{
+			name: "service of the dependent's project unmonitored",
+			specs: []restartSpec{
+				{name: "a-web-1", project: "a", service: "web", number: "1", dependsOn: "db"},
+				{name: "a-db-1", project: "a", service: "db", number: "1", unmonitored: true},
+				{name: "b-db-1", project: "b", service: "db", number: "1", stale: true},
+			},
+			want: nil,
+		},
+		{
+			name: "service in two projects, one of them the dependent's",
+			specs: []restartSpec{
+				{name: "a-web-1", project: "a", service: "web", number: "1", dependsOn: "db"},
+				{name: "a-db-1", project: "a", service: "db", number: "1"},
+				{name: "b-db-1", project: "b", service: "db", number: "1", stale: true},
+			},
 			want: nil,
 		},
 		{
@@ -252,8 +292,8 @@ func TestMarkImplicitRestarts(t *testing.T) {
 }
 
 // TestUpdate_WarnsOnUnresolvedDependsOn verifies that a scan logs a warning for
-// each depends-on entry that names no container, or a service more than one
-// service could be, and that the entry adds no dependency.
+// each depends-on entry that names no container, and not for one that names a
+// service shared by several projects.
 func TestUpdate_WarnsOnUnresolvedDependsOn(t *testing.T) {
 	t.Parallel()
 
@@ -281,9 +321,7 @@ func TestUpdate_WarnsOnUnresolvedDependsOn(t *testing.T) {
 	_, _, err := Update(&log, t.Context(), client, types.UpdateParams{})
 	require.NoError(t, err)
 
-	for _, entry := range []string{"db", "missing"} {
-		assert.Contains(t, output.String(),
-			`{"level":"warn","container":"app","depends_on":"`+entry+
-				`","message":"Ignoring depends-on entry that does not name exactly one container"}`)
-	}
+	assert.Contains(t, output.String(),
+		`{"level":"warn","container":"app","depends_on":"missing","message":"Ignoring depends-on entry that names no container"}`)
+	assert.NotContains(t, output.String(), `"depends_on":"db","message":"Ignoring depends-on entry`)
 }

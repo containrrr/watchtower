@@ -356,14 +356,14 @@ func TestDependencyGraph_Subgraph(t *testing.T) {
 			alone:  []string{"c->db-1", "db-1->c"},
 		},
 		{
-			name: "ambiguous service name",
+			name: "service name shared by two projects",
 			all: deploy(
 				deployed{name: "app", dependsOn: "db"},
 				deployed{name: "xdb", project: "x", service: "db"},
 				deployed{name: "ydb", project: "y", service: "db"},
 			),
 			subset: []string{"app", "xdb"},
-			want:   []string{},
+			want:   []string{"app->xdb"},
 			alone:  []string{"app->xdb"},
 		},
 		{
@@ -517,9 +517,11 @@ func TestDependencyGraph_Sort(t *testing.T) {
 }
 
 // TestDependencyGraph_ServiceNames verifies that a link naming a Compose
-// service resolves to every replica of exactly one service, whether the name
-// is bare or hyphenated, and that a name matching more than one service,
-// including the linking container's own, resolves to nothing.
+// service resolves to every replica of the service, whether the name is bare
+// or hyphenated. A name shared by several projects resolves to the service of
+// the linking container's own project when it has one, and to every project's
+// service otherwise, so a shared name never drops a dependency. A name never
+// fans out to a different service that only ends in it.
 func TestDependencyGraph_ServiceNames(t *testing.T) {
 	t.Parallel()
 
@@ -581,7 +583,7 @@ func TestDependencyGraph_ServiceNames(t *testing.T) {
 				replica("a", "db", "1", ""),
 				replica("b", "db", "1", ""),
 			),
-			want: []string{},
+			want: []string{"app->a-db-1", "app->b-db-1"},
 		},
 		{
 			name: "hyphenated service in two projects",
@@ -590,7 +592,64 @@ func TestDependencyGraph_ServiceNames(t *testing.T) {
 				replica("a", "api-gateway", "1", ""),
 				replica("b", "api-gateway", "1", ""),
 			),
-			want: []string{},
+			want: []string{"app->a-api-gateway-1", "app->b-api-gateway-1"},
+		},
+		{
+			name: "service in two projects beside services ending in its name",
+			containers: deploy(
+				deployed{name: "app", dependsOn: "db"},
+				replica("a", "db", "1", ""),
+				replica("b", "db", "1", ""),
+				replica("c", "mongo-db", "1", ""),
+				deployed{name: "legacy-db"},
+			),
+			want: []string{"app->a-db-1", "app->b-db-1"},
+		},
+		{
+			name: "hyphenated service in two projects beside a longer service",
+			containers: deploy(
+				deployed{name: "app", dependsOn: "api-gateway"},
+				replica("a", "api-gateway", "1", ""),
+				replica("b", "api-gateway", "1", ""),
+				replica("x", "edge-api-gateway", "1", ""),
+			),
+			want: []string{"app->a-api-gateway-1", "app->b-api-gateway-1"},
+		},
+		{
+			name: "service beside another service ending in its name",
+			containers: deploy(
+				deployed{name: "app", dependsOn: "db"},
+				replica("a", "db", "1", ""),
+				replica("b", "mongo-db", "1", ""),
+			),
+			want: []string{"app->a-db-1"},
+		},
+		{
+			name: "service in two projects, one of them the linking container's",
+			containers: deploy(
+				replica("a", "web", "1", "db"),
+				replica("a", "db", "1", ""),
+				replica("b", "db", "1", ""),
+			),
+			want: []string{"a-web-1->a-db-1"},
+		},
+		{
+			name: "service in two other projects, one by container name",
+			containers: deploy(
+				replica("app", "web", "1", "watchtower-test-database"),
+				replica("app", "web", "2", "watchtower-test-database"),
+				replica("database1", "watchtower-test-database", "1", ""),
+				deployed{
+					name: "watchtower-test-database2", project: "database2",
+					service: "watchtower-test-database", number: "1",
+				},
+			),
+			want: []string{
+				"app-web-1->database1-watchtower-test-database-1",
+				"app-web-1->watchtower-test-database2",
+				"app-web-2->database1-watchtower-test-database-1",
+				"app-web-2->watchtower-test-database2",
+			},
 		},
 		{
 			name: "own service and another project's",
@@ -624,7 +683,9 @@ func TestDependencyGraph_ServiceNames(t *testing.T) {
 // containers depend on a Watchtower container only when they name it exactly
 // or as the only replica of its Compose service, and a link that names an
 // unmonitored container exactly names nothing else, not even a Watchtower
-// container known by that replica-free name.
+// container known by that replica-free name. A service name whose service in
+// the linking container's own project is unmonitored names nothing either,
+// rather than the service of another project.
 func TestDependencyGraph_Dependents(t *testing.T) {
 	t.Parallel()
 
@@ -724,6 +785,27 @@ func TestDependencyGraph_Dependents(t *testing.T) {
 			of:          "db-1",
 			want:        nil,
 		},
+		{
+			name: "service of its own project unmonitored",
+			monitored: deploy(
+				deployed{name: "a-web-1", project: "a", service: "web", number: "1", dependsOn: "db"},
+				deployed{name: "b-db-1", project: "b", service: "db", number: "1"},
+				deployed{name: "c-db-1", project: "c", service: "db", number: "1"},
+			),
+			unmonitored: deploy(deployed{name: "a-db-1", project: "a", service: "db", number: "1"}),
+			of:          "b-db-1",
+			want:        nil,
+		},
+		{
+			name: "service unmonitored in another project",
+			monitored: deploy(
+				deployed{name: "a-web-1", project: "a", service: "web", number: "1", dependsOn: "db"},
+				deployed{name: "b-db-1", project: "b", service: "db", number: "1"},
+			),
+			unmonitored: deploy(deployed{name: "c-db-1", project: "c", service: "db", number: "1"}),
+			of:          "b-db-1",
+			want:        []string{"a-web-1"},
+		},
 	}
 
 	for _, tt := range tests {
@@ -757,15 +839,15 @@ func TestDependencyGraph_Dependents(t *testing.T) {
 }
 
 // TestDependencyGraph_UnresolvedDependsOn verifies that a Watchtower
-// depends-on entry is reported when it names no container or a service that
-// more than one service could be, and is not reported when it names a
-// container, an unmonitored container, a Watchtower container, a unique
-// service, or the labeled container itself.
+// depends-on entry is reported when it names no container, and is not
+// reported when it names a container, an unmonitored container by name or
+// service, a Watchtower container, a service, a service shared by several
+// projects, or the labeled container itself.
 func TestDependencyGraph_UnresolvedDependsOn(t *testing.T) {
 	t.Parallel()
 
 	monitored := deploy(
-		deployed{name: "app", dependsOn: "missing,db,api,cache,watchtower,app,legacy"},
+		deployed{name: "app", dependsOn: "missing,db,api,cache,watchtower,app,legacy,store"},
 		deployed{name: "watchtower", watchtower: true, dependsOn: "proxy,gone"},
 		deployed{name: "proxy"},
 		deployed{name: "a-db-1", project: "a", service: "db", number: "1"},
@@ -774,7 +856,10 @@ func TestDependencyGraph_UnresolvedDependsOn(t *testing.T) {
 		deployed{name: "stack-api-2", project: "stack", service: "api", number: "2"},
 		deployed{name: "cache"},
 	)
-	unmonitored := deploy(deployed{name: "legacy"})
+	unmonitored := deploy(
+		deployed{name: "legacy"},
+		deployed{name: "x-store-1", project: "x", service: "store", number: "1"},
+	)
 
 	graph, err := NewDependencyGraph(testLog(), monitored, unmonitored, false)
 	require.NoError(t, err)
@@ -786,5 +871,5 @@ func TestDependencyGraph_UnresolvedDependsOn(t *testing.T) {
 		got = append(got, link.Container.Name()+":"+link.Link)
 	}
 
-	assert.ElementsMatch(t, []string{"app:missing", "app:db", "watchtower:gone"}, got)
+	assert.ElementsMatch(t, []string{"app:missing", "watchtower:gone"}, got)
 }

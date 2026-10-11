@@ -1084,7 +1084,7 @@ var _ = ginkgo.Describe("DependencySorter", func() {
 			gomega.Expect(result).To(gomega.HaveLen(2))
 		})
 
-		ginkgo.It("should handle cross-project dependency resolution with ambiguous names", func() {
+		ginkgo.It("should resolve a service name shared by two projects to both", func() {
 			// app depending on "db"
 			app := mockTypes.NewMockContainer(ginkgo.GinkgoT())
 			app.EXPECT().ContainerInfo().Return(&dockerContainer.InspectResponse{
@@ -1128,10 +1128,13 @@ var _ = ginkgo.Describe("DependencySorter", func() {
 			containerMap, indegree, adjacency, _, err := buildDependencyGraph(testLog(), containers, true)
 			gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
-			// Graph builds successfully, but no dependency resolved since "db" doesn't match "project1-db" or "project2-db"
+			// "db" names the db service of both projects, so app depends on each.
 			gomega.Expect(containerMap).To(gomega.HaveLen(3))
-			gomega.Expect(indegree["app"]).To(gomega.Equal(0))
-			gomega.Expect(adjacency).To(gomega.BeEmpty())
+			gomega.Expect(indegree["app"]).To(gomega.Equal(2))
+			gomega.Expect(adjacency).To(gomega.Equal(map[string][]string{
+				"project1-db": {"app"},
+				"project2-db": {"app"},
+			}))
 		})
 
 		ginkgo.It("should detect circular dependencies via watchtower labels", func() {
@@ -1841,7 +1844,7 @@ var _ = ginkgo.Describe("Service-Only Matching", func() {
 		)
 
 		ginkgo.It(
-			"should NOT match when multiple containers have same service name (ambiguous)",
+			"should match every project's service when several share the service name",
 			func() {
 				// App container that depends on "db" service
 				app := mockTypes.NewMockContainer(ginkgo.GinkgoT())
@@ -1891,8 +1894,8 @@ var _ = ginkgo.Describe("Service-Only Matching", func() {
 				// Verify all containers are in the map
 				gomega.Expect(containerMap).To(gomega.HaveLen(3))
 
-				// App should have indegree 0 (ambiguous match rejected)
-				gomega.Expect(indegree["app"]).To(gomega.Equal(0))
+				// App depends on the db service of both projects
+				gomega.Expect(indegree["app"]).To(gomega.Equal(2))
 
 				// Both db containers should have indegree 0
 				gomega.Expect(indegree["project1-db"]).To(gomega.Equal(0))

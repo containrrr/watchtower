@@ -40,9 +40,13 @@ This supports referencing containers from other Docker Compose projects or stack
 An entry may also name a Docker Compose service, such as `db` or `my-database`, or a project-qualified service, such as `myproject-db`.
 A service name resolves to every replica of that service.
 
+A service name used in more than one Compose project, such as `db`, resolves to the service in the labeled container's own project when that project has one.
+Otherwise it resolves to the service in every project that has it, so the container restarts when any of them is updated.
+When the service in its own project is unmonitored, the entry is left alone instead (see [Dependencies on Unmonitored Containers](#dependencies_on_unmonitored_containers)).
+Use the container name or a project-qualified service name, such as `myproject-db`, to depend on only one of them.
+
 !!! Warning
-    Use unique, non-ambiguous source container names both in the Docker Compose configuration and when specifying dependencies in the `com.centurylinklabs.watchtower.depends-on` label to ensure correct dependency resolution and behavior across Docker Compose projects/stacks.
-    An entry that names no container, or a service name used by more than one service (such as `db` in two Compose projects), is ignored and logged as a warning.
+    An entry that names no container is ignored and logged as a warning.
 
 #### Docker Compose Depends-On Label
 
@@ -131,6 +135,7 @@ Containers are excluded from monitoring by the [container selection](../../confi
 
 - A dependency on an unmonitored container is ignored when ordering updates and restarting dependents.
 - A dependency that names an unmonitored container exactly never resolves to a different, monitored container with a similar name.
+- A service name whose service in the container's own Compose project is unmonitored never resolves to the same service in another project.
 
 ## Configuration
 
@@ -356,9 +361,9 @@ Containers using `network_mode: service:container`:
 #### Ignored Depends-On Entries
 
 !!! Warning
-    If you see "Ignoring depends-on entry that does not name exactly one container" warnings, the named `com.centurylinklabs.watchtower.depends-on` entry matched no container, or matched more than one service.
+    If you see "Ignoring depends-on entry that names no container" warnings, the named `com.centurylinklabs.watchtower.depends-on` entry matched no container.
 
-**Solution**: Use the exact container name, or a project-qualified service name such as `myproject-db`.
+**Solution**: Use the exact container name, a Compose service name, or a project-qualified service name such as `myproject-db`.
 
 #### Containers Not Updating in Expected Order
 

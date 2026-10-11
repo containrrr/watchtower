@@ -1479,6 +1479,24 @@ func TestDefaultLegacyGitSkipAndComposeMessages(t *testing.T) {
 			},
 			want: "Update failed for sonarr (lscr.io/linuxserver/sonarr:latest): image pull: registry rate limited: retry-after 347.256µs allowed 44000 per 1m0s",
 		},
+		{
+			name:    "depends-on entry that names no container",
+			message: "Ignoring depends-on entry that names no container",
+			data:    map[string]any{"container": "web", "depends_on": "missing-db"},
+			want:    "Ignored depends-on missing-db for web: no container has that name",
+		},
+		{
+			name:    "self-dependency",
+			message: "Skipping container update (self-dependency)",
+			data:    map[string]any{"container": "app", "id": "abcdef123456"},
+			want:    "Skipped app: depends on itself",
+		},
+		{
+			name:    "circular dependency",
+			message: "Skipping container update (circular dependency)",
+			data:    map[string]any{"container": "app", "id": "abcdef123456"},
+			want:    "Skipped app: circular dependency",
+		},
 	}
 
 	for _, tc := range cases {

@@ -37,5 +37,8 @@ Only checking containers in scope
 Starting HTTP API server
 HTTP API server is enabled
 Registry rate limit retries exhausted. Container failed for this cycle
+Ignoring depends-on entry that names no container
+Skipping container update (self-dependency)
+Skipping container update (circular dependency)
 Unrecognized message with fields
 Unrecognized message without fields

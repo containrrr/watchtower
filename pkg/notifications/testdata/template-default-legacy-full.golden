@@ -37,5 +37,8 @@ Only checking containers in scope: production
 Starting HTTP API server at https://0.0.0.0:8080
 HTTP API server is available at https://0.0.0.0:8080
 Update failed for app (org/app:latest): image pull: registry rate limited: retry-after 347.256µs allowed 44000 per 1m0s
+Ignored depends-on missing-db for app: no container has that name
+Skipped app: depends on itself
+Skipped app: circular dependency
 Unrecognized message with fields | alpha=one beta=2 
 Unrecognized message without fields

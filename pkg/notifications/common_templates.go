@@ -19,7 +19,10 @@ var commonTemplates = map[string]string{
 	// "Docker image usage exceeds configured warning threshold" (image-usage budget warning),
 	// "Failed to query Docker image disk usage" (image-usage query failed),
 	// "Docker image usage budget enabled" (startup budget configuration),
-	// "Registry rate limit retries exhausted. Container failed for this cycle" (update failed on a registry rate limit).
+	// "Registry rate limit retries exhausted. Container failed for this cycle" (update failed on a registry rate limit),
+	// "Ignoring depends-on entry that names no container" (depends-on label entry matched nothing),
+	// "Skipping container update (self-dependency)" (container depends on itself),
+	// "Skipping container update (circular dependency)" (container is in a dependency cycle).
 	// For unrecognized messages, displays the message with key=value data pairs if Data exists, otherwise just the message.
 	// Expects .Entries []Entry where each Entry has Message string and Data map[string]interface{}.
 	"default-legacy": `
@@ -108,6 +111,12 @@ var commonTemplates = map[string]string{
     Skipped {{with (index $e.Data "container")}}{{.}}{{else}}container{{end}}: invalid git-host
 {{- else if eq $msg "Registry rate limit retries exhausted. Container failed for this cycle" -}}
     Update failed for {{with (index $e.Data "container")}}{{.}}{{else}}container{{end}} ({{with (index $e.Data "image")}}{{.}}{{else}}unknown{{end}}){{with (index $e.Data "error")}}: {{.}}{{end}}
+{{- else if eq $msg "Ignoring depends-on entry that names no container" -}}
+    Ignored depends-on {{with (index $e.Data "depends_on")}}{{.}}{{else}}entry{{end}} for {{with (index $e.Data "container")}}{{.}}{{else}}container{{end}}: no container has that name
+{{- else if eq $msg "Skipping container update (self-dependency)" -}}
+    Skipped {{with (index $e.Data "container")}}{{.}}{{else}}container{{end}}: depends on itself
+{{- else if eq $msg "Skipping container update (circular dependency)" -}}
+    Skipped {{with (index $e.Data "container")}}{{.}}{{else}}container{{end}}: circular dependency
 {{- else if $e.Data -}}
     {{- /* For messages with data, show message and key=value pairs */ -}}
     {{$msg}} | {{range $k, $v := $e.Data}}{{$k}}={{$v}} {{end}}

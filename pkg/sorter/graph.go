@@ -25,6 +25,11 @@ import (
 // container exactly resolves to nothing, rather than to a different container
 // with a similar name.
 //
+// A service name shared by several Compose projects names the service of the
+// linking container's own project when it has one, and every monitored one of
+// them otherwise. When the service of its own project is unmonitored, the link
+// resolves to nothing.
+//
 // A graph reflects the labels and host config of its containers when it is
 // built. Build a new graph after they change.
 type DependencyGraph struct {
@@ -43,7 +48,7 @@ type DependencyGraph struct {
 }
 
 // UnresolvedLink is a Watchtower depends-on label entry that names no
-// container, or names a service that more than one container could be.
+// container.
 type UnresolvedLink struct {
 	// Container is the container whose label holds the entry.
 	Container types.Container
@@ -132,8 +137,11 @@ func newDependencyGraph(
 	resolver := &linkResolver{
 		matchIDSet:        matchIDSet,
 		aliasToCanonical:  aliasToCanonical,
+		projects:          memberProjects(containerMap),
+		services:          memberServices(containerMap),
 		watchtowers:       watchtowerExact,
 		unmonitored:       exactNames(unmonitored),
+		unmonitoredNames:  projectNames(unmonitored),
 		watchtowerAliases: watchtowerAliases(watchtowers, watchtowerExact),
 	}
 
@@ -148,7 +156,7 @@ func newDependencyGraph(
 		self, isMember := identifiers[c]
 
 		for _, normalizedLink := range c.Links(useComposeDependsOn) {
-			keys, watchtower, _ := resolver.resolve(normalizedLink)
+			keys, watchtower, _ := resolver.resolve(c, normalizedLink)
 			if watchtower != nil && watchtower != c {
 				graph.addDependent(watchtower, c)
 			}
@@ -230,8 +238,7 @@ func (g *DependencyGraph) Dependents(c types.Container) []types.Container {
 }
 
 // UnresolvedDependsOn returns the Watchtower depends-on label entries that name
-// no container, or a service that more than one container could be. They are
-// left out of the graph.
+// no container. They are left out of the graph.
 //
 // Returns:
 //   - []UnresolvedLink: The entries, in the order the containers were given.

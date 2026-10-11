@@ -382,7 +382,7 @@ func Update(
 			log.Warn().
 				Str("container", link.Container.Name()).
 				Str("depends_on", link.Link).
-				Msg("Ignoring depends-on entry that does not name exactly one container")
+				Msg("Ignoring depends-on entry that names no container")
 		}
 	}
 

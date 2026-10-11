@@ -72,6 +72,9 @@ var legacyTemplateMessages = []string{
 	"Starting HTTP API server",
 	"HTTP API server is enabled",
 	"Registry rate limit retries exhausted. Container failed for this cycle",
+	"Ignoring depends-on entry that names no container",
+	"Skipping container update (self-dependency)",
+	"Skipping container update (circular dependency)",
 }
 
 // Disk sizes used by the image-usage budget fixtures, in bytes.
@@ -195,6 +198,11 @@ func goldenEntryData(message string) map[string]any {
 			"image":     "org/app:latest",
 			"error":     "image pull: registry rate limited: retry-after 347.256µs allowed 44000 per 1m0s",
 		}
+	case "Ignoring depends-on entry that names no container":
+		return map[string]any{"container": "app", "depends_on": "missing-db"}
+	case "Skipping container update (self-dependency)",
+		"Skipping container update (circular dependency)":
+		return map[string]any{"container": "app", "id": "abcdef123456"}
 	case "Only checking containers in scope":
 		return map[string]any{"scope": "production"}
 	case "Starting HTTP API server", "HTTP API server is enabled":
