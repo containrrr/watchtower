@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Resolve a service name shared by compose projects to each of them by @nicholas-fedor in [#2744](https://github.com/nicholas-fedor/watchtower/pull/2744)
 - Retry token-bucket 429s with backoff from the first throttle by @nicholas-fedor in [#2733](https://github.com/nicholas-fedor/watchtower/pull/2733)
 - Apply the legacy gotify tls skip verify option by @nicholas-fedor in [#2731](https://github.com/nicholas-fedor/watchtower/pull/2731)
 - Keep legacy email encrypted when skipping tls verification by @nicholas-fedor in [#2728](https://github.com/nicholas-fedor/watchtower/pull/2728)
