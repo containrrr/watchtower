@@ -70,6 +70,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Chores
 
+- Update module github.com/prometheus/common to v0.72.1 by @renovate[bot] in [#2742](https://github.com/nicholas-fedor/watchtower/pull/2742)
+- Update golang.org/x/exp digest to faecfb2 by @renovate[bot] in [#2741](https://github.com/nicholas-fedor/watchtower/pull/2741)
 - Update module golang.org/x/tools to v0.52.0 by @renovate[bot] in [#2739](https://github.com/nicholas-fedor/watchtower/pull/2739)
 - Update module github.com/molecule-man/go-brrr to v1.3.0 by @renovate[bot] in [#2738](https://github.com/nicholas-fedor/watchtower/pull/2738)
 - Update dependency python to v3.15.0 by @renovate[bot] in [#2736](https://github.com/nicholas-fedor/watchtower/pull/2736)
