@@ -317,8 +317,9 @@ func readOrchestratorEnv() (string, string, string, string, bool, error) {
 //  8. When cleanup is enabled, remove the unused predecessor image.
 //
 // Stop before create releases published host ports. Rename keeps the stopped
-// predecessor available for recovery. On create/start/verify failure after
-// rename, the original name is restored and the old container is started again.
+// predecessor available for recovery. When the rename fails, the old container
+// is started again. On create/start/verify failure after rename, the original
+// name is restored and the old container is started again.
 //
 // Parameters:
 //   - ctx: Context for cancellation and timeouts.
@@ -376,6 +377,10 @@ func orchestrateSelfUpdate(log *zerolog.Logger, ctx context.Context,
 		// that prefix from an earlier attempt is still restored and restarted.
 		_, err = renameOldContainerForHandoff(ctx, client, clog, oldContainer, originalName)
 		if err != nil {
+			// The old container keeps its name, so starting it again leaves
+			// a Watchtower instance running.
+			restartOldContainer(ctx, client, clog, oldContainer)
+
 			return err
 		}
 	}
@@ -549,6 +554,32 @@ func restoreAndStartOldContainer(
 	clog.Info().
 		Str("original_name", originalName).
 		Msg("Restored and restarted old Watchtower container after handoff failure")
+}
+
+// restartOldContainer starts the predecessor again after a failed rename, so
+// a Watchtower instance remains running under its original name.
+//
+// Parameters:
+//   - ctx: Context for cancellation and timeouts.
+//   - client: Container client for Docker operations.
+//   - clog: Logger with container context fields.
+//   - oldContainer: Stopped predecessor to start.
+func restartOldContainer(
+	ctx context.Context,
+	client container.Client,
+	clog *zerolog.Logger,
+	oldContainer types.Container,
+) {
+	err := client.StartContainerByID(ctx, oldContainer.ID())
+	if err != nil {
+		clog.Error().
+			Err(err).
+			Msg("Failed to restart old Watchtower container after rename failure. Manual intervention required")
+
+		return
+	}
+
+	clog.Info().Msg("Restarted old Watchtower container after rename failure")
 }
 
 // cleanupFailedNewContainer best-effort removes a new container that failed

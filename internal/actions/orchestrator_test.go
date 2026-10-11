@@ -304,17 +304,36 @@ func TestOrchestrateSelfUpdate_Handoff(t *testing.T) {
 			wantCalls: []string{"GetContainer 01d", "StopContainer 01d", "GetContainer 01d"},
 		},
 		{
-			name: "rename failure leaves the old container stopped",
+			name: "rename failure restarts the old container",
 			setup: func(client *mockContainer.MockClient, old types.Container) {
 				expectOldInspect(client, old)
 				client.EXPECT().StopContainer(mock.Anything, old, orchestratorStopTimeout).Return(nil)
 				client.EXPECT().RenameContainer(mock.Anything, old, orchestratorRenamedName[1:]).Return(errOrchestratorTestDocker)
+				client.EXPECT().StartContainerByID(mock.Anything, types.ContainerID(orchestratorOldID)).Return(nil)
 			},
 			wantErr: errOrchestratorRenameFailed,
 			wantCalls: []string{
 				"GetContainer 01d",
 				"StopContainer 01d",
 				"RenameContainer 01d to watchtower-old-01d000000000",
+				"StartContainerByID 01d",
+			},
+		},
+		{
+			name: "rename failure still reports the rename when the restart fails",
+			setup: func(client *mockContainer.MockClient, old types.Container) {
+				expectOldInspect(client, old)
+				client.EXPECT().StopContainer(mock.Anything, old, orchestratorStopTimeout).Return(nil)
+				client.EXPECT().RenameContainer(mock.Anything, old, orchestratorRenamedName[1:]).Return(errOrchestratorTestDocker)
+				client.EXPECT().StartContainerByID(mock.Anything, types.ContainerID(orchestratorOldID)).
+					Return(errOrchestratorTestDocker)
+			},
+			wantErr: errOrchestratorRenameFailed,
+			wantCalls: []string{
+				"GetContainer 01d",
+				"StopContainer 01d",
+				"RenameContainer 01d to watchtower-old-01d000000000",
+				"StartContainerByID 01d",
 			},
 		},
 		{
