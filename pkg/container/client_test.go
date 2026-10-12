@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"testing/synctest"
 	"time"
@@ -21,6 +22,8 @@ import (
 	"github.com/onsi/gomega/ghttp"
 	"github.com/rs/zerolog"
 	"github.com/spf13/afero"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	dockerContainer "github.com/moby/moby/api/types/container"
 	dockerImage "github.com/moby/moby/api/types/image"
@@ -452,9 +455,14 @@ var _ = ginkgo.Describe("the client", func() {
 					)...,
 				)
 
+				// A Docker marker resolves the runtime without an API call.
+				fsys := afero.NewMemMapFs()
+				gomega.Expect(afero.WriteFile(fsys, "/.dockerenv", nil, 0o600)).To(gomega.Succeed())
+
 				client := &client{
 					api:               docker,
 					IncludeRestarting: true,
+					Fs:                fsys,
 				}
 				// Execute ListContainers and verify restarting containers are included.
 				containers, err := client.ListContainers(
@@ -725,7 +733,7 @@ var _ = ginkgo.Describe("the client", func() {
 						CPUCopyMode: CPUCopyModeAuto,
 						Fs:          memFs,
 					}
-					result := testClient.getRuntime()
+					result := testClient.getRuntime(context.Background())
 					gomega.Expect(result).To(gomega.BeTrue())
 				})
 
@@ -740,7 +748,7 @@ var _ = ginkgo.Describe("the client", func() {
 						CPUCopyMode: CPUCopyModeAuto,
 						Fs:          memFs,
 					}
-					result := testClient.getRuntime()
+					result := testClient.getRuntime(context.Background())
 					gomega.Expect(result).To(gomega.BeTrue())
 				})
 
@@ -761,7 +769,7 @@ var _ = ginkgo.Describe("the client", func() {
 						CPUCopyMode: CPUCopyModeAuto,
 						Fs:          memFs,
 					}
-					result := testClient.getRuntime()
+					result := testClient.getRuntime(context.Background())
 					gomega.Expect(result).To(gomega.BeTrue())
 				})
 
@@ -782,7 +790,7 @@ var _ = ginkgo.Describe("the client", func() {
 						CPUCopyMode: CPUCopyModeAuto,
 						Fs:          memFs,
 					}
-					result := testClient.getRuntime()
+					result := testClient.getRuntime(context.Background())
 					gomega.Expect(result).To(gomega.BeTrue())
 				})
 
@@ -803,12 +811,16 @@ var _ = ginkgo.Describe("the client", func() {
 						CPUCopyMode: CPUCopyModeAuto,
 						Fs:          memFs,
 					}
-					result := testClient.getRuntime()
+					result := testClient.getRuntime(context.Background())
 					gomega.Expect(result).To(gomega.BeFalse())
 				})
 
 				ginkgo.It("should fall back to Docker when detection fails", func() {
 					memFs := afero.NewMemMapFs()
+
+					// Podman sets the lowercase variable, so clear both forms.
+					restore := withEnvVars(map[string]string{"container": "", "CONTAINER": ""})
+					defer restore()
 
 					mockServer.AppendHandlers(
 						ghttp.CombineHandlers(
@@ -825,26 +837,10 @@ var _ = ginkgo.Describe("the client", func() {
 						CPUCopyMode: CPUCopyModeAuto,
 						Fs:          memFs,
 					}
-					result := testClient.getRuntime()
+					result := testClient.getRuntime(context.Background())
 					gomega.Expect(result).To(gomega.BeFalse())
 					gomega.Eventually(logbuf).
 						Should(gbytes.Say("Failed to detect container runtime, falling back to Docker"))
-				})
-			})
-
-			ginkgo.When("CPUCopyMode is not auto", func() {
-				ginkgo.It("should return false without calling detection", func() {
-					memFs := afero.NewMemMapFs()
-					testClient := &client{
-						log:         testLog(),
-						api:         docker,
-						CPUCopyMode: "manual",
-						Fs:          memFs,
-					}
-					result := testClient.getRuntime()
-					gomega.Expect(result).To(gomega.BeFalse())
-					// No API calls should have been made
-					gomega.Expect(mockServer.ReceivedRequests()).To(gomega.BeEmpty())
 				})
 			})
 		})
@@ -918,7 +914,7 @@ var _ = ginkgo.Describe("the client", func() {
 		})
 
 		ginkgo.It("should return false when CONTAINER is docker", func() {
-			restore := withEnvVars(map[string]string{"CONTAINER": "docker"})
+			restore := withEnvVars(map[string]string{"CONTAINER": "docker", "container": ""})
 			defer restore()
 
 			testClient := &client{log: testLog()}
@@ -927,7 +923,7 @@ var _ = ginkgo.Describe("the client", func() {
 		})
 
 		ginkgo.It("should return false when CONTAINER is other", func() {
-			restore := withEnvVars(map[string]string{"CONTAINER": "other"})
+			restore := withEnvVars(map[string]string{"CONTAINER": "other", "container": ""})
 			defer restore()
 
 			testClient := &client{log: testLog()}
@@ -936,6 +932,10 @@ var _ = ginkgo.Describe("the client", func() {
 		})
 
 		ginkgo.It("should return false when CONTAINER is not set", func() {
+			// Podman sets the lowercase variable, so clear it as well.
+			restoreLower := withEnvVars(map[string]string{"container": ""})
+			defer restoreLower()
+
 			// Save original state and ensure CONTAINER is not set
 			orig, exists := os.LookupEnv("CONTAINER")
 
@@ -953,7 +953,7 @@ var _ = ginkgo.Describe("the client", func() {
 		})
 
 		ginkgo.It("should return false when CONTAINER is empty", func() {
-			restore := withEnvVars(map[string]string{"CONTAINER": ""})
+			restore := withEnvVars(map[string]string{"CONTAINER": "", "container": ""})
 			defer restore()
 
 			testClient := &client{log: testLog()}
@@ -2533,3 +2533,133 @@ var _ = ginkgo.Describe("SetRestartPolicy", func() {
 		})
 	})
 })
+
+// TestListContainers_RestartingFilterFollowsRuntime verifies that with
+// restarting containers included, the list request asks for the restarting
+// status on Docker and leaves it out on Podman, which has no such status, in
+// every CPU copy mode.
+func TestListContainers_RestartingFilterFollowsRuntime(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name           string
+		marker         string
+		wantRestarting bool
+	}{
+		{name: "Docker", marker: "/.dockerenv", wantRestarting: true},
+		{name: "Podman", marker: "/run/.containerenv", wantRestarting: false},
+	}
+
+	for _, tt := range tests {
+		for _, mode := range []string{CPUCopyModeAuto, "full", "none"} {
+			t.Run(tt.name+"/"+mode, func(t *testing.T) {
+				t.Parallel()
+
+				var listFilters atomic.Value
+
+				server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					switch {
+					case r.URL.Path == pingPath:
+						w.Header().Set("Api-Version", "1.47")
+					case strings.HasSuffix(r.URL.Path, "/containers/json"):
+						listFilters.Store(r.URL.Query().Get("filters"))
+						w.Header().Set("Content-Type", "application/json")
+						_, _ = w.Write([]byte("[]"))
+					default:
+						w.WriteHeader(http.StatusNotFound)
+					}
+				}))
+				defer server.Close()
+
+				api, err := dockerClient.New(
+					dockerClient.WithHost("tcp://"+strings.TrimPrefix(server.URL, "http://")),
+					dockerClient.WithHTTPClient(server.Client()),
+				)
+				require.NoError(t, err)
+
+				fsys := afero.NewMemMapFs()
+				require.NoError(t, afero.WriteFile(fsys, tt.marker, nil, 0o600))
+
+				c := &client{
+					log:               testLog(),
+					api:               api,
+					CPUCopyMode:       mode,
+					IncludeRestarting: true,
+					Fs:                fsys,
+				}
+
+				_, err = c.ListContainers(t.Context(), filters.NoFilter)
+				require.NoError(t, err)
+
+				sent, ok := listFilters.Load().(string)
+				require.True(t, ok, "the list request was sent")
+				assert.Equal(t, tt.wantRestarting, strings.Contains(sent, "restarting"), "filters: %s", sent)
+			})
+		}
+	}
+}
+
+// TestGetRuntime_RetriesFailedDetection verifies that a failed detection is
+// not cached, so a later call detects the runtime, and that a successful
+// detection is cached. It sets environment variables, so it runs sequentially.
+func TestGetRuntime_RetriesFailedDetection(t *testing.T) {
+	t.Setenv("container", "")
+	t.Setenv("CONTAINER", "")
+
+	var infoCalls atomic.Int32
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == pingPath {
+			w.Header().Set("Api-Version", "1.47")
+			w.WriteHeader(http.StatusOK)
+
+			return
+		}
+
+		if strings.HasSuffix(r.URL.Path, "/info") {
+			if infoCalls.Add(1) == 1 {
+				w.WriteHeader(http.StatusInternalServerError)
+
+				return
+			}
+
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"Name":"podman"}`))
+
+			return
+		}
+
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer server.Close()
+
+	api, err := dockerClient.New(
+		dockerClient.WithHost("tcp://"+strings.TrimPrefix(server.URL, "http://")),
+		dockerClient.WithHTTPClient(server.Client()),
+	)
+	require.NoError(t, err)
+
+	c := &client{
+		log:         testLog(),
+		api:         api,
+		CPUCopyMode: CPUCopyModeAuto,
+		Fs:          afero.NewMemMapFs(),
+	}
+
+	assert.False(t, c.getRuntime(t.Context()), "a failed detection falls back to Docker")
+	assert.True(t, c.getRuntime(t.Context()), "the next call detects Podman")
+	assert.True(t, c.getRuntime(t.Context()), "the detection is cached")
+	assert.Equal(t, int32(2), infoCalls.Load())
+}
+
+// TestDetectRuntimeByEnv_PodmanVariable verifies that the lowercase container
+// variable, which Podman sets, identifies Podman. It sets environment
+// variables, so it runs sequentially.
+func TestDetectRuntimeByEnv_PodmanVariable(t *testing.T) {
+	t.Setenv("container", "podman")
+	t.Setenv("CONTAINER", "")
+
+	c := &client{log: testLog()}
+
+	assert.True(t, c.detectRuntimeByEnv())
+}

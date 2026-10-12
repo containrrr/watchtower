@@ -430,8 +430,10 @@ type client struct {
 	api dockerClient.APIClient
 	log *zerolog.Logger
 
-	// runtimeOnce ensures the container runtime is detected only once.
-	runtimeOnce sync.Once
+	// runtimeMu protects the cached runtime detection result.
+	runtimeMu sync.Mutex
+	// runtimeDetected is true once the container runtime was detected successfully.
+	runtimeDetected bool
 	// isPodman caches the result of Podman runtime detection.
 	isPodman bool
 
@@ -572,10 +574,9 @@ func negotiateDockerAPI(
 //   - []types.Container: List of matching containers.
 //   - error: Non-nil if listing fails, nil on success.
 func (c *client) ListContainers(ctx context.Context, filter ...types.Filter) ([]types.Container, error) {
-	// Determine if the container runtime is Podman to handle runtime-specific differences.
-	//
-	//nolint:contextcheck // getRuntime uses context.Background() internally for cached detection
-	isPodman := c.getRuntime()
+	// Podman has no restarting status, so the runtime only matters when
+	// restarting containers are included.
+	isPodman := c.IncludeRestarting && c.getRuntime(ctx)
 
 	var containerFilter types.Filter
 
@@ -821,10 +822,8 @@ func (c *client) CreateContainer(ctx context.Context, container types.Container)
 		Str("image", container.ImageName()).
 		Logger()
 	clog := &clogVal
-	// Determine if the container runtime is Podman to handle runtime-specific differences.
-	//
-	//nolint:contextcheck // getRuntime uses context.Background() internally for cached detection
-	isPodman := c.getRuntime()
+	// Only the auto CPU copy mode depends on the runtime.
+	isPodman := c.CPUCopyMode == CPUCopyModeAuto && c.getRuntime(ctx)
 
 	clientVersion := c.GetVersion()
 
@@ -1766,17 +1765,22 @@ func (c *client) detectRuntimeByMarker() (Runtime, error) {
 	}
 }
 
-// It checks if the CONTAINER environment variable is set to "podman" or "oci",
-// both of which indicate Podman is the container runtime.
+// It checks if the container environment variable, which Podman sets, or its
+// uppercase form is "podman" or "oci", both of which indicate Podman is the
+// container runtime.
 //
 // Returns:
-//   - bool: True if CONTAINER env var indicates Podman, false otherwise.
+//   - bool: True if the environment variable indicates Podman, false otherwise.
 func (c *client) detectRuntimeByEnv() bool {
-	container := os.Getenv("CONTAINER")
-	if container == "podman" || container == "oci" {
-		c.logger().Debug().Msg("Detected Podman via CONTAINER environment variable")
+	for _, key := range []string{"container", "CONTAINER"} {
+		value := os.Getenv(key)
+		if value == "podman" || value == "oci" {
+			c.logger().Debug().
+				Str("variable", key).
+				Msg("Detected Podman via container environment variable")
 
-		return true
+			return true
+		}
 	}
 
 	return false
@@ -1821,42 +1825,41 @@ func (c *client) detectRuntimeByAPI(ctx context.Context) (bool, error) {
 	return false, nil
 }
 
-// getRuntime determines if Podman detection is needed and performs it.
+// getRuntime reports whether the container runtime is Podman.
 //
-// The result is cached after the first detection to avoid repeated API calls
-// and filesystem checks on every ListContainers and StartContainer invocation.
-// The runtime is assumed to not change during the lifetime of the client.
+// Callers ask only when the answer changes their behavior: the container list
+// filter when restarting containers are included, and CPU handling in the auto
+// CPU copy mode. A successful detection is cached to avoid repeated API calls
+// and filesystem checks. The runtime is assumed to not change during the
+// lifetime of the client. A failed or canceled detection is not cached, so the
+// next call tries again.
+//
+// Parameters:
+//   - ctx: Context for the detection's API call.
 //
 // Returns:
 //   - bool: True if Podman is detected, false otherwise.
-func (c *client) getRuntime() bool {
-	// Only perform detection in auto mode. Otherwise, assume Docker
-	if c.CPUCopyMode != CPUCopyModeAuto {
+func (c *client) getRuntime(ctx context.Context) bool {
+	c.runtimeMu.Lock()
+	defer c.runtimeMu.Unlock()
+
+	if c.runtimeDetected {
+		return c.isPodman
+	}
+
+	isPodman, err := c.detectRuntime(ctx)
+	if err != nil {
+		c.logger().Debug().
+			Err(err).
+			Msg("Failed to detect container runtime, falling back to Docker")
+
 		return false
 	}
 
-	// Perform detection exactly once using sync.Once for thread safety.
-	// We use context.Background() for the detection to ensure the cached
-	// result doesn't depend on a potentially cancelled caller context.
-	c.runtimeOnce.Do(func() {
-		// Attempt to detect Podman using various methods
-		// (marker files, env vars, API info)
-		isPodman, err := c.detectRuntime(context.Background())
-		if err != nil {
-			// On detection failure, fall back to assuming Docker
-			c.logger().Debug().
-				Err(err).
-				Msg("Failed to detect container runtime, falling back to Docker")
+	c.isPodman = isPodman
+	c.runtimeDetected = true
 
-			c.isPodman = false
-
-			return
-		}
-
-		c.isPodman = isPodman
-	})
-
-	return c.isPodman
+	return isPodman
 }
 
 // captureExecOutput attaches to an exec instance and captures its output.
