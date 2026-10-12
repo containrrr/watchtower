@@ -73,6 +73,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Chores
 
+- Update module github.com/klauspost/compress to v1.20.3 by @renovate[bot] in [#2754](https://github.com/nicholas-fedor/watchtower/pull/2754)
+- Update module github.com/gofiber/fiber/v3 to v3.6.0 by @renovate[bot] in [#2755](https://github.com/nicholas-fedor/watchtower/pull/2755)
 - Update module github.com/vektra/mockery/v3 to v3.8.1 by @renovate[bot] in [#2750](https://github.com/nicholas-fedor/watchtower/pull/2750)
 - Update ossf/scorecard-action action to v2.5.0 by @renovate[bot] in [#2748](https://github.com/nicholas-fedor/watchtower/pull/2748)
 - Update module github.com/prometheus/common to v0.72.1 by @renovate[bot] in [#2742](https://github.com/nicholas-fedor/watchtower/pull/2742)
