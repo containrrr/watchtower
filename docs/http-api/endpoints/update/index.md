@@ -119,14 +119,13 @@ The same concurrency behavior applies to async requests: full updates return 429
 
 #### Status Codes for Async Requests
 
-| Status Code | Description                                                                               |
-|:-----------:|:------------------------------------------------------------------------------------------|
-|     202     | Update triggered successfully and running asynchronously                                  |
-|     401     | Invalid or missing authentication token                                                   |
-|     408     | Update handler timed out (exceeded configured limit, default 10m)                         |
-|     429     | Another update is already in progress (full updates only) or the request was rate limited |
-|     500     | Internal server error during request processing                                           |
-|     503     | Client cancelled while waiting on update lock (targeted updates only)                     |
+| Status Code | Description                                                                                                                                 |
+|:-----------:|:--------------------------------------------------------------------------------------------------------------------------------------------|
+|     202     | Update triggered successfully and running asynchronously                                                                                    |
+|     401     | Invalid or missing authentication token                                                                                                     |
+|     429     | Another update is already in progress (full updates only) or the request was rate limited                                                   |
+|     500     | Internal server error during request processing                                                                                             |
+|     503     | Update handler timed out (exceeded configured limit, default 10m), or client cancelled while waiting on update lock (targeted updates only) |
 
 The following example shows what happens when a full update is requested while another update is already running:
 
@@ -194,15 +193,14 @@ The `/v1/update` endpoint returns a JSON response containing the results of the 
 
 The `/v1/update` endpoint returns the following HTTP status codes:
 
-| Status Code | Description                                                                               |
-|:-----------:|:------------------------------------------------------------------------------------------|
-|     200     | Update completed successfully                                                             |
-|     202     | Update triggered successfully and running asynchronously (with `?async=true`)             |
-|     401     | Invalid or missing authentication token                                                   |
-|     408     | Update handler timed out (exceeded configured limit, default 10m)                         |
-|     429     | Another update is already in progress (full updates only) or the request was rate limited |
-|     500     | Internal server error during request processing                                           |
-|     503     | Client cancelled while waiting on update lock (targeted updates only)                     |
+| Status Code | Description                                                                                                                                 |
+|:-----------:|:--------------------------------------------------------------------------------------------------------------------------------------------|
+|     200     | Update completed successfully                                                                                                               |
+|     202     | Update triggered successfully and running asynchronously (with `?async=true`)                                                               |
+|     401     | Invalid or missing authentication token                                                                                                     |
+|     429     | Another update is already in progress (full updates only) or the request was rate limited                                                   |
+|     500     | Internal server error during request processing                                                                                             |
+|     503     | Update handler timed out (exceeded configured limit, default 10m), or client cancelled while waiting on update lock (targeted updates only) |
 
 ## Error Response Format
 
@@ -269,7 +267,7 @@ Watchtower enforces two independent mechanisms that can each return HTTP 429 (To
 
 - The `/v1/update` handler has a timeout enforced by Fiber's timeout middleware. The default is 10 minutes.
 - The timeout covers the full lifecycle: waiting for the concurrency lock, performing the container update scan, and returning results.
-- When the timeout is exceeded, the handler returns HTTP 408 (Request Timeout) and the handler goroutine is abandoned.
+- When the timeout is exceeded, the handler returns HTTP 503 (Service Unavailable) and the handler goroutine is abandoned.
 - The handler listens on `c.Context().Done()` for cooperative cancellation — targeted updates waiting for the lock will return HTTP 503 when the request context is cancelled.
 - You can override the timeout per request with the `?timeout=` query parameter, up to the configured maximum.
 
