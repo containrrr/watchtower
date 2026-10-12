@@ -2656,8 +2656,11 @@ func TestGetRuntime_RetriesFailedDetection(t *testing.T) {
 // variable, which Podman sets, identifies Podman. It sets environment
 // variables, so it runs sequentially.
 func TestDetectRuntimeByEnv_PodmanVariable(t *testing.T) {
+	// A nonmatching uppercase value keeps an inherited CONTAINER from passing
+	// the test. It is set first because Windows treats both names as one
+	// variable, so the lowercase value replaces it there.
+	t.Setenv("CONTAINER", "docker")
 	t.Setenv("container", "podman")
-	t.Setenv("CONTAINER", "")
 
 	c := &client{log: testLog()}
 
