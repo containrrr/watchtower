@@ -38,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Documentation
 
+- Report timed-out api requests as service unavailable by @nicholas-fedor in [#2757](https://github.com/nicholas-fedor/watchtower/pull/2757)
 - Add rooty0 as a contributor for code, and test by @allcontributors[bot] in [#2554](https://github.com/nicholas-fedor/watchtower/pull/2554)
 
 ### Tests
