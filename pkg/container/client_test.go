@@ -1006,6 +1006,12 @@ var _ = ginkgo.Describe("the client", func() {
 						"OperatingSystem": "linux",
 					}),
 				),
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", gomega.MatchRegexp("^/v[0-9.]+/version$")),
+					ghttp.RespondWithJSONEncoded(http.StatusOK, map[string]any{
+						"Components": []map[string]any{{"Name": "Engine", "Version": "20.10.0"}},
+					}),
+				),
 			)
 
 			testClient := &client{log: testLog(), api: docker}
@@ -1032,6 +1038,10 @@ var _ = ginkgo.Describe("the client", func() {
 			mockServer.AppendHandlers(
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("GET", gomega.MatchRegexp("^/v[0-9.]+/info$")),
+					ghttp.RespondWithJSONEncoded(http.StatusOK, map[string]any{}),
+				),
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", gomega.MatchRegexp("^/v[0-9.]+/version$")),
 					ghttp.RespondWithJSONEncoded(http.StatusOK, map[string]any{}),
 				),
 			)
@@ -2665,4 +2675,108 @@ func TestDetectRuntimeByEnv_PodmanVariable(t *testing.T) {
 	c := &client{log: testLog()}
 
 	assert.True(t, c.detectRuntimeByEnv())
+}
+
+// runtimeTestDaemon returns a client for a fake daemon that answers /info and
+// /version with the given JSON bodies. An empty body answers with HTTP 500.
+func runtimeTestDaemon(t *testing.T, info, version string) *client {
+	t.Helper()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body string
+
+		switch {
+		case r.URL.Path == pingPath:
+			w.Header().Set("Api-Version", "1.47")
+
+			return
+		case strings.HasSuffix(r.URL.Path, "/info"):
+			body = info
+		case strings.HasSuffix(r.URL.Path, "/version"):
+			body = version
+		default:
+			w.WriteHeader(http.StatusNotFound)
+
+			return
+		}
+
+		if body == "" {
+			w.WriteHeader(http.StatusInternalServerError)
+
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(body))
+	}))
+	t.Cleanup(server.Close)
+
+	api, err := dockerClient.New(
+		dockerClient.WithHost("tcp://"+strings.TrimPrefix(server.URL, "http://")),
+		dockerClient.WithHTTPClient(server.Client()),
+	)
+	require.NoError(t, err)
+
+	return &client{log: testLog(), api: api}
+}
+
+// TestDetectRuntimeByAPI verifies which daemon responses identify Podman,
+// including Podman versions that only name themselves in the version
+// components.
+func TestDetectRuntimeByAPI(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		info    string
+		version string
+		want    bool
+		wantErr bool
+	}{
+		{
+			name: "Podman named in the info",
+			info: `{"Name":"podman","ServerVersion":"4.0.0"}`,
+			want: true,
+		},
+		{
+			name: "Podman named in the info server version",
+			info: `{"Name":"host-1","ServerVersion":"podman/4.0.0"}`,
+			want: true,
+		},
+		{
+			name:    "Podman named only in the version components",
+			info:    `{"Name":"host-1","ServerVersion":"6.1.3"}`,
+			version: `{"Version":"6.1.3","Components":[{"Name":"Podman Engine","Version":"6.1.3"}]}`,
+			want:    true,
+		},
+		{
+			name:    "Docker",
+			info:    `{"Name":"host-1","ServerVersion":"28.0.0"}`,
+			version: `{"Version":"28.0.0","Components":[{"Name":"Engine","Version":"28.0.0"}]}`,
+			want:    false,
+		},
+		{
+			name:    "version request fails",
+			info:    `{"Name":"host-1","ServerVersion":"6.1.3"}`,
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			c := runtimeTestDaemon(t, tt.info, tt.version)
+
+			got, err := c.detectRuntimeByAPI(t.Context())
+			if tt.wantErr {
+				require.Error(t, err)
+
+				return
+			}
+
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, got)
+		})
+	}
 }

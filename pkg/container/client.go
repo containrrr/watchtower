@@ -1789,7 +1789,9 @@ func (c *client) detectRuntimeByEnv() bool {
 // detectRuntimeByAPI uses the Docker API to detect if the runtime is Podman.
 //
 // It queries the system info endpoint and checks the Name and ServerVersion
-// fields for Podman indicators.
+// fields for Podman indicators. Current Podman versions report the host name
+// and a bare version there, so it then checks the version endpoint's
+// components, where Podman names itself "Podman Engine".
 //
 // Parameters:
 //   - ctx: Context for cancellation and timeout control.
@@ -1818,6 +1820,27 @@ func (c *client) detectRuntimeByAPI(ctx context.Context) (bool, error) {
 		c.logger().Debug().Msg("Detected Podman via API ServerVersion field")
 
 		return true, nil
+	}
+
+	// The components are informational and not part of the API contract, so
+	// they are checked only after the info fields.
+	version, err := c.api.ServerVersion(ctx, dockerClient.ServerVersionOptions{})
+	if err != nil {
+		c.logger().Debug().
+			Err(err).
+			Msg("Failed to get server version for Podman detection")
+
+		return false, fmt.Errorf("failed to get server version: %w", err)
+	}
+
+	for _, component := range version.Components {
+		if strings.Contains(strings.ToLower(component.Name), "podman") {
+			c.logger().Debug().
+				Str("component", component.Name).
+				Msg("Detected Podman via API version components")
+
+			return true, nil
+		}
 	}
 
 	c.logger().Debug().Msg("No Podman detection criteria met, assuming Docker")
