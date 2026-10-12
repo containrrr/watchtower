@@ -43,6 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- Set only the lowercase podman variable in the env test by @nicholas-fedor in [#2759](https://github.com/nicholas-fedor/watchtower/pull/2759)
 - Add golden tests for notification batching by @nicholas-fedor in [#2618](https://github.com/nicholas-fedor/watchtower/pull/2618)
 - Characterize preRun by @nicholas-fedor in [#2605](https://github.com/nicholas-fedor/watchtower/pull/2605)
 - Characterize run and runMain by @nicholas-fedor in [#2601](https://github.com/nicholas-fedor/watchtower/pull/2601)
