@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Detect podman from the version components by @nicholas-fedor in [#2764](https://github.com/nicholas-fedor/watchtower/pull/2764)
 - Detect podman wherever the runtime changes behavior by @nicholas-fedor in [#2752](https://github.com/nicholas-fedor/watchtower/pull/2752)
 - Restart the old watchtower container after a failed ephemeral rename by @nicholas-fedor in [#2746](https://github.com/nicholas-fedor/watchtower/pull/2746)
 - Resolve a service name shared by compose projects to each of them by @nicholas-fedor in [#2744](https://github.com/nicholas-fedor/watchtower/pull/2744)
