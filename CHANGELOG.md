@@ -75,6 +75,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Chores
 
+- Update goreleaser/goreleaser-action action to v7.3.0 by @renovate[bot] in [#2762](https://github.com/nicholas-fedor/watchtower/pull/2762)
+- Update github.com/google/pprof digest to 4ba64fc by @renovate[bot] in [#2761](https://github.com/nicholas-fedor/watchtower/pull/2761)
 - Update module github.com/klauspost/compress to v1.20.3 by @renovate[bot] in [#2754](https://github.com/nicholas-fedor/watchtower/pull/2754)
 - Update module github.com/gofiber/fiber/v3 to v3.6.0 by @renovate[bot] in [#2755](https://github.com/nicholas-fedor/watchtower/pull/2755)
 - Update module github.com/vektra/mockery/v3 to v3.8.1 by @renovate[bot] in [#2750](https://github.com/nicholas-fedor/watchtower/pull/2750)
