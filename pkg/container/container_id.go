@@ -132,9 +132,10 @@ func GetCurrentContainerID(log *zerolog.Logger, ctx context.Context, client Clie
 		Msg("Hostname matching failed")
 	errs = append(errs, err)
 
-	// All methods failed - return the last error with context
+	// All methods failed - return the last error with context. A binary on
+	// the host has no container ID, so callers decide whether this matters.
 	lastErr := errs[len(errs)-1]
-	log.Error().
+	log.Debug().
 		Err(lastErr).
 		Msg("All container ID detection methods failed")
 
