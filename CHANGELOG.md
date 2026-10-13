@@ -77,6 +77,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Chores
 
+- Update google.golang.org/genproto/googleapis/rpc digest to 4341edf by @renovate[bot] in [#2771](https://github.com/nicholas-fedor/watchtower/pull/2771)
+- Update nicholas-fedor/govulncheck-action action to v1.1.1 by @renovate[bot] in [#2772](https://github.com/nicholas-fedor/watchtower/pull/2772)
 - Update google.golang.org/genproto/googleapis/api digest to 4341edf by @renovate[bot] in [#2769](https://github.com/nicholas-fedor/watchtower/pull/2769)
 - Update github.com/google/pprof digest to 2af12c3 by @renovate[bot] in [#2768](https://github.com/nicholas-fedor/watchtower/pull/2768)
 - Update goreleaser/goreleaser-action action to v7.3.0 by @renovate[bot] in [#2762](https://github.com/nicholas-fedor/watchtower/pull/2762)
