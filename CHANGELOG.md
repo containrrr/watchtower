@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Cap retry-after seconds too long for a duration by @nicholas-fedor in [#2792](https://github.com/nicholas-fedor/watchtower/pull/2792)
 - Remove the environment file when writing it fails by @nicholas-fedor in [#2790](https://github.com/nicholas-fedor/watchtower/pull/2790)
 - Log the ephemeral stop after the orchestrator starts by @nicholas-fedor in [#2788](https://github.com/nicholas-fedor/watchtower/pull/2788)
 - Warn once per dependency problem by @nicholas-fedor in [#2786](https://github.com/nicholas-fedor/watchtower/pull/2786)
