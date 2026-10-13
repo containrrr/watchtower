@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Warn once per dependency problem by @nicholas-fedor in [#2786](https://github.com/nicholas-fedor/watchtower/pull/2786)
 - Keep environment notification settings with porcelain by @nicholas-fedor in [#2782](https://github.com/nicholas-fedor/watchtower/pull/2782)
 - Detect podman container ids from mountinfo by @nicholas-fedor in [#2780](https://github.com/nicholas-fedor/watchtower/pull/2780)
 - Mount the docker host socket for ephemeral updates by @nicholas-fedor in [#2776](https://github.com/nicholas-fedor/watchtower/pull/2776)
