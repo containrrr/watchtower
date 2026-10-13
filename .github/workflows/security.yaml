@@ -65,7 +65,7 @@ jobs:
 
       - name: Run govulncheck
         id: govulncheck
-        uses: nicholas-fedor/govulncheck-action@50174c98d9b5c00eb05ab498e09f91991df69e7d # v1.1.0
+        uses: nicholas-fedor/govulncheck-action@2f804d4e8d7eff0545eb4f372cad4f1be5d67321 # v1.1.1
         with:
           output-format: sarif
           output-file: ${{ env.OUTPUT_FILE }}
@@ -91,7 +91,7 @@ jobs:
 
       - name: Run govulncheck
         id: govulncheck
-        uses: nicholas-fedor/govulncheck-action@50174c98d9b5c00eb05ab498e09f91991df69e7d # v1.1.0
+        uses: nicholas-fedor/govulncheck-action@2f804d4e8d7eff0545eb4f372cad4f1be5d67321 # v1.1.1
         with:
           output-format: sarif
           output-file: ${{ env.OUTPUT_FILE }}
