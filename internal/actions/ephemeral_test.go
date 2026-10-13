@@ -1,16 +1,26 @@
 package actions_test
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
+	"errors"
+	"strings"
+	"testing"
 	"time"
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
+	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 
 	dockerContainer "github.com/moby/moby/api/types/container"
 
 	"github.com/nicholas-fedor/watchtower/internal/actions"
 	mockActions "github.com/nicholas-fedor/watchtower/internal/actions/mocks"
+	mockContainer "github.com/nicholas-fedor/watchtower/pkg/container/mocks"
 	"github.com/nicholas-fedor/watchtower/pkg/types"
 )
 
@@ -228,3 +238,68 @@ var _ = ginkgo.Describe("EphemeralSelfUpdate", func() {
 		})
 	})
 })
+
+// TestEphemeralSelfUpdate_StoppingContainerLog verifies that the "Stopping
+// container" entry, which notifications include, is logged only once the
+// orchestrator that stops the container has started.
+func TestEphemeralSelfUpdate_StoppingContainerLog(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		// createErr fails the orchestrator creation when set.
+		createErr error
+		// wantLevels are the levels of the logged "Stopping container" records.
+		wantLevels []string
+	}{
+		{name: "orchestrator started", wantLevels: []string{"info"}},
+		{name: "orchestrator failed", createErr: errors.New("create failed"), wantLevels: nil},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			source := createDefaultMockContainer("source-ephemeral", map[string]string{
+				"com.centurylinklabs.watchtower": "true",
+			})
+
+			client := mockContainer.NewMockClient(t)
+			client.EXPECT().
+				CreateEphemeralOrchestrator(mock.Anything, source, mock.Anything, mock.Anything, mock.Anything).
+				Return(types.ContainerID("orchestrator"), tt.createErr).Once()
+
+			var out bytes.Buffer
+
+			log := zerolog.New(&out).Level(zerolog.DebugLevel)
+
+			_, _, err := actions.EphemeralSelfUpdate(&log, t.Context(), client, source, types.UpdateParams{})
+			if tt.createErr != nil {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+
+			var levels []string
+
+			for line := range strings.Lines(out.String()) {
+				var record map[string]any
+
+				require.NoError(t, json.Unmarshal([]byte(line), &record))
+
+				if record["message"] == actions.StoppingContainerMessage {
+					assert.Equal(t, "watchtower", record["container"])
+					assert.Equal(t, source.ID().ShortID(), record["id"])
+					assert.Equal(t, source.ImageID().ShortID(), record["old_image_id"])
+
+					level, ok := record["level"].(string)
+					require.True(t, ok)
+
+					levels = append(levels, level)
+				}
+			}
+
+			assert.Equal(t, tt.wantLevels, levels)
+		})
+	}
+}

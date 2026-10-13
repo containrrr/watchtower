@@ -125,15 +125,6 @@ func EphemeralSelfUpdate(log *zerolog.Logger, ctx context.Context,
 
 	clog.Debug().Msg("Creating ephemeral orchestrator for self-update")
 
-	// Log "Stopping container" for notification template compatibility.
-	// The orchestrator will handle the actual stop/start/remove operations,
-	// but we emit these Info entries so notifications match the normal update flow.
-	log.Info().
-		Str("container", sourceContainer.Name()).
-		Str("id", sourceContainer.ID().ShortID()).
-		Str("old_image_id", sourceContainer.ImageID().ShortID()).
-		Msg("Stopping container")
-
 	// Create the ephemeral orchestrator container.
 	//nolint:contextcheck // detached context is intentional for orchestrator lifecycle
 	orchestratorID, err := client.CreateEphemeralOrchestrator(
@@ -151,7 +142,15 @@ func EphemeralSelfUpdate(log *zerolog.Logger, ctx context.Context,
 		return "", false, fmt.Errorf("%w: %w", errEphemeralOrchestratorFailed, err)
 	}
 
-	// Create and start the new container.
+	// The orchestrator is running and stops this container next. Log the same
+	// Info entries as the normal update flow, so notifications match it. They
+	// come after the orchestrator starts, so a failed handoff does not report
+	// a stop that never happens.
+	log.Info().
+		Str("container", sourceContainer.Name()).
+		Str("id", sourceContainer.ID().ShortID()).
+		Str("old_image_id", sourceContainer.ImageID().ShortID()).
+		Msg("Stopping container")
 	log.Info().Msg("Starting new Watchtower container")
 
 	// Log that the orchestrator has been started. The orchestrator ID identifies
