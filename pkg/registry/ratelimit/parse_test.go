@@ -2,6 +2,7 @@ package ratelimit
 
 import (
 	"io"
+	"math"
 	"net/http"
 	"strings"
 	"testing"
@@ -62,6 +63,44 @@ func TestParseRetryAfterHeader(t *testing.T) {
 			header: "  3  ",
 			want:   3 * time.Second,
 			wantOK: true,
+		},
+		{
+			name:   "largest seconds that fit a duration",
+			header: "9223372036",
+			want:   9223372036 * time.Second,
+			wantOK: true,
+		},
+		{
+			name:   "seconds that overflow a duration are capped",
+			header: "9223372037",
+			want:   time.Duration(math.MaxInt64),
+			wantOK: true,
+		},
+		{
+			name:   "seconds beyond int64 are capped",
+			header: "99999999999999999999",
+			want:   time.Duration(math.MaxInt64),
+			wantOK: true,
+		},
+		{
+			name:   "negative seconds beyond int64 are not a wait",
+			header: "-99999999999999999999",
+			wantOK: false,
+		},
+		{
+			name:   "seconds beyond int64 with a suffix are not a wait",
+			header: "99999999999999999999abc",
+			wantOK: false,
+		},
+		{
+			name:   "seconds beyond int64 with a trailing sign are not a wait",
+			header: "99999999999999999999+1",
+			wantOK: false,
+		},
+		{
+			name:   "seconds beyond int64 with inner whitespace are not a wait",
+			header: "99999999999999999999 1",
+			wantOK: false,
 		},
 	}
 
@@ -221,6 +260,30 @@ func TestFromResponse(t *testing.T) {
 	assert.Equal(t, 2*time.Second, got.RetryAfter)
 	assert.Equal(t, 44000, got.Allowed)
 	assert.Equal(t, time.Minute, got.AllowedWindow)
+}
+
+// TestFromResponseHugeRetryAfterExceedsHonorWindow verifies that a Retry-After
+// too long for a duration stops retries instead of wrapping to a short wait.
+func TestFromResponseHugeRetryAfterExceedsHonorWindow(t *testing.T) {
+	t.Parallel()
+
+	for _, header := range []string{"9223372037", "99999999999999999999"} {
+		t.Run(header, func(t *testing.T) {
+			t.Parallel()
+
+			got := FromResponse(&http.Response{
+				StatusCode: http.StatusTooManyRequests,
+				Header:     http.Header{"Retry-After": []string{header}},
+				Body:       http.NoBody,
+			}, nil)
+			require.NotNil(t, got)
+			assert.True(t, ExceedsHonorWindow(got))
+
+			wait, giveUp := Decision(got)
+			assert.True(t, giveUp)
+			assert.Equal(t, time.Duration(0), wait)
+		})
+	}
 }
 
 func TestFromErrorMessage(t *testing.T) {

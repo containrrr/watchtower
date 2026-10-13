@@ -1,13 +1,18 @@
 package ratelimit
 
 import (
+	"errors"
 	"io"
+	"math"
 	"net/http"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
 )
+
+// maxRetryAfterSeconds is the longest Retry-After delta, in seconds, that fits in a [time.Duration].
+const maxRetryAfterSeconds = int64(math.MaxInt64 / time.Second)
 
 var (
 	retryAfterBody = regexp.MustCompile(`(?i)retry-after:\s*((?:[0-9]+(?:\.[0-9]+)?(?:ns|us|µs|μs|ms|s|m|h))+)\b`)
@@ -22,6 +27,7 @@ var (
 //
 // It accepts a delta-seconds integer or an HTTP-date.
 // Dates in the past and a value of 0 are treated as absent.
+// A delta too long for a [time.Duration] is capped at the longest duration.
 //
 // Parameters:
 //   - header: Raw Retry-After header value.
@@ -35,10 +41,27 @@ func ParseRetryAfterHeader(header string) (time.Duration, bool) {
 		return 0, false
 	}
 
+	// A value beyond the int64 range fails with ErrRange and returns the nearest
+	// int64, which the checks below handle like any other value. ParseInt reports
+	// ErrRange before it reads the rest of the value, so the value must also be
+	// all digits after one optional sign.
 	seconds, parseErr := strconv.ParseInt(header, 10, 64)
-	if parseErr == nil {
+
+	digits := header
+	if digits[0] == '+' || digits[0] == '-' {
+		digits = digits[1:]
+	}
+
+	overflowed := errors.Is(parseErr, strconv.ErrRange) && strings.Trim(digits, "0123456789") == ""
+
+	if parseErr == nil || overflowed {
 		if seconds <= 0 {
 			return 0, false
+		}
+
+		// Cap a wait too long for a duration so the conversion cannot overflow.
+		if seconds > maxRetryAfterSeconds {
+			return time.Duration(math.MaxInt64), true
 		}
 
 		return time.Duration(seconds) * time.Second, true
