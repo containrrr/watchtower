@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"slices"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 
@@ -117,6 +118,73 @@ func TestGetSecretFromFile_FileErrors(t *testing.T) {
 			}
 		})
 	}
+}
+
+// isFileOpen reports whether the test process holds a descriptor for path.
+func isFileOpen(t *testing.T, path string) bool {
+	t.Helper()
+
+	entries, err := os.ReadDir("/proc/self/fd")
+	require.NoError(t, err)
+
+	for _, entry := range entries {
+		target, linkErr := os.Readlink(filepath.Join("/proc/self/fd", entry.Name()))
+		if linkErr == nil && target == path {
+			return true
+		}
+	}
+
+	return false
+}
+
+// TestGetSecretFromFile_ClosesEachListFile verifies that each file of a list
+// secret is closed before the next one is opened. The second file is a FIFO,
+// so the read waits for the test to write to it, and the test checks the
+// open descriptors while it waits.
+func TestGetSecretFromFile_ClosesEachListFile(t *testing.T) {
+	if runtime.GOOS != "linux" {
+		t.Skip("reads open descriptors from /proc/self/fd")
+	}
+
+	mkfifo, err := exec.LookPath("mkfifo")
+	if err != nil {
+		t.Skip("needs mkfifo")
+	}
+
+	first := writeSecretFile(t, "logger://\n")
+	fifo := filepath.Join(t.TempDir(), "fifo")
+	require.NoError(t, exec.CommandContext(t.Context(), mkfifo, fifo).Run())
+
+	flags := newSecretsCommand(t, "--notification-url", first, "--notification-url", fifo).PersistentFlags()
+
+	done := make(chan error, 1)
+
+	go func() {
+		done <- getSecretFromFile(testLogger(), flags, "notification-url")
+	}()
+
+	// A non-blocking open for writing succeeds only once the FIFO is opened
+	// for reading, which happens after the first file has been read.
+	var writer *os.File
+
+	require.Eventually(t, func() bool {
+		var openErr error
+
+		writer, openErr = os.OpenFile(fifo, os.O_WRONLY|syscall.O_NONBLOCK, 0)
+
+		return openErr == nil
+	}, 10*time.Second, 10*time.Millisecond, "the FIFO is opened for reading")
+
+	assert.False(t, isFileOpen(t, first), "the first file is closed before the next one is opened")
+
+	_, err = writer.WriteString("mock://\n")
+	require.NoError(t, err)
+	require.NoError(t, writer.Close())
+	require.NoError(t, <-done)
+
+	values, err := flags.GetStringArray("notification-url")
+	require.NoError(t, err)
+	assert.Equal(t, []string{"logger://", "mock://"}, values)
 }
 
 // TestGetSecretFromFile_NotificationURLRules verifies how each line of a

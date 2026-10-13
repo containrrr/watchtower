@@ -292,61 +292,12 @@ func getSecretFromFile(log *zerolog.Logger, flags *pflag.FlagSet, secret string)
 
 		for _, value := range oldValues {
 			if value != "" && isFilePath(value) {
-				file, err := os.Open(value)
+				lines, err := readSecretFileLines(log, secret, value)
 				if err != nil {
-					log.Debug().
-						Err(err).
-						Str("flag", secret).
-						Str("file", value).
-						Msg("Failed to open secret file")
-
-					return fmt.Errorf("%w: %w", errOpenFileFailed, err)
+					return err
 				}
 
-				defer func() { _ = file.Close() }()
-
-				scanner := bufio.NewScanner(file)
-				for scanner.Scan() {
-					line := strings.TrimSpace(scanner.Text())
-					if line == "" || strings.HasPrefix(line, "#") {
-						continue
-					}
-
-					if secret == "notification-url" {
-						if !strings.Contains(line, "://") {
-							return errInvalidSecretURL
-						}
-
-						parsedURL, err := url.Parse(line)
-						if err != nil || parsedURL.Scheme == "" {
-							return errInvalidSecretURL
-						}
-
-						if parsedURL.Opaque == "" && parsedURL.Host == "" && parsedURL.Path == "" {
-							if parsedURL.Scheme != "logger" && parsedURL.Scheme != "mock" {
-								return errInvalidSecretURL
-							}
-						}
-					}
-
-					values = append(values, line)
-				}
-
-				err = scanner.Err()
-				if err != nil {
-					log.Debug().
-						Err(err).
-						Str("flag", secret).
-						Str("file", value).
-						Msg("Failed to read secret file")
-
-					return fmt.Errorf("%w: %w", errReadFileFailed, err)
-				}
-
-				log.Debug().
-					Str("flag", secret).
-					Str("file", value).
-					Msg("Read secret from file into slice")
+				values = append(values, lines...)
 			} else {
 				values = append(values, value)
 			}
@@ -400,6 +351,81 @@ func getSecretFromFile(log *zerolog.Logger, flags *pflag.FlagSet, secret string)
 	}
 
 	return nil
+}
+
+// readSecretFileLines reads the values of a list secret from a file.
+//
+// Blank lines and lines starting with "#" are skipped. The file is closed
+// before returning, so a list secret holds at most one file open at a time.
+//
+// Parameters:
+//   - log: Logger for secret-loading diagnostics.
+//   - secret: Flag name. Lines of the notification-url secret must be valid notification URLs.
+//   - path: Path of the secret file.
+//
+// Returns:
+//   - []string: Values read from the file.
+//   - error: Non-nil if the file cannot be opened or read, or holds an invalid notification URL.
+func readSecretFileLines(log *zerolog.Logger, secret, path string) ([]string, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		log.Debug().
+			Err(err).
+			Str("flag", secret).
+			Str("file", path).
+			Msg("Failed to open secret file")
+
+		return nil, fmt.Errorf("%w: %w", errOpenFileFailed, err)
+	}
+
+	defer func() { _ = file.Close() }()
+
+	var lines []string
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+
+		if secret == "notification-url" {
+			if !strings.Contains(line, "://") {
+				return nil, errInvalidSecretURL
+			}
+
+			parsedURL, err := url.Parse(line)
+			if err != nil || parsedURL.Scheme == "" {
+				return nil, errInvalidSecretURL
+			}
+
+			if parsedURL.Opaque == "" && parsedURL.Host == "" && parsedURL.Path == "" {
+				if parsedURL.Scheme != "logger" && parsedURL.Scheme != "mock" {
+					return nil, errInvalidSecretURL
+				}
+			}
+		}
+
+		lines = append(lines, line)
+	}
+
+	err = scanner.Err()
+	if err != nil {
+		log.Debug().
+			Err(err).
+			Str("flag", secret).
+			Str("file", path).
+			Msg("Failed to read secret file")
+
+		return nil, fmt.Errorf("%w: %w", errReadFileFailed, err)
+	}
+
+	log.Debug().
+		Str("flag", secret).
+		Str("file", path).
+		Msg("Read secret from file into slice")
+
+	return lines, nil
 }
 
 // isFilePath checks if a string is likely a file path.
