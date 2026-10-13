@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Mount the docker host socket for ephemeral updates by @nicholas-fedor in [#2776](https://github.com/nicholas-fedor/watchtower/pull/2776)
 - Log failed container id detection at debug level by @nicholas-fedor in [#2766](https://github.com/nicholas-fedor/watchtower/pull/2766)
 - Detect podman from the version components by @nicholas-fedor in [#2764](https://github.com/nicholas-fedor/watchtower/pull/2764)
 - Detect podman wherever the runtime changes behavior by @nicholas-fedor in [#2752](https://github.com/nicholas-fedor/watchtower/pull/2752)
