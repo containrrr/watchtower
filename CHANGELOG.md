@@ -78,6 +78,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Chores
 
+- Update module github.com/nicholas-fedor/shoutrrr to v0.22.0 by @renovate[bot] in [#2778](https://github.com/nicholas-fedor/watchtower/pull/2778)
 - Update module github.com/stretchr/objx to v0.7.0 by @renovate[bot] in [#2774](https://github.com/nicholas-fedor/watchtower/pull/2774)
 - Update google.golang.org/genproto/googleapis/rpc digest to 4341edf by @renovate[bot] in [#2771](https://github.com/nicholas-fedor/watchtower/pull/2771)
 - Update nicholas-fedor/govulncheck-action action to v1.1.1 by @renovate[bot] in [#2772](https://github.com/nicholas-fedor/watchtower/pull/2772)
