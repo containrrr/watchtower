@@ -10,7 +10,7 @@ The ephemeral self-update mechanism is an alternative to the default rename-base
 
 1. Watchtower detects a new version of its own image is available and pulls it.
 2. A short-lived orchestrator container is created from the new Watchtower image with the `--self-update-orchestrator` internal flag.
-3. The orchestrator mounts the Docker socket and performs the following sequence:
+3. The orchestrator reaches the Docker daemon the same way Watchtower does. It receives Watchtower's Docker connection settings and mounts the socket that `DOCKER_HOST` names, such as a socket proxy, or Watchtower's Docker socket when `DOCKER_HOST` is not set. It then performs the following sequence:
     - Stops the old Watchtower container.
     - Creates a new container from the new image with the same configuration.
     - Starts the new Watchtower container.

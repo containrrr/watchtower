@@ -6,11 +6,13 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"testing"
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
 	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/assert"
 
 	dockerContainer "github.com/moby/moby/api/types/container"
 	dockerClient "github.com/moby/moby/client"
@@ -196,7 +198,7 @@ var _ = ginkgo.Describe("Ephemeral Orchestrator", func() {
 						"DOCKER_HOST=unix:///custom/docker.sock",
 					}),
 					WithBinds([]string{
-						"/custom/docker.sock:/var/run/docker.sock",
+						"/var/run/docker.sock:/custom/docker.sock",
 					}),
 				)
 
@@ -205,7 +207,7 @@ var _ = ginkgo.Describe("Ephemeral Orchestrator", func() {
 				gomega.Expect(config.IsLocal).To(gomega.BeTrue())
 				gomega.Expect(config.Host).To(gomega.Equal("unix:///custom/docker.sock"))
 				gomega.Expect(config.SocketBind).To(gomega.Equal(
-					"/custom/docker.sock:/var/run/docker.sock",
+					"/var/run/docker.sock:/custom/docker.sock",
 				))
 			})
 		})
@@ -985,3 +987,121 @@ var _ = ginkgo.Describe("Ephemeral Orchestrator", func() {
 		})
 	})
 })
+
+// TestExtractDockerConnectionConfig_DockerHostSocket verifies that the
+// orchestrator mounts the socket the source container's DOCKER_HOST names, so
+// the forwarded DOCKER_HOST reaches the daemon, and that a remote DOCKER_HOST
+// mounts no socket whatever the case of its scheme.
+func TestExtractDockerConnectionConfig_DockerHostSocket(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		host      string
+		binds     []string
+		wantLocal bool
+		wantBind  string
+	}{
+		{
+			name:      "socket proxy mounted at the DOCKER_HOST path",
+			host:      "unix:///run/proxy/proxy.sock",
+			binds:     []string{"/srv/proxy/proxy.sock:/run/proxy/proxy.sock", "/var/run/docker.sock:/var/run/docker.sock"},
+			wantLocal: true,
+			wantBind:  "/srv/proxy/proxy.sock:/run/proxy/proxy.sock",
+		},
+		{
+			name:      "Docker socket mounted at a custom DOCKER_HOST path",
+			host:      "unix:///var/run/host-docker.sock",
+			binds:     []string{"/var/run/docker.sock:/var/run/host-docker.sock:ro"},
+			wantLocal: true,
+			wantBind:  "/var/run/docker.sock:/var/run/host-docker.sock:ro",
+		},
+		{
+			name:      "DOCKER_HOST socket without a mount keeps its own path",
+			host:      "unix:///run/custom.sock",
+			binds:     []string{"/data:/data"},
+			wantLocal: true,
+			wantBind:  "/run/custom.sock:/run/custom.sock",
+		},
+		{
+			name:      "DOCKER_HOST path that another mount only names on the host side",
+			host:      "unix:///custom/docker.sock",
+			binds:     []string{"/custom/docker.sock:/var/run/docker.sock"},
+			wantLocal: true,
+			wantBind:  "/custom/docker.sock:/custom/docker.sock",
+		},
+		{
+			name:      "socket mounted through its directory",
+			host:      "unix:///run/proxy/proxy.sock",
+			binds:     []string{"/srv/proxy:/run/proxy"},
+			wantLocal: true,
+			wantBind:  "/srv/proxy:/run/proxy",
+		},
+		{
+			name:      "socket mounted through a named volume",
+			host:      "unix:///run/proxy/proxy.sock",
+			binds:     []string{"proxyvol:/run/proxy:ro"},
+			wantLocal: true,
+			wantBind:  "proxyvol:/run/proxy:ro",
+		},
+		{
+			name:      "the most specific mount wins",
+			host:      "unix:///run/proxy/proxy.sock",
+			binds:     []string{"/srv:/run", "/srv/proxy/proxy.sock:/run/proxy/proxy.sock", "/srv/proxy:/run/proxy"},
+			wantLocal: true,
+			wantBind:  "/srv/proxy/proxy.sock:/run/proxy/proxy.sock",
+		},
+		{
+			name:      "a sibling path with the same prefix is not a parent",
+			host:      "unix:///run/proxy/proxy.sock",
+			binds:     []string{"/srv/prox:/run/prox"},
+			wantLocal: true,
+			wantBind:  "/run/proxy/proxy.sock:/run/proxy/proxy.sock",
+		},
+		{
+			name:      "uppercase unix scheme",
+			host:      "UNIX:///run/custom.sock",
+			wantLocal: true,
+			wantBind:  "/run/custom.sock:/run/custom.sock",
+		},
+		{
+			name:      "redundant path elements in DOCKER_HOST",
+			host:      "unix:///run//proxy/./proxy.sock",
+			binds:     []string{"/srv/proxy:/run/proxy"},
+			wantLocal: true,
+			wantBind:  "/srv/proxy:/run/proxy",
+		},
+		{
+			name:      "mixed-case npipe scheme",
+			host:      "NPipe:////./pipe/docker_engine",
+			binds:     []string{"//./pipe/docker_engine://./pipe/docker_engine"},
+			wantLocal: true,
+			wantBind:  "//./pipe/docker_engine://./pipe/docker_engine",
+		},
+		{
+			name:      "uppercase tcp scheme is remote",
+			host:      "TCP://docker.example.com:2375",
+			binds:     []string{"/var/run/docker.sock:/var/run/docker.sock"},
+			wantLocal: false,
+			wantBind:  "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			source := MockContainer(
+				WithID("source"),
+				WithName("watchtower"),
+				WithEnv([]string{"DOCKER_HOST=" + tt.host}),
+				WithBinds(tt.binds),
+			)
+
+			config := extractDockerConnectionConfig(source, nopLogger())
+
+			assert.Equal(t, tt.wantLocal, config.IsLocal)
+			assert.Equal(t, tt.wantBind, config.SocketBind)
+		})
+	}
+}

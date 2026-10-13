@@ -3,6 +3,7 @@ package container
 import (
 	"context"
 	"fmt"
+	"path"
 	"runtime"
 	"slices"
 	"strings"
@@ -373,6 +374,48 @@ func resolveDockerSocketBind(sourceHostConfig *dockerContainer.HostConfig) strin
 	return defaultUnixSocketPath + ":" + defaultUnixSocketPath
 }
 
+// socketBindForPath returns the source container's bind mount that provides
+// socketPath in the container, either the socket itself or a directory that
+// holds it, keeping the mount unchanged. When several mounts provide it, the
+// most specific one wins. Without such a mount, it binds socketPath to itself.
+//
+// Parameters:
+//   - sourceHostConfig: The source container's host configuration containing bind mounts.
+//   - socketPath: The socket path the source container's DOCKER_HOST names.
+//
+// Returns:
+//   - string: The socket bind mount string.
+func socketBindForPath(sourceHostConfig *dockerContainer.HostConfig, socketPath string) string {
+	best, bestLen := "", -1
+
+	// Compare cleaned paths so redundant separators and dot elements do not
+	// hide a match. Container paths use Linux semantics, hence path, not filepath.
+	cleanSocket := path.Clean(socketPath)
+
+	if sourceHostConfig != nil {
+		for _, bind := range sourceHostConfig.Binds {
+			_, containerPath, ok := parseBindMount(bind)
+			if !ok {
+				continue
+			}
+
+			containerPath = path.Clean(containerPath)
+
+			provides := containerPath == cleanSocket ||
+				strings.HasPrefix(cleanSocket, strings.TrimSuffix(containerPath, "/")+"/")
+			if provides && len(containerPath) > bestLen {
+				best, bestLen = bind, len(containerPath)
+			}
+		}
+	}
+
+	if best != "" {
+		return best
+	}
+
+	return socketPath + ":" + socketPath
+}
+
 // isDockerSocketBind checks if a bind mount string references the Docker socket.
 // It matches common patterns for both Unix sockets and Windows named pipes.
 //
@@ -425,8 +468,9 @@ func isWindows() bool {
 //   - Parses DOCKER_HOST, DOCKER_TLS_VERIFY, DOCKER_CERT_PATH, and DOCKER_API_VERSION
 //     from the source container's environment
 //   - Detects whether the connection is local (socket/pipe) or remote (TCP/TLS/SSH)
-//   - For local connections: derives the socket bind mount from the source container's
-//     host config or falls back to the platform-appropriate default
+//   - For local connections: mounts the socket DOCKER_HOST names, keeping the source
+//     container's host path when it mounts that socket. Without a socket in DOCKER_HOST,
+//     it uses the source container's socket mount or the platform-appropriate default
 //   - For remote connections: prepares environment variables for passthrough
 //   - For TLS connections: prepares certificate directory bind mounts if needed
 //
@@ -470,36 +514,27 @@ func extractDockerConnectionConfig(sourceContainer types.Container, log *zerolog
 		}
 	}
 
+	var sourceHostConfig *dockerContainer.HostConfig
+	if containerInfo != nil {
+		sourceHostConfig = containerInfo.HostConfig
+	}
+
 	// Determine connection type based on DOCKER_HOST.
 	if config.Host != "" {
 		config.IsLocal = isLocalDockerHost(log, config.Host)
-
-		if config.IsLocal {
-			// Local connection: extract socket path from DOCKER_HOST.
-			socketPath := extractSocketPath(config.Host)
-			if socketPath != "" {
-				config.SocketBind = socketPath + ":" + socketPath
-			}
-		} else {
-			// Remote connection: clear socket bind as no local mount is needed.
-			config.SocketBind = ""
-		}
 	}
 
-	// For local connections, try to find the socket bind in the source container's mounts.
-	// This handles cases where the socket is mounted at a different path inside the container.
-	if config.IsLocal {
-		var sourceHostConfig *dockerContainer.HostConfig
-
-		containerInfo := sourceContainer.ContainerInfo()
-		if containerInfo != nil {
-			sourceHostConfig = containerInfo.HostConfig
-		}
-
-		socketBind := resolveDockerSocketBind(sourceHostConfig)
-		if socketBind != "" {
-			config.SocketBind = socketBind
-		}
+	switch socketPath := extractSocketPath(config.Host); {
+	case !config.IsLocal:
+		// Remote connection: no local mount is needed.
+		config.SocketBind = ""
+	case socketPath != "":
+		// DOCKER_HOST names the socket, so the orchestrator mounts that
+		// socket where the forwarded DOCKER_HOST expects it.
+		config.SocketBind = socketBindForPath(sourceHostConfig, socketPath)
+	default:
+		// Without a socket path, find the source container's socket mount.
+		config.SocketBind = resolveDockerSocketBind(sourceHostConfig)
 	}
 
 	// Prepare TLS certificate bind mounts for remote TLS connections.
@@ -578,17 +613,20 @@ func defaultSocketBind() string {
 // Returns:
 //   - bool: True if the connection is local, false if remote.
 func isLocalDockerHost(log *zerolog.Logger, host string) bool {
+	// URL schemes are case-insensitive.
+	lowerHost := strings.ToLower(host)
+
 	// Check for remote connection schemes.
 	for _, scheme := range remoteDockerSchemes {
-		if strings.HasPrefix(host, scheme) {
+		if strings.HasPrefix(lowerHost, scheme) {
 			return false
 		}
 	}
 
 	// Unix sockets and Windows named pipes are local.
 	// Also handle scheme-less paths that start with / (Unix) or // (Windows pipe).
-	if strings.HasPrefix(host, "unix://") ||
-		strings.HasPrefix(host, "npipe://") ||
+	if strings.HasPrefix(lowerHost, "unix://") ||
+		strings.HasPrefix(lowerHost, "npipe://") ||
 		strings.HasPrefix(host, "/") ||
 		strings.HasPrefix(host, "//") {
 		return true
@@ -611,14 +649,12 @@ func isLocalDockerHost(log *zerolog.Logger, host string) bool {
 // Returns:
 //   - string: The socket file path, or empty string if extraction fails.
 func extractSocketPath(host string) string {
-	// Handle unix:// scheme.
-	if after, ok := strings.CutPrefix(host, "unix://"); ok {
-		return after
-	}
-
-	// Handle npipe:// scheme (Windows named pipes).
-	if after, ok := strings.CutPrefix(host, "npipe://"); ok {
-		return after
+	// Handle the unix:// and npipe:// (Windows named pipe) schemes, whose
+	// names are case-insensitive. The path keeps its case.
+	for _, scheme := range []string{"unix://", "npipe://"} {
+		if strings.HasPrefix(strings.ToLower(host), scheme) {
+			return host[len(scheme):]
+		}
 	}
 
 	// Handle scheme-less paths.
@@ -684,7 +720,7 @@ func prepareTLSCertBinds(
 	for _, bind := range sourceHostConfig.Binds {
 		// Parse the bind mount string, stripping mount options (e.g., :ro, :rw)
 		// from the container path to ensure correct path comparisons.
-		hostPath, containerPath, _, ok := parseBindMount(bind)
+		hostPath, containerPath, ok := parseBindMount(bind)
 		if !ok {
 			continue
 		}
@@ -721,9 +757,8 @@ func prepareTLSCertBinds(
 // Returns:
 //   - string: The host-side path.
 //   - string: The container-side path (without mount options).
-//   - string: Mount options (e.g., "ro", "rw"), empty if none.
 //   - bool: True if parsing succeeded.
-func parseBindMount(bind string) (string, string, string, bool) {
+func parseBindMount(bind string) (string, string, bool) {
 	// Detect Windows drive-letter pattern (e.g., "C:" where len >= 2 and second rune is ':').
 	// In that case, locate the separator colon after the drive-letter (index > 1).
 	// Otherwise, use the first ':' as the separator.
@@ -741,7 +776,7 @@ func parseBindMount(bind string) (string, string, string, bool) {
 	}
 
 	if sepIdx == -1 {
-		return "", "", "", false
+		return "", "", false
 	}
 
 	hostPath := bind[:sepIdx]
@@ -749,26 +784,19 @@ func parseBindMount(bind string) (string, string, string, bool) {
 
 	// Both parts must be non-empty.
 	if hostPath == "" || containerAndOpts == "" {
-		return "", "", "", false
+		return "", "", false
 	}
 
 	// Strip mount options (e.g., :ro, :rw) from the container path.
 	// Format is "host:container[:options]" where options come after a third colon.
-	containerPath := containerAndOpts
-	options := ""
-
-	before, after, ok := strings.Cut(containerAndOpts, ":")
-	if ok {
-		containerPath = before
-		options = after
-	}
+	containerPath, _, _ := strings.Cut(containerAndOpts, ":")
 
 	// Container path must be non-empty after stripping options.
 	if containerPath == "" {
-		return "", "", "", false
+		return "", "", false
 	}
 
-	return hostPath, containerPath, options, true
+	return hostPath, containerPath, true
 }
 
 // containsBind checks if a bind mount string is already present in the slice.
