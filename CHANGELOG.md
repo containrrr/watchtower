@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Remove the environment file when writing it fails by @nicholas-fedor in [#2790](https://github.com/nicholas-fedor/watchtower/pull/2790)
 - Log the ephemeral stop after the orchestrator starts by @nicholas-fedor in [#2788](https://github.com/nicholas-fedor/watchtower/pull/2788)
 - Warn once per dependency problem by @nicholas-fedor in [#2786](https://github.com/nicholas-fedor/watchtower/pull/2786)
 - Keep environment notification settings with porcelain by @nicholas-fedor in [#2782](https://github.com/nicholas-fedor/watchtower/pull/2782)
