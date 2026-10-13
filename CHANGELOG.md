@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Stop listing when an image inspect is canceled by @nicholas-fedor in [#2796](https://github.com/nicholas-fedor/watchtower/pull/2796)
 - Close each secret file after reading it by @nicholas-fedor in [#2794](https://github.com/nicholas-fedor/watchtower/pull/2794)
 - Cap retry-after seconds too long for a duration by @nicholas-fedor in [#2792](https://github.com/nicholas-fedor/watchtower/pull/2792)
 - Remove the environment file when writing it fails by @nicholas-fedor in [#2790](https://github.com/nicholas-fedor/watchtower/pull/2790)
