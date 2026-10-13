@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Chores
 
+- Update module github.com/containerd/containerd/v2 to v2.4.2 by @renovate[bot] in [#2801](https://github.com/nicholas-fedor/watchtower/pull/2801)
 - Update golang.org/x/exp digest to 2ab7f3c by @renovate[bot] in [#2798](https://github.com/nicholas-fedor/watchtower/pull/2798)
 
 ## [1.23.1] - 2026-10-13
