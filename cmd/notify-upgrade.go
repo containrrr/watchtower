@@ -117,23 +117,6 @@ func runNotifyUpgradeE(cmd *cobra.Command, _ []string, log *zerolog.Logger) (*ze
 		Str("notifiers", strings.Join(cfg.Notify.LegacyTypes, ", ")).
 		Msg("Found notification config(s)")
 
-	// Create a temporary file in the working directory with a pattern that ensures uniqueness (e.g., "watchtower-notif-urls-123").
-	// This file will store the generated URLs for user retrieval.
-	outFile, err := os.CreateTemp(".", "watchtower-notif-urls-*")
-	if err != nil {
-		// Log the failure with the specific error and return a wrapped error to halt execution, as file creation is critical.
-		log.Debug().Err(err).Msg("Temporary file creation failed")
-
-		return log, fmt.Errorf("%w: %w", errCreateTempFile, err)
-	}
-	// Close the file if writing it fails. Once written, it is closed explicitly before the wait.
-	defer outFile.Close()
-
-	// Log the file path where URLs will be written, providing the user with a concrete reference for later instructions.
-	log.Info().
-		Str("file", outFile.Name()).
-		Msg("Writing notification URLs")
-
 	// Construct the environment variable string in the format "WATCHTOWER_NOTIFICATION_URL=url1 url2 ...", where multiple URLs
 	// are space-separated as required by shoutrrr. This uses a strings.Builder for efficient string concatenation.
 	urlBuilder := strings.Builder{}
@@ -147,38 +130,10 @@ func runNotifyUpgradeE(cmd *cobra.Command, _ []string, log *zerolog.Logger) (*ze
 		urlBuilder.WriteString(u)
 	}
 
-	// Write the constructed string to the temporary file. This is a critical step, as the file's purpose is to store this data.
-	_, err = fmt.Fprintln(outFile, urlBuilder.String())
+	// Write the file to the working directory, where the instructions below tell the user to copy it from.
+	fileName, err := writeNotificationEnvFile(log, ".", urlBuilder.String(), (*os.File).Sync)
 	if err != nil {
-		log.Debug().
-			Err(err).
-			Str("file", outFile.Name()).
-			Msg("Failed to write to temporary file")
-
-		return log, fmt.Errorf("%w: %w", errWriteTempFile, err)
-	}
-
-	// Sync the file to disk to ensure the written data is persisted, preventing loss due to buffering or system crashes.
-	err = outFile.Sync()
-	if err != nil {
-		log.Debug().
-			Err(err).
-			Str("file", outFile.Name()).
-			Msg("Failed to sync temporary file")
-
-		return log, fmt.Errorf("%w: %w", errSyncTempFile, err)
-	}
-
-	// Close the file before waiting so it can be removed afterwards. Windows does
-	// not allow removing a file that is still open.
-	err = outFile.Close()
-	if err != nil {
-		log.Debug().
-			Err(err).
-			Str("file", outFile.Name()).
-			Msg("Failed to close temporary file")
-
-		return log, fmt.Errorf("%w: %w", errCloseTempFile, err)
+		return log, err
 	}
 
 	// Attempt to retrieve the running container's ID to provide precise instructions for copying the file from the container.
@@ -202,7 +157,7 @@ func runNotifyUpgradeE(cmd *cobra.Command, _ []string, log *zerolog.Logger) (*ze
 		Msg(fmt.Sprintf(
 			"To get the environment file, use: docker cp %s:%s ./watchtower-notifications.env",
 			containerID,
-			outFile.Name(),
+			fileName,
 		))
 
 	// Warn the user that the file is temporary and will be cleaned up, reinforcing the urgency to act within the timeout.
@@ -232,19 +187,85 @@ func runNotifyUpgradeE(cmd *cobra.Command, _ []string, log *zerolog.Logger) (*ze
 
 	// Attempt to remove the temporary file. If this fails (e.g., due to permissions or file system issues), log a warning
 	// rather than an error, as the command has completed its primary task, and leftover files are a minor concern.
-	err = os.Remove(outFile.Name())
+	err = os.Remove(fileName)
 	if err != nil {
 		log.Warn().
 			Err(err).
-			Str("file", outFile.Name()).
+			Str("file", fileName).
 			Msg("Failed to remove temporary file")
 	} else {
 		log.Info().
-			Str("file", outFile.Name()).
+			Str("file", fileName).
 			Msg("Environment file removed")
 	}
 
 	// Return nil to indicate successful completion, even if non-critical operations (e.g., file removal) failed,
 	// as the core task of generating and writing URLs has been accomplished.
 	return log, nil
+}
+
+// writeNotificationEnvFile writes the environment line to a new temporary file in dir.
+//
+// The file holds credential-bearing notification URLs, so a file that cannot be written, synced, and closed is
+// removed before the error is returned.
+//
+// Parameters:
+//   - log: Logger for the file path and failures.
+//   - dir: Directory in which to create the file.
+//   - line: Environment line to write, without the trailing newline.
+//   - syncFile: Flushes the file to disk. Production passes (*os.File).Sync.
+//
+// Returns:
+//   - string: Path of the written and closed file.
+//   - error: errCreateTempFile, errWriteTempFile, errSyncTempFile, or errCloseTempFile wrapping the cause.
+func writeNotificationEnvFile(
+	log *zerolog.Logger,
+	dir, line string,
+	syncFile func(*os.File) error,
+) (string, error) {
+	outFile, err := os.CreateTemp(dir, "watchtower-notif-urls-*")
+	if err != nil {
+		log.Debug().Err(err).Msg("Temporary file creation failed")
+
+		return "", fmt.Errorf("%w: %w", errCreateTempFile, err)
+	}
+
+	log.Info().
+		Str("file", outFile.Name()).
+		Msg("Writing notification URLs")
+
+	_, err = fmt.Fprintln(outFile, line)
+	if err != nil {
+		err = fmt.Errorf("%w: %w", errWriteTempFile, err)
+	} else {
+		err = syncFile(outFile)
+		if err != nil {
+			err = fmt.Errorf("%w: %w", errSyncTempFile, err)
+		}
+	}
+
+	// Close the file even after a failure, because Windows does not allow removing an open file.
+	closeErr := outFile.Close()
+	if err == nil && closeErr != nil {
+		err = fmt.Errorf("%w: %w", errCloseTempFile, closeErr)
+	}
+
+	if err == nil {
+		return outFile.Name(), nil
+	}
+
+	log.Debug().
+		Err(err).
+		Str("file", outFile.Name()).
+		Msg("Failed to write temporary file")
+
+	removeErr := os.Remove(outFile.Name())
+	if removeErr != nil {
+		log.Warn().
+			Err(removeErr).
+			Str("file", outFile.Name()).
+			Msg("Failed to remove temporary file")
+	}
+
+	return "", err
 }
