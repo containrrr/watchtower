@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Chores
+
+- Update golang.org/x/exp digest to 2ab7f3c by @renovate[bot] in [#2798](https://github.com/nicholas-fedor/watchtower/pull/2798)
+
+## [1.23.1] - 2026-10-13
+
 ### Fixed
 
 - Stop listing when an image inspect is canceled by @nicholas-fedor in [#2796](https://github.com/nicholas-fedor/watchtower/pull/2796)
@@ -3912,7 +3918,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Compare Releases
 
-- [unreleased](https://github.com/nicholas-fedor/watchtower/compare/v1.23.0...HEAD)
+- [unreleased](https://github.com/nicholas-fedor/watchtower/compare/v1.23.1...HEAD)
+- [1.23.1](https://github.com/nicholas-fedor/watchtower/compare/v1.23.0...v1.23.1)
 - [1.23.0](https://github.com/nicholas-fedor/watchtower/compare/v1.22.3...v1.23.0)
 - [1.22.3](https://github.com/nicholas-fedor/watchtower/compare/v1.22.2...v1.22.3)
 - [1.22.2](https://github.com/nicholas-fedor/watchtower/compare/v1.22.1...v1.22.2)
