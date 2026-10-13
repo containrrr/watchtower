@@ -2,6 +2,7 @@ package container
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"maps"
 	"net/netip"
@@ -186,8 +187,8 @@ func GetSourceContainer(log *zerolog.Logger,
 //   - imageCache: Optional per-list cache of ImageInspect results keyed by image ID.
 //
 // Returns:
-//   - types.Container: Container object if successful.
-//   - error: Non-nil if inspection fails, nil on success.
+//   - types.Container: Container object if successful. It has no image info when only the image inspect fails.
+//   - error: Non-nil if the container inspect fails or the image inspect is canceled or times out.
 func getSourceContainer(log *zerolog.Logger,
 	ctx context.Context,
 	api dockerClient.APIClient,
@@ -256,6 +257,12 @@ func getSourceContainer(log *zerolog.Logger,
 
 	imageInfo, err := resolveImageInspect(ctx, api, containerInfo.Image, imageCache)
 	if err != nil {
+		// A canceled or timed-out inspect ends the listing. Other failures, such
+		// as a removed image, leave the container without image info.
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			return nil, err
+		}
+
 		clog.Debug().
 			Err(err).
 			Str("container", util.NormalizeContainerName(containerInfo.Name)).
