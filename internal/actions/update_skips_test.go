@@ -1,12 +1,19 @@
 package actions
 
 import (
+	"bytes"
 	"context"
+	"crypto/rand"
+	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -245,4 +252,139 @@ func TestUpdate_SkipSelfUpdateLeavesDependentWatchtowerRunning(t *testing.T) {
 
 	assert.Equal(t, []string{app.Name()}, reportNames(report.Updated()))
 	assert.Empty(t, report.Failed())
+}
+
+// messageLevels returns the level of each log record with the given message.
+func messageLevels(t *testing.T, logs, message string) []string {
+	t.Helper()
+
+	var levels []string
+
+	for line := range strings.Lines(logs) {
+		var record map[string]any
+
+		require.NoError(t, json.Unmarshal([]byte(line), &record))
+
+		if record["message"] == message {
+			level, ok := record["level"].(string)
+			require.True(t, ok)
+
+			levels = append(levels, level)
+		}
+	}
+
+	return levels
+}
+
+// repeatLevel returns n copies of a log level name.
+func repeatLevel(level string, n int) []string {
+	levels := make([]string, n)
+	for i := range levels {
+		levels[i] = level
+	}
+
+	return levels
+}
+
+// randomContainerID returns a new 64-character container ID. Problems are
+// recorded per process, so each run of a test needs containers not seen before.
+func randomContainerID(t *testing.T) string {
+	t.Helper()
+
+	id := make([]byte, 32)
+	_, err := rand.Read(id)
+	require.NoError(t, err)
+
+	return hex.EncodeToString(id)
+}
+
+// TestUpdate_DependencyProblemsWarnOnce verifies that a dependency problem is
+// logged as a warning, which notifications include, only on the first scan
+// that finds it, and at debug level on later scans.
+func TestUpdate_DependencyProblemsWarnOnce(t *testing.T) {
+	t.Parallel()
+
+	const dependsOn = "com.centurylinklabs.watchtower.depends-on"
+
+	tests := []struct {
+		name       string
+		containers []types.Container
+		message    string
+	}{
+		{
+			name: "self-dependency",
+			containers: []types.Container{
+				skipTestContainer(randomContainerID(t), "self",
+					map[string]string{dependsOn: "self"}),
+			},
+			message: "Skipping container update (self-dependency)",
+		},
+		{
+			name: "depends-on entry that names no container",
+			containers: []types.Container{
+				skipTestContainer(randomContainerID(t), "orphan",
+					map[string]string{dependsOn: "missing"}),
+			},
+			message: "Ignoring depends-on entry that names no container",
+		},
+		{
+			name: "circular dependency",
+			containers: []types.Container{
+				skipTestContainer(randomContainerID(t), "cycle-a",
+					map[string]string{dependsOn: "cycle-b"}),
+				skipTestContainer(randomContainerID(t), "cycle-b",
+					map[string]string{dependsOn: "cycle-a"}),
+			},
+			message: "Skipping container update (circular dependency)",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			client := mockContainer.NewMockClient(t)
+			client.EXPECT().ListContainers(mock.Anything, mock.Anything).Return(tt.containers, nil)
+			client.EXPECT().IsContainerStale(mock.Anything, mock.Anything, mock.Anything).
+				Return(false, types.ImageID(""), "", nil).Maybe()
+
+			scanLevels := make([][]string, 0, 2)
+
+			for range 2 {
+				var out bytes.Buffer
+
+				log := zerolog.New(&out).Level(zerolog.DebugLevel)
+
+				_, _, err := Update(&log, t.Context(), client, types.UpdateParams{})
+				require.NoError(t, err)
+
+				scanLevels = append(scanLevels, messageLevels(t, out.String(), tt.message))
+			}
+
+			require.NotEmpty(t, scanLevels[0])
+			assert.Equal(t, repeatLevel("warn", len(scanLevels[0])), scanLevels[0], "the first scan warns")
+			assert.Equal(t, repeatLevel("debug", len(scanLevels[0])), scanLevels[1], "the second scan logs at debug")
+		})
+	}
+}
+
+// TestReportedProblems_StartsOverWhenFull verifies that the record of reported
+// problems stays bounded. Once it is full, a new problem clears it, so earlier
+// problems are reported again.
+func TestReportedProblems_StartsOverWhenFull(t *testing.T) {
+	t.Parallel()
+
+	problems := &reportedProblems{seen: make(map[string]struct{})}
+
+	assert.Equal(t, zerolog.WarnLevel, problems.level("problem", "first"))
+	assert.Equal(t, zerolog.DebugLevel, problems.level("problem", "first"))
+
+	for i := 1; i < maxReportedProblems; i++ {
+		problems.level("problem", strconv.Itoa(i))
+	}
+
+	require.Len(t, problems.seen, maxReportedProblems)
+	assert.Equal(t, zerolog.WarnLevel, problems.level("problem", "overflow"))
+	assert.Len(t, problems.seen, 1)
+	assert.Equal(t, zerolog.WarnLevel, problems.level("problem", "first"), "the record started over")
 }

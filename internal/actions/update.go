@@ -29,6 +29,15 @@ import (
 	"github.com/nicholas-fedor/watchtower/pkg/types"
 )
 
+// reportedProblems records the dependency problems already reported as
+// warnings, so a problem that persists across scans notifies only once.
+type reportedProblems struct {
+	// mu guards seen.
+	mu sync.Mutex
+	// seen holds a key for each reported problem.
+	seen map[string]struct{}
+}
+
 const (
 	// defaultPullFailureDelay defines the default delay after a failed Watchtower self-update pull in run-once mode.
 	defaultPullFailureDelay = 5 * time.Minute
@@ -44,7 +53,16 @@ const (
 	// and start operations during restart. It guards against slow hosts where
 	// Docker API calls can exceed the default 30s restart policy timeout.
 	defaultCreateStartTimeout = 5 * time.Minute
+
+	// maxReportedProblems bounds the dependency problems recorded during a
+	// process, since the containers they name can be removed at any time.
+	maxReportedProblems = 1024
 )
+
+// dependencyProblems holds the dependency problems reported during this
+// process. Keys include the container ID, so a recreated container, or one
+// whose labels changed, is reported again.
+var dependencyProblems = &reportedProblems{seen: make(map[string]struct{})}
 
 // isRecoverableOrphan determines whether a container is a recoverable orphaned
 // Watchtower instance. It excludes the current container, old-container names,
@@ -360,7 +378,7 @@ func Update(
 				errSelfDependency,
 				config,
 			)
-			log.Warn().
+			log.WithLevel(dependencyProblems.level("self-dependency", string(monitoredContainer.ID()))).
 				Str("container", monitoredContainer.Name()).
 				Str("id", monitoredContainer.ID().ShortID()).
 				Msg("Skipping container update (self-dependency)")
@@ -379,7 +397,7 @@ func Update(
 	)
 	if graphErr == nil {
 		for _, link := range graph.UnresolvedDependsOn() {
-			log.Warn().
+			log.WithLevel(dependencyProblems.level("unresolved depends-on", string(link.Container.ID()), link.Link)).
 				Str("container", link.Container.Name()).
 				Str("depends_on", link.Link).
 				Msg("Ignoring depends-on entry that names no container")
@@ -401,7 +419,7 @@ func Update(
 		inCycle[c.ID()] = struct{}{}
 
 		progress.AddSkipped(log, c, errCircularDependency, config)
-		log.Warn().
+		log.WithLevel(dependencyProblems.level("circular dependency", string(c.ID()))).
 			Str("container", c.Name()).
 			Str("id", c.ID().ShortID()).
 			Msg("Skipping container update (circular dependency)")
@@ -980,6 +998,36 @@ func Update(
 
 	// Return the final report summarizing the session and the cleanup image infos.
 	return progress.Report(log), cleanupImageInfos, nil
+}
+
+// level records a dependency problem and returns its log level.
+//
+// A new problem gets [zerolog.WarnLevel] and a problem already recorded gets
+// [zerolog.DebugLevel]. When the record is full, it starts over, so each
+// problem that persists is reported once more.
+//
+// Parameters:
+//   - parts: The problem kind followed by the values that identify it.
+//
+// Returns:
+//   - zerolog.Level: [zerolog.WarnLevel] for a new problem, otherwise [zerolog.DebugLevel].
+func (r *reportedProblems) level(parts ...string) zerolog.Level {
+	key := strings.Join(parts, "\x00")
+
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if _, seen := r.seen[key]; seen {
+		return zerolog.DebugLevel
+	}
+
+	if len(r.seen) >= maxReportedProblems {
+		clear(r.seen)
+	}
+
+	r.seen[key] = struct{}{}
+
+	return zerolog.WarnLevel
 }
 
 // hasSelfDependency checks if a container has a self-dependency in its Watchtower depends-on label.

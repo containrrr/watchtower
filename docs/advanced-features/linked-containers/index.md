@@ -351,6 +351,13 @@ Containers using `network_mode: service:container`:
 
 ### Common Issues
 
+Watchtower reports each of the following dependency problems once per container.
+The first scan that finds a problem logs and notifies it as a warning.
+Later scans log it at debug level.
+Every scan still skips a container that depends on itself or sits in a circular dependency, and lists it as skipped in the session report.
+A depends-on entry that names no container is only ignored, and its container is still checked and updated.
+A recreated container or a restart of Watchtower reports the problem again.
+
 #### Containers Skipped Due to Circular Dependencies
 
 !!! Warning
