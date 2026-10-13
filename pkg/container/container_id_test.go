@@ -750,3 +750,48 @@ func TestGetCurrentContainerID_FailureLogsAtDebug(t *testing.T) {
 
 	assert.Equal(t, []string{"debug"}, levels)
 }
+
+// TestParseContainerIDFromMountinfo_Layouts verifies that the container ID is
+// read from the mount roots Docker and Podman use, and that paths which only
+// resemble them are ignored.
+func TestParseContainerIDFromMountinfo_Layouts(t *testing.T) {
+	t.Parallel()
+
+	const id = "867e908db86764ddc4898108f1ffc69c7cdaa903079cfe71d27d3f78278be03c"
+
+	tests := []struct {
+		name string
+		root string
+		want types.ContainerID
+	}{
+		{name: "Docker", root: "/var/lib/docker/containers/" + id + "/hostname", want: id},
+		{name: "rootless Podman", root: "/containers/overlay-containers/" + id + "/userdata/hostname", want: id},
+		{
+			name: "rootful Podman",
+			root: "/var/lib/containers/storage/overlay-containers/" + id + "/userdata/hostname",
+			want: id,
+		},
+		{name: "a directory that only ends in containers", root: "/srv/notcontainers/" + id + "/hostname"},
+		{name: "a prefixed overlay directory", root: "/srv/my-overlay-containers/" + id + "/hostname"},
+		{name: "a longer hexadecimal directory name", root: "/containers/overlay-containers/" + id + "a/userdata/hostname"},
+		{name: "an ID that ends the path", root: "/var/lib/docker/containers/" + id, want: id},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			mountinfo := "1234 24 0:52 " + tt.root + " /etc/hostname rw,relatime - ext4 /dev/sda1 rw\n"
+
+			got, err := ParseContainerIDFromMountinfo(testLog(), mountinfo)
+			if tt.want == "" {
+				require.ErrorIs(t, err, errNoValidContainerID)
+
+				return
+			}
+
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}

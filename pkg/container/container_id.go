@@ -25,8 +25,13 @@ const (
 
 // Regex patterns for container ID extraction.
 var (
+	// dockerContainerPattern matches a cgroup file line, in the form
+	// hierarchy-ID:controllers:path, whose path holds Docker's /docker/<id>.
 	dockerContainerPattern = regexp.MustCompile(`[0-9]+:.*:/docker/([a-f0-9]{64})`)
-	containerIDPattern     = regexp.MustCompile(`/containers/([a-f0-9]{64})`)
+	// containerIDPattern matches the container directory in a mount root:
+	// /containers/<id> for Docker and /overlay-containers/<id> for Podman.
+	// The ID must end the directory name.
+	containerIDPattern = regexp.MustCompile(`/(?:overlay-)?containers/([a-f0-9]{64})(?:/|$)`)
 )
 
 // File reading functions for testing mocks.
