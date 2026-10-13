@@ -340,6 +340,68 @@ func TestPreRun_RegistryTLSSettings(t *testing.T) {
 	}
 }
 
+// TestPreRun_PorcelainKeepsExplicitSettings verifies that the porcelain
+// configuration option only fills in the notification template, report, and
+// log-stdout settings that were not set, and treats a setting from an
+// environment variable the same as one from a flag.
+func TestPreRun_PorcelainKeepsExplicitSettings(t *testing.T) {
+	const custom = "{{range .}}{{.Message}}{{end}}"
+
+	tests := []struct {
+		name          string
+		args          []string
+		env           map[string]string
+		wantTemplate  string
+		wantReport    bool
+		wantLogStdout bool
+	}{
+		{
+			name:          "porcelain alone",
+			env:           map[string]string{"WATCHTOWER_PORCELAIN": "v1"},
+			wantTemplate:  "porcelain.v1.summary-no-log",
+			wantReport:    true,
+			wantLogStdout: true,
+		},
+		{
+			name:          "settings from flags",
+			args:          []string{"--porcelain", "v1", "--notification-template", custom, "--notification-report=false", "--notification-log-stdout=false"},
+			wantTemplate:  custom,
+			wantReport:    false,
+			wantLogStdout: false,
+		},
+		{
+			name: "settings from environment variables",
+			env: map[string]string{
+				"WATCHTOWER_PORCELAIN":               "v1",
+				"WATCHTOWER_NOTIFICATION_TEMPLATE":   custom,
+				"WATCHTOWER_NOTIFICATION_REPORT":     "false",
+				"WATCHTOWER_NOTIFICATION_LOG_STDOUT": "false",
+			},
+			wantTemplate:  custom,
+			wantReport:    false,
+			wantLogStdout: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			setPreRunState(t, mockContainer.NewMockClient(t), selfDetection{})
+
+			cmd := newTestRootCommand(t, tt.args...)
+
+			for key, value := range tt.env {
+				t.Setenv(key, value)
+			}
+
+			newRunProcess().preRun(cmd, nil)
+
+			assert.Equal(t, tt.wantTemplate, appCfg.Notify.Template)
+			assert.Equal(t, tt.wantReport, appCfg.Notify.Report)
+			assert.Equal(t, tt.wantLogStdout, appCfg.Notify.LogStdout)
+		})
+	}
+}
+
 // clearRegistryTLSOverrides clears the registry TLS settings preRun sets on
 // the process-wide Viper instance when the test ends. Only preRun sets them,
 // so clearing them, rather than setting their earlier values, leaves Viper

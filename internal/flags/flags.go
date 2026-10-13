@@ -701,15 +701,17 @@ func appendFlagValue(log *zerolog.Logger, flags *pflag.FlagSet, name string, val
 	return nil
 }
 
-// setFlagIfDefault sets a flag's default value if unchanged.
+// setFlagIfDefault sets a flag's value unless it was set by a flag or by an
+// environment variable. ApplyEnvToFlags leaves environment values unmarked, so
+// they are checked separately.
 //
 // Parameters:
 //   - log: Logger for set diagnostics.
 //   - flags: Flag set.
 //   - name: Flag name.
-//   - value: Default value.
+//   - value: Value to set.
 func setFlagIfDefault(log *zerolog.Logger, flags *pflag.FlagSet, name, value string) {
-	if flags.Changed(name) {
+	if flags.Changed(name) || setByEnv(name) {
 		return
 	}
 
@@ -726,4 +728,24 @@ func setFlagIfDefault(log *zerolog.Logger, flags *pflag.FlagSet, name, value str
 			Str("value", value).
 			Msg("Set default flag value")
 	}
+}
+
+// setByEnv reports whether an environment variable supplies the flag's value,
+// using the same rule as ApplyEnvToFlags.
+//
+// Parameters:
+//   - name: Flag name.
+//
+// Returns:
+//   - bool: True if one of the flag's environment variables is set.
+func setByEnv(name string) bool {
+	for _, flagSpec := range AllSpecs() {
+		if flagSpec.Name == name {
+			_, ok := firstEnv(flagSpec.EnvKeys)
+
+			return ok
+		}
+	}
+
+	return false
 }
