@@ -1,8 +1,12 @@
 package sorter
 
 import (
+	"bytes"
+	"encoding/json"
+	"strings"
 	"testing"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -872,4 +876,58 @@ func TestDependencyGraph_UnresolvedDependsOn(t *testing.T) {
 	}
 
 	assert.ElementsMatch(t, []string{"app:missing", "watchtower:gone"}, got)
+}
+
+// TestNewDependencyGraph_LogsDependenciesOnce verifies that building the graph
+// logs each container's dependencies in a single debug entry, and logs nothing
+// for a container without dependencies.
+func TestNewDependencyGraph_LogsDependenciesOnce(t *testing.T) {
+	t.Parallel()
+
+	var out bytes.Buffer
+
+	log := zerolog.New(&out).Level(zerolog.DebugLevel)
+	containers := []types.Container{
+		dependsOn("db", ""),
+		dependsOn("cache", ""),
+		dependsOn("app", "db,cache"),
+	}
+
+	_, err := NewDependencyGraph(&log, containers, nil, false)
+	require.NoError(t, err)
+
+	links := map[string][]string{}
+
+	for line := range strings.Lines(out.String()) {
+		var record struct {
+			Message   string   `json:"message"`
+			Container string   `json:"container"`
+			Links     []string `json:"links"`
+		}
+
+		require.NoError(t, json.Unmarshal([]byte(line), &record))
+
+		if record.Message == "Found container dependencies" {
+			require.NotContains(t, links, record.Container, "one entry per container")
+
+			links[record.Container] = record.Links
+		}
+	}
+
+	assert.Equal(t, map[string][]string{"app": {"db", "cache"}}, links)
+}
+
+// TestSortByDependencies_DoesNotLogDependencies verifies that sorting a set of
+// containers on its own does not log their dependencies again, since the
+// scan's dependency graph already logs them.
+func TestSortByDependencies_DoesNotLogDependencies(t *testing.T) {
+	t.Parallel()
+
+	var out bytes.Buffer
+
+	log := zerolog.New(&out).Level(zerolog.DebugLevel)
+	containers := []types.Container{dependsOn("app", "db"), dependsOn("db", "")}
+
+	require.NoError(t, SortByDependencies(&log, containers, false))
+	assert.NotContains(t, out.String(), "Found container dependencies")
 }

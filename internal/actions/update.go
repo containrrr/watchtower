@@ -372,7 +372,7 @@ func Update(
 	// Skip monitored containers that reference themselves as dependencies
 	// via the Watchtower depends-on label.
 	for _, monitoredContainer := range filteredContainers {
-		if hasSelfDependency(log, monitoredContainer) {
+		if hasSelfDependency(monitoredContainer) {
 			progress.AddSkipped(log,
 				monitoredContainer,
 				errSelfDependency,
@@ -1031,18 +1031,14 @@ func (r *reportedProblems) level(parts ...string) zerolog.Level {
 }
 
 // hasSelfDependency checks if a container has a self-dependency in its Watchtower depends-on label.
-// It now uses the shared GetLinksFromWatchtowerLabel helper function for parsing and normalization.
-func hasSelfDependency(log *zerolog.Logger, c types.Container) bool {
+// It uses the shared GetLinksFromWatchtowerLabel helper function for parsing and normalization.
+func hasSelfDependency(c types.Container) bool {
 	sourceContainer, ok := c.(*container.Container)
 	if !ok {
 		return false
 	}
 
-	linkLog := log.With().Str("container", c.Name()).Logger()
-	links := container.GetLinksFromWatchtowerLabel(
-		sourceContainer,
-		&linkLog,
-	)
+	links := container.GetLinksFromWatchtowerLabel(sourceContainer)
 
 	return slices.Contains(links, c.Name())
 }

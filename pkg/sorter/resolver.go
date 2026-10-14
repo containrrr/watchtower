@@ -3,8 +3,6 @@ package sorter
 import (
 	"slices"
 
-	"github.com/rs/zerolog"
-
 	"github.com/nicholas-fedor/watchtower/internal/compose"
 	"github.com/nicholas-fedor/watchtower/internal/util"
 	"github.com/nicholas-fedor/watchtower/pkg/container"
@@ -141,13 +139,12 @@ func (r *linkResolver) byProject(c types.Container, link string, keys []string) 
 // update reports on its own.
 //
 // Parameters:
-//   - log: Process logger.
 //   - c: A monitored container.
 //   - self: The identifier of c in the graph, or empty when c is not a member.
 //
 // Returns:
 //   - []UnresolvedLink: The entries that name no container.
-func (r *linkResolver) unresolvedDependsOn(log *zerolog.Logger, c types.Container, self string) []UnresolvedLink {
+func (r *linkResolver) unresolvedDependsOn(c types.Container, self string) []UnresolvedLink {
 	concrete, ok := c.(*container.Container)
 	if !ok {
 		return nil
@@ -155,7 +152,7 @@ func (r *linkResolver) unresolvedDependsOn(log *zerolog.Logger, c types.Containe
 
 	var unresolved []UnresolvedLink
 
-	for _, link := range container.GetLinksFromWatchtowerLabel(concrete, log) {
+	for _, link := range container.GetLinksFromWatchtowerLabel(concrete) {
 		if link == c.Name() || (self != "" && link == self) {
 			continue
 		}

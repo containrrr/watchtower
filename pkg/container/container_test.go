@@ -1406,3 +1406,60 @@ func TestContainer_Links_NoConfig(t *testing.T) {
 
 	assert.Equal(t, []string{"vpn"}, c.Links(false))
 }
+
+// TestContainer_Links_DoesNotLog verifies that reading a container's
+// dependencies writes no log entries, even at debug level. The dependency
+// graph logs each container's dependencies once per scan instead.
+func TestContainer_Links_DoesNotLog(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name                string
+		labels              map[string]string
+		networkMode         dockerContainer.NetworkMode
+		useComposeDependsOn bool
+		want                []string
+	}{
+		{
+			name:   "depends-on label",
+			labels: map[string]string{dependsOnLabel: "db, cache"},
+			want:   []string{"db", "cache"},
+		},
+		{
+			name: "compose depends_on label",
+			labels: map[string]string{
+				compose.ComposeDependsOnLabel: "db:service_started:false",
+				compose.ComposeProjectLabel:   "shop",
+			},
+			useComposeDependsOn: true,
+			want:                []string{"shop-db"},
+		},
+		{
+			name:                "network mode",
+			networkMode:         "container:vpn",
+			useComposeDependsOn: true,
+			want:                []string{"vpn"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			var out bytes.Buffer
+
+			log := zerolog.New(&out).Level(zerolog.DebugLevel)
+			c := NewContainer(&log, &dockerContainer.InspectResponse{
+				Name:       "/app",
+				Config:     &dockerContainer.Config{Labels: tt.labels},
+				HostConfig: &dockerContainer.HostConfig{NetworkMode: tt.networkMode},
+			}, nil)
+
+			// Measure only the Links call, not the container's creation.
+			out.Reset()
+
+			assert.Equal(t, tt.want, c.Links(tt.useComposeDependsOn))
+			assert.Empty(t, out.String())
+		})
+	}
+}

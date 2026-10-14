@@ -240,12 +240,19 @@ func buildDependencyGraph(log *zerolog.Logger,
 	containers []types.Container,
 	useComposeDependsOn bool,
 ) (map[string]types.Container, map[string]int, map[string][]string, map[types.Container]string, error) {
-	g, err := newDependencyGraph(log, containers, nil, nil, useComposeDependsOn)
+	graph, err := newDependencyGraph(
+		log,
+		containers,
+		nil,
+		nil,
+		useComposeDependsOn,
+		false,
+	)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
 
-	return g.subgraph(containers)
+	return graph.subgraph(containers)
 }
 
 // identifierIndex maps each container's normalized dependency identifier to
