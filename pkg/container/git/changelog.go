@@ -318,17 +318,10 @@ func parseRepo(raw string) (string, string, string, bool) {
 
 	raw = strings.TrimSuffix(raw, ".git")
 
-	// SCP-like remotes: git@host:owner/name.git
-	if strings.HasPrefix(raw, "git@") {
-		_, rest, found := strings.Cut(raw, "@")
-		if !found {
-			return "", "", "", false
-		}
-
-		hostPart, pathPart, found := strings.Cut(rest, ":")
-		if !found {
-			return "", "", "", false
-		}
+	// SCP-like remotes such as git@host:owner/name.git, with any user.
+	if isSCPRemote(raw) {
+		_, rest, _ := strings.Cut(raw, "@")
+		hostPart, pathPart, _ := strings.Cut(rest, ":")
 
 		return splitOwnerRepo(strings.ToLower(hostPart), pathPart)
 	}
@@ -343,6 +336,34 @@ func parseRepo(raw string) (string, string, string, bool) {
 	}
 
 	return splitOwnerRepo(strings.ToLower(parsed.Host), strings.TrimPrefix(parsed.Path, "/"))
+}
+
+// isSCPRemote reports whether raw is an SCP-like remote with a user, such as
+// deploy@host:owner/name.
+//
+// Like Git, it treats a URL without a scheme as SCP-like when a colon comes
+// before the first slash. A non-empty user must come before that colon, and the
+// host between them must not contain another @.
+//
+// Parameters:
+//   - raw: Trimmed clone URL.
+//
+// Returns:
+//   - bool: True when raw is user@host:path without a scheme.
+func isSCPRemote(raw string) bool {
+	if strings.Contains(raw, "://") {
+		return false
+	}
+
+	atSign := strings.IndexByte(raw, '@')
+	colon := strings.IndexByte(raw, ':')
+	slash := strings.IndexByte(raw, '/')
+
+	if atSign <= 0 || colon <= atSign || (slash >= 0 && colon > slash) {
+		return false
+	}
+
+	return !strings.Contains(raw[atSign+1:colon], "@")
 }
 
 // splitOwnerRepo splits a Git path into owner and repository name.

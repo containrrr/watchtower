@@ -12,6 +12,7 @@ import (
 func FuzzParseRepo(f *testing.F) {
 	f.Add("https://github.com/org/app.git")
 	f.Add("git@github.com:org/app.git")
+	f.Add("deploy@git.example.com:org/app.git")
 	f.Add("ssh://git@gitlab.com/group/app.git")
 	f.Add("github.com/org/app")
 	f.Add("https://gitlab.com/a/b/c.git")
