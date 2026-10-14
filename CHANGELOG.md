@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Chores
 
+- Update module github.com/grpc-ecosystem/grpc-gateway/v2 to v2.32.0 by @renovate[bot] in [#2843](https://github.com/nicholas-fedor/watchtower/pull/2843)
 - Update module github.com/docker/cli to v29.9.1+incompatible by @renovate[bot] in [#2832](https://github.com/nicholas-fedor/watchtower/pull/2832)
 - Update module github.com/stretchr/objx to v0.8.0 by @renovate[bot] in [#2828](https://github.com/nicholas-fedor/watchtower/pull/2828)
 - Update module github.com/gofiber/fiber/v3 to v3.6.1 by @renovate[bot] in [#2827](https://github.com/nicholas-fedor/watchtower/pull/2827)
