@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Skip containers that disappear before they are stopped by @nicholas-fedor in [#2837](https://github.com/nicholas-fedor/watchtower/pull/2837)
 - Validate the self-update orchestrator environment by @nicholas-fedor in [#2835](https://github.com/nicholas-fedor/watchtower/pull/2835)
 - Leave shutdown signal handling to the caller by @nicholas-fedor in [#2831](https://github.com/nicholas-fedor/watchtower/pull/2831)
 - Link changelogs for scp-style clone urls with any user by @nicholas-fedor in [#2825](https://github.com/nicholas-fedor/watchtower/pull/2825)
