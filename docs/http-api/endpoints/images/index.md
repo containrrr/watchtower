@@ -7,7 +7,7 @@ Include `images` in [`http-api-endpoints`](../../../configuration/http-api/index
 
 ## Response Format
 
-The `/v1/images` endpoint returns a JSON object with image statuses:
+The `/v1/images` endpoint returns a JSON object with image statuses, sorted by image name and then by image ID:
 
 ```json
 {

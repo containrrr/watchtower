@@ -1,8 +1,11 @@
 package images
 
 import (
+	"cmp"
 	"context"
 	"fmt"
+	"slices"
+	"strings"
 
 	"github.com/distribution/reference"
 
@@ -51,7 +54,7 @@ func filterImages(statuses []ImageStatus, name, imageID string) []ImageStatus {
 //   - filter: Container filter function.
 //
 // Returns:
-//   - []ImageStatus: Status for each tracked image.
+//   - []ImageStatus: Status for each tracked image, sorted by name and then image ID.
 //   - error: Non-nil if listing containers fails.
 func ListImageStatuses(ctx context.Context, client container.Client, filter types.Filter) ([]ImageStatus, error) {
 	var list []types.Container
@@ -85,6 +88,10 @@ func ListImageStatuses(ctx context.Context, client container.Client, filter type
 		if existing, ok := imageMap[key]; ok {
 			existing.Containers++
 
+			// Containers can run one image under several tags of a repository.
+			// Keep the smallest name so the entry does not depend on list order.
+			existing.Name = min(existing.Name, imageName)
+
 			continue
 		}
 
@@ -105,6 +112,12 @@ func ListImageStatuses(ctx context.Context, client container.Client, filter type
 	for _, s := range imageMap {
 		statuses = append(statuses, *s)
 	}
+
+	// Sort for a stable response. The image ID orders one name that points at
+	// several local images.
+	slices.SortFunc(statuses, func(a, b ImageStatus) int {
+		return cmp.Or(strings.Compare(a.Name, b.Name), strings.Compare(a.ImageID, b.ImageID))
+	})
 
 	return statuses, nil
 }

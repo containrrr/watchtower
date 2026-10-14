@@ -270,38 +270,12 @@ func normalizeVolatile(t *testing.T, body []byte) []byte {
 	return body
 }
 
-// sortJSONArray sorts the elements of the top-level array field key by their
-// encoded form, for responses whose element order is unspecified.
-func sortJSONArray(t *testing.T, body []byte, key string) []byte {
-	t.Helper()
-
-	var fields map[string]json.RawMessage
-	require.NoError(t, json.Unmarshal(body, &fields))
-
-	var elements []json.RawMessage
-	require.NoError(t, json.Unmarshal(fields[key], &elements))
-
-	slices.SortFunc(elements, func(a, b json.RawMessage) int { return bytes.Compare(a, b) })
-
-	sorted, err := json.Marshal(elements)
-	require.NoError(t, err)
-
-	fields[key] = sorted
-
-	out, err := json.Marshal(fields)
-	require.NoError(t, err)
-
-	return out
-}
-
 // responseRequest describes one request recorded in a response snapshot.
 type responseRequest struct {
 	method string
 	target string
 	// token is sent as a bearer token when set.
 	token string
-	// sortKey names a top-level array whose element order is unspecified.
-	sortKey string
 }
 
 // snapshotHeaders returns the response headers in snapshot form, without
@@ -422,12 +396,6 @@ func (r *responseRecorder) recordOne(t *testing.T, req responseRequest) {
 		}
 	}
 
-	// Sorting re-encodes the body, so it runs before the placeholders, which
-	// the encoder would escape, are substituted.
-	if req.sortKey != "" {
-		body = sortJSONArray(t, body, req.sortKey)
-	}
-
 	body = normalizeVolatile(t, body)
 
 	if strings.HasPrefix(resp.Header.Get(fiber.HeaderContentType), fiber.MIMEApplicationJSON) {
@@ -462,7 +430,7 @@ func TestHTTPAPIResponses(t *testing.T) {
 		responseRequest{method: http.MethodGet, target: "/v1/containers?name=missing", token: fixtureAPIToken},
 		responseRequest{method: http.MethodGet, target: "/v1/containers/details", token: fixtureAPIToken},
 		responseRequest{method: http.MethodGet, target: "/v1/containers/details?image=redis:7", token: fixtureAPIToken},
-		responseRequest{method: http.MethodGet, target: "/v1/images", token: fixtureAPIToken, sortKey: "images"},
+		responseRequest{method: http.MethodGet, target: "/v1/images", token: fixtureAPIToken},
 		responseRequest{method: http.MethodGet, target: "/v1/images?name=missing", token: fixtureAPIToken},
 		responseRequest{method: http.MethodGet, target: "/v1/status", token: fixtureAPIToken},
 		responseRequest{method: http.MethodGet, target: "/v1/history", token: fixtureAPIToken},

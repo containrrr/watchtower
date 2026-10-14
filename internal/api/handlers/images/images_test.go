@@ -200,6 +200,86 @@ func TestListImageStatuses(t *testing.T) {
 	}
 }
 
+// TestListImageStatuses_SortsByNameThenImageID verifies that images are
+// returned in a fixed order, by name and then by image ID for one name that
+// points at several local images.
+func TestListImageStatuses_SortsByNameThenImageID(t *testing.T) {
+	t.Parallel()
+
+	newContainer := func(name, imageID string) types.Container {
+		c := mockTypes.NewMockContainer(t)
+		c.EXPECT().ImageName().Return(name)
+		c.EXPECT().ImageID().Return(types.ImageID(imageID))
+		c.EXPECT().ImageInfo().Return(nil)
+
+		return c
+	}
+
+	client := mockContainer.NewMockClient(t)
+	client.EXPECT().ListContainers(mock.Anything).Return([]types.Container{
+		newContainer("redis:7", "sha256:bbb"),
+		newContainer("nginx:1.27", "sha256:zzz"),
+		newContainer("ghcr.io/org/app:latest", "sha256:ccc"),
+		newContainer("nginx:1.27", "sha256:aaa"),
+	}, nil)
+
+	statuses, err := ListImageStatuses(t.Context(), client, nil)
+	require.NoError(t, err)
+
+	got := make([]string, 0, len(statuses))
+	for _, status := range statuses {
+		got = append(got, status.Name+"@"+status.ImageID)
+	}
+
+	assert.Equal(t, []string{
+		"ghcr.io/org/app:latest@sha256:ccc",
+		"nginx:1.27@sha256:aaa",
+		"nginx:1.27@sha256:zzz",
+		"redis:7@sha256:bbb",
+	}, got)
+}
+
+// TestListImageStatuses_NameForSeveralTags verifies that containers running one
+// image under several tags are reported under the same name in either list
+// order.
+func TestListImageStatuses_NameForSeveralTags(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		names []string
+	}{
+		{name: "latest listed first", names: []string{"nginx:latest", "nginx:1.27"}},
+		{name: "version listed first", names: []string{"nginx:1.27", "nginx:latest"}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			containers := make([]types.Container, 0, len(tt.names))
+
+			for _, name := range tt.names {
+				c := mockTypes.NewMockContainer(t)
+				c.EXPECT().ImageName().Return(name)
+				c.EXPECT().ImageID().Return(types.ImageID("sha256:abc123"))
+				c.EXPECT().ImageInfo().Return(nil).Maybe()
+
+				containers = append(containers, c)
+			}
+
+			client := mockContainer.NewMockClient(t)
+			client.EXPECT().ListContainers(mock.Anything).Return(containers, nil)
+
+			statuses, err := ListImageStatuses(t.Context(), client, nil)
+			require.NoError(t, err)
+			require.Len(t, statuses, 1)
+			assert.Equal(t, "nginx:1.27", statuses[0].Name)
+			assert.Equal(t, 2, statuses[0].Containers)
+		})
+	}
+}
+
 func Test_filterImages(t *testing.T) {
 	statuses := []ImageStatus{
 		{Name: "nginx:latest", ImageID: "sha256:abc"},
