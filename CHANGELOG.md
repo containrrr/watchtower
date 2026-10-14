@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Return empty arrays when api filters match nothing by @nicholas-fedor in [#2813](https://github.com/nicholas-fedor/watchtower/pull/2813)
 - Sort the images endpoint results by @nicholas-fedor in [#2811](https://github.com/nicholas-fedor/watchtower/pull/2811)
 - Report the container's repository digest in image endpoints by @nicholas-fedor in [#2805](https://github.com/nicholas-fedor/watchtower/pull/2805)
 
