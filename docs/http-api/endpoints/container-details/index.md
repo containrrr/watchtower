@@ -54,7 +54,7 @@ The `/v1/containers/details` endpoint returns a JSON array of container details:
 - `name`: Container name
 - `image`: Image reference with tag
 - `image_id`: Local image config ID (sha256:...)
-- `digest`: Registry manifest digest (sha256:...). Empty for locally-built images.
+- `digest`: Registry manifest digest (sha256:...) for the repository in `image`, or the first digest when none matches it. Empty for locally-built images.
 - `running`: Whether the container is currently running
 - `watchtower`: Whether this is the Watchtower container itself
 - `monitor_only`: Whether the container is in monitor-only mode
