@@ -1,9 +1,11 @@
 package container
 
 import (
+	"bytes"
 	"testing"
 	"time"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -1690,6 +1692,43 @@ func TestGetEffectiveScope_NoneScopeEdgeCases(t *testing.T) {
 			}
 
 			assert.Equal(t, tt.expectedScope, result, tt.description)
+		})
+	}
+}
+
+// TestContainer_IsWatchtower_DoesNotLog verifies that checking whether a
+// container is Watchtower writes no log entries, even at debug level, since
+// a scan checks every container many times.
+func TestContainer_IsWatchtower_DoesNotLog(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		labels map[string]string
+		want   bool
+	}{
+		{name: "label true", labels: map[string]string{watchtowerLabel: "true"}, want: true},
+		{name: "label false", labels: map[string]string{watchtowerLabel: "false"}},
+		{name: "label missing", labels: map[string]string{}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			var out bytes.Buffer
+
+			log := zerolog.New(&out).Level(zerolog.DebugLevel)
+			c := NewContainer(&log, &dockerContainer.InspectResponse{
+				Name:   "/app",
+				Config: &dockerContainer.Config{Labels: tt.labels},
+			}, nil)
+
+			// Measure only the IsWatchtower call, not the container's creation.
+			out.Reset()
+
+			assert.Equal(t, tt.want, c.IsWatchtower())
+			assert.Empty(t, out.String())
 		})
 	}
 }
