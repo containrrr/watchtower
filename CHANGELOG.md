@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Chores
 
+- Update github.com/xrash/smetrics digest to 39c47d9 by @renovate[bot] in [#2809](https://github.com/nicholas-fedor/watchtower/pull/2809)
 - Update module github.com/microsoft/go-winio to v0.6.4 by @renovate[bot] in [#2802](https://github.com/nicholas-fedor/watchtower/pull/2802)
 - Update module github.com/containerd/containerd/v2 to v2.4.2 by @renovate[bot] in [#2801](https://github.com/nicholas-fedor/watchtower/pull/2801)
 - Update golang.org/x/exp digest to 2ab7f3c by @renovate[bot] in [#2798](https://github.com/nicholas-fedor/watchtower/pull/2798)
