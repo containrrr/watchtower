@@ -6,11 +6,8 @@ package scheduling
 import (
 	"context"
 	"fmt"
-	"os"
-	"os/signal"
 	"strings"
 	"sync/atomic"
-	"syscall"
 	"time"
 
 	"github.com/robfig/cron/v3"
@@ -104,13 +101,14 @@ type ScheduleDeps struct {
 
 // RunUpgradesOnSchedule schedules and executes periodic container updates according to the cron specification.
 //
-// It sets up a cron scheduler, runs updates at specified intervals, and ensures graceful shutdown on interrupt
-// signals (SIGINT, SIGTERM) or context cancellation, handling concurrency with a lock channel.
+// It sets up a cron scheduler, runs updates at specified intervals, and shuts down gracefully when ctx is
+// canceled, handling concurrency with a lock channel. The caller cancels ctx on shutdown signals.
 // If update-on-start is enabled, it triggers the first update immediately before starting the scheduler.
 // If SkipFirstRun is true, it skips Watchtower self-update on the first scheduled run (useful after self-update cleanup).
 //
 // Parameters:
-//   - ctx: The context controlling the scheduler's lifecycle, enabling shutdown on cancellation.
+//   - ctx: The context controlling the scheduler's lifecycle. Canceling it, for example on SIGINT or SIGTERM, shuts
+//     the scheduler down.
 //   - deps: Schedule dependencies including a complete BaseParams policy snapshot.
 //     deps.Logger is required and must be non-nil (nil panics on first log call).
 //
@@ -295,17 +293,9 @@ func RunUpgradesOnSchedule(ctx context.Context, deps ScheduleDeps) error {
 		scheduler.Start()
 	}
 
-	// Set up signal handling for graceful shutdown.
-	interrupt := make(chan os.Signal, 1)
-	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
-
-	// Wait for shutdown signal or context cancellation.
-	select {
-	case <-ctx.Done():
-		log.Debug().Msg("Context canceled, stopping scheduler...")
-	case <-interrupt:
-		log.Debug().Msg("Received interrupt signal, stopping scheduler...")
-	}
+	// Wait for cancellation. The caller's context carries shutdown signals.
+	<-ctx.Done()
+	log.Debug().Msg("Context canceled, stopping scheduler...")
 
 	// Stop the scheduler and wait for any running update to complete.
 	scheduler.Stop()
