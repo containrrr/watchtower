@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Handle containers without config data by @nicholas-fedor in [#2823](https://github.com/nicholas-fedor/watchtower/pull/2823)
 - Declare the apache 2.0 license in the swagger spec by @nicholas-fedor in [#2821](https://github.com/nicholas-fedor/watchtower/pull/2821)
 - Return empty arrays when api filters match nothing by @nicholas-fedor in [#2813](https://github.com/nicholas-fedor/watchtower/pull/2813)
 - Sort the images endpoint results by @nicholas-fedor in [#2811](https://github.com/nicholas-fedor/watchtower/pull/2811)
