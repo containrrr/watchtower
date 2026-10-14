@@ -1477,8 +1477,9 @@ func performRollingRestart(
 			progress.MarkForUpdate(log, c.ID())
 		}
 
-		// Stop the container, handling any errors.
-		err := stopStaleContainer(log, ctx, c, client, config)
+		// Stop the container, handling any errors. A Watchtower container is not
+		// stopped here, and restartStaleContainer replaces it.
+		_, err := stopStaleContainer(log, ctx, c, client, config)
 		if err != nil {
 			failed[c.ID()] = err
 		} else {
@@ -1599,10 +1600,10 @@ func stopContainersInReversedOrder(
 			"image":     c.ImageName(),
 		}
 
-		err := stopStaleContainer(log, ctx, c, client, config)
+		stoppedNow, err := stopStaleContainer(log, ctx, c, client, config)
 		if err != nil {
 			failed[c.ID()] = err
-		} else {
+		} else if stoppedNow {
 			stopped = append(
 				stopped,
 				types.RemovedImageInfo{
@@ -1647,26 +1648,32 @@ func recordRestartOutcomes(log *zerolog.Logger, progress *session.Progress, outc
 	progress.UpdateFailed(log, failed)
 }
 
-// stopStaleContainer stops a stale container if eligible.
+// stopStaleContainer stops and removes a container that is marked for restart.
 //
-// It skips Watchtower containers or those not marked for restart, runs pre-update hooks if enabled,
-// and stops the container with the specified timeout.
+// Watchtower containers and containers not marked for restart are left running,
+// and the restart phase replaces Watchtower containers itself. When lifecycle
+// hooks are enabled, the pre-update hook runs first and can skip the container.
+// A container that no longer exists is also skipped, so it is not recreated
+// from the scan's inspect data.
 //
 // Parameters:
+//   - log: Logger for stop diagnostics.
 //   - ctx: Context for cancellation and timeouts.
 //   - container: Container to stop.
 //   - client: Container client for Docker operations.
 //   - config: Update options specifying stop timeout and lifecycle hooks.
 //
 // Returns:
-//   - error: Non-nil if stop fails, nil on success or if skipped.
+//   - bool: True when the container was stopped and removed.
+//   - error: A skip when the pre-update hook skips the container or it no longer
+//     exists, another error when a step fails, and nil otherwise.
 func stopStaleContainer(
 	log *zerolog.Logger,
 	ctx context.Context,
 	container types.Container,
 	client container.Client,
 	config types.UpdateParams,
-) error {
+) (bool, error) {
 	fields := map[string]any{
 		"container": container.Name(),
 		"image":     container.ImageName(),
@@ -1678,12 +1685,12 @@ func stopStaleContainer(
 			Fields(fields).
 			Msg("Skipping Watchtower container")
 
-		return nil
+		return false, nil
 	}
 
 	// Skip containers not marked for restart (e.g., not stale or linked).
 	if !container.ToRestart() {
-		return nil
+		return false, nil
 	}
 
 	log.Debug().
@@ -1699,7 +1706,7 @@ func stopStaleContainer(
 				Fields(fields).
 				Msg("Failed to verify container configuration")
 
-			return fmt.Errorf("%w: %w", errVerifyConfigFailed, err)
+			return false, fmt.Errorf("%w: %w", errVerifyConfigFailed, err)
 		}
 	}
 
@@ -1718,7 +1725,7 @@ func stopStaleContainer(
 				Fields(fields).
 				Msg("Pre-update command execution failed")
 
-			return fmt.Errorf("%w: %w", errPreUpdateFailed, err)
+			return false, fmt.Errorf("%w: %w", errPreUpdateFailed, err)
 		}
 
 		if skipUpdate {
@@ -1726,7 +1733,7 @@ func stopStaleContainer(
 				Fields(fields).
 				Msg("Skipping container due to pre-update exit code 75")
 
-			return skipped(errSkipUpdate)
+			return false, skipped(errSkipUpdate)
 		}
 	}
 
@@ -1737,7 +1744,7 @@ func stopStaleContainer(
 			Fields(fields).
 			Msg("Failed to snapshot copy-file paths")
 
-		return err
+		return false, err
 	}
 
 	// Stop the container with the configured timeout.
@@ -1747,19 +1754,18 @@ func stopStaleContainer(
 		config.Timeout,
 	)
 	if err != nil {
-		if !cerrdefs.IsNotFound(err) {
-			discardCopyFilesForRecreate(client, container.ID())
-		}
+		// Nothing recreates the container after a failed stop, so drop its snapshot.
+		discardCopyFilesForRecreate(client, container.ID())
 
-		// Check if the container is already gone (e.g., "No such container" error).
-		// Treat this as non-fatal, similar to RemoveExcessWatchtowerInstances.
+		// The container was removed or replaced after the scan. Recreating it
+		// from the scan's inspect data would bring back a removed container.
 		if cerrdefs.IsNotFound(err) {
 			log.Debug().
 				Err(err).
 				Fields(fields).
-				Msg("Container not found, treating as already stopped")
+				Msg("Container no longer exists, skipping it")
 
-			return nil
+			return false, skipped(fmt.Errorf("%w: %w", errContainerGone, err))
 		}
 
 		log.Error().
@@ -1767,10 +1773,10 @@ func stopStaleContainer(
 			Fields(fields).
 			Msg("Failed to stop container")
 
-		return fmt.Errorf("%w: %w", errStopContainerFailed, err)
+		return false, fmt.Errorf("%w: %w", errStopContainerFailed, err)
 	}
 
-	return nil
+	return true, nil
 }
 
 // snapshotCopyFilesForRecreate stores labeled files before the source is removed.
@@ -2234,7 +2240,7 @@ func restartStaleContainer(
 						failedNew,
 						config.Timeout,
 					)
-					if cleanupErr != nil {
+					if cleanupErr != nil && !cerrdefs.IsNotFound(cleanupErr) {
 						log.Debug().
 							Err(cleanupErr).
 							Fields(fields).

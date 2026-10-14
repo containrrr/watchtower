@@ -1,13 +1,17 @@
 package container
 
 import (
+	"bytes"
+	"fmt"
 	"testing"
 	"time"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
+	cerrdefs "github.com/containerd/errdefs"
 	dockerContainer "github.com/moby/moby/api/types/container"
 	dockerImage "github.com/moby/moby/api/types/image"
 
@@ -105,4 +109,35 @@ func TestRemoveOrphanedOrchestrators_SkipsInFlight(t *testing.T) {
 			assert.Equal(t, wantCount, count)
 		})
 	}
+}
+
+// TestRemoveOrphanedOrchestrators_AlreadyGone verifies that an orphaned
+// orchestrator which no longer exists when cleanup reaches it, for example one
+// Docker removed on exit, is not reported as a failed removal.
+func TestRemoveOrphanedOrchestrators_AlreadyGone(t *testing.T) {
+	t.Parallel()
+
+	orchestrator := MockContainer(
+		WithID("orch123"),
+		WithName("watchtower-orchestrator"),
+		WithLabels(map[string]string{OrchestratorLabel: "true"}),
+		WithContainerState(dockerContainer.State{
+			Running:   true,
+			StartedAt: time.Now().Add(-time.Hour).UTC().Format(time.RFC3339Nano),
+		}),
+	)
+
+	client := mockContainer.NewMockClient(t)
+	client.EXPECT().ListContainers(mock.Anything).Return([]types.Container{orchestrator}, nil).Once()
+	client.EXPECT().StopAndRemoveContainer(mock.Anything, orchestrator, time.Duration(0)).
+		Return(fmt.Errorf("no such container: %w", cerrdefs.ErrNotFound)).Once()
+
+	var out bytes.Buffer
+
+	log := zerolog.New(&out).Level(zerolog.WarnLevel)
+
+	count, err := RemoveOrphanedOrchestrators(&log, t.Context(), client)
+	require.NoError(t, err)
+	assert.Equal(t, 0, count)
+	assert.Empty(t, out.String(), "a missing orchestrator is not a warning")
 }

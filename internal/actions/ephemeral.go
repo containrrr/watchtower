@@ -639,7 +639,7 @@ func cleanupFailedNewContainer(
 	}
 
 	cleanupErr := client.StopAndRemoveContainer(ctx, failedNew, orchestratorStopTimeout)
-	if cleanupErr != nil {
+	if cleanupErr != nil && !cerrdefs.IsNotFound(cleanupErr) {
 		clog.Debug().
 			Err(cleanupErr).
 			Str("new_id", newContainerID.ShortID()).

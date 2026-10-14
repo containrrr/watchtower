@@ -11,6 +11,7 @@ import (
 
 	"github.com/rs/zerolog"
 
+	cerrdefs "github.com/containerd/errdefs"
 	dockerContainer "github.com/moby/moby/api/types/container"
 	dockerNetwork "github.com/moby/moby/api/types/network"
 	dockerClient "github.com/moby/moby/client"
@@ -879,6 +880,15 @@ func RemoveOrphanedOrchestrators(log *zerolog.Logger,
 			Msg("Removing orphaned ephemeral orchestrator container")
 
 		err := client.StopAndRemoveContainer(ctx, c, 0)
+		if cerrdefs.IsNotFound(err) {
+			clog.Debug().
+				Str("container", c.Name()).
+				Str("id", c.ID().ShortID()).
+				Msg("Orphaned orchestrator container is already gone")
+
+			continue
+		}
+
 		if err != nil {
 			clog.Warn().
 				Err(err).

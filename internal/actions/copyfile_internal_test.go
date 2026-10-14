@@ -86,13 +86,15 @@ var _ = ginkgo.Describe("stopStaleContainer copy-file", func() {
 			StopAndRemoveContainer(mock.Anything, source, time.Second).
 			Return(nil)
 
-		gomega.Expect(stopStaleContainer(
+		stopped, err := stopStaleContainer(
 			testLogger(),
 			context.Background(),
 			source,
 			client,
 			types.UpdateParams{Timeout: time.Second},
-		)).To(gomega.Succeed())
+		)
+		gomega.Expect(err).ToNot(gomega.HaveOccurred())
+		gomega.Expect(stopped).To(gomega.BeTrue())
 	})
 
 	ginkgo.It("does not stop when snapshot fails", func() {
@@ -102,7 +104,7 @@ var _ = ginkgo.Describe("stopStaleContainer copy-file", func() {
 			SnapshotCopyFiles(mock.Anything, source).
 			Return(errors.New("denied"))
 
-		err := stopStaleContainer(
+		_, err := stopStaleContainer(
 			testLogger(),
 			context.Background(),
 			source,
@@ -123,7 +125,7 @@ var _ = ginkgo.Describe("stopStaleContainer copy-file", func() {
 			Return(errors.New("busy"))
 		mockStore.EXPECT().DiscardCopyFiles(source.ID())
 
-		err := stopStaleContainer(
+		_, err := stopStaleContainer(
 			testLogger(),
 			context.Background(),
 			source,
@@ -133,7 +135,7 @@ var _ = ginkgo.Describe("stopStaleContainer copy-file", func() {
 		gomega.Expect(err).To(gomega.HaveOccurred())
 	})
 
-	ginkgo.It("keeps the snapshot when the container is already gone", func() {
+	ginkgo.It("skips and discards the snapshot when the container is already gone", func() {
 		source := staleMockContainer()
 		client, mockClient, mockStore := newCopyFileAwareClient()
 		mockStore.EXPECT().
@@ -142,13 +144,17 @@ var _ = ginkgo.Describe("stopStaleContainer copy-file", func() {
 		mockClient.EXPECT().
 			StopAndRemoveContainer(mock.Anything, source, time.Second).
 			Return(cerrdefs.ErrNotFound)
+		mockStore.EXPECT().DiscardCopyFiles(source.ID())
 
-		gomega.Expect(stopStaleContainer(
+		stopped, err := stopStaleContainer(
 			testLogger(),
 			context.Background(),
 			source,
 			client,
 			types.UpdateParams{Timeout: time.Second},
-		)).To(gomega.Succeed())
+		)
+		gomega.Expect(stopped).To(gomega.BeFalse())
+		gomega.Expect(isSkip(err)).To(gomega.BeTrue())
+		gomega.Expect(errors.Is(err, errContainerGone)).To(gomega.BeTrue())
 	})
 })

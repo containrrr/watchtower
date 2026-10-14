@@ -18,6 +18,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
+	cerrdefs "github.com/containerd/errdefs"
 	dockerContainer "github.com/moby/moby/api/types/container"
 
 	mockActions "github.com/nicholas-fedor/watchtower/internal/actions/mocks"
@@ -219,6 +220,40 @@ func TestUpdate_StopFailureStaysFailedWhenCanceled(t *testing.T) {
 	assert.Empty(t, report.Skipped())
 	assert.Equal(t, map[string]string{"app": "failed to stop container: daemon unavailable"},
 		reportErrors(report.Failed()))
+}
+
+// TestUpdate_ContainerGoneBeforeStopIsSkipped verifies that a container which
+// no longer exists when the update stops it, for example one removed or
+// replaced after the scan, is reported as skipped and is not recreated from
+// the scan's inspect data, in both restart modes.
+func TestUpdate_ContainerGoneBeforeStopIsSkipped(t *testing.T) {
+	t.Parallel()
+
+	for _, rolling := range []bool{false, true} {
+		t.Run(fmt.Sprintf("rolling=%t", rolling), func(t *testing.T) {
+			t.Parallel()
+
+			app := skipTestContainer("a000000000000000000000000000000000000000000000000000000000000000", "app", nil)
+
+			// The mock fails the test on any call to recreate the container.
+			client := mockContainer.NewMockClient(t)
+			client.EXPECT().ListContainers(mock.Anything, mock.Anything).Return([]types.Container{app}, nil).Once()
+			client.EXPECT().IsContainerStale(mock.Anything, mock.Anything, mock.Anything).
+				Return(true, types.ImageID("sha256:new"), "", nil)
+			client.EXPECT().GetImageAnnotations(mock.Anything, mock.Anything).Return(oci.Annotations{}).Maybe()
+			client.EXPECT().StopAndRemoveContainer(mock.Anything, app, mock.Anything).
+				Return(fmt.Errorf("no such container: %w", cerrdefs.ErrNotFound)).Once()
+
+			report, _, err := Update(testLogger(), t.Context(), client, types.UpdateParams{RollingRestart: rolling})
+			require.NoError(t, err)
+
+			skips := reportErrors(report.Skipped())
+			require.Contains(t, skips, "app")
+			assert.Contains(t, skips["app"], errContainerGone.Error())
+			assert.Empty(t, report.Failed())
+			assert.Empty(t, report.Updated())
+		})
+	}
 }
 
 // TestUpdate_SkipSelfUpdateLeavesDependentWatchtowerRunning verifies that

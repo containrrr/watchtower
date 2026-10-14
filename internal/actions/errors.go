@@ -28,6 +28,8 @@ var (
 	)
 	// errStopContainerFailed indicates a failure to stop a container during the update process.
 	errStopContainerFailed = errors.New("failed to stop container")
+	// errContainerGone indicates a container no longer existed when the update tried to stop it.
+	errContainerGone = errors.New("container no longer exists")
 	// errStartContainerFailed indicates a failure to start a container after an update.
 	errStartContainerFailed = errors.New("failed to start container")
 	// errCreateContainerFailed indicates a failure to create a container during the update process.
