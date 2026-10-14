@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 	"testing"
 	"time"
 
@@ -83,7 +84,8 @@ func orchestratorCalls(client *mockContainer.MockClient) []string {
 }
 
 // TestReadOrchestratorEnv verifies how the orchestrator reads its settings
-// from the environment, including the values it accepts without validation.
+// from the environment, and that it rejects an old container ID or cleanup
+// value that Watchtower would never write.
 func TestReadOrchestratorEnv(t *testing.T) {
 	complete := map[string]string{
 		"WT_ORCHESTRATOR_OLD_ID":          orchestratorOldID,
@@ -94,9 +96,12 @@ func TestReadOrchestratorEnv(t *testing.T) {
 	}
 
 	tests := []struct {
-		name        string
-		override    map[string]string
-		wantMissing string
+		name     string
+		override map[string]string
+		// wantErr is the sentinel the read fails with, and wantVar the variable
+		// its message names.
+		wantErr     error
+		wantVar     string
 		wantOldID   string
 		wantChain   string
 		wantCleanup bool
@@ -107,12 +112,23 @@ func TestReadOrchestratorEnv(t *testing.T) {
 			wantChain:   "chain-a,chain-b",
 			wantCleanup: true,
 		},
-		{name: "old ID missing", override: map[string]string{"WT_ORCHESTRATOR_OLD_ID": ""}, wantMissing: "WT_ORCHESTRATOR_OLD_ID"},
-		{name: "new image missing", override: map[string]string{"WT_ORCHESTRATOR_NEW_IMAGE": ""}, wantMissing: "WT_ORCHESTRATOR_NEW_IMAGE"},
 		{
-			name:        "original name missing",
-			override:    map[string]string{"WT_ORCHESTRATOR_ORIGINAL_NAME": ""},
-			wantMissing: "WT_ORCHESTRATOR_ORIGINAL_NAME",
+			name:     "old ID missing",
+			override: map[string]string{"WT_ORCHESTRATOR_OLD_ID": ""},
+			wantErr:  errOrchestratorMissingEnv,
+			wantVar:  "WT_ORCHESTRATOR_OLD_ID",
+		},
+		{
+			name:     "new image missing",
+			override: map[string]string{"WT_ORCHESTRATOR_NEW_IMAGE": ""},
+			wantErr:  errOrchestratorMissingEnv,
+			wantVar:  "WT_ORCHESTRATOR_NEW_IMAGE",
+		},
+		{
+			name:     "original name missing",
+			override: map[string]string{"WT_ORCHESTRATOR_ORIGINAL_NAME": ""},
+			wantErr:  errOrchestratorMissingEnv,
+			wantVar:  "WT_ORCHESTRATOR_ORIGINAL_NAME",
 		},
 		{
 			name:        "container chain is optional",
@@ -121,17 +137,34 @@ func TestReadOrchestratorEnv(t *testing.T) {
 			wantCleanup: true,
 		},
 		{
-			name:      "malformed cleanup value reads as false",
-			override:  map[string]string{"WT_ORCHESTRATOR_CLEANUP": "yes please"},
+			name:      "empty cleanup value reads as false",
+			override:  map[string]string{"WT_ORCHESTRATOR_CLEANUP": ""},
 			wantOldID: orchestratorOldID,
 			wantChain: "chain-a,chain-b",
 		},
 		{
-			name:        "old ID is not validated",
-			override:    map[string]string{"WT_ORCHESTRATOR_OLD_ID": "not-a-container-id"},
-			wantOldID:   "not-a-container-id",
-			wantChain:   "chain-a,chain-b",
-			wantCleanup: true,
+			name:     "malformed cleanup value",
+			override: map[string]string{"WT_ORCHESTRATOR_CLEANUP": "yes please"},
+			wantErr:  errOrchestratorInvalidEnv,
+			wantVar:  "WT_ORCHESTRATOR_CLEANUP",
+		},
+		{
+			name:     "old ID is not a container ID",
+			override: map[string]string{"WT_ORCHESTRATOR_OLD_ID": "not-a-container-id"},
+			wantErr:  errOrchestratorInvalidEnv,
+			wantVar:  "WT_ORCHESTRATOR_OLD_ID",
+		},
+		{
+			name:     "old ID is a short ID",
+			override: map[string]string{"WT_ORCHESTRATOR_OLD_ID": orchestratorOldID[:12]},
+			wantErr:  errOrchestratorInvalidEnv,
+			wantVar:  "WT_ORCHESTRATOR_OLD_ID",
+		},
+		{
+			name:     "old ID is uppercase",
+			override: map[string]string{"WT_ORCHESTRATOR_OLD_ID": strings.ToUpper(orchestratorOldID)},
+			wantErr:  errOrchestratorInvalidEnv,
+			wantVar:  "WT_ORCHESTRATOR_OLD_ID",
 		},
 	}
 
@@ -146,9 +179,9 @@ func TestReadOrchestratorEnv(t *testing.T) {
 			}
 
 			oldID, newImage, originalName, chain, cleanup, err := readOrchestratorEnv()
-			if tt.wantMissing != "" {
-				require.ErrorIs(t, err, errOrchestratorMissingEnv)
-				assert.Contains(t, err.Error(), tt.wantMissing)
+			if tt.wantErr != nil {
+				require.ErrorIs(t, err, tt.wantErr)
+				assert.Contains(t, err.Error(), tt.wantVar)
 
 				return
 			}

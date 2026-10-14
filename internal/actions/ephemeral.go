@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"regexp"
 	"strconv"
 	"time"
 
@@ -33,6 +34,8 @@ var (
 	errEphemeralOrchestratorFailed = errors.New("ephemeral orchestrator failed")
 	// errOrchestratorMissingEnv indicates a required environment variable is missing.
 	errOrchestratorMissingEnv = errors.New("missing orchestrator environment variable")
+	// errOrchestratorInvalidEnv indicates an environment variable holds a value Watchtower never writes.
+	errOrchestratorInvalidEnv = errors.New("invalid orchestrator environment variable")
 	// errOrchestratorOldContainerNotFound indicates the old container was not found.
 	errOrchestratorOldContainerNotFound = errors.New("old container not found")
 	// errOrchestratorStopFailed indicates a failure to stop the old container.
@@ -50,6 +53,10 @@ var (
 	// errNewContainerNotRunning indicates the new container is not running after start.
 	errNewContainerNotRunning = errors.New("new container is not running after start")
 )
+
+// fullContainerIDPattern matches a full container ID, the form the old
+// instance writes to WT_ORCHESTRATOR_OLD_ID.
+var fullContainerIDPattern = regexp.MustCompile(`^[a-f0-9]{64}$`)
 
 // EphemeralSelfUpdate performs a self-update using an ephemeral orchestrator container.
 //
@@ -268,14 +275,23 @@ func RunOrchestrator(log *zerolog.Logger, ctx context.Context, client container.
 //   - string: New image reference.
 //   - string: Original container name.
 //   - string: Container chain for lineage tracking.
-//   - bool: Whether old-image cleanup is enabled.
-//   - error: Non-nil if any required variable is missing.
+//   - bool: Whether old-image cleanup is enabled. An empty value means false.
+//   - error: Non-nil if a required variable is missing, the old ID is not a full
+//     container ID, or the cleanup value is not a boolean.
 func readOrchestratorEnv() (string, string, string, string, bool, error) {
 	oldID := os.Getenv("WT_ORCHESTRATOR_OLD_ID")
 	if oldID == "" {
 		return "", "", "", "", false, fmt.Errorf(
 			"%w: WT_ORCHESTRATOR_OLD_ID",
 			errOrchestratorMissingEnv,
+		)
+	}
+
+	if !fullContainerIDPattern.MatchString(oldID) {
+		return "", "", "", "", false, fmt.Errorf(
+			"%w: WT_ORCHESTRATOR_OLD_ID %q is not a full container ID",
+			errOrchestratorInvalidEnv,
+			oldID,
 		)
 	}
 
@@ -297,7 +313,20 @@ func readOrchestratorEnv() (string, string, string, string, bool, error) {
 
 	containerChain := os.Getenv("WT_ORCHESTRATOR_CONTAINER_CHAIN")
 
-	cleanup, _ := strconv.ParseBool(os.Getenv("WT_ORCHESTRATOR_CLEANUP"))
+	cleanup := false
+
+	if rawCleanup := os.Getenv("WT_ORCHESTRATOR_CLEANUP"); rawCleanup != "" {
+		parsed, err := strconv.ParseBool(rawCleanup)
+		if err != nil {
+			return "", "", "", "", false, fmt.Errorf(
+				"%w: WT_ORCHESTRATOR_CLEANUP: %w",
+				errOrchestratorInvalidEnv,
+				err,
+			)
+		}
+
+		cleanup = parsed
+	}
 
 	return oldID, newImage, originalName, containerChain, cleanup, nil
 }
