@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"fmt"
 	"strings"
+	"testing"
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/assert"
 
 	dockerContainer "github.com/moby/moby/api/types/container"
 	dockerMount "github.com/moby/moby/api/types/mount"
@@ -1386,3 +1388,21 @@ var _ = ginkgo.Describe("Container", func() {
 		ginkgo.Entry("trailing colon is not a mode", "app:", "app:", ""),
 	)
 })
+
+// TestContainer_Links_NoConfig verifies that a container without inspect
+// config data still reports its host-config dependencies instead of panicking.
+func TestContainer_Links_NoConfig(t *testing.T) {
+	t.Parallel()
+
+	c := &Container{
+		normalizedName: "app",
+		containerInfo: &dockerContainer.InspectResponse{
+			Name: "/app",
+			HostConfig: &dockerContainer.HostConfig{
+				NetworkMode: "container:vpn",
+			},
+		},
+	}
+
+	assert.Equal(t, []string{"vpn"}, c.Links(false))
+}

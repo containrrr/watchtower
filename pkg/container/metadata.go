@@ -511,6 +511,9 @@ func (c *Container) GetContainerChain() (string, bool) {
 //   - bool: True if watchtower label is "true", false otherwise.
 func (c *Container) IsWatchtower() bool {
 	info := c.ContainerInfo()
+	if info == nil || info.Config == nil {
+		return false
+	}
 
 	clogVal := c.logger().With().
 		Str("container", c.Name()).

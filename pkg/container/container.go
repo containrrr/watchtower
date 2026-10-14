@@ -1050,7 +1050,12 @@ func getLinksFromHostConfig(c *Container, clog *zerolog.Logger) []string {
 		return nil
 	}
 
-	projectName := compose.GetProjectName(info.Config.Labels)
+	var labels map[string]string
+	if info.Config != nil {
+		labels = info.Config.Labels
+	}
+
+	projectName := compose.GetProjectName(labels)
 
 	hostConfig := info.HostConfig
 
