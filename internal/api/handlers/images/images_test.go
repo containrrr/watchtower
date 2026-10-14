@@ -145,6 +145,26 @@ func TestListImageStatuses(t *testing.T) {
 			},
 		},
 		{
+			name: "multiple repositories uses the container's repository",
+			client: func(t *testing.T) *mockContainer.MockClient {
+				t.Helper()
+				c := mockContainer.NewMockClient(t)
+				container := mockTypes.NewMockContainer(t)
+				container.EXPECT().ImageName().Return("ghcr.io/org/app:latest")
+				container.EXPECT().ImageID().Return(types.ImageID("sha256:abc123"))
+				container.EXPECT().ImageInfo().Return(&image.InspectResponse{
+					RepoDigests: []string{"docker.io/org/app@sha256:hub", "ghcr.io/org/app@sha256:ghcr"},
+				})
+				c.EXPECT().ListContainers(mock.Anything).Return([]types.Container{container}, nil)
+
+				return c
+			},
+			filter: nil,
+			want: []ImageStatus{
+				{Name: "ghcr.io/org/app:latest", ImageID: "sha256:abc123", Digest: "sha256:ghcr", Containers: 1},
+			},
+		},
+		{
 			name: "client error returns wrapped error",
 			client: func(t *testing.T) *mockContainer.MockClient {
 				t.Helper()

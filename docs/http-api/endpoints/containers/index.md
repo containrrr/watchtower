@@ -47,7 +47,10 @@ The `/v1/containers` endpoint returns a JSON array of watched containers:
 - `name`: Container name
 - `image`: Image reference with tag
 - `image_id`: Local image config ID
-- `digest`: Registry manifest digest the image was pulled from (from the image's `RepoDigests`), directly comparable to a registry's `Docker-Content-Digest`. Empty for locally-built images with no registry reference.
+- `digest`: Registry manifest digest the image was pulled from
+      - Taken from the image's `RepoDigests` and comparable to a registry's `Docker-Content-Digest`
+      - For an image with digests from several repositories, the one for the container's image repository, or the first digest when none matches it
+      - Empty for locally built images with no registry reference
 
 !!! Note
     Combine endpoints in one allowlist (for example `containers,update,metrics`) via [`http-api-endpoints`](../../../configuration/http-api/index.md#http_api_endpoints).

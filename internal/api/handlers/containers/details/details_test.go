@@ -4,6 +4,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/moby/moby/api/types/image"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -137,6 +138,37 @@ func TestGetContainerDetails(t *testing.T) {
 			want: func(t *testing.T, details []ContainerDetails) {
 				t.Helper()
 				assert.False(t, details[0].Enabled)
+			},
+		},
+		{
+			name: "digest from the container's repository when the image has several",
+			client: func(t *testing.T) *mockContainer.MockClient {
+				t.Helper()
+				c := mockContainer.NewMockClient(t)
+				container := mockTypes.NewMockContainer(t)
+				container.EXPECT().Name().Return("app")
+				container.EXPECT().ImageName().Return("ghcr.io/org/app:latest")
+				container.EXPECT().ImageID().Return(types.ImageID("sha256:abc123"))
+				container.EXPECT().IsRunning().Return(true)
+				container.EXPECT().IsWatchtower().Return(false)
+				container.EXPECT().IsMonitorOnly(mock.Anything).Return(false)
+				container.EXPECT().IsNoPull(mock.Anything).Return(false)
+				container.EXPECT().Enabled().Return(false, false)
+				container.EXPECT().IsStale().Return(false)
+				container.EXPECT().Scope().Return("", true)
+				container.EXPECT().ImageInfo().Return(&image.InspectResponse{
+					RepoDigests: []string{"docker.io/org/app@sha256:hub", "ghcr.io/org/app@sha256:ghcr"},
+				})
+				c.EXPECT().ListContainers(mock.Anything).Return([]types.Container{container}, nil)
+
+				return c
+			},
+			params:  types.UpdateParams{},
+			wantErr: false,
+			wantLen: 1,
+			want: func(t *testing.T, details []ContainerDetails) {
+				t.Helper()
+				assert.Equal(t, "sha256:ghcr", details[0].Digest)
 			},
 		},
 		{

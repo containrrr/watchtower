@@ -3,7 +3,6 @@ package images
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/distribution/reference"
 
@@ -95,11 +94,8 @@ func ListImageStatuses(ctx context.Context, client container.Client, filter type
 			Containers: 1,
 		}
 
-		if info := c.ImageInfo(); info != nil && len(info.RepoDigests) > 0 {
-			_, digest, found := strings.Cut(info.RepoDigests[0], "@")
-			if found {
-				status.Digest = digest
-			}
+		if info := c.ImageInfo(); info != nil {
+			status.Digest = container.ExtractImageDigest(info.RepoDigests, imageName)
 		}
 
 		imageMap[key] = status

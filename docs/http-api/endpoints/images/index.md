@@ -27,7 +27,7 @@ The `/v1/images` endpoint returns a JSON object with image statuses:
 
 - `name`: Image name with tag
 - `image_id`: Local image config ID (sha256:...)
-- `digest`: Registry manifest digest (sha256:...). Empty for locally-built images.
+- `digest`: Registry manifest digest (sha256:...) for the repository in `name`, or the first digest when none matches it. Empty for locally-built images.
 - `containers`: Number of watched containers using this image
 
 ## Parameters
