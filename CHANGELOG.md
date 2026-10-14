@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Leave shutdown signal handling to the caller by @nicholas-fedor in [#2831](https://github.com/nicholas-fedor/watchtower/pull/2831)
 - Link changelogs for scp-style clone urls with any user by @nicholas-fedor in [#2825](https://github.com/nicholas-fedor/watchtower/pull/2825)
 - Handle containers without config data by @nicholas-fedor in [#2823](https://github.com/nicholas-fedor/watchtower/pull/2823)
 - Declare the apache 2.0 license in the swagger spec by @nicholas-fedor in [#2821](https://github.com/nicholas-fedor/watchtower/pull/2821)
