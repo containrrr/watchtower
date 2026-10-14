@@ -28,7 +28,8 @@ type ListFunc func(ctx context.Context) ([]Status, error)
 
 // filterStatuses filters a slice of statuses by name and image query parameters.
 func filterStatuses(statuses []Status, name, image string) []Status {
-	var filtered []Status
+	// Start empty so a filter that matches nothing encodes as [] rather than null.
+	filtered := make([]Status, 0, len(statuses))
 
 	for _, status := range statuses {
 		if name != "" && status.Name != name {

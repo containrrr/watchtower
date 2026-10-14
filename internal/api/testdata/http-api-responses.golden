@@ -123,7 +123,7 @@ header: Content-Type: application/json; charset=utf-8
 body:
 {
   "api_version": "v1",
-  "containers": null,
+  "containers": [],
   "count": 0,
   "timestamp": "<timestamp>"
 }
@@ -273,7 +273,7 @@ body:
 {
   "api_version": "v1",
   "count": 0,
-  "images": null,
+  "images": [],
   "timestamp": "<timestamp>"
 }
 

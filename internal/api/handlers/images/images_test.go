@@ -301,6 +301,7 @@ func Test_filterImages(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := filterImages(statuses, tt.nameF, tt.idF)
+			assert.NotNil(t, result, "an empty result encodes as a JSON array, not null")
 			assert.Len(t, result, tt.wantLen)
 		})
 	}

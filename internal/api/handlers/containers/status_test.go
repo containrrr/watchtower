@@ -271,6 +271,7 @@ func Test_filterStatuses(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := filterStatuses(tt.statuses, tt.nameFilter, tt.imageFilter)
+			assert.NotNil(t, got, "an empty result encodes as a JSON array, not null")
 			assert.Len(t, got, tt.wantLen)
 		})
 	}

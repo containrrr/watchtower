@@ -29,7 +29,8 @@ type ImageStatus struct {
 type ListFunc func(ctx context.Context) ([]ImageStatus, error)
 
 func filterImages(statuses []ImageStatus, name, imageID string) []ImageStatus {
-	var filtered []ImageStatus
+	// Start empty so a filter that matches nothing encodes as [] rather than null.
+	filtered := make([]ImageStatus, 0, len(statuses))
 
 	for _, status := range statuses {
 		if name != "" && status.Name != name {
