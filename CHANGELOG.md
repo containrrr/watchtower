@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Chores
 
+- Update module github.com/gofiber/fiber/v3 to v3.6.1 by @renovate[bot] in [#2827](https://github.com/nicholas-fedor/watchtower/pull/2827)
 - Update github.com/google/pprof digest to c3b4e57 by @renovate[bot] in [#2817](https://github.com/nicholas-fedor/watchtower/pull/2817)
 - Update golang.org/x/exp digest to f0251eb by @renovate[bot] in [#2818](https://github.com/nicholas-fedor/watchtower/pull/2818)
 - Update module github.com/gofiber/utils/v2 to v2.6.2 by @renovate[bot] in [#2815](https://github.com/nicholas-fedor/watchtower/pull/2815)
