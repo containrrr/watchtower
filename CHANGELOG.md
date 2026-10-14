@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Report the container's repository digest in image endpoints by @nicholas-fedor in [#2805](https://github.com/nicholas-fedor/watchtower/pull/2805)
+
 ### Chores
 
 - Update module github.com/microsoft/go-winio to v0.6.4 by @renovate[bot] in [#2802](https://github.com/nicholas-fedor/watchtower/pull/2802)
