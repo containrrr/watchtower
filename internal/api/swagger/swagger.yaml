@@ -68,8 +68,8 @@ info:
   description: Watchtower HTTP API for container update management, metrics, and health
     probes.
   license:
-    name: MIT
-    url: https://opensource.org/licenses/MIT
+    name: Apache-2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0
   title: Watchtower HTTP API
   version: "1.0"
 paths:

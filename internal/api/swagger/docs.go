@@ -20,8 +20,8 @@ const docTemplate = `{
             "url": "https://github.com/nicholas-fedor/watchtower"
         },
         "license": {
-            "name": "MIT",
-            "url": "https://opensource.org/licenses/MIT"
+            "name": "Apache-2.0",
+            "url": "https://www.apache.org/licenses/LICENSE-2.0"
         },
         "version": "{{.Version}}"
     },
