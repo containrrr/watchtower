@@ -21,6 +21,8 @@ header: Content-Type: text/plain; version=0.0.4; charset=utf-8; escaping=undersc
 # TYPE watchtower_docker_images_reclaimable_bytes gauge
 # HELP watchtower_metrics_dropped_total Number of metrics dropped due to full channel
 # TYPE watchtower_metrics_dropped_total counter
+# HELP watchtower_scans_failed_total Number of scans that ended in an error since watchtower started
+# TYPE watchtower_scans_failed_total counter
 # HELP watchtower_scans_skipped_total Number of skipped scans since watchtower started
 # TYPE watchtower_scans_skipped_total counter
 # HELP watchtower_scans_total Number of scans since the watchtower started

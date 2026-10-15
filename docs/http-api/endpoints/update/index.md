@@ -178,6 +178,7 @@ The `/v1/update` endpoint returns a JSON response containing the results of the 
 - `failed`: Number of containers where the update failed
 - `restarted`: Number of containers that were restarted due to linked dependencies
 - `skipped`: Number of containers that were skipped during the update
+- `scan_failed`: `true` when the update ended in an error. The counts are then those the update reached. Omitted otherwise
 
 ### Timing Section
 

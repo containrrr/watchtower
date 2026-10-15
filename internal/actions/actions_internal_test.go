@@ -184,13 +184,13 @@ var _ = ginkgo.Describe("restartStaleContainer", func() {
 })
 
 var _ = ginkgo.Describe("handleUpdateResult", func() {
-	ginkgo.It("should return zero metric when error is not nil and there is no report", func() {
+	ginkgo.It("should return a failed zero metric when error is not nil and there is no report", func() {
 		err := errors.New("test error")
 		result := handleUpdateResult(testLogger(), nil, err, nil)
-		gomega.Expect(result).To(gomega.Equal(&metrics.Metric{Scanned: 0, Updated: 0, Failed: 0}))
+		gomega.Expect(result).To(gomega.Equal(&metrics.Metric{ScanFailed: true}))
 	})
 
-	ginkgo.It("should return the partial report's counts when error is not nil", func() {
+	ginkgo.It("should return the partial report's counts, marked failed, when error is not nil", func() {
 		mockReport := mockTypes.NewMockReport(ginkgo.GinkgoT())
 		mockReport.EXPECT().Scanned().Return(make([]types.ContainerReport, 3))
 		mockReport.EXPECT().Updated().Return(make([]types.ContainerReport, 1))
@@ -200,14 +200,14 @@ var _ = ginkgo.Describe("handleUpdateResult", func() {
 
 		err := errors.New("rolling restart canceled")
 		result := handleUpdateResult(testLogger(), mockReport, err, nil)
-		gomega.Expect(result).To(gomega.Equal(&metrics.Metric{Scanned: 3, Updated: 1, Failed: 2}))
+		gomega.Expect(result).To(gomega.Equal(&metrics.Metric{Scanned: 3, Updated: 1, Failed: 2, ScanFailed: true}))
 	})
 
-	ginkgo.It("should return zero metric when result is nil", func() {
+	ginkgo.It("should return a failed zero metric when result is nil", func() {
 		var err error
 
 		result := handleUpdateResult(testLogger(), nil, err, nil)
-		gomega.Expect(result).To(gomega.Equal(&metrics.Metric{Scanned: 0, Updated: 0, Failed: 0}))
+		gomega.Expect(result).To(gomega.Equal(&metrics.Metric{ScanFailed: true}))
 	})
 
 	ginkgo.It("should return nil when result is not nil and error is nil", func() {
@@ -229,7 +229,7 @@ var _ = ginkgo.Describe("handleUpdateResult", func() {
 		result := handleUpdateResult(testLogger(), nil, err, mockNotifier)
 
 		// Verify we got the expected metric
-		gomega.Expect(result).To(gomega.Equal(&metrics.Metric{Scanned: 0, Updated: 0, Failed: 0}))
+		gomega.Expect(result).To(gomega.Equal(&metrics.Metric{ScanFailed: true}))
 	})
 
 	ginkgo.It("should send the partial report when error occurs after some work", func() {
@@ -253,7 +253,7 @@ var _ = ginkgo.Describe("handleUpdateResult", func() {
 		result := handleUpdateResult(testLogger(), nil, err, nil)
 
 		// Verify we got the expected metric
-		gomega.Expect(result).To(gomega.Equal(&metrics.Metric{Scanned: 0, Updated: 0, Failed: 0}))
+		gomega.Expect(result).To(gomega.Equal(&metrics.Metric{ScanFailed: true}))
 	})
 
 	ginkgo.It("should not send notification when there is no error", func() {

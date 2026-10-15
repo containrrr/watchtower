@@ -3,6 +3,7 @@ package update
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -1079,4 +1080,44 @@ func TestHandler_Handle_TimeoutOverride(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 	})
+}
+
+// TestHandler_Handle_SyncScanFailed verifies that a synchronous update reports
+// a failed run in its summary, and leaves the field out for a successful one.
+func TestHandler_Handle_SyncScanFailed(t *testing.T) {
+	tests := []struct {
+		name   string
+		metric *metrics.Metric
+		// want is the scan_failed value, or nil when the field is absent.
+		want any
+	}{
+		{name: "failed run", metric: &metrics.Metric{Scanned: 3, ScanFailed: true}, want: true},
+		{name: "successful run", metric: &metrics.Metric{Scanned: 3, Updated: 1}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			lock := make(chan bool, 1)
+			lock <- true
+
+			h := New(testLogger(), func(context.Context, []string, []string) *metrics.Metric { return tt.metric }, lock)
+			app := fiber.New(fiber.Config{})
+			app.Post("/v1/update", h.Handle)
+
+			resp, err := app.Test(httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/v1/update", nil))
+			require.NoError(t, err)
+
+			defer resp.Body.Close()
+
+			body, err := io.ReadAll(resp.Body)
+			require.NoError(t, err)
+
+			var got struct {
+				Summary map[string]any `json:"summary"`
+			}
+
+			require.NoError(t, json.Unmarshal(body, &got))
+			assert.Equal(t, tt.want, got.Summary["scan_failed"])
+		})
+	}
 }

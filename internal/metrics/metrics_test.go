@@ -9,6 +9,8 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	dto "github.com/prometheus/client_model/go"
 
@@ -696,8 +698,8 @@ func TestNewWithRegistry(t *testing.T) {
 				t.Fatalf("Failed to gather metrics: %v", err)
 			}
 
-			if len(metricFamilies) != 13 {
-				t.Errorf("Expected 13 metric families registered, got %d", len(metricFamilies))
+			if len(metricFamilies) != 14 {
+				t.Errorf("Expected 14 metric families registered, got %d", len(metricFamilies))
 			}
 
 			expectedNames := map[string]bool{
@@ -709,6 +711,7 @@ func TestNewWithRegistry(t *testing.T) {
 				"watchtower_containers_restarted_total":      true,
 				"watchtower_scans_total":                     true,
 				"watchtower_scans_skipped_total":             true,
+				"watchtower_scans_failed_total":              true,
 				"watchtower_metrics_dropped_total":           true,
 				"watchtower_docker_images_bytes":             true,
 				"watchtower_docker_images_reclaimable_bytes": true,
@@ -1327,4 +1330,47 @@ func TestSetImageDiskUsage(t *testing.T) {
 	if len(want) != 0 {
 		t.Errorf("missing metrics: %v", want)
 	}
+}
+
+// TestMetrics_FailedScans verifies that a failed scan increments the failed
+// scans counter as well as the scans counter, sets the gauges from its partial
+// counts, and is marked failed in the last scan and the history, while a
+// successful scan is not.
+func TestMetrics_FailedScans(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		m, err := NewWithRegistry(prometheus.NewRegistry())
+		require.NoError(t, err)
+
+		defer m.Shutdown()
+
+		m.Register(&Metric{Scanned: 4, Updated: 1})
+		m.Register(&Metric{Scanned: 2, Failed: 1, ScanFailed: true})
+		synctest.Wait()
+
+		assert.InDelta(t, 2, collectorValue(t, m.total), 0)
+		assert.InDelta(t, 1, collectorValue(t, m.failedScans), 0)
+		assert.InDelta(t, 2, collectorValue(t, m.scanned), 0)
+		assert.InDelta(t, 1, collectorValue(t, m.failed), 0)
+		assert.True(t, m.GetLastScan().ScanFailed)
+
+		history := m.GetHistory(nil, nil, 0)
+		require.Len(t, history, 2)
+		assert.False(t, history[0].ScanFailed)
+		assert.True(t, history[1].ScanFailed)
+	})
+}
+
+// collectorValue returns the current value of a counter or gauge.
+func collectorValue(t *testing.T, metric prometheus.Metric) float64 {
+	t.Helper()
+
+	var out dto.Metric
+
+	require.NoError(t, metric.Write(&out))
+
+	if out.GetCounter() != nil {
+		return out.GetCounter().GetValue()
+	}
+
+	return out.GetGauge().GetValue()
 }

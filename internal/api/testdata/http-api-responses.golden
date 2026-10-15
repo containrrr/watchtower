@@ -443,3 +443,62 @@ status: 202
 header: Content-Type: text/plain; charset=utf-8
 body:
 Accepted
+
+=== POST /v1/update
+status: 200
+header: Content-Type: application/json; charset=utf-8
+body:
+{
+  "api_version": "v1",
+  "summary": {
+    "failed": 0,
+    "restarted": 0,
+    "scan_failed": true,
+    "scanned": 5,
+    "skipped": 0,
+    "updated": 1
+  },
+  "timestamp": "<timestamp>",
+  "timing": {
+    "duration": "<duration>",
+    "duration_ms": 0
+  }
+}
+
+=== GET /v1/status
+status: 200
+header: Content-Type: application/json; charset=utf-8
+body:
+{
+  "api_version": "v1",
+  "summary": {
+    "failed": 0,
+    "restarted": 0,
+    "scan_failed": true,
+    "scanned": 5,
+    "skipped": 0,
+    "updated": 1
+  },
+  "timestamp": "<timestamp>"
+}
+
+=== GET /v1/history
+status: 200
+header: Content-Type: application/json; charset=utf-8
+body:
+{
+  "api_version": "v1",
+  "count": 1,
+  "entries": [
+    {
+      "timestamp": "<timestamp>",
+      "scanned": 5,
+      "updated": 1,
+      "failed": 0,
+      "restarted": 0,
+      "skipped": 0,
+      "scan_failed": true
+    }
+  ],
+  "timestamp": "<timestamp>"
+}

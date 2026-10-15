@@ -1,6 +1,8 @@
 package metrics
 
 import (
+	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -115,4 +117,41 @@ func TestStatusHandler_Handle_NilMetric(t *testing.T) {
 	defer resp.Body.Close()
 
 	assert.Equal(t, http.StatusNoContent, resp.StatusCode)
+}
+
+// TestStatusHandler_Handle_ScanFailed verifies that the status summary reports
+// a failed scan, and leaves the field out for a successful one.
+func TestStatusHandler_Handle_ScanFailed(t *testing.T) {
+	tests := []struct {
+		name   string
+		metric *metrics.Metric
+		// want is the scan_failed value, or nil when the field is absent.
+		want any
+	}{
+		{name: "failed scan", metric: &metrics.Metric{Scanned: 2, ScanFailed: true}, want: true},
+		{name: "successful scan", metric: &metrics.Metric{Scanned: 2}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h := NewStatusHandler(testLogger(), func() *metrics.Metric { return tt.metric })
+			app := fiber.New(fiber.Config{})
+			app.Get("/v1/status", h.Handle)
+
+			resp, err := app.Test(httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/v1/status", nil))
+			require.NoError(t, err)
+
+			defer resp.Body.Close()
+
+			body, err := io.ReadAll(resp.Body)
+			require.NoError(t, err)
+
+			var got struct {
+				Summary map[string]any `json:"summary"`
+			}
+
+			require.NoError(t, json.Unmarshal(body, &got))
+			assert.Equal(t, tt.want, got.Summary["scan_failed"])
+		})
+	}
 }

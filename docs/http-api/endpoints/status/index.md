@@ -28,6 +28,7 @@ The `/v1/status` endpoint returns a JSON scan summary:
 - `failed`: Number of containers where the update failed
 - `restarted`: Number of containers restarted
 - `skipped`: Number of containers skipped
+- `scan_failed`: `true` when the scan ended in an error. The counts are then those the scan reached. Omitted for other scans
 - `timestamp`: UTC timestamp of the last scan (RFC3339 format)
 
 If no scan has been performed yet, the endpoint returns HTTP 204 (No Content).

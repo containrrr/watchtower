@@ -108,14 +108,21 @@ func (h *StatusHandler) Handle(c fiber.Ctx) error {
 		return nil
 	}
 
+	summary := fiber.Map{
+		"scanned":   last.Scanned,
+		"updated":   last.Updated,
+		"failed":    last.Failed,
+		"restarted": last.Restarted,
+		"skipped":   last.Skipped,
+	}
+
+	// Report a failed scan, and leave the field out otherwise.
+	if last.ScanFailed {
+		summary["scan_failed"] = true
+	}
+
 	err := c.Status(http.StatusOK).JSON(fiber.Map{
-		"summary": fiber.Map{
-			"scanned":   last.Scanned,
-			"updated":   last.Updated,
-			"failed":    last.Failed,
-			"restarted": last.Restarted,
-			"skipped":   last.Skipped,
-		},
+		"summary":     summary,
 		"timestamp":   time.Now().UTC().Format(time.RFC3339),
 		"api_version": "v1",
 	})

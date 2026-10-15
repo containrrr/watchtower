@@ -437,8 +437,8 @@ func TestHTTPAPIResponses(t *testing.T) {
 		responseRequest{method: http.MethodPost, target: "/v1/update", token: fixtureAPIToken},
 	)
 
-	// The update records its scan asynchronously.
-	require.Eventually(t, func() bool { return store.GetLastScan() != nil }, probeTimeout, 10*time.Millisecond)
+	// The update records its scan asynchronously, and the history entry last.
+	require.Eventually(t, func() bool { return len(store.GetHistory(nil, nil, 0)) == 1 }, probeTimeout, 10*time.Millisecond)
 
 	recorder.record(t,
 		responseRequest{method: http.MethodGet, target: "/v1/status", token: fixtureAPIToken},
@@ -450,6 +450,25 @@ func TestHTTPAPIResponses(t *testing.T) {
 
 	// The asynchronous update returns its lock when it finishes.
 	require.Eventually(t, func() bool { return len(opts.UpdateLock) == 1 }, probeTimeout, 10*time.Millisecond)
+
+	// A scan that ends in an error is reported as failed, with the counts it
+	// reached, by the update, the status, and the history.
+	failedStore := newFixtureMetrics(t)
+	failedOpts := fixtureOptions(newFixtureClient(t), failedStore)
+	failedOpts.RunUpdatesWithNotifications = func(context.Context, types.Filter, types.UpdateParams) *metrics.Metric {
+		return &metrics.Metric{Scanned: 5, Updated: 1, Failed: 0, Restarted: 0, Skipped: 0, ScanFailed: true}
+	}
+
+	recorder.app = newFixtureApp(t, failedOpts)
+	recorder.record(t, responseRequest{method: http.MethodPost, target: "/v1/update", token: fixtureAPIToken})
+
+	require.Eventually(t, func() bool { return len(failedStore.GetHistory(nil, nil, 0)) == 1 }, probeTimeout,
+		10*time.Millisecond)
+
+	recorder.record(t,
+		responseRequest{method: http.MethodGet, target: "/v1/status", token: fixtureAPIToken},
+		responseRequest{method: http.MethodGet, target: "/v1/history", token: fixtureAPIToken},
+	)
 
 	golden.Assert(t, "http-api-responses", recorder.snapshot())
 }

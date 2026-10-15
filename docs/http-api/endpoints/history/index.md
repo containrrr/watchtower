@@ -61,6 +61,9 @@ The `/v1/history` endpoint returns a JSON object with scan history entries:
 }
 ```
 
+An entry for a scan that ended in an error also has `"scan_failed": true`, and its counts are those the scan reached.
+The field is omitted for other scans.
+
 ## HTTP Status Codes
 
 | Status Code | Description                                    |

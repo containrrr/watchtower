@@ -346,14 +346,21 @@ func (h *Handler) handleSync(c fiber.Ctx, images, containers []string, lockToken
 		return fiber.ErrInternalServerError
 	}
 
+	summary := fiber.Map{
+		"scanned":   metric.Scanned,
+		"updated":   metric.Updated,
+		"failed":    metric.Failed,
+		"restarted": metric.Restarted,
+		"skipped":   metric.Skipped,
+	}
+
+	// Report a failed scan, and leave the field out otherwise.
+	if metric.ScanFailed {
+		summary["scan_failed"] = true
+	}
+
 	err := c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"summary": fiber.Map{
-			"scanned":   metric.Scanned,
-			"updated":   metric.Updated,
-			"failed":    metric.Failed,
-			"restarted": metric.Restarted,
-			"skipped":   metric.Skipped,
-		},
+		"summary": summary,
 		"timing": fiber.Map{
 			"duration_ms": duration.Milliseconds(),
 			"duration":    duration.String(),

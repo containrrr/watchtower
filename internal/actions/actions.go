@@ -250,8 +250,8 @@ func (emptyReport) All() []types.ContainerReport       { return nil }
 //   - notifier: The notification system for sending error alerts. It may be nil.
 //
 // Returns:
-//   - *metrics.Metric: On error, the counts of the partial report, or a zero metric when there
-//     is none. A zero metric when result is nil without an error. Nil on success.
+//   - *metrics.Metric: A metric marked as a failed scan, with the counts of the partial report
+//     on error, or zero counts when there is no report. Nil on success.
 func handleUpdateResult(log *zerolog.Logger, result types.Report, err error, notifier types.Notifier) *metrics.Metric {
 	// Check for errors during update execution
 	if err != nil {
@@ -270,18 +270,17 @@ func handleUpdateResult(log *zerolog.Logger, result types.Report, err error, not
 			notifier.SendNotification(report)
 		}
 
-		return metrics.NewMetric(report)
+		metric := metrics.NewMetric(report)
+		metric.ScanFailed = true
+
+		return metric
 	}
 
 	// Check if update result is nil
 	if result == nil {
-		log.Debug().Msg("Update result is nil, returning zero metric")
+		log.Debug().Msg("Update result is nil, returning a failed zero metric")
 
-		return &metrics.Metric{
-			Scanned: 0,
-			Updated: 0,
-			Failed:  0,
-		}
+		return &metrics.Metric{ScanFailed: true}
 	}
 
 	return nil
