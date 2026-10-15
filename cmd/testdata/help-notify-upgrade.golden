@@ -43,7 +43,7 @@ Global Flags:
       --http-api-cors-origins strings               Comma-separated list of allowed CORS origins for cross-origin requests (e.g. https://app.example.com). If unset, CORS is disabled and only same-origin requests are allowed.
       --http-api-endpoints strings                  HTTP API endpoints to enable (health, update, metrics, containers, check, history, images, config, events, swagger), or "all". Comma- or space-separated. Empty disables the HTTP API.
       --http-api-events-token string                Sets an authentication token for the events SSE endpoint. Required when the events endpoint is enabled. Supports Bearer header and query parameter access_token (for browser EventSource)
-      --http-api-host string                        Host to bind the HTTP API to (default: empty, binds to all interfaces; allows empty or valid IP address)
+      --http-api-host string                        Host to bind the HTTP API to (default: empty, binds to all IPv4 interfaces; allows empty or valid IP address)
       --http-api-metrics                            Runs Watchtower with the Prometheus metrics API enabled (DEPRECATED: Use the http-api-endpoints configuration option instead.)
       --http-api-periodic-polls                     Also run periodic updates (specified with --interval and --schedule) if HTTP API is enabled
       --http-api-port string                        Port to bind the HTTP API to (default: 8080) (default "8080")

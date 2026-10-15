@@ -753,13 +753,197 @@ func TestGetAPIAddr_IPv6(t *testing.T) {
 	}
 }
 
-// listenTCP4 binds addr over IPv4 for a test.
-func listenTCP4(t *testing.T, addr string) (net.Listener, error) {
+// TestListen_AddressFamilies verifies the address families listen binds for
+// each kind of host. An IPv6 host binds that address, and the unspecified IPv6
+// address accepts IPv6 clients, and IPv4 clients where the system supports
+// dual-stack listeners. An unset or IPv4 host stays on IPv4, so the default
+// bind does not start accepting IPv6 clients.
+func TestListen_AddressFamilies(t *testing.T) {
+	tests := []struct {
+		name    string
+		address string
+		// needsIPv6 skips the case on hosts without an IPv6 loopback address.
+		needsIPv6 bool
+		// wantHost is the host the listener reports.
+		wantHost string
+		// reachable lists the loopback hosts that must accept a connection.
+		reachable []string
+		// dualStack also requires IPv4 clients to connect where the system
+		// supports dual-stack listeners.
+		dualStack bool
+		// unreachable lists the loopback hosts that must refuse a connection.
+		unreachable []string
+	}{
+		{
+			name:        "unset host",
+			address:     ":0",
+			wantHost:    "0.0.0.0",
+			reachable:   []string{"127.0.0.1"},
+			unreachable: []string{"::1"},
+		},
+		{
+			name:        "IPv4 unspecified",
+			address:     "0.0.0.0:0",
+			wantHost:    "0.0.0.0",
+			reachable:   []string{"127.0.0.1"},
+			unreachable: []string{"::1"},
+		},
+		{
+			name:      "IPv4 loopback",
+			address:   "127.0.0.1:0",
+			wantHost:  "127.0.0.1",
+			reachable: []string{"127.0.0.1"},
+		},
+		{
+			name:      "IPv4-mapped IPv6",
+			address:   "[::ffff:127.0.0.1]:0",
+			wantHost:  "127.0.0.1",
+			reachable: []string{"127.0.0.1"},
+		},
+		{
+			name:      "IPv6 loopback",
+			address:   "[::1]:0",
+			needsIPv6: true,
+			wantHost:  "::1",
+			reachable: []string{"::1"},
+		},
+		{
+			name:      "IPv6 unspecified",
+			address:   "[::]:0",
+			needsIPv6: true,
+			wantHost:  "::",
+			reachable: []string{"::1"},
+			dualStack: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.needsIPv6 {
+				requireIPv6Loopback(t)
+			}
+
+			ln, err := listen(t.Context(), tt.address, "", "")
+			require.NoError(t, err)
+
+			defer ln.Close()
+
+			host, port, err := net.SplitHostPort(ln.Addr().String())
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantHost, host)
+
+			reachable := tt.reachable
+			if tt.dualStack && supportsDualStack(t) {
+				reachable = append(reachable, "127.0.0.1")
+			}
+
+			var dialer net.Dialer
+
+			for _, client := range reachable {
+				conn, err := dialer.DialContext(t.Context(), "tcp", net.JoinHostPort(client, port))
+				if assert.NoError(t, err, "a client on %s could not connect", client) {
+					_ = conn.Close()
+				}
+			}
+
+			for _, client := range tt.unreachable {
+				conn, err := dialer.DialContext(t.Context(), "tcp", net.JoinHostPort(client, port))
+				if err == nil {
+					_ = conn.Close()
+				}
+
+				assert.Error(t, err, "a client on %s connected", client)
+			}
+		})
+	}
+}
+
+// TestSetupAndStartAPI_IPv6Host verifies that the API serves requests on an
+// IPv6 host and releases the socket when canceled.
+func TestSetupAndStartAPI_IPv6Host(t *testing.T) {
+	requireIPv6Loopback(t)
+
+	ln, err := listenTCP(t, "[::1]:0")
+	require.NoError(t, err)
+
+	addr := ln.Addr().String()
+	require.NoError(t, ln.Close())
+
+	host, port, err := net.SplitHostPort(addr)
+	require.NoError(t, err)
+
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+
+	opts := withTestLogger(config.Options{
+		Host:            host,
+		Port:            port,
+		EnableHealthAPI: true,
+		RateLimit:       60,
+	})
+
+	require.NoError(t, SetupAndStartAPI(ctx, opts))
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://"+addr+"/livez", nil)
+	require.NoError(t, err)
+
+	resp, err := http.DefaultClient.Do(req)
+	require.NoError(t, err)
+	require.NoError(t, resp.Body.Close())
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	cancel()
+	requireAddrReleased(t, addr)
+}
+
+// requireIPv6Loopback skips the test on hosts without an IPv6 loopback
+// address, such as containers with IPv6 disabled.
+func requireIPv6Loopback(t *testing.T) {
+	t.Helper()
+
+	ln, err := listenTCP(t, "[::1]:0")
+	if err != nil {
+		t.Skipf("IPv6 loopback unavailable: %v", err)
+	}
+
+	_ = ln.Close()
+}
+
+// supportsDualStack reports whether a TCP listener on the unspecified IPv6
+// address also accepts IPv4 clients on this system. OpenBSD and DragonFly BSD,
+// for example, keep such a listener IPv6 only.
+func supportsDualStack(t *testing.T) bool {
+	t.Helper()
+
+	ln, err := listenTCP(t, "[::]:0")
+	if err != nil {
+		return false
+	}
+
+	defer ln.Close()
+
+	_, port, err := net.SplitHostPort(ln.Addr().String())
+	require.NoError(t, err)
+
+	var dialer net.Dialer
+
+	conn, err := dialer.DialContext(t.Context(), "tcp4", net.JoinHostPort("127.0.0.1", port))
+	if err != nil {
+		return false
+	}
+
+	_ = conn.Close()
+
+	return true
+}
+
+// listenTCP binds addr for a test, over the address family of its host.
+func listenTCP(t *testing.T, addr string) (net.Listener, error) {
 	t.Helper()
 
 	var listenConfig net.ListenConfig
 
-	return listenConfig.Listen(t.Context(), "tcp4", addr)
+	return listenConfig.Listen(t.Context(), "tcp", addr)
 }
 
 // freeAddr returns a local IPv4 address with a port that was free when it
@@ -767,7 +951,7 @@ func listenTCP4(t *testing.T, addr string) (net.Listener, error) {
 func freeAddr(t *testing.T) string {
 	t.Helper()
 
-	ln, err := listenTCP4(t, "127.0.0.1:0")
+	ln, err := listenTCP(t, "127.0.0.1:0")
 	require.NoError(t, err)
 
 	addr := ln.Addr().String()
@@ -782,7 +966,7 @@ func requireAddrReleased(t *testing.T, addr string) {
 	t.Helper()
 
 	require.Eventually(t, func() bool {
-		ln, err := listenTCP4(t, addr)
+		ln, err := listenTCP(t, addr)
 		if err != nil {
 			return false
 		}
@@ -871,7 +1055,7 @@ func TestSetupAndStartAPI_StartupMessageAfterBind(t *testing.T) {
 
 		opts := blockingOpts(addr, func(logging.StartupParams) {
 			// Binding the address fails while the API holds it.
-			ln, err := listenTCP4(t, addr)
+			ln, err := listenTCP(t, addr)
 			if err == nil {
 				_ = ln.Close()
 			}
@@ -900,7 +1084,7 @@ func TestSetupAndStartAPI_StartupMessageAfterBind(t *testing.T) {
 	})
 
 	t.Run("address in use", func(t *testing.T) {
-		taken, err := listenTCP4(t, "127.0.0.1:0")
+		taken, err := listenTCP(t, "127.0.0.1:0")
 		require.NoError(t, err)
 
 		defer taken.Close()

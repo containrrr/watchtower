@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/netip"
 	"strings"
 	"time"
 
@@ -312,7 +313,8 @@ func runServer(
 
 // listen binds the API socket, wrapping it in TLS when a certificate is set.
 //
-// It binds IPv4 and requires TLS 1.2 or later, as Fiber's Listen does by default.
+// It binds the network that listenNetwork chooses for the address and
+// requires TLS 1.2 or later, as Fiber's Listen does by default.
 //
 // Parameters:
 //   - ctx: Context for the bind.
@@ -340,7 +342,7 @@ func listen(ctx context.Context, address, tlsCertPath, tlsKeyPath string) (net.L
 
 	listenConfig := net.ListenConfig{}
 
-	listener, err := listenConfig.Listen(ctx, fiber.NetworkTCP4, address)
+	listener, err := listenConfig.Listen(ctx, listenNetwork(address), address)
 	if err != nil {
 		return nil, fmt.Errorf("listen on %s: %w", address, err)
 	}
@@ -350,6 +352,33 @@ func listen(ctx context.Context, address, tlsCertPath, tlsKeyPath string) (net.L
 	}
 
 	return listener, nil
+}
+
+// listenNetwork returns the network to bind address on.
+//
+// An IPv6 host binds on "tcp", so the unspecified address "::" accepts IPv6
+// clients, and also IPv4 clients on systems that support IPv4-mapped IPv6
+// addresses, such as Linux, macOS and Windows. Any other host, including an
+// unset one or an IPv4-mapped address, binds on "tcp4" and accepts IPv4
+// clients only, as Fiber does by default.
+//
+// Parameters:
+//   - address: Address to listen on.
+//
+// Returns:
+//   - string: The Fiber network name.
+func listenNetwork(address string) string {
+	host, _, err := net.SplitHostPort(address)
+	if err != nil {
+		return fiber.NetworkTCP4
+	}
+
+	ip, err := netip.ParseAddr(host)
+	if err != nil || !ip.Is6() || ip.Is4In6() {
+		return fiber.NetworkTCP4
+	}
+
+	return fiber.NetworkTCP
 }
 
 // stopServer shuts the app down and closes its listener.

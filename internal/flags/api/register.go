@@ -56,7 +56,7 @@ func Specs() []spec.FlagSpec {
 			Kind:    spec.KindString,
 			Default: "",
 			EnvKeys: []string{"WATCHTOWER_HTTP_API_HOST"},
-			Help:    "Host to bind the HTTP API to (default: empty, binds to all interfaces; allows empty or valid IP address)",
+			Help:    "Host to bind the HTTP API to (default: empty, binds to all IPv4 interfaces; allows empty or valid IP address)",
 		},
 		{
 			Name:    "http-api-port",
