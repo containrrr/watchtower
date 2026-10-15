@@ -184,7 +184,9 @@ func newDependencyGraph(
 					continue
 				}
 
-				if isMember {
+				// Several links can name the same container, such as a Compose
+				// depends_on entry and the network mode of the same service.
+				if isMember && !slices.Contains(graph.dependencies[c], key) {
 					graph.dependencies[c] = append(graph.dependencies[c], key)
 				}
 

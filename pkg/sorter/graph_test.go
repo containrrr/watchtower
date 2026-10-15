@@ -225,8 +225,8 @@ func TestDependencyGraph_CycleMembersLinkSources(t *testing.T) {
 			want: []string{"app", "data"},
 		},
 		{
-			// A depends-on label replaces the other link sources, except
-			// volumes-from, which is always a dependency.
+			// A depends-on label does not hide volumes-from, which is always
+			// a dependency.
 			name: "volumes-from beside a depends-on label",
 			containers: deploy(
 				deployed{name: "app", dependsOn: "db", volumesFrom: []string{"data"}},
@@ -930,4 +930,61 @@ func TestSortByDependencies_DoesNotLogDependencies(t *testing.T) {
 
 	require.NoError(t, SortByDependencies(&log, containers, false))
 	assert.NotContains(t, out.String(), "Found container dependencies")
+}
+
+// TestDependencyGraph_HostConfigBesideLabels verifies that a container is
+// ordered after its network-mode and legacy-link targets even when a label
+// names other dependencies, and that a target named by two link sources is a
+// single dependency.
+func TestDependencyGraph_HostConfigBesideLabels(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name       string
+		containers []types.Container
+		// useComposeDependsOn includes Compose depends_on labels as links.
+		useComposeDependsOn bool
+		// want lists the edges as dependent->dependency.
+		want []string
+	}{
+		{
+			name: "depends-on label beside network mode",
+			containers: deploy(
+				deployed{name: "app", dependsOn: "db", networkMode: "container:vpn"},
+				deployed{name: "db"},
+				deployed{name: "vpn"},
+			),
+			want: []string{"app->db", "app->vpn"},
+		},
+		{
+			name: "depends-on label beside a legacy link",
+			containers: deploy(
+				deployed{name: "app", dependsOn: "db", links: []string{"cache:cache"}},
+				deployed{name: "db"},
+				deployed{name: "cache"},
+			),
+			want: []string{"app->db", "app->cache"},
+		},
+		{
+			// Compose adds a depends_on for a service whose network it uses.
+			name: "Compose depends_on and network mode naming the same container",
+			containers: deploy(
+				deployed{
+					name: "shop-app-1", project: "shop", service: "app", number: "1",
+					composeDependsOn: "vpn:service_started:false", networkMode: "container:shop-vpn-1",
+				},
+				deployed{name: "shop-vpn-1", project: "shop", service: "vpn", number: "1"},
+			),
+			useComposeDependsOn: true,
+			want:                []string{"shop-app-1->shop-vpn-1"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			assert.ElementsMatch(t, tt.want, graphEdges(t, tt.containers, nil, tt.useComposeDependsOn))
+		})
+	}
 }

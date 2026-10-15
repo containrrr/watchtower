@@ -702,15 +702,18 @@ func filterSelfReferences(links []string, containerName string) []string {
 
 // Links returns a list of container names this container depends on.
 //
-// It retrieves dependencies from multiple sources in priority order:
+// Label dependencies come from one label, in priority order:
 //  1. com.centurylinklabs.watchtower.depends-on label (Watchtower's native dependency format)
 //  2. com.docker.compose.depends_on label (Docker Compose dependencies via v5 API)
-//  3. HostConfig.Links (legacy Docker links)
-//  4. NetworkMode.ConnectedContainer() (container network mode dependencies)
 //
-// HostConfig.VolumesFrom identities are always appended after those sources.
-// Duplicates are skipped. Label selection does not hide volumes-from, because
-// recreate must still order the volume source before this container.
+// The host config dependencies are always appended after them, because the
+// container cannot run without their targets:
+//  1. HostConfig.Links (legacy Docker links)
+//  2. NetworkMode.ConnectedContainer() (container network mode dependencies)
+//  3. HostConfig.VolumesFrom identities
+//
+// Duplicates are skipped, so a target named by a label and by the host config
+// appears once, in the label's position.
 //
 // Self-references are filtered out from all link sources to prevent circular
 // dependencies where a container would depend on itself. This ensures the
@@ -734,13 +737,10 @@ func (c *Container) Links(useComposeDependsOn bool) []string {
 		}
 	}
 
-	if links == nil {
-		// No label dependencies. Use HostConfig links and network mode.
-		links = getLinksFromHostConfig(c)
-	}
-
-	// Always append volumes-from identities. Label selection must not hide the
-	// volume source, or recreate can still target a removed container ID.
+	// Always append the host config dependencies. A label must not hide the
+	// container whose network or volumes this container uses, or the target
+	// can be recreated while this container still uses it.
+	links = appendUniqueLinks(links, getLinksFromHostConfig(c))
 	links = appendUniqueLinks(links, volumesFromLinks(c))
 
 	return filterSelfReferences(links, c.Name())

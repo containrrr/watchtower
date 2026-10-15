@@ -1463,3 +1463,76 @@ func TestContainer_Links_DoesNotLog(t *testing.T) {
 		})
 	}
 }
+
+// TestContainer_Links_HostConfigAlwaysCounts verifies that network mode and
+// legacy link targets are dependencies even when a depends-on label or a
+// Compose depends_on label names other dependencies, as volumes-from targets
+// are. Label dependencies come first and duplicates are dropped.
+func TestContainer_Links_HostConfigAlwaysCounts(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name                string
+		labels              map[string]string
+		networkMode         dockerContainer.NetworkMode
+		links               []string
+		volumesFrom         []string
+		useComposeDependsOn bool
+		want                []string
+	}{
+		{
+			name:        "depends-on label and network mode",
+			labels:      map[string]string{dependsOnLabel: "db"},
+			networkMode: "container:vpn",
+			want:        []string{"db", "vpn"},
+		},
+		{
+			name:   "depends-on label and legacy link",
+			labels: map[string]string{dependsOnLabel: "db"},
+			links:  []string{"/cache:/app/cache"},
+			want:   []string{"db", "cache"},
+		},
+		{
+			name:        "depends-on label, network mode, legacy link, and volumes-from",
+			labels:      map[string]string{dependsOnLabel: "db"},
+			networkMode: "container:vpn",
+			links:       []string{"/cache:/app/cache"},
+			volumesFrom: []string{"data:ro"},
+			want:        []string{"db", "cache", "vpn", "data"},
+		},
+		{
+			name: "compose depends_on label and network mode",
+			labels: map[string]string{
+				compose.ComposeDependsOnLabel: "db:service_started:false",
+				compose.ComposeProjectLabel:   "shop",
+			},
+			networkMode:         "container:vpn",
+			useComposeDependsOn: true,
+			want:                []string{"shop-db", "vpn"},
+		},
+		{
+			name:        "network mode naming a label dependency",
+			labels:      map[string]string{dependsOnLabel: "vpn"},
+			networkMode: "container:vpn",
+			want:        []string{"vpn"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			c := NewContainer(nil, &dockerContainer.InspectResponse{
+				Name:   "/app",
+				Config: &dockerContainer.Config{Labels: tt.labels},
+				HostConfig: &dockerContainer.HostConfig{
+					NetworkMode: tt.networkMode,
+					Links:       tt.links,
+					VolumesFrom: tt.volumesFrom,
+				},
+			}, nil)
+
+			assert.Equal(t, tt.want, c.Links(tt.useComposeDependsOn))
+		})
+	}
+}

@@ -20,11 +20,21 @@ This ensures that dependent services are stopped before their dependencies are u
 
 ### Dependency Detection
 
-Watchtower detects container dependencies through multiple mechanisms, checked in the following priority order:
+Watchtower detects container dependencies from labels and from each container's Docker configuration.
+
+Labels are checked in the following priority order, and only the first one present is used:
 
 1. **Watchtower depends-on label** (`com.centurylinklabs.watchtower.depends-on`)
 2. **Docker Compose depends_on label** (`com.docker.compose.depends_on`)
-3. **Docker links and network mode** (legacy Docker linking and `network_mode: service:container`)
+
+An empty Watchtower depends-on label counts as absent, so the Docker Compose depends_on label is used instead when Compose detection is enabled.
+
+The Docker configuration always counts as well, whichever label is present:
+
+- **Docker links and network mode** (legacy Docker linking, `network_mode: service:<service-name>`, and `network_mode: container:<name-or-id>`)
+- **Volumes from another container** (`volumes_from` in Compose, `--volumes-from` in the Docker CLI)
+
+A container named by both a label and the Docker configuration is a single dependency.
 
 #### Watchtower Depends-On Label
 
@@ -82,15 +92,18 @@ The `com.docker.compose.depends_on` label is automatically set by Docker Compose
 
 #### Docker Links and Network Mode
 
-For legacy Docker setups using links or `network_mode: service:container`, Watchtower treats these as implicit dependencies:
+For legacy Docker links, and for containers that use another container's network (`network_mode: service:<service-name>` or `network_mode: container:<name-or-id>` in Compose, `--network container:<name-or-id>` in the Docker CLI), Watchtower treats these as implicit dependencies:
 
 ```dockerfile title="Legacy Docker linking"
 # Container with explicit link
 docker run --link database:db nginx
 
-# Container using service network mode
-docker run --network container:database nginx
+# Container using another container's network
+docker run --network container:<name-or-id> nginx
 ```
+
+These count as dependencies even when a depends-on or Compose `depends_on` label names other containers, because the container cannot run without the container whose network it uses.
+The same applies to `volumes_from` (`--volumes-from`): the container is always ordered after the container whose volumes it uses.
 
 ### Topological Sorting
 
@@ -145,7 +158,8 @@ In most cases, no additional configuration is required. Watchtower automatically
 
 - Docker Compose `depends_on` declarations
 - Existing Docker links
-- `network_mode: service:container` configurations
+- `network_mode: service:<service-name>` and `network_mode: container:<name-or-id>` configurations
+- `volumes_from` configurations
 
 !!! Note "Docker Compose Considerations"
     When using Docker Compose, Watchtower leverages `depends_on` declarations for dependency detection. Dependencies are resolved using service names, not container names. Ensure your `depends_on` references service names correctly.
@@ -180,7 +194,8 @@ This disables parsing of the `com.docker.compose.depends_on` label while still h
 
 - Watchtower's explicit `com.centurylinklabs.watchtower.depends-on` label
 - Legacy Docker links
-- Network mode dependencies (`network_mode: service:container`)
+- Network mode dependencies (`network_mode: service:<service-name>` and `network_mode: container:<name-or-id>`)
+- Volumes from another container (`volumes_from`)
 
 ### Explicit Dependencies
 
@@ -329,7 +344,7 @@ For applications using traditional Docker linking:
 
 ### Network Mode Dependencies
 
-Containers using `network_mode: service:container`:
+Containers using `network_mode: service:<service-name>`:
 
 === "Docker Compose"
 
@@ -392,9 +407,7 @@ watchtower --debug
 
 Look for log messages like:
 
-- "Retrieved links from watchtower depends-on label"
-- "Retrieved links from compose depends-on label"
-- "Completed dependency sort"
+- "Found container dependencies", which lists each container's dependencies once per scan
 
 ### Debugging Commands
 
