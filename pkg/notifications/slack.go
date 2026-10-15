@@ -2,6 +2,7 @@ package notifications
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/nicholas-fedor/shoutrrr/pkg/services/chat/discord"
@@ -22,6 +23,22 @@ import (
 //
 //nolint:godox
 const slackType = "slack"
+
+// slackWebhookChannel is the shoutrrr Slack channel that posts to the
+// webhook's own channel.
+const slackWebhookChannel = "webhook"
+
+// slackChannelNotConvertedMessage is logged when a legacy Slack channel cannot
+// be carried into the shoutrrr URL.
+const slackChannelNotConvertedMessage = "Legacy Slack channel is not a channel ID, so the webhook's own channel is used"
+
+// slackChannelIDPattern matches a Slack conversation ID, such as C8UJ12P4P.
+//
+// Slack conversation IDs start with C, G, or D and use uppercase letters and
+// digits. Channel names are always lowercase, so a name never matches. A
+// shoutrrr Slack URL holds the channel as its host, which can carry an ID but
+// not a #name or @user.
+var slackChannelIDPattern = regexp.MustCompile(`^[CGD][A-Z0-9]{8,}$`)
 
 // slackTypeNotifier handles Slack notifications via webhook.
 //
@@ -147,7 +164,7 @@ func (s *slackTypeNotifier) GetURL(_ *cobra.Command) (string, error) {
 	conf := &slack.Config{
 		BotName: s.Username,
 		Color:   ColorHex,
-		Channel: "webhook",
+		Channel: s.webhookChannel(),
 	}
 
 	if s.IconURL != "" {
@@ -174,4 +191,29 @@ func (s *slackTypeNotifier) GetURL(_ *cobra.Command) (string, error) {
 	}
 
 	return urlStr, nil
+}
+
+// webhookChannel returns the channel for the shoutrrr Slack URL.
+//
+// A legacy channel given as a Slack conversation ID is carried over, which a
+// legacy custom-integration webhook uses as its channel override. Any other
+// value cannot be held in the URL, so the webhook's own channel is used and a
+// warning names the value.
+//
+// Returns:
+//   - string: The channel ID, or the webhook placeholder for the webhook's own channel.
+func (s *slackTypeNotifier) webhookChannel() string {
+	if s.Channel == "" {
+		return slackWebhookChannel
+	}
+
+	if slackChannelIDPattern.MatchString(s.Channel) {
+		return s.Channel
+	}
+
+	s.log.Warn().
+		Str("channel", s.Channel).
+		Msg(slackChannelNotConvertedMessage)
+
+	return slackWebhookChannel
 }

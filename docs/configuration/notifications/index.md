@@ -373,7 +373,9 @@ Environment Variable: WATCHTOWER_NOTIFICATION_SLACK_IDENTIFIER
 
 #### Slack Channel
 
-A string which overrides the webhook's default channel (optional).
+A Slack channel ID, such as `C0123456789`, which overrides the default channel of a legacy custom-integration webhook (optional).
+Slack ignores this override for webhooks created by a Slack app, which always post to the channel chosen when the webhook was created.
+A channel name such as `#ops` or a user such as `@alice` cannot be carried into the Shoutrrr URL, so Watchtower logs a warning and posts to the webhook's own channel.
 
 ```text
             Argument: --notification-slack-channel

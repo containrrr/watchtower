@@ -92,7 +92,7 @@ Flags:
       --notification-msteams-hook string            The MSTeams WebHook URL to send notifications to (DEPRECATED: Use --notification-url with a teams:// URL.)
       --notification-report                         Use the session report as the notification template data
       --notification-skip-title                     Do not pass the title param to notifications
-      --notification-slack-channel string           A string which overrides the webhook's default channel. Example: #my-custom-channel (DEPRECATED: Use --notification-url with a slack:// or discord:// URL.)
+      --notification-slack-channel string           A Slack channel ID which overrides the default channel of a legacy webhook. Example: C0123456789 (DEPRECATED: Use --notification-url with a slack:// or discord:// URL.)
       --notification-slack-hook-url string          The Slack Hook URL to send notifications to (DEPRECATED: Use --notification-url with a slack:// or discord:// URL.)
       --notification-slack-icon-emoji string        An emoji code string to use in place of the default icon (DEPRECATED: Use --notification-url with a slack:// or discord:// URL.)
       --notification-slack-icon-url string          An icon image URL string to use in place of the default icon (DEPRECATED: Use --notification-url with a slack:// or discord:// URL.)

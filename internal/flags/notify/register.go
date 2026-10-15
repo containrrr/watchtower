@@ -199,7 +199,7 @@ func Specs() []spec.FlagSpec {
 			Default:    "",
 			EnvKeys:    []string{"WATCHTOWER_NOTIFICATION_SLACK_CHANNEL"},
 			Deprecated: "Use --notification-url with a slack:// or discord:// URL.",
-			Help:       "A string which overrides the webhook's default channel. Example: #my-custom-channel",
+			Help:       "A Slack channel ID which overrides the default channel of a legacy webhook. Example: C0123456789",
 		},
 		{
 			Name:       "notification-slack-icon-emoji",

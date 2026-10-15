@@ -638,4 +638,4 @@ cat "${OUTPUT}"
 !!! Important
     - The service must already be defined in `docker-compose.yaml` with your legacy notification environment variables. The script assumes the service name defaults to `watchtower`.
     - The command will self-cleanup after 5 minutes or when the script exits.
-    - Slack channel customization is not preserved by `notify-upgrade`. The generated URL always uses the default `webhook` channel. If you need a custom channel, then manually edit the resulting Shoutrrr URL after migration.
+    - `notify-upgrade` keeps a Slack channel only when it is a Slack channel ID, such as `C0123456789`. A channel name such as `#ops` or a user such as `@alice` cannot be carried into the Shoutrrr URL, so the generated URL uses the webhook's own channel and `notify-upgrade` logs a warning. Webhooks created by a Slack app always post to their own channel.
