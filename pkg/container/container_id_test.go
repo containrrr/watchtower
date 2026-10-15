@@ -795,3 +795,47 @@ func TestParseContainerIDFromMountinfo_Layouts(t *testing.T) {
 		})
 	}
 }
+
+// TestParseContainerIDFromCgroupString_Layouts verifies the container ID is
+// read from cgroup paths under both the cgroupfs and the systemd cgroup
+// drivers, for Docker and Podman, and not from paths without a full ID.
+func TestParseContainerIDFromCgroupString_Layouts(t *testing.T) {
+	t.Parallel()
+
+	const id = "3f4e2b1a9c8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f"
+
+	tests := []struct {
+		name   string
+		cgroup string
+		want   types.ContainerID
+	}{
+		{name: "cgroupfs driver", cgroup: "12:memory:/docker/" + id, want: id},
+		{name: "systemd driver on cgroup v1", cgroup: "1:name=systemd:/system.slice/docker-" + id + ".scope", want: id},
+		{name: "systemd driver on cgroup v2", cgroup: "0::/system.slice/docker-" + id + ".scope", want: id},
+		{name: "Podman under systemd", cgroup: "0::/machine.slice/libpod-" + id + ".scope", want: id},
+		{
+			name:   "Podman under systemd with a nested container cgroup",
+			cgroup: "0::/machine.slice/libpod-" + id + ".scope/container",
+			want:   id,
+		},
+		{name: "namespaced cgroup v2", cgroup: "0::/"},
+		{name: "scope without a full ID", cgroup: "0::/system.slice/docker-compose-app.scope"},
+		{name: "short ID in a scope", cgroup: "0::/system.slice/docker-" + id[:12] + ".scope"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, err := ParseContainerIDFromCgroupString(testLog(), tt.cgroup)
+			if tt.want == "" {
+				require.ErrorIs(t, err, errNoValidContainerID)
+
+				return
+			}
+
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}

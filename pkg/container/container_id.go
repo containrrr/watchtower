@@ -28,6 +28,11 @@ var (
 	// dockerContainerPattern matches a cgroup file line, in the form
 	// hierarchy-ID:controllers:path, whose path holds Docker's /docker/<id>.
 	dockerContainerPattern = regexp.MustCompile(`[0-9]+:.*:/docker/([a-f0-9]{64})`)
+	// scopeContainerPattern matches a cgroup file line whose path ends in the
+	// systemd scope of a container: docker-<id>.scope for Docker and
+	// libpod-<id>.scope for Podman, as used with the systemd cgroup driver.
+	// The scope may be followed by a nested cgroup.
+	scopeContainerPattern = regexp.MustCompile(`[0-9]+:.*:.*/(?:docker|libpod)-([a-f0-9]{64})\.scope(?:/|$)`)
 	// containerIDPattern matches the container directory in a mount root:
 	// /containers/<id> for Docker and /overlay-containers/<id> for Podman.
 	// The ID must end the directory name.
@@ -248,7 +253,7 @@ func ExtractContainerIDFromPath(path string) types.ContainerID {
 }
 
 // GetContainerIDFromCgroupFile retrieves the container ID from /proc/<pid>/cgroup.
-// Uses the cgroup file to find Docker container paths.
+// Uses the cgroup file to find Docker and Podman container paths.
 func GetContainerIDFromCgroupFile(log *zerolog.Logger) (types.ContainerID, error) {
 	filePath := fmt.Sprintf("/proc/%d/cgroup", os.Getpid())
 
@@ -280,6 +285,10 @@ func GetContainerIDFromCgroupFile(log *zerolog.Logger) (types.ContainerID, error
 }
 
 // ParseContainerIDFromCgroupString parses the cgroup string to extract container ID.
+//
+// It reads the ID from a Docker path under the cgroupfs driver, /docker/<id>,
+// or from a container's systemd scope under the systemd driver,
+// docker-<id>.scope for Docker or libpod-<id>.scope for Podman.
 func ParseContainerIDFromCgroupString(log *zerolog.Logger, cgroupString string) (types.ContainerID, error) {
 	var lines iter.Seq[string]
 	if strings.Contains(cgroupString, "\n") {
@@ -294,11 +303,13 @@ func ParseContainerIDFromCgroupString(log *zerolog.Logger, cgroupString string) 
 		trimmedLine := strings.TrimRight(line, "\n")
 
 		matches := dockerContainerPattern.FindStringSubmatch(trimmedLine)
+		if len(matches) < minMatchGroups {
+			matches = scopeContainerPattern.FindStringSubmatch(trimmedLine)
+		}
 
 		log.Debug().
 			Str("line", trimmedLine).
 			Strs("matches", matches).
-			Str("pattern", dockerContainerPattern.String()).
 			Msg("Processed cgroup line for container ID")
 
 		if len(matches) >= minMatchGroups {
