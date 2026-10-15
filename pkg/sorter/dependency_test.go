@@ -2323,7 +2323,7 @@ var _ = ginkgo.Describe("resolveLinkToCanonicalKeys", func() {
 			"web-app":             "myproject-web",
 		}
 
-		keys := resolveLinkToCanonicalKeys("net-proxy", idSet, alias)
+		keys := resolveLinkToCanonicalKeys("net-proxy", newMatchSet(idSet), alias)
 		gomega.Expect(keys).To(gomega.Equal([]string{"myproject-net-proxy"}))
 	})
 
@@ -2331,7 +2331,7 @@ var _ = ginkgo.Describe("resolveLinkToCanonicalKeys", func() {
 		idSet := identifierSet("myproject-net-proxy")
 		alias := map[string]string{"myproject-net-proxy": "myproject-net-proxy"}
 
-		keys := resolveLinkToCanonicalKeys("net-proxy", idSet, alias)
+		keys := resolveLinkToCanonicalKeys("net-proxy", newMatchSet(idSet), alias)
 		gomega.Expect(keys).To(gomega.Equal([]string{"myproject-net-proxy"}))
 	})
 
@@ -2339,8 +2339,8 @@ var _ = ginkgo.Describe("resolveLinkToCanonicalKeys", func() {
 		idSet := identifierSet("myproject-db")
 		alias := map[string]string{"myproject-db": "myproject-db"}
 
-		gomega.Expect(resolveLinkToCanonicalKeys("", idSet, alias)).To(gomega.BeNil())
-		gomega.Expect(resolveLinkToCanonicalKeys("missing", idSet, alias)).To(gomega.BeNil())
+		gomega.Expect(resolveLinkToCanonicalKeys("", newMatchSet(idSet), alias)).To(gomega.BeNil())
+		gomega.Expect(resolveLinkToCanonicalKeys("missing", newMatchSet(idSet), alias)).To(gomega.BeNil())
 	})
 
 	ginkgo.It("should dedupe when bare alias and canonical both match", func() {
@@ -2350,7 +2350,7 @@ var _ = ginkgo.Describe("resolveLinkToCanonicalKeys", func() {
 			"db":           "myproject-db",
 		}
 
-		keys := resolveLinkToCanonicalKeys("db", idSet, alias)
+		keys := resolveLinkToCanonicalKeys("db", newMatchSet(idSet), alias)
 		gomega.Expect(keys).To(gomega.Equal([]string{"myproject-db"}))
 	})
 })

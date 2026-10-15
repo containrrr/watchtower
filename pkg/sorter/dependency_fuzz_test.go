@@ -4,7 +4,10 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"maps"
 	"slices"
+	"sort"
+	"strings"
 	"testing"
 
 	dockerContainer "github.com/moby/moby/api/types/container"
@@ -858,6 +861,125 @@ func FuzzEmptyIdentifiers(f *testing.F) {
 					t.Fatalf("Unexpected error type: %T, error: %v", err, err)
 				}
 			}
+		}
+	})
+}
+
+// referenceFindMatchingIdentifiers is the link matcher as it scanned every
+// identifier for each link. The indexed matcher must return the same matches,
+// in the same order.
+func referenceFindMatchingIdentifiers(link string, idSet map[string]bool) []string {
+	if link == "" || len(idSet) == 0 {
+		return nil
+	}
+
+	var matches []string
+
+	if idSet[link] {
+		matches = append(matches, link)
+
+		return matches
+	}
+
+	var replicaMatches []string
+
+	for identifier := range idSet {
+		if strings.HasPrefix(identifier, link+"-") {
+			suffix := identifier[len(link)+1:]
+			if IsPositiveInteger(suffix) {
+				replicaMatches = append(replicaMatches, identifier)
+			}
+		}
+	}
+
+	if len(replicaMatches) > 0 {
+		sort.Strings(replicaMatches)
+		matches = append(matches, replicaMatches...)
+
+		return matches
+	}
+
+	var serviceMatches []string
+
+	services := make(map[string]bool)
+	serviceSuffix := "-" + link
+	linkHasHyphen := strings.Contains(link, "-")
+
+	for identifier := range idSet {
+		service := replicaService(identifier)
+
+		if strings.HasSuffix(identifier, serviceSuffix) || strings.HasSuffix(service, serviceSuffix) ||
+			(!linkHasHyphen && referenceExtractServiceName(identifier) == link) {
+			serviceMatches = append(serviceMatches, identifier)
+			services[service] = true
+		}
+	}
+
+	if len(services) == 1 {
+		sort.Strings(serviceMatches)
+		matches = append(matches, serviceMatches...)
+	}
+
+	return matches
+}
+
+// referenceExtractServiceName is ExtractServiceName as it split the whole
+// identifier on hyphens.
+func referenceExtractServiceName(identifier string) string {
+	if identifier == "" {
+		return ""
+	}
+
+	if !strings.Contains(identifier, "-") {
+		return identifier
+	}
+
+	parts := strings.Split(identifier, "-")
+	if IsPositiveInteger(parts[len(parts)-1]) {
+		return parts[len(parts)-2]
+	}
+
+	return parts[len(parts)-1]
+}
+
+// FuzzMatchSetMatch verifies that the indexed link matcher returns
+// exactly what scanning every identifier returns, matches and order alike,
+// and that ExtractServiceName is unchanged. Identifiers are given as a
+// comma-separated list. The seeds cover exact names, replicas, Compose
+// services in one and several projects, hyphenated services, multi-segment
+// links, and replica-like suffixes that are not positive integers.
+func FuzzMatchSetMatch(f *testing.F) {
+	f.Add("db", "app,db")
+	f.Add("db", "stack-db-1,stack-db-2,stack-web-1")
+	f.Add("db", "a-db-1,b-db-1")
+	f.Add("db", "a-db-1,a-mongo-db-1,legacy-db")
+	f.Add("api-gateway", "edge-api-gateway-1,edge-api-gateway-2")
+	f.Add("api-gateway", "a-api-gateway-1,x-edge-api-gateway-1")
+	f.Add("net-proxy", "edge-other-proxy-1")
+	f.Add("stack-db", "stack-db-1,stack-db-2,stack-db-backup")
+	f.Add("web", "web-0,web-01,web--1,web-x,web-1")
+	f.Add("a", "a-1-1,a-1,a--1,-a,a-")
+	f.Add("", "app")
+	f.Add("db", "")
+
+	f.Fuzz(func(t *testing.T, link, list string) {
+		idSet := make(map[string]bool)
+
+		for identifier := range strings.SplitSeq(list, ",") {
+			if identifier != "" {
+				idSet[identifier] = true
+
+				if got, want := ExtractServiceName(identifier), referenceExtractServiceName(identifier); got != want {
+					t.Fatalf("ExtractServiceName(%q) = %q, want %q", identifier, got, want)
+				}
+			}
+		}
+
+		got := newMatchSet(idSet).match(link)
+		want := referenceFindMatchingIdentifiers(link, idSet)
+
+		if !slices.Equal(got, want) {
+			t.Fatalf("match(%q) in %v = %q, want %q", link, slices.Sorted(maps.Keys(idSet)), got, want)
 		}
 	})
 }

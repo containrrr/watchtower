@@ -144,7 +144,7 @@ func newDependencyGraph(
 	watchtowerExact := exactNames(watchtowers)
 
 	resolver := &linkResolver{
-		matchIDSet:        matchIDSet,
+		matchIDSet:        newMatchSet(matchIDSet),
 		aliasToCanonical:  aliasToCanonical,
 		projects:          memberProjects(containerMap),
 		services:          memberServices(containerMap),

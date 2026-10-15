@@ -1,6 +1,8 @@
 package sorter
 
 import (
+	"maps"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -457,21 +459,21 @@ func buildLinkMatchIndexes(log *zerolog.Logger,
 //
 // Parameters:
 //   - link: Normalized link from Container.Links().
-//   - matchIDSet: Precomputed set of matchable identifiers (canonical + unique bare names).
+//   - matchIDSet: Indexed set of matchable identifiers (canonical + unique bare names).
 //   - aliasToCanonical: Maps match hits to canonical graph keys.
 //
 // Returns:
 //   - []string: Sorted unique canonical identifiers the link refers to (empty if none).
 func resolveLinkToCanonicalKeys(
 	link string,
-	matchIDSet map[string]bool,
+	matchIDSet *matchSet,
 	aliasToCanonical map[string]string,
 ) []string {
 	if link == "" {
 		return nil
 	}
 
-	matches := findMatchingIdentifiersInSet(link, matchIDSet)
+	matches := matchIDSet.match(link)
 	if len(matches) == 0 {
 		return nil
 	}
@@ -545,17 +547,19 @@ func ExtractServiceName(identifier string) string {
 		return identifier
 	}
 
-	parts := strings.Split(identifier, "-")
+	last := strings.LastIndex(identifier, "-")
 
 	// Check if the last part is a replica number (positive integer)
 	// If so, we need to skip it and take the second-to-last part as service name
-	if IsPositiveInteger(parts[len(parts)-1]) {
+	if IsPositiveInteger(identifier[last+1:]) {
 		// Return the part before the replica number (e.g., "service" from "project-service-1")
-		return parts[len(parts)-2]
+		rest := identifier[:last]
+
+		return rest[strings.LastIndex(rest, "-")+1:]
 	}
 
 	// No replica number, service name is the last part
-	return parts[len(parts)-1]
+	return identifier[last+1:]
 }
 
 // FindMatchingIdentifiers returns the identifiers from the given list that match
@@ -593,46 +597,94 @@ func FindMatchingIdentifiers(link string, identifiers []string) []string {
 	return findMatchingIdentifiersInSet(link, idSet)
 }
 
-// findMatchingIdentifiersInSet returns identifiers from a precomputed set that match
-// the provided link. See FindMatchingIdentifiers for matching strategy details.
+// findMatchingIdentifiersInSet returns identifiers from a set that match the
+// provided link. See FindMatchingIdentifiers for matching strategy details.
+// Callers that match many links against one set should build a matchSet once.
 //
 // Parameters:
 //   - link: Dependency link to resolve.
-//   - idSet: Precomputed set of known container identifiers.
+//   - idSet: Set of known container identifiers.
 //
 // Returns:
 //   - []string: Matching identifiers, or nil/empty when none or ambiguous.
 func findMatchingIdentifiersInSet(link string, idSet map[string]bool) []string {
-	if link == "" || len(idSet) == 0 {
+	return newMatchSet(idSet).match(link)
+}
+
+// matchSet is a set of container identifiers indexed for link matching.
+//
+// The identifiers are kept in sorted order, so the replicas of a link are one
+// contiguous range, together with the replica-free service and service name of
+// each identifier, so matching a link computes nothing per identifier.
+type matchSet struct {
+	// names holds every identifier.
+	names map[string]bool
+	// sorted lists the identifiers in sorted order.
+	sorted []string
+	// services holds the identifier of sorted[i] without its replica number.
+	services []string
+	// serviceNames holds ExtractServiceName of sorted[i].
+	serviceNames []string
+}
+
+// newMatchSet indexes a set of container identifiers for link matching.
+//
+// Parameters:
+//   - idSet: Set of known container identifiers.
+//
+// Returns:
+//   - *matchSet: The indexed set.
+func newMatchSet(idSet map[string]bool) *matchSet {
+	sorted := slices.Sorted(maps.Keys(idSet))
+	services := make([]string, len(sorted))
+	serviceNames := make([]string, len(sorted))
+
+	for i, identifier := range sorted {
+		services[i] = replicaService(identifier)
+		serviceNames[i] = ExtractServiceName(identifier)
+	}
+
+	return &matchSet{names: idSet, sorted: sorted, services: services, serviceNames: serviceNames}
+}
+
+// match returns the identifiers of the set that match the provided link. See
+// FindMatchingIdentifiers for matching strategy details.
+//
+// Parameters:
+//   - link: Dependency link to resolve.
+//
+// Returns:
+//   - []string: Matching identifiers in sorted order, or nil when none match or
+//     the service-only strategy finds more than one service.
+func (s *matchSet) match(link string) []string {
+	if s == nil || link == "" || len(s.sorted) == 0 {
 		return nil
 	}
 
-	var matches []string
-
 	// 1. Exact match
-	if idSet[link] {
-		matches = append(matches, link)
-
-		return matches
+	if s.names[link] {
+		return []string{link}
 	}
 
-	// 2. Replica prefix match (only if suffix is positive integer)
+	// 2. Replica prefix match (only if suffix is positive integer). Identifiers
+	// starting with the prefix are contiguous in sorted order.
+	prefix := link + "-"
+
 	var replicaMatches []string
 
-	for identifier := range idSet {
-		if strings.HasPrefix(identifier, link+"-") {
-			suffix := identifier[len(link)+1:]
-			if IsPositiveInteger(suffix) {
-				replicaMatches = append(replicaMatches, identifier)
-			}
+	for i := sort.SearchStrings(s.sorted, prefix); i < len(s.sorted); i++ {
+		identifier := s.sorted[i]
+		if !strings.HasPrefix(identifier, prefix) {
+			break
+		}
+
+		if IsPositiveInteger(identifier[len(prefix):]) {
+			replicaMatches = append(replicaMatches, identifier)
 		}
 	}
 
 	if len(replicaMatches) > 0 {
-		sort.Strings(replicaMatches)
-		matches = append(matches, replicaMatches...)
-
-		return matches
+		return replicaMatches
 	}
 
 	// 3. Project-qualified / service-only match: the link names exactly one
@@ -644,28 +696,32 @@ func findMatchingIdentifiersInSet(link string, idSet map[string]bool) []string {
 	// "myproject-other-proxy").
 	// Unhyphenated bare service names may still match via ExtractServiceName
 	// (e.g. link "db" → "myproject-db" or "myproject-db-1").
-	var serviceMatches []string
-
-	services := make(map[string]bool)
 	serviceSuffix := "-" + link
 	linkHasHyphen := strings.Contains(link, "-")
 
-	for identifier := range idSet {
-		service := replicaService(identifier)
+	var (
+		serviceMatches []string
+		matchedService string
+	)
 
-		if strings.HasSuffix(identifier, serviceSuffix) || strings.HasSuffix(service, serviceSuffix) ||
-			(!linkHasHyphen && ExtractServiceName(identifier) == link) {
-			serviceMatches = append(serviceMatches, identifier)
-			services[service] = true
+	for i, identifier := range s.sorted {
+		service := s.services[i]
+
+		if !strings.HasSuffix(identifier, serviceSuffix) && !strings.HasSuffix(service, serviceSuffix) &&
+			(linkHasHyphen || s.serviceNames[i] != link) {
+			continue
 		}
+
+		if serviceMatches != nil && service != matchedService {
+			return nil
+		}
+
+		matchedService = service
+
+		serviceMatches = append(serviceMatches, identifier)
 	}
 
-	if len(services) == 1 {
-		sort.Strings(serviceMatches)
-		matches = append(matches, serviceMatches...)
-	}
-
-	return matches
+	return serviceMatches
 }
 
 // replicaService returns the service an identifier belongs to: the identifier

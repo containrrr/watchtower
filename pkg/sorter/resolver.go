@@ -12,7 +12,7 @@ import (
 // linkResolver resolves dependency links to the containers they name.
 type linkResolver struct {
 	// matchIDSet holds the identifiers and aliases of the graph's members.
-	matchIDSet map[string]bool
+	matchIDSet *matchSet
 	// aliasToCanonical maps each alias of a member to its identifier.
 	aliasToCanonical map[string]string
 	// projects maps the identifier of each member with a Compose project label
@@ -28,7 +28,7 @@ type linkResolver struct {
 	// unmonitoredNames maps each Compose project, or empty for containers
 	// without one, to the identifiers, names, and service names of its
 	// unmonitored containers.
-	unmonitoredNames map[string]map[string]bool
+	unmonitoredNames map[string]*matchSet
 	// watchtowerAliases maps the identifier without its replica number of each
 	// Watchtower container that is the only one with that identifier to it.
 	watchtowerAliases map[string]types.Container
@@ -41,7 +41,7 @@ type linkResolver struct {
 // exactly, names only that container. Otherwise a link that names a Watchtower
 // container without its replica number, when it is the only such Watchtower
 // container, names it. Otherwise the link is matched by replica or service
-// name, as findMatchingIdentifiersInSet matches it. When that finds more than
+// name, as matchSet.match matches it. When that finds more than
 // one service, the link matches the members whose Compose service is the link,
 // in every project, so a service name shared by several projects is never
 // dropped. byProject then narrows the matches.
@@ -55,7 +55,7 @@ type linkResolver struct {
 //   - types.Container: The Watchtower container the link names, or nil.
 //   - bool: Whether the link names any container, monitored or not.
 func (r *linkResolver) resolve(c types.Container, link string) ([]string, types.Container, bool) {
-	exact := r.matchIDSet[link]
+	exact := r.matchIDSet.names[link]
 	if !exact {
 		if watchtower, ok := r.watchtowers[link]; ok {
 			return nil, watchtower, true
@@ -116,7 +116,7 @@ func (r *linkResolver) byProject(c types.Container, link string, keys []string) 
 			return local, true
 		}
 
-		if len(findMatchingIdentifiersInSet(link, r.unmonitoredNames[project])) > 0 {
+		if len(r.unmonitoredNames[project].match(link)) > 0 {
 			return nil, true
 		}
 	}
@@ -126,7 +126,7 @@ func (r *linkResolver) byProject(c types.Container, link string, keys []string) 
 	}
 
 	for _, names := range r.unmonitoredNames {
-		if len(findMatchingIdentifiersInSet(link, names)) > 0 {
+		if len(names.match(link)) > 0 {
 			return nil, true
 		}
 	}
@@ -250,8 +250,8 @@ func memberServices(members map[string]types.Container) map[string][]string {
 //   - containers: Containers to index.
 //
 // Returns:
-//   - map[string]map[string]bool: Identifiers and names for each project.
-func projectNames(containers []types.Container) map[string]map[string]bool {
+//   - map[string]*matchSet: Identifiers and names for each project, indexed for matching.
+func projectNames(containers []types.Container) map[string]*matchSet {
 	projects := make(map[string]map[string]bool)
 
 	for _, c := range containers {
@@ -271,7 +271,12 @@ func projectNames(containers []types.Container) map[string]map[string]bool {
 		}
 	}
 
-	return projects
+	indexed := make(map[string]*matchSet, len(projects))
+	for project, names := range projects {
+		indexed[project] = newMatchSet(names)
+	}
+
+	return indexed
 }
 
 // namesPerContainer is the number of exact names of a container: its
