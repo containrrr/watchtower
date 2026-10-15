@@ -22,6 +22,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Sort the images endpoint results by @nicholas-fedor in [#2811](https://github.com/nicholas-fedor/watchtower/pull/2811)
 - Report the container's repository digest in image endpoints by @nicholas-fedor in [#2805](https://github.com/nicholas-fedor/watchtower/pull/2805)
 
+### Performance
+
+- Index identifiers for dependency link matching by @nicholas-fedor in [#2845](https://github.com/nicholas-fedor/watchtower/pull/2845)
+
 ### Documentation
 
 - Document the digest choice for container details by @nicholas-fedor in [#2807](https://github.com/nicholas-fedor/watchtower/pull/2807)
