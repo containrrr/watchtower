@@ -83,6 +83,33 @@ var _ = ginkgo.Describe("the client", func() {
 			})
 		})
 	})
+	ginkgo.Describe("shouldSkipPull", func() {
+		// The fallback entry is logged at the strategy's level and kept out of
+		// notifications, since the pull that follows decides the outcome.
+		ginkgo.DescribeTable("logs a failed digest check without notifying",
+			func(strategy WarningStrategy, level string) {
+				// Without image info the digest check fails before any registry request.
+				noImageInfo := NewContainer(nil, &dockerContainer.InspectResponse{
+					ID:     "container_id",
+					Name:   "kavita",
+					Config: &dockerContainer.Config{Image: "ghcr.io/linuxserver/kavita:latest"},
+				}, nil)
+
+				log, logbuf := captureLog(zerolog.DebugLevel)
+				i := newImageClient(mockClient, log)
+
+				skip, err := i.shouldSkipPull(context.Background(), noImageInfo, "", strategy)
+				gomega.Expect(err).To(gomega.Succeed())
+				gomega.Expect(skip).To(gomega.BeFalse())
+				gomega.Eventually(logbuf).Should(gbytes.Say(
+					`level=%s msg="Digest retrieval failed, falling back to full pull".* notify=no`,
+					level,
+				))
+			},
+			ginkgo.Entry("warning strategy always", WarnAlways, "warn"),
+			ginkgo.Entry("warning strategy never", WarnNever, "debug"),
+		)
+	})
 	ginkgo.When("pulling the latest image", func() {
 		ginkgo.When("the image consist of a pinned hash", func() {
 			ginkgo.It("should gracefully fail with a useful message for bare sha256", func() {

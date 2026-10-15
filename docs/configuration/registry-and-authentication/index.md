@@ -126,7 +126,10 @@ For details on how Go handles these variables, see the [net/http.ProxyFromEnviro
 ### Warn on HEAD Failure
 
 Controls warnings for failed HEAD requests to registries.
-`Auto` warns for registries known to support HEAD requests (e.g., docker.io) that may rate-limit.
+When a HEAD request fails, Watchtower falls back to a full pull, which counts against the registry's pull rate limit.
+`Auto` warns for registries known to support HEAD requests and rate-limit pulls (docker.io and ghcr.io).
+
+The warning is written to the log only and is not sent as a notification, because the fallback pull decides the outcome and reports its own failures.
 
 ```text
             Argument: --warn-on-head-failure
