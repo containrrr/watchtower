@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Keep digest fallback warnings out of notifications by @nicholas-fedor in [#2853](https://github.com/nicholas-fedor/watchtower/pull/2853)
 - Record scans that end in an error as failed by @nicholas-fedor in [#2849](https://github.com/nicholas-fedor/watchtower/pull/2849)
 - Detect container ids from systemd cgroup scopes by @nicholas-fedor in [#2847](https://github.com/nicholas-fedor/watchtower/pull/2847)
 - Stop logging each watchtower container check by @nicholas-fedor in [#2841](https://github.com/nicholas-fedor/watchtower/pull/2841)
