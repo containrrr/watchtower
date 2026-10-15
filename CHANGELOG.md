@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Stop the api server when canceled during startup by @nicholas-fedor in [#2863](https://github.com/nicholas-fedor/watchtower/pull/2863)
 - Keep legacy slack channel ids in converted urls by @nicholas-fedor in [#2861](https://github.com/nicholas-fedor/watchtower/pull/2861)
 - Always order containers after network and link targets by @nicholas-fedor in [#2859](https://github.com/nicholas-fedor/watchtower/pull/2859)
 - Keep digest fallback warnings out of notifications by @nicholas-fedor in [#2853](https://github.com/nicholas-fedor/watchtower/pull/2853)
