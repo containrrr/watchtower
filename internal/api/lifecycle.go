@@ -2,12 +2,12 @@ package api
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"net"
 	"net/http"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
@@ -141,8 +141,44 @@ func SetupAndStartAPI(ctx context.Context, opts config.Options) error {
 		tlsCertPath,
 		tlsKeyPath,
 		block,
+		startupMessageWriter(opts, block),
 		opts.OnUnexpectedServerStop,
 	)
+}
+
+// startupMessageWriter returns the callback that writes the startup message
+// once the API socket is bound.
+//
+// Only the blocking HTTP API mode writes it here, because the API then runs
+// instead of the scheduler, which otherwise announces startup.
+//
+// Parameters:
+//   - opts: API configuration options.
+//   - block: Whether the API runs in blocking mode.
+//
+// Returns:
+//   - func(): The callback, or nil when no startup message is written here.
+func startupMessageWriter(opts config.Options, block bool) func() {
+	if !block || opts.WriteStartupMessage == nil {
+		return nil
+	}
+
+	return func() { writeStartupMessage(opts) }
+}
+
+// writeStartupMessage writes the startup message for the blocking HTTP API mode.
+//
+// Parameters:
+//   - opts: API configuration options with a non-nil WriteStartupMessage.
+func writeStartupMessage(opts config.Options) {
+	startup := opts.Startup
+	startup.Sched = time.Time{}
+	startup.Filtering = opts.FilterDesc
+	startup.Scope = opts.Scope
+	startup.Client = opts.Client
+	startup.Notifier = opts.Notifier
+	startup.Version = opts.Version
+	opts.WriteStartupMessage(startup)
 }
 
 // isCleanServerStop reports whether err is an expected result of a graceful
@@ -153,6 +189,7 @@ func isCleanServerStop(err error) bool {
 	}
 
 	return errors.Is(err, http.ErrServerClosed) ||
+		errors.Is(err, net.ErrClosed) ||
 		errors.Is(err, context.Canceled) ||
 		errors.Is(err, context.DeadlineExceeded)
 }
@@ -175,12 +212,13 @@ func handleUnexpectedServerStop(log *zerolog.Logger, err error, addr string, onU
 	}
 }
 
-// runServer starts the Fiber app and either blocks until shutdown or returns
-// after a successful bind.
+// runServer binds the listen socket, serves the Fiber app on it, and either
+// blocks until shutdown or returns once the socket is bound.
 //
-// Fiber's GracefulContext shuts the server down when ctx is canceled.
-// ListenerAddrFunc signals that the listen socket is bound so callers can
-// distinguish bind success from hang/failure.
+// The server stops when ctx is canceled. runServer shuts the app down and then
+// closes the listener itself, because a shutdown that arrives before the app
+// starts serving is ignored, and only closing the listener stops a server that
+// starts serving afterwards.
 //
 // Parameters:
 //   - ctx: Context for server lifecycle management.
@@ -190,7 +228,8 @@ func handleUnexpectedServerStop(log *zerolog.Logger, err error, addr string, onU
 //   - tlsCertPath: Path to TLS certificate file, or empty for HTTP.
 //   - tlsKeyPath: Path to TLS key file, or empty for HTTP.
 //   - block: When true, wait until the server stops. When false, return after bind.
-//   - onUnexpectedStop: Optional callback when Listen exits unexpectedly in non-blocking mode.
+//   - onBound: Optional callback run once the socket is bound, before serving.
+//   - onUnexpectedStop: Optional callback when the server exits unexpectedly in non-blocking mode.
 //
 // Returns:
 //   - error: Non-nil if the server fails to start or exits with an unexpected error while blocking.
@@ -201,6 +240,7 @@ func runServer(
 	address string,
 	tlsCertPath, tlsKeyPath string,
 	block bool,
+	onBound func(),
 	onUnexpectedStop func(error),
 ) error {
 	//nolint:nilerr // Intentionally return nil: skip socket binding when context is already canceled.
@@ -208,74 +248,128 @@ func runServer(
 		return nil
 	}
 
-	readyCh := make(chan struct{})
+	listener, err := listen(ctx, address, tlsCertPath, tlsKeyPath)
+	if err != nil {
+		// A cancellation during the bind is a shutdown, not a failure.
+		if ctx.Err() != nil {
+			return nil //nolint:nilerr // The bind failed because the server is shutting down.
+		}
 
-	var readyOnce sync.Once
+		log.Error().Err(err).Str("addr", address).
+			Msg("HTTP server failed to start")
 
-	listenDone := make(chan error, 1)
-
-	listenCfg := fiber.ListenConfig{
-		DisableStartupMessage: true,
-		GracefulContext:       ctx,
-		ShutdownTimeout:       ShutdownGracePeriod,
-		ListenerAddrFunc: func(_ net.Addr) {
-			readyOnce.Do(func() {
-				close(readyCh)
-			})
-		},
+		return fmt.Errorf("failed to start HTTP server: %w", err)
 	}
 
-	if tlsCertPath != "" && tlsKeyPath != "" {
-		listenCfg.CertFile = tlsCertPath
-		listenCfg.CertKeyFile = tlsKeyPath
+	if onBound != nil {
+		onBound()
 	}
+
+	var serveErr error
+
+	served := make(chan struct{})
 
 	go func() {
-		listenDone <- app.Listen(address, listenCfg)
+		defer close(served)
+
+		serveErr = app.Listener(listener, fiber.ListenConfig{DisableStartupMessage: true})
 	}()
 
-	select {
-	case <-readyCh:
-		// Socket bound successfully.
-	case err := <-listenDone:
-		if !isCleanServerStop(err) {
-			log.Error().Err(err).Str("addr", address).
-				Msg("HTTP server failed to start")
+	stopped := make(chan struct{})
 
-			return fmt.Errorf("failed to start HTTP server: %w", err)
-		}
+	go func() {
+		defer close(stopped)
 
-		return nil
-	case <-ctx.Done():
-		// Canceled before bind completed. Wait briefly for Listen to exit.
 		select {
-		case err := <-listenDone:
-			if !isCleanServerStop(err) {
-				return fmt.Errorf("failed to start HTTP server: %w", err)
-			}
-
-			return nil
-		case <-time.After(ShutdownGracePeriod + time.Second):
-			return nil
+		case <-ctx.Done():
+			stopServer(log, app, listener)
+		case <-served:
 		}
-	}
+	}()
 
 	if !block {
 		go func() {
-			handleUnexpectedServerStop(log, <-listenDone, address, onUnexpectedStop)
+			<-served
+			handleUnexpectedServerStop(log, serveErr, address, onUnexpectedStop)
 		}()
 
 		return nil
 	}
 
-	// Blocking mode: wait until GracefulContext cancels and Listen returns.
-	err := <-listenDone
-	if !isCleanServerStop(err) {
-		log.Error().Err(err).Str("addr", address).
+	// Blocking mode: wait until the server stops and any shutdown has drained.
+	<-served
+	<-stopped
+
+	if !isCleanServerStop(serveErr) {
+		log.Error().Err(serveErr).Str("addr", address).
 			Msg("HTTP server failed")
 
-		return fmt.Errorf("HTTP server failed: %w", err)
+		return fmt.Errorf("HTTP server failed: %w", serveErr)
 	}
 
 	return nil
+}
+
+// listen binds the API socket, wrapping it in TLS when a certificate is set.
+//
+// It binds IPv4 and requires TLS 1.2 or later, as Fiber's Listen does by default.
+//
+// Parameters:
+//   - ctx: Context for the bind.
+//   - address: Address to listen on.
+//   - tlsCertPath: Path to TLS certificate file, or empty for HTTP.
+//   - tlsKeyPath: Path to TLS key file, or empty for HTTP.
+//
+// Returns:
+//   - net.Listener: The bound listener.
+//   - error: Non-nil if the certificate cannot be loaded or the socket cannot be bound.
+func listen(ctx context.Context, address, tlsCertPath, tlsKeyPath string) (net.Listener, error) {
+	var tlsConfig *tls.Config
+
+	if tlsCertPath != "" {
+		cert, err := tls.LoadX509KeyPair(tlsCertPath, tlsKeyPath)
+		if err != nil {
+			return nil, fmt.Errorf("load TLS key pair: %w", err)
+		}
+
+		tlsConfig = &tls.Config{
+			MinVersion:   tls.VersionTLS12,
+			Certificates: []tls.Certificate{cert},
+		}
+	}
+
+	listenConfig := net.ListenConfig{}
+
+	listener, err := listenConfig.Listen(ctx, fiber.NetworkTCP4, address)
+	if err != nil {
+		return nil, fmt.Errorf("listen on %s: %w", address, err)
+	}
+
+	if tlsConfig != nil {
+		return tls.NewListener(listener, tlsConfig), nil
+	}
+
+	return listener, nil
+}
+
+// stopServer shuts the app down and closes its listener.
+//
+// The shutdown drains requests in flight. Closing the listener afterwards
+// stops a server that had not started serving when the shutdown ran, which
+// the shutdown alone ignores.
+//
+// Parameters:
+//   - log: Logger for shutdown errors.
+//   - app: Fiber application to stop.
+//   - listener: The app's listener.
+func stopServer(log *zerolog.Logger, app *fiber.App, listener net.Listener) {
+	err := app.ShutdownWithTimeout(ShutdownGracePeriod)
+	if err != nil {
+		log.Debug().Err(err).Msg("HTTP server shutdown did not finish draining")
+	}
+
+	err = listener.Close()
+	if err != nil && !errors.Is(err, net.ErrClosed) {
+		log.Debug().Err(err).Msg("Failed to close the HTTP server listener")
+	}
 }

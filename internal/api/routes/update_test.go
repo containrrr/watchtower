@@ -116,7 +116,10 @@ func TestRegisterUpdateRoute_NilWriteStartupMessage(t *testing.T) {
 	})
 }
 
-func TestRegisterUpdateRoute_WriteStartupMessageCalledWhenBlocking(t *testing.T) {
+// TestRegisterUpdateRoute_DoesNotWriteStartupMessage verifies that registering
+// the update route does not write the startup message, which the server
+// writes once its socket is bound.
+func TestRegisterUpdateRoute_DoesNotWriteStartupMessage(t *testing.T) {
 	app := testApp()
 	auth := testAuthMiddleware()
 
@@ -135,7 +138,7 @@ func TestRegisterUpdateRoute_WriteStartupMessageCalledWhenBlocking(t *testing.T)
 	}
 
 	registerUpdateRoute(context.Background(), app, auth, opts)
-	assert.True(t, called)
+	assert.False(t, called)
 }
 
 // TestRegisterUpdateRoute_TimeoutIsServiceUnavailable verifies that an update

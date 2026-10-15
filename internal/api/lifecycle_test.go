@@ -2,11 +2,24 @@ package api
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/tls"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/pem"
 	"errors"
+	"math/big"
+	"net"
+	"net/http"
+	"os"
+	"path/filepath"
 	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/gofiber/fiber/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -738,4 +751,251 @@ func TestGetAPIAddr_IPv6(t *testing.T) {
 			assert.Equal(t, tt.expected, got)
 		})
 	}
+}
+
+// listenTCP4 binds addr over IPv4 for a test.
+func listenTCP4(t *testing.T, addr string) (net.Listener, error) {
+	t.Helper()
+
+	var listenConfig net.ListenConfig
+
+	return listenConfig.Listen(t.Context(), "tcp4", addr)
+}
+
+// freeAddr returns a local IPv4 address with a port that was free when it
+// was chosen.
+func freeAddr(t *testing.T) string {
+	t.Helper()
+
+	ln, err := listenTCP4(t, "127.0.0.1:0")
+	require.NoError(t, err)
+
+	addr := ln.Addr().String()
+	require.NoError(t, ln.Close())
+
+	return addr
+}
+
+// requireAddrReleased waits until addr can be bound again, which shows the
+// server stopped listening on it.
+func requireAddrReleased(t *testing.T, addr string) {
+	t.Helper()
+
+	require.Eventually(t, func() bool {
+		ln, err := listenTCP4(t, addr)
+		if err != nil {
+			return false
+		}
+
+		_ = ln.Close()
+
+		return true
+	}, ShutdownGracePeriod+2*time.Second, 20*time.Millisecond, "the server kept listening on %s", addr)
+}
+
+// TestRunServer_CancelBetweenBindAndServe verifies that a server canceled
+// after its socket is bound but before it starts serving still stops and
+// releases the socket, in blocking and non-blocking mode. Fiber runs OnListen
+// hooks in that gap, so the hook cancels there and waits until the shutdown
+// has run, which a server that is not serving yet ignores.
+func TestRunServer_CancelBetweenBindAndServe(t *testing.T) {
+	for _, block := range []bool{true, false} {
+		t.Run(map[bool]string{true: "blocking", false: "non-blocking"}[block], func(t *testing.T) {
+			ctx, cancel := context.WithCancel(t.Context())
+			defer cancel()
+
+			shutdownRan := make(chan struct{})
+
+			app := New(testLogger(), 60, ProxyConfig{}, CORSConfig{}, true)
+			app.Hooks().OnPostShutdown(func(error) error {
+				close(shutdownRan)
+
+				return nil
+			})
+			app.Hooks().OnListen(func(fiber.ListenData) error {
+				cancel()
+
+				select {
+				case <-shutdownRan:
+				case <-time.After(ShutdownGracePeriod):
+				}
+
+				return nil
+			})
+
+			addr := freeAddr(t)
+			done := make(chan error, 1)
+
+			go func() {
+				done <- runServer(ctx, testLogger(), app, addr, "", "", block, nil, nil)
+			}()
+
+			select {
+			case err := <-done:
+				require.NoError(t, err)
+			case <-time.After(ShutdownGracePeriod + 2*time.Second):
+				t.Fatal("the server canceled between bind and serve did not stop")
+			}
+
+			requireAddrReleased(t, addr)
+		})
+	}
+}
+
+// TestSetupAndStartAPI_StartupMessageAfterBind verifies that in blocking mode
+// the startup message is written once the API socket is bound, and not at all
+// when the socket cannot be bound.
+func TestSetupAndStartAPI_StartupMessageAfterBind(t *testing.T) {
+	blockingOpts := func(addr string, startup func(logging.StartupParams)) config.Options {
+		host, port, err := net.SplitHostPort(addr)
+		require.NoError(t, err)
+
+		return withTestLogger(config.Options{
+			Host:            host,
+			Port:            port,
+			Token:           "test-token",
+			EnableUpdateAPI: true,
+			RateLimit:       60,
+			RunUpdatesWithNotifications: func(context.Context, types.Filter, types.UpdateParams) *metrics.Metric {
+				return &metrics.Metric{}
+			},
+			FilterByImage:       func(_ []string, f types.Filter) types.Filter { return f },
+			DefaultMetrics:      func() *metrics.Metrics { return &metrics.Metrics{} },
+			WriteStartupMessage: startup,
+		})
+	}
+
+	t.Run("bound", func(t *testing.T) {
+		addr := freeAddr(t)
+		bound := make(chan bool, 1)
+
+		opts := blockingOpts(addr, func(logging.StartupParams) {
+			// Binding the address fails while the API holds it.
+			ln, err := listenTCP4(t, addr)
+			if err == nil {
+				_ = ln.Close()
+			}
+
+			bound <- err != nil
+		})
+
+		ctx, cancel := context.WithCancel(t.Context())
+		defer cancel()
+
+		done := make(chan error, 1)
+
+		go func() {
+			done <- SetupAndStartAPI(ctx, opts)
+		}()
+
+		select {
+		case wasBound := <-bound:
+			assert.True(t, wasBound, "the startup message was written before the API socket was bound")
+		case <-time.After(2 * time.Second):
+			t.Fatal("the startup message was not written")
+		}
+
+		cancel()
+		require.NoError(t, <-done)
+	})
+
+	t.Run("address in use", func(t *testing.T) {
+		taken, err := listenTCP4(t, "127.0.0.1:0")
+		require.NoError(t, err)
+
+		defer taken.Close()
+
+		var called atomic.Bool
+
+		opts := blockingOpts(taken.Addr().String(), func(logging.StartupParams) { called.Store(true) })
+
+		err = SetupAndStartAPI(t.Context(), opts)
+		require.ErrorContains(t, err, "failed to start HTTP server")
+		assert.False(t, called.Load(), "the startup message was written although the API could not bind")
+	})
+}
+
+// writeTestCertificate writes a self-signed certificate for 127.0.0.1 and its
+// key to dir and returns their paths.
+func writeTestCertificate(t *testing.T, dir string) (string, string) {
+	t.Helper()
+
+	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	require.NoError(t, err)
+
+	template := &x509.Certificate{
+		SerialNumber: big.NewInt(1),
+		Subject:      pkix.Name{CommonName: "watchtower-test"},
+		IPAddresses:  []net.IP{net.ParseIP("127.0.0.1")},
+		NotBefore:    time.Now().Add(-time.Hour),
+		NotAfter:     time.Now().Add(time.Hour),
+		KeyUsage:     x509.KeyUsageDigitalSignature,
+		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+	}
+
+	der, err := x509.CreateCertificate(rand.Reader, template, template, &key.PublicKey, key)
+	require.NoError(t, err)
+
+	keyDER, err := x509.MarshalECPrivateKey(key)
+	require.NoError(t, err)
+
+	certPath := filepath.Join(dir, "cert.pem")
+	keyPath := filepath.Join(dir, "key.pem")
+
+	require.NoError(t, os.WriteFile(certPath, pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der}), 0o600))
+	require.NoError(t, os.WriteFile(keyPath, pem.EncodeToMemory(&pem.Block{Type: "EC PRIVATE KEY", Bytes: keyDER}), 0o600))
+
+	return certPath, keyPath
+}
+
+// TestSetupAndStartAPI_TLS verifies that the API serves HTTPS with the
+// configured certificate, refuses clients limited to TLS 1.1, and releases its
+// socket when canceled.
+func TestSetupAndStartAPI_TLS(t *testing.T) {
+	certPath, keyPath := writeTestCertificate(t, t.TempDir())
+
+	addr := freeAddr(t)
+	host, port, err := net.SplitHostPort(addr)
+	require.NoError(t, err)
+
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+
+	opts := withTestLogger(config.Options{
+		Host:            host,
+		Port:            port,
+		EnableHealthAPI: true,
+		RateLimit:       60,
+		TLSCertPath:     certPath,
+		TLSKeyPath:      keyPath,
+	})
+
+	require.NoError(t, SetupAndStartAPI(ctx, opts))
+
+	client := &http.Client{Transport: &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://"+addr+"/livez", nil)
+	require.NoError(t, err)
+
+	resp, err := client.Do(req)
+	require.NoError(t, err)
+	require.NoError(t, resp.Body.Close())
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	dialer := &tls.Dialer{Config: &tls.Config{
+		InsecureSkipVerify: true,
+		MaxVersion:         tls.VersionTLS11,
+	}}
+
+	conn, err := dialer.DialContext(ctx, "tcp4", addr)
+	if err == nil {
+		_ = conn.Close()
+	}
+
+	require.Error(t, err, "a TLS 1.1 client was accepted")
+
+	cancel()
+	requireAddrReleased(t, addr)
 }
