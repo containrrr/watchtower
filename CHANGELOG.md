@@ -35,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Chores
 
+- Update module github.com/gofiber/contrib/v3/zerolog to v1.1.7 by @renovate[bot] in [#2856](https://github.com/nicholas-fedor/watchtower/pull/2856)
 - Update github/codeql-action action to v4.39.0 by @renovate[bot] in [#2851](https://github.com/nicholas-fedor/watchtower/pull/2851)
 - Update module github.com/grpc-ecosystem/grpc-gateway/v2 to v2.32.0 by @renovate[bot] in [#2843](https://github.com/nicholas-fedor/watchtower/pull/2843)
 - Update module github.com/docker/cli to v29.9.1+incompatible by @renovate[bot] in [#2832](https://github.com/nicholas-fedor/watchtower/pull/2832)
