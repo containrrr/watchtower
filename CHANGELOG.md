@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Detect container ids from systemd cgroup scopes by @nicholas-fedor in [#2847](https://github.com/nicholas-fedor/watchtower/pull/2847)
 - Stop logging each watchtower container check by @nicholas-fedor in [#2841](https://github.com/nicholas-fedor/watchtower/pull/2841)
 - Log container dependencies once per scan by @nicholas-fedor in [#2839](https://github.com/nicholas-fedor/watchtower/pull/2839)
 - Skip containers that disappear before they are stopped by @nicholas-fedor in [#2837](https://github.com/nicholas-fedor/watchtower/pull/2837)
