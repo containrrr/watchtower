@@ -360,8 +360,8 @@ github.com/package-url/packageurl-go v0.1.7 h1:iFWg6tzAjLA6F/qX3M5nZaiMHJgc+p2zx
 github.com/package-url/packageurl-go v0.1.7/go.mod h1:nKAWB8E6uk1MHqiS/lQb9pYBGH2+mdJ2PJc2s50dQY0=
 github.com/pelletier/go-toml/v2 v2.4.3 h1:GTRvJQutkOSftxIFD5xw9aepkYNuPWmVJpffdDPYVpY=
 github.com/pelletier/go-toml/v2 v2.4.3/go.mod h1:2gIqNv+qfxSVS7cM2xJQKtLSTLUE9V8t9Stt+h56mCY=
-github.com/philhofer/fwd v1.2.0 h1:e6DnBTl7vGY+Gz322/ASL4Gyp1FspeMvx1RNDoToZuM=
-github.com/philhofer/fwd v1.2.0/go.mod h1:RqIHx9QI14HlwKwm98g9Re5prTQ6LdeRQn+gXJFxsJM=
+github.com/philhofer/fwd v1.2.1 h1:UtpS73q8bFgy/yH3gCq8LSNvj5gv/FowNOiWZa7uKwQ=
+github.com/philhofer/fwd v1.2.1/go.mod h1:RqIHx9QI14HlwKwm98g9Re5prTQ6LdeRQn+gXJFxsJM=
 github.com/pjbgf/sha1cd v0.7.0 h1:ZRNPKHj+gfkLBf0KJv/p1Hmz+7bqCT5o311YX0nq+DA=
 github.com/pjbgf/sha1cd v0.7.0/go.mod h1:pKR5Li+qTCo+ebqITZfwPlJGoCFCvSO00qxjbNtTUFQ=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
