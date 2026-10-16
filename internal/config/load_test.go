@@ -44,8 +44,6 @@ func nopLog() *zerolog.Logger {
 func bindLoad(t *testing.T, args ...string) (*viper.Viper, *pflag.FlagSet, *cobra.Command) {
 	t.Helper()
 
-	flags.SetDefaults()
-
 	cmd := &cobra.Command{Use: "watchtower"}
 	flags.RegisterAll(cmd)
 	require.NoError(t, cmd.ParseFlags(args))

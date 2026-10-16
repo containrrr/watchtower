@@ -13,20 +13,8 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 
-	"github.com/nicholas-fedor/watchtower/internal/flags/api"
-	"github.com/nicholas-fedor/watchtower/internal/flags/client"
-	"github.com/nicholas-fedor/watchtower/internal/flags/compat"
 	"github.com/nicholas-fedor/watchtower/internal/flags/docker"
-	"github.com/nicholas-fedor/watchtower/internal/flags/filter"
-	"github.com/nicholas-fedor/watchtower/internal/flags/git"
-	"github.com/nicholas-fedor/watchtower/internal/flags/lifecycle"
-	flagslogging "github.com/nicholas-fedor/watchtower/internal/flags/logging"
-	"github.com/nicholas-fedor/watchtower/internal/flags/mode"
-	"github.com/nicholas-fedor/watchtower/internal/flags/notify"
-	"github.com/nicholas-fedor/watchtower/internal/flags/registry"
 	"github.com/nicholas-fedor/watchtower/internal/flags/schedule"
-	"github.com/nicholas-fedor/watchtower/internal/flags/update"
-	"github.com/nicholas-fedor/watchtower/internal/flags/utils"
 	"github.com/nicholas-fedor/watchtower/internal/logging"
 )
 
@@ -56,64 +44,6 @@ var (
 	// errNotSliceValue indicates a flag does not support slice values for appending.
 	errNotSliceValue = errors.New("flag does not support slice values")
 )
-
-// RegisterDockerFlags adds Docker API client flags to the root command.
-//
-// Prefer RegisterAll when registering the full flag set.
-//
-// Parameters:
-//   - rootCmd: Root Cobra command.
-func RegisterDockerFlags(rootCmd *cobra.Command) {
-	docker.Register(rootCmd)
-}
-
-// RegisterSystemFlags registers non-Docker, non-notification domain flags.
-//
-// Prefer RegisterAll. Kept for tests that call domain groups separately.
-//
-// Parameters:
-//   - rootCmd: Root Cobra command.
-func RegisterSystemFlags(rootCmd *cobra.Command) {
-	client.Register(rootCmd)
-	schedule.Register(rootCmd)
-	mode.Register(rootCmd)
-	update.Register(rootCmd)
-	lifecycle.Register(rootCmd)
-	filter.Register(rootCmd)
-	registry.Register(rootCmd)
-	compat.Register(rootCmd)
-	api.Register(rootCmd)
-	flagslogging.Register(rootCmd)
-	git.Register(rootCmd)
-}
-
-// RegisterNotificationFlags adds notification flags to the root command.
-//
-// Prefer RegisterAll when registering the full flag set.
-//
-// Parameters:
-//   - rootCmd: Root Cobra command.
-func RegisterNotificationFlags(rootCmd *cobra.Command) {
-	notify.Register(rootCmd)
-}
-
-// filterEmptyStrings is a package-local alias for utils.FilterEmptyStrings (tests).
-func filterEmptyStrings(values []string) []string {
-	return utils.FilterEmptyStrings(values)
-}
-
-// isPureNumeric reports whether str is a bare number (tests and env duration helpers).
-func isPureNumeric(str string) bool {
-	return utils.IsPureNumeric(str)
-}
-
-// SetDefaults enables automatic environment lookup on the global Viper instance.
-//
-// Flag static defaults and process Load bind live on FlagSpec rows. This remains
-// for tests and helpers that still touch the global Viper (for example EnvDuration).
-func SetDefaults() {
-	viper.AutomaticEnv()
-}
 
 // EnvConfig sets Docker environment variables from flags.
 //

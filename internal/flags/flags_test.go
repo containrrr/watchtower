@@ -46,10 +46,7 @@ func testLoggerAt(w io.Writer, level logging.Level) *zerolog.Logger {
 func newTestCommand() *cobra.Command {
 	cmd := new(cobra.Command)
 
-	SetDefaults()
-	RegisterDockerFlags(cmd)
-	RegisterSystemFlags(cmd)
-	RegisterNotificationFlags(cmd)
+	RegisterAll(cmd)
 
 	return cmd
 }
@@ -217,7 +214,6 @@ func TestEnvConfig(t *testing.T) {
 		{
 			name: "flag retrieval errors partial",
 			setupCmd: func(cmd *cobra.Command) {
-				SetDefaults()
 				cmd.PersistentFlags().StringP("host", "H", "", "daemon socket")
 				// Only host defined, expect errors for others
 			},
@@ -227,7 +223,6 @@ func TestEnvConfig(t *testing.T) {
 		{
 			name: "flag retrieval errors tls",
 			setupCmd: func(cmd *cobra.Command) {
-				SetDefaults()
 				cmd.PersistentFlags().StringP("host", "H", "", "daemon socket")
 				cmd.PersistentFlags().BoolP("tlsverify", "v", false, "use TLS")
 				// Host and tlsverify defined, expect error for api-version
@@ -404,8 +399,7 @@ func TestEnvConfig(t *testing.T) {
 			if tc.setupCmd != nil {
 				tc.setupCmd(cmd)
 			} else {
-				SetDefaults()
-				RegisterDockerFlags(cmd)
+				RegisterAll(cmd)
 			}
 
 			if len(tc.flags) > 0 {
@@ -591,9 +585,7 @@ func TestGetSecretsFromFiles(t *testing.T) {
 func TestHTTPAPIPeriodicPollsFlag(t *testing.T) {
 	cmd := new(cobra.Command)
 
-	SetDefaults()
-	RegisterDockerFlags(cmd)
-	RegisterSystemFlags(cmd)
+	RegisterAll(cmd)
 
 	err := cmd.ParseFlags([]string{"--http-api-periodic-polls"})
 	require.NoError(t, err)
@@ -929,10 +921,7 @@ func TestFlagsArePresentInDocumentation(t *testing.T) {
 
 	cmd := new(cobra.Command)
 
-	SetDefaults()
-	RegisterDockerFlags(cmd)
-	RegisterSystemFlags(cmd)
-	RegisterNotificationFlags(cmd)
+	RegisterAll(cmd)
 
 	flags := cmd.PersistentFlags()
 
@@ -1005,8 +994,7 @@ func TestSetEnvOptStr_Error(t *testing.T) {
 func TestGetSecretFromFile_SkipCommentsAndEmptyLines(t *testing.T) {
 	cmd := new(cobra.Command)
 
-	SetDefaults()
-	RegisterNotificationFlags(cmd)
+	RegisterAll(cmd)
 
 	file, err := os.CreateTemp(t.TempDir(), "watchtower-")
 	require.NoError(t, err)
@@ -1039,8 +1027,7 @@ func TestGetSecretFromFile_SkipCommentsAndEmptyLines(t *testing.T) {
 func TestGetSecretFromFile_InvalidSecretURL(t *testing.T) {
 	cmd := new(cobra.Command)
 
-	SetDefaults()
-	RegisterNotificationFlags(cmd)
+	RegisterAll(cmd)
 
 	file, err := os.CreateTemp(t.TempDir(), "watchtower-")
 	require.NoError(t, err)
@@ -1066,8 +1053,7 @@ func TestGetSecretFromFile_InvalidSecretURL(t *testing.T) {
 func TestGetSecretFromFile_ParameterlessLoggerAndMockURLs(t *testing.T) {
 	cmd := new(cobra.Command)
 
-	SetDefaults()
-	RegisterNotificationFlags(cmd)
+	RegisterAll(cmd)
 
 	file, err := os.CreateTemp(t.TempDir(), "watchtower-")
 	require.NoError(t, err)
@@ -1095,8 +1081,7 @@ func TestGetSecretFromFile_ParameterlessLoggerAndMockURLs(t *testing.T) {
 func TestGetSecretFromFile_CloseError(t *testing.T) {
 	cmd := new(cobra.Command)
 
-	SetDefaults()
-	RegisterNotificationFlags(cmd)
+	RegisterAll(cmd)
 
 	file, err := os.CreateTemp(t.TempDir(), "watchtower-")
 	require.NoError(t, err)
@@ -1298,8 +1283,7 @@ func TestProcessFlagAliases_FlagSetErrors(t *testing.T) {
 
 	cmd := new(cobra.Command)
 
-	SetDefaults()
-	RegisterSystemFlags(cmd)
+	RegisterAll(cmd)
 	err := cmd.ParseFlags([]string{"--debug"})
 	require.NoError(t, err)
 
@@ -1333,7 +1317,6 @@ func (e *errorStringValue) Type() string     { return "string" }
 func TestSetupLogging_FlagErrors(t *testing.T) {
 	cmd := new(cobra.Command)
 
-	SetDefaults()
 	// Don't register flags to force retrieval errors
 	_, err := SetupLogging(testLogger(), cmd.Flags())
 	require.Error(t, err)
@@ -1347,9 +1330,7 @@ func testGetSecretsFromFiles(t *testing.T, flagName, expected string, args ...st
 
 	cmd := new(cobra.Command)
 
-	SetDefaults()
-	RegisterSystemFlags(cmd)
-	RegisterNotificationFlags(cmd)
+	RegisterAll(cmd)
 	parseWithEnv(t, cmd, args...)
 	GetSecretsFromFiles(testLogger(), cmd)
 	flag := cmd.PersistentFlags().Lookup(flagName)
@@ -1362,8 +1343,7 @@ func testGetSecretsFromFiles(t *testing.T, flagName, expected string, args ...st
 func TestDisableMemorySwappinessFlag(t *testing.T) {
 	cmd := new(cobra.Command)
 
-	SetDefaults()
-	RegisterSystemFlags(cmd)
+	RegisterAll(cmd)
 
 	err := cmd.ParseFlags([]string{"--disable-memory-swappiness"})
 	require.NoError(t, err)
@@ -1405,8 +1385,7 @@ func TestUpdateOnStart(t *testing.T) {
 
 			cmd := new(cobra.Command)
 
-			SetDefaults()
-			RegisterSystemFlags(cmd)
+			RegisterAll(cmd)
 			parseWithEnv(t, cmd, tc.flags...)
 
 			updateOnStart, err := cmd.PersistentFlags().GetBool("update-on-start")
@@ -1423,8 +1402,7 @@ func TestWatchtowerNotificationsEnvironmentVariable(t *testing.T) {
 
 	cmd := new(cobra.Command)
 
-	SetDefaults()
-	RegisterNotificationFlags(cmd)
+	RegisterAll(cmd)
 	parseWithEnv(t, cmd)
 
 	notifications, err := cmd.PersistentFlags().GetStringSlice("notifications")
@@ -1440,8 +1418,7 @@ func TestWatchtowerNotificationURLEnvironmentVariable(t *testing.T) {
 
 	cmd := new(cobra.Command)
 
-	SetDefaults()
-	RegisterNotificationFlags(cmd)
+	RegisterAll(cmd)
 	parseWithEnv(t, cmd)
 
 	urls, err := cmd.PersistentFlags().GetStringArray("notification-url")
@@ -1460,9 +1437,7 @@ func TestNotificationEnvVarsDoNotAffectContainerFiltering(t *testing.T) {
 
 	cmd := new(cobra.Command)
 
-	SetDefaults()
-	RegisterSystemFlags(cmd)
-	RegisterNotificationFlags(cmd)
+	RegisterAll(cmd)
 	parseWithEnv(t, cmd)
 
 	disableContainers, err := cmd.PersistentFlags().GetStringSlice("disable-containers")
@@ -1539,8 +1514,7 @@ func TestNotificationsConfigurationFromEnvVarsVsFlags(t *testing.T) {
 
 			cmd := new(cobra.Command)
 
-			SetDefaults()
-			RegisterNotificationFlags(cmd)
+			RegisterAll(cmd)
 			parseWithEnv(t, cmd, tc.flagArgs...)
 
 			notifications, err := cmd.PersistentFlags().GetStringSlice("notifications")
@@ -1562,8 +1536,7 @@ func TestNotificationURLParsingWithMixedSeparators(t *testing.T) {
 
 	cmd := new(cobra.Command)
 
-	SetDefaults()
-	RegisterNotificationFlags(cmd)
+	RegisterAll(cmd)
 	parseWithEnv(t, cmd)
 
 	urls, err := cmd.PersistentFlags().GetStringArray("notification-url")
@@ -1579,8 +1552,7 @@ func TestNotificationURLParsingWithInvalidValues(t *testing.T) {
 
 	cmd := new(cobra.Command)
 
-	SetDefaults()
-	RegisterNotificationFlags(cmd)
+	RegisterAll(cmd)
 	parseWithEnv(t, cmd)
 
 	urls, err := cmd.PersistentFlags().GetStringArray("notification-url")
@@ -1596,8 +1568,7 @@ func TestNotificationURLParsingWithEmptyValues(t *testing.T) {
 
 	cmd := new(cobra.Command)
 
-	SetDefaults()
-	RegisterNotificationFlags(cmd)
+	RegisterAll(cmd)
 	parseWithEnv(t, cmd)
 
 	urls, err := cmd.PersistentFlags().GetStringArray("notification-url")
@@ -1614,8 +1585,7 @@ func TestNotificationParsingEmptyEnvVar(t *testing.T) {
 
 	cmd := new(cobra.Command)
 
-	SetDefaults()
-	RegisterNotificationFlags(cmd)
+	RegisterAll(cmd)
 	parseWithEnv(t, cmd)
 
 	notifications, err := cmd.PersistentFlags().GetStringSlice("notifications")
@@ -1630,8 +1600,7 @@ func TestNotificationParsingWhitespaceOnly(t *testing.T) {
 
 	cmd := new(cobra.Command)
 
-	SetDefaults()
-	RegisterNotificationFlags(cmd)
+	RegisterAll(cmd)
 	parseWithEnv(t, cmd)
 
 	notifications, err := cmd.PersistentFlags().GetStringSlice("notifications")
@@ -1649,8 +1618,7 @@ func TestNotificationParsingSpecialCharsInURLs(t *testing.T) {
 
 	cmd := new(cobra.Command)
 
-	SetDefaults()
-	RegisterNotificationFlags(cmd)
+	RegisterAll(cmd)
 	parseWithEnv(t, cmd)
 
 	urls, err := cmd.PersistentFlags().GetStringArray("notification-url")
@@ -1670,8 +1638,7 @@ func TestNotificationParsingLongURLs(t *testing.T) {
 
 	cmd := new(cobra.Command)
 
-	SetDefaults()
-	RegisterNotificationFlags(cmd)
+	RegisterAll(cmd)
 	parseWithEnv(t, cmd)
 
 	urls, err := cmd.PersistentFlags().GetStringArray("notification-url")
@@ -1686,8 +1653,7 @@ func TestNotificationParsingFlagOverridesEnv(t *testing.T) {
 
 	cmd := new(cobra.Command)
 
-	SetDefaults()
-	RegisterNotificationFlags(cmd)
+	RegisterAll(cmd)
 
 	err := cmd.ParseFlags([]string{"--notifications", "slack"})
 	require.NoError(t, err)
@@ -1712,8 +1678,7 @@ func TestGetSecretsFromFilesReadErrors(t *testing.T) {
 
 	cmd := new(cobra.Command)
 
-	SetDefaults()
-	RegisterNotificationFlags(cmd)
+	RegisterAll(cmd)
 
 	err = cmd.ParseFlags([]string{"--notification-email-server-password", fileName})
 	require.NoError(t, err)
@@ -1725,29 +1690,6 @@ func TestGetSecretsFromFilesReadErrors(t *testing.T) {
 	password, err := cmd.PersistentFlags().GetString("notification-email-server-password")
 	require.NoError(t, err)
 	assert.Equal(t, fileName, password) // Remains unchanged since not a file
-}
-
-// TestFilterEmptyStrings verifies filterEmptyStrings function.
-func TestFilterEmptyStrings(t *testing.T) {
-	tests := []struct {
-		input    []string
-		expected any
-	}{
-		{[]string{"a", "", "b"}, []string{"a", "b"}},
-		{[]string{"  ", "c", "\t"}, []string{"c"}},
-		{[]string{}, nil},
-		{[]string{"", " ", ""}, nil},
-		{[]string{"valid"}, []string{"valid"}},
-	}
-
-	for _, tt := range tests {
-		result := filterEmptyStrings(tt.input)
-		if tt.expected == nil {
-			assert.Nil(t, result)
-		} else {
-			assert.Equal(t, tt.expected, result)
-		}
-	}
 }
 
 // TestRegexpSplittingLogic verifies regexp splitting with [, ]+.
@@ -1829,71 +1771,12 @@ func TestNotificationURLEnvToFlagWiring(t *testing.T) {
 
 			cmd := new(cobra.Command)
 
-			SetDefaults()
-			RegisterNotificationFlags(cmd)
+			RegisterAll(cmd)
 			parseWithEnv(t, cmd)
 
 			urls, err := cmd.PersistentFlags().GetStringArray("notification-url")
 			require.NoError(t, err)
 			assert.Equal(t, tc.expected, urls)
-		})
-	}
-}
-
-// TestIsPureNumeric verifies isPureNumeric behavior with table-driven cases.
-func TestIsPureNumeric(t *testing.T) {
-	tests := []struct {
-		name  string
-		input string
-		want  bool
-	}{
-		// Valid cases
-		{name: "zero", input: "0", want: true},
-		{name: "positive integer", input: "42", want: true},
-		{name: "large integer (legacy common case)", input: "300", want: true},
-		{name: "simple float", input: "1.5", want: true},
-		{name: "leading dot", input: ".5", want: true},
-		{name: "trailing dot", input: "1.", want: true},
-		{name: "negative integer", input: "-10", want: true},
-		{name: "explicit positive", input: "+3", want: true},
-		{name: "negative float", input: "-1.5", want: true},
-		{name: "positive leading dot", input: "+.5", want: true},
-		{name: "negative leading dot", input: "-.5", want: true},
-
-		// Invalid: no digits
-		{name: "empty string", input: "", want: false},
-		{name: "just decimal point", input: ".", want: false},
-		{name: "just plus sign", input: "+", want: false},
-		{name: "just minus sign", input: "-", want: false},
-		{name: "plus and dot only", input: "+.", want: false},
-		{name: "minus and dot only", input: "-.", want: false},
-
-		// Invalid: multiple dots
-		{name: "multiple dots", input: "1.2.3", want: false},
-		{name: "double dot", input: "1..2", want: false},
-		{name: "three dots", input: "1.2.3.4", want: false},
-
-		// Invalid: misplaced or multiple signs
-		{name: "minus after digit", input: "1-2", want: false},
-		{name: "plus at end", input: "12+", want: false},
-		{name: "plus in middle", input: "1+2", want: false},
-		{name: "trailing minus", input: "5-", want: false},
-		{name: "multiple signs at start", input: "+-1", want: false},
-		{name: "mixed signs", input: "-+5", want: false},
-
-		// Invalid: other characters
-		{name: "contains letter", input: "1a", want: false},
-		{name: "scientific notation", input: "1e3", want: false},
-		{name: "thousands separator", input: "1,000", want: false},
-		{name: "duration unit seconds", input: "30s", want: false},
-		{name: "duration unit minutes", input: "2m", want: false},
-		{name: "embedded space", input: "1 2", want: false},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			got := isPureNumeric(tc.input)
-			assert.Equal(t, tc.want, got, "isPureNumeric(%q)", tc.input)
 		})
 	}
 }

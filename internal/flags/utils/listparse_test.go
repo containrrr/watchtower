@@ -351,3 +351,26 @@ func TestSplitNotificationValuesComprehensive(t *testing.T) {
 		})
 	}
 }
+
+// TestFilterEmptyStrings verifies FilterEmptyStrings function.
+func TestFilterEmptyStrings(t *testing.T) {
+	tests := []struct {
+		input    []string
+		expected any
+	}{
+		{[]string{"a", "", "b"}, []string{"a", "b"}},
+		{[]string{"  ", "c", "\t"}, []string{"c"}},
+		{[]string{}, nil},
+		{[]string{"", " ", ""}, nil},
+		{[]string{"valid"}, []string{"valid"}},
+	}
+
+	for _, tt := range tests {
+		result := FilterEmptyStrings(tt.input)
+		if tt.expected == nil {
+			assert.Nil(t, result)
+		} else {
+			assert.Equal(t, tt.expected, result)
+		}
+	}
+}

@@ -35,7 +35,6 @@ func newTestRootCommand(t *testing.T, args ...string) *cobra.Command {
 
 	root := NewRootCommand()
 
-	flags.SetDefaults()
 	flags.RegisterAll(root)
 
 	require.NoError(t, root.ParseFlags(append([]string{"--log-level", "error"}, args...)))

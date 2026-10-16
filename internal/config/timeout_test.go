@@ -56,8 +56,6 @@ func TestStopTimeout_LegacyBareNumberAsSeconds(t *testing.T) {
 				_ = os.Unsetenv("WATCHTOWER_TIMEOUT")
 			}
 
-			flags.SetDefaults()
-
 			cmd := &cobra.Command{}
 			flags.RegisterAll(cmd)
 			require.NoError(t, cmd.ParseFlags([]string{}))

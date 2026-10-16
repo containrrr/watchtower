@@ -212,7 +212,6 @@ func TestAwaitDockerClient(t *testing.T) {
 func TestLifecycleFlags(t *testing.T) {
 	cmd := &cobra.Command{}
 
-	flags.SetDefaults()
 	flags.RegisterAll(cmd)
 
 	err := cmd.ParseFlags([]string{"--lifecycle-uid", "1000", "--lifecycle-gid", "1001"})
@@ -503,7 +502,7 @@ func testScheduleDeps(
 func TestUpdateOnStartTriggersImmediateUpdate(t *testing.T) {
 	// Create a command with update-on-start flag enabled
 	cmd := &cobra.Command{}
-	flags.RegisterSystemFlags(cmd)
+	flags.RegisterAll(cmd)
 	err := cmd.ParseFlags([]string{"--update-on-start", "--no-startup-message"})
 	require.NoError(t, err)
 
@@ -562,7 +561,7 @@ func TestUpdateOnStartIntegratesWithCronScheduling(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		// Create a command with update-on-start flag enabled and a schedule
 		cmd := &cobra.Command{}
-		flags.RegisterSystemFlags(cmd)
+		flags.RegisterAll(cmd)
 		err := cmd.ParseFlags(
 			[]string{"--update-on-start", "--schedule", "@every 1h", "--no-startup-message"},
 		)
@@ -644,7 +643,7 @@ func TestUpdateOnStartLockingBehavior(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		// Create a command with update-on-start flag enabled
 		cmd := &cobra.Command{}
-		flags.RegisterSystemFlags(cmd)
+		flags.RegisterAll(cmd)
 		err := cmd.ParseFlags([]string{"--update-on-start", "--no-startup-message"})
 		require.NoError(t, err)
 
@@ -698,7 +697,7 @@ func TestUpdateOnStartSelfUpdateScenario(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		// Create a command with update-on-start flag enabled
 		cmd := &cobra.Command{}
-		flags.RegisterSystemFlags(cmd)
+		flags.RegisterAll(cmd)
 		err := cmd.ParseFlags([]string{"--update-on-start", "--no-startup-message"})
 		require.NoError(t, err)
 
@@ -756,14 +755,14 @@ func TestUpdateOnStartMultiInstanceScenario(t *testing.T) {
 
 		// Create commands with update-on-start flag enabled
 		cmd1 := &cobra.Command{}
-		flags.RegisterSystemFlags(cmd1)
+		flags.RegisterAll(cmd1)
 		err := cmd1.ParseFlags([]string{"--update-on-start", "--no-startup-message"})
 		require.NoError(t, err)
 
 		updateOnStart1, _ := cmd1.Flags().GetBool("update-on-start")
 
 		cmd2 := &cobra.Command{}
-		flags.RegisterSystemFlags(cmd2)
+		flags.RegisterAll(cmd2)
 		err = cmd2.ParseFlags([]string{"--update-on-start", "--no-startup-message"})
 		require.NoError(t, err)
 
@@ -889,7 +888,7 @@ func TestRunUpgradesOnSchedule_ShutdownWaitsForRunningUpdate(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		// Create a command without scheduling to keep test simple
 		cmd := &cobra.Command{}
-		flags.RegisterSystemFlags(cmd)
+		flags.RegisterAll(cmd)
 		err := cmd.ParseFlags([]string{"--no-startup-message"})
 		require.NoError(t, err)
 
@@ -1034,7 +1033,7 @@ func TestValidateRollingRestartDependenciesAcceptsCancelableContext(t *testing.T
 func TestEphemeralSelfUpdateExercisesTruePath(t *testing.T) {
 	// Create a command with update-on-start flag enabled
 	cmd := &cobra.Command{}
-	flags.RegisterSystemFlags(cmd)
+	flags.RegisterAll(cmd)
 	err := cmd.ParseFlags([]string{"--update-on-start", "--no-startup-message"})
 	require.NoError(t, err)
 
@@ -1481,7 +1480,7 @@ func TestRootCommand_FlagParsing(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cmd := NewRootCommand()
-			flags.RegisterSystemFlags(cmd)
+			flags.RegisterAll(cmd)
 			cmd.SetArgs(tt.args)
 
 			err := cmd.ParseFlags(tt.args)
@@ -1525,9 +1524,7 @@ func TestRootCommand_HTTPAPIEndpointsFlag(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cmd := NewRootCommand()
-			flags.RegisterDockerFlags(cmd)
-			flags.RegisterSystemFlags(cmd)
-			flags.RegisterNotificationFlags(cmd)
+			flags.RegisterAll(cmd)
 			cmd.SetArgs(tt.args)
 
 			err := cmd.ParseFlags(tt.args)
@@ -1620,7 +1617,7 @@ func TestRootCommand_ReviveStoppedFlagParsing(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cmd := NewRootCommand()
-			flags.RegisterSystemFlags(cmd)
+			flags.RegisterAll(cmd)
 			cmd.SetArgs(tt.args)
 
 			err := cmd.ParseFlags(tt.args)

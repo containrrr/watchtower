@@ -99,7 +99,6 @@ func TestLoad_DiskSpaceValidation(t *testing.T) {
 
 			cmd := &cobra.Command{Use: "watchtower"}
 
-			flags.SetDefaults()
 			flags.RegisterAll(cmd)
 			require.NoError(t, cmd.ParseFlags(nil))
 

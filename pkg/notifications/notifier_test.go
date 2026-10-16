@@ -26,7 +26,7 @@ var _ = ginkgo.Describe("notifications", func() {
 	ginkgo.Describe("the notifier", func() {
 		ginkgo.When("only empty notifier types are provided", func() {
 			command := cmd.NewRootCommand()
-			flags.RegisterNotificationFlags(command)
+			flags.RegisterAll(command)
 
 			err := command.ParseFlags([]string{
 				"--notifications",
@@ -41,7 +41,7 @@ var _ = ginkgo.Describe("notifications", func() {
 		ginkgo.When("title is overridden in flag", func() {
 			ginkgo.It("should use the specified hostname in the title", func() {
 				command := cmd.NewRootCommand()
-				flags.RegisterNotificationFlags(command)
+				flags.RegisterAll(command)
 
 				err := command.ParseFlags([]string{
 					"--notifications-hostname",
@@ -63,7 +63,7 @@ var _ = ginkgo.Describe("notifications", func() {
 		ginkgo.When("title tag is set", func() {
 			ginkgo.It("should use the prefix in the title", func() {
 				command := cmd.NewRootCommand()
-				flags.RegisterNotificationFlags(command)
+				flags.RegisterAll(command)
 
 				gomega.Expect(command.ParseFlags([]string{
 					"--notification-title-tag",
@@ -79,7 +79,7 @@ var _ = ginkgo.Describe("notifications", func() {
 			// TODO: Remove legacy email subjecttag test when legacy notification types are removed.
 			ginkgo.It("should use the prefix in the title", func() {
 				command := cmd.NewRootCommand()
-				flags.RegisterNotificationFlags(command)
+				flags.RegisterAll(command)
 
 				gomega.Expect(command.ParseFlags([]string{
 					"--notification-email-subjecttag",
@@ -93,7 +93,7 @@ var _ = ginkgo.Describe("notifications", func() {
 		ginkgo.When("the skip title flag is set", func() {
 			ginkgo.It("should return an empty title", func() {
 				command := cmd.NewRootCommand()
-				flags.RegisterNotificationFlags(command)
+				flags.RegisterAll(command)
 
 				gomega.Expect(command.ParseFlags([]string{
 					"--notification-skip-title",
@@ -147,7 +147,7 @@ var _ = ginkgo.Describe("notifications", func() {
 				tmpFile.Close()
 
 				command := cmd.NewRootCommand()
-				flags.RegisterNotificationFlags(command)
+				flags.RegisterAll(command)
 
 				err = command.ParseFlags([]string{
 					"--notification-url",
@@ -169,7 +169,7 @@ var _ = ginkgo.Describe("notifications", func() {
 		// builderFn := notifications.NewSlackNotifier
 		ginkgo.When("passing a discord url to the slack notifier", func() {
 			command := cmd.NewRootCommand()
-			flags.RegisterNotificationFlags(command)
+			flags.RegisterAll(command)
 
 			channel := "123456789"
 			token := "abvsihdbau"
@@ -251,7 +251,7 @@ var _ = ginkgo.Describe("notifications", func() {
 		})
 		ginkgo.When("converting a slack service config into a shoutrrr url", func() {
 			command := cmd.NewRootCommand()
-			flags.RegisterNotificationFlags(command)
+			flags.RegisterAll(command)
 
 			username := "containrrrbot"
 			tokenA := "AAAAAAAAA"
@@ -346,7 +346,7 @@ var _ = ginkgo.Describe("notifications", func() {
 		ginkgo.When("converting a gotify service config into a shoutrrr url", func() {
 			ginkgo.It("should return the expected URL", func() {
 				command := cmd.NewRootCommand()
-				flags.RegisterNotificationFlags(command)
+				flags.RegisterAll(command)
 
 				token := "aaa"
 				host := "shoutrrr.local"
@@ -371,7 +371,7 @@ var _ = ginkgo.Describe("notifications", func() {
 
 			ginkgo.It("should configure with valid flags", func() {
 				command := cmd.NewRootCommand()
-				flags.RegisterNotificationFlags(command)
+				flags.RegisterAll(command)
 
 				args := []string{
 					"--notifications",
@@ -395,7 +395,7 @@ var _ = ginkgo.Describe("notifications", func() {
 
 			ginkgo.It("should log token at trace level", func() {
 				command := cmd.NewRootCommand()
-				flags.RegisterNotificationFlags(command)
+				flags.RegisterAll(command)
 
 				args := []string{
 					"--notifications",
@@ -426,7 +426,7 @@ var _ = ginkgo.Describe("notifications", func() {
 		ginkgo.When("converting a teams service config into a shoutrrr url", func() {
 			ginkgo.It("should return the expected URL", func() {
 				command := cmd.NewRootCommand()
-				flags.RegisterNotificationFlags(command)
+				flags.RegisterAll(command)
 
 				color := url.QueryEscape(notifications.ColorHex)
 
@@ -579,7 +579,7 @@ func expectNewNotifierFatal(args []string, wantMsg string) {
 	}
 
 	command := cmd.NewRootCommand()
-	flags.RegisterNotificationFlags(command)
+	flags.RegisterAll(command)
 	gomega.Expect(command.ParseFlags(args)).To(gomega.Succeed())
 
 	gomega.Expect(func() {
@@ -620,7 +620,7 @@ func testURL(args []string, expectedURL string, expectedDelay time.Duration) {
 	defer ginkgo.GinkgoRecover()
 
 	command := cmd.NewRootCommand()
-	flags.RegisterNotificationFlags(command)
+	flags.RegisterAll(command)
 
 	gomega.Expect(command.ParseFlags(args)).To(gomega.Succeed())
 

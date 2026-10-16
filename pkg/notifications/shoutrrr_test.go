@@ -237,7 +237,7 @@ updt1 (mock/updt1:latest): Updated
 		ginkgo.When("no custom template is provided", func() {
 			ginkgo.It("should format the messages using the default template", func() {
 				cmd := new(cobra.Command)
-				flags.RegisterNotificationFlags(cmd)
+				flags.RegisterAll(cmd)
 
 				shoutrrr := createTestNotifier(
 					[]string{},

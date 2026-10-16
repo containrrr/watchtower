@@ -34,7 +34,6 @@ func newLoadedCommand(t *testing.T, env map[string]string, args ...string) confi
 
 	cmd := &cobra.Command{Use: "watchtower"}
 
-	flags.SetDefaults()
 	flags.RegisterAll(cmd)
 	require.NoError(t, cmd.ParseFlags(args))
 

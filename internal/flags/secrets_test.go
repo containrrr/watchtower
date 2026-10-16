@@ -31,7 +31,6 @@ func newSecretsCommand(t *testing.T, args ...string) *cobra.Command {
 
 	cmd := new(cobra.Command)
 
-	SetDefaults()
 	RegisterAll(cmd)
 	require.NoError(t, cmd.ParseFlags(args))
 

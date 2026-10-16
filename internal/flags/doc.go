@@ -13,7 +13,6 @@
 //
 // Key components:
 //   - RegisterAll: Registers every domain's flags on the root command.
-//   - RegisterDockerFlags / RegisterSystemFlags / RegisterNotificationFlags: Domain-group helpers for tests.
 //   - BindAll: Applies Viper defaults, BindPFlag, and BindEnv from FlagSpec rows.
 //   - SetupLogging: Reconfigures a *zerolog.Logger (format writer + level) from flags and returns the updated logger.
 //   - ProcessFlagAliases / GetSecretsFromFiles: Pre-load transforms (porcelain, interval→schedule, secrets).
@@ -27,7 +26,6 @@
 //
 //	log := logging.New(os.Stderr, logging.InfoLevel)
 //	cmd := &cobra.Command{}
-//	flags.SetDefaults()
 //	flags.RegisterAll(cmd)
 //	log, err := flags.SetupLogging(log, cmd.PersistentFlags())
 //	if err != nil {

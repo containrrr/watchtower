@@ -1,4 +1,4 @@
-package flags
+package utils
 
 import (
 	"math"
@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-// FuzzIsPureNumeric verifies that isPureNumeric never panics and that
+// FuzzIsPureNumeric verifies that IsPureNumeric never panics and that
 // when it returns true, strconv.ParseFloat either succeeds with a finite
 // value or fails only with a range error.
 func FuzzIsPureNumeric(f *testing.F) {
@@ -63,7 +63,7 @@ func FuzzIsPureNumeric(f *testing.F) {
 	f.Add("1d")
 
 	f.Fuzz(func(t *testing.T, input string) {
-		result := isPureNumeric(input)
+		result := IsPureNumeric(input)
 
 		if result {
 			// When true, ParseFloat must succeed with finite value or fail only on range.
@@ -74,17 +74,17 @@ func FuzzIsPureNumeric(f *testing.F) {
 					return // out-of-range magnitude is acceptable
 				}
 
-				t.Errorf("isPureNumeric(%q) = true, but strconv.ParseFloat returned non-range error: %v", input, err)
+				t.Errorf("IsPureNumeric(%q) = true, but strconv.ParseFloat returned non-range error: %v", input, err)
 
 				return
 			}
 
 			if math.IsNaN(val) || math.IsInf(val, 0) {
-				t.Errorf("isPureNumeric(%q) = true, but parsed value %v is NaN or Inf", input, val)
+				t.Errorf("IsPureNumeric(%q) = true, but parsed value %v is NaN or Inf", input, val)
 			}
 		}
 
-		// We do not assert the inverse (ParseFloat success ⇒ isPureNumeric true)
+		// We do not assert the inverse (ParseFloat success ⇒ IsPureNumeric true)
 		// because we intentionally reject scientific notation, Inf, NaN, etc.
 		// Those should fall through to normal duration parsing.
 	})

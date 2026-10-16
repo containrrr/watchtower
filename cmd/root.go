@@ -134,11 +134,10 @@ type process struct {
 
 // init registers command-line flags for the root command during package initialization.
 //
-// It invokes functions from the flags package to set default values and register flags for Docker configuration
-// (e.g., --host), system behavior (e.g., --interval), and notifications (e.g., --notifications), establishing
-// the CLI's configurable parameters before execution begins.
+// It registers every domain's flags, such as Docker configuration (e.g., --host), system behavior
+// (e.g., --interval), and notifications (e.g., --notifications), establishing the CLI's configurable
+// parameters before execution begins.
 func init() {
-	flags.SetDefaults()
 	flags.RegisterAll(rootCmd)
 }
 
