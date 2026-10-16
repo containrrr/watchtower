@@ -37,6 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Unexport package-internal identifiers by @nicholas-fedor in [#2883](https://github.com/nicholas-fedor/watchtower/pull/2883)
 - Delete the remaining unreachable code by @nicholas-fedor in [#2881](https://github.com/nicholas-fedor/watchtower/pull/2881)
 - Delete unused container, filter, and sorter code by @nicholas-fedor in [#2877](https://github.com/nicholas-fedor/watchtower/pull/2877)
 - Delete unused notification and logging helpers by @nicholas-fedor in [#2875](https://github.com/nicholas-fedor/watchtower/pull/2875)
