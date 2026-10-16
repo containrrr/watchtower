@@ -730,7 +730,7 @@ var _ = ginkgo.Describe("the client", func() {
 					afero.WriteFile(memFs, "/run/.containerenv", []byte{}, 0o644)
 					testClient := &client{
 						api:         docker,
-						CPUCopyMode: CPUCopyModeAuto,
+						CPUCopyMode: cpuCopyModeAuto,
 						Fs:          memFs,
 					}
 					result := testClient.getRuntime(context.Background())
@@ -745,7 +745,7 @@ var _ = ginkgo.Describe("the client", func() {
 
 					testClient := &client{
 						api:         docker,
-						CPUCopyMode: CPUCopyModeAuto,
+						CPUCopyMode: cpuCopyModeAuto,
 						Fs:          memFs,
 					}
 					result := testClient.getRuntime(context.Background())
@@ -766,7 +766,7 @@ var _ = ginkgo.Describe("the client", func() {
 
 					testClient := &client{
 						api:         docker,
-						CPUCopyMode: CPUCopyModeAuto,
+						CPUCopyMode: cpuCopyModeAuto,
 						Fs:          memFs,
 					}
 					result := testClient.getRuntime(context.Background())
@@ -787,7 +787,7 @@ var _ = ginkgo.Describe("the client", func() {
 
 					testClient := &client{
 						api:         docker,
-						CPUCopyMode: CPUCopyModeAuto,
+						CPUCopyMode: cpuCopyModeAuto,
 						Fs:          memFs,
 					}
 					result := testClient.getRuntime(context.Background())
@@ -808,7 +808,7 @@ var _ = ginkgo.Describe("the client", func() {
 
 					testClient := &client{
 						api:         docker,
-						CPUCopyMode: CPUCopyModeAuto,
+						CPUCopyMode: cpuCopyModeAuto,
 						Fs:          memFs,
 					}
 					result := testClient.getRuntime(context.Background())
@@ -834,7 +834,7 @@ var _ = ginkgo.Describe("the client", func() {
 					testClient := &client{
 						log:         log,
 						api:         docker,
-						CPUCopyMode: CPUCopyModeAuto,
+						CPUCopyMode: cpuCopyModeAuto,
 						Fs:          memFs,
 					}
 					result := testClient.getRuntime(context.Background())
@@ -848,7 +848,7 @@ var _ = ginkgo.Describe("the client", func() {
 
 	// Test suite for detectRuntimeByMarker helper function.
 	ginkgo.Describe("detectRuntimeByMarker", func() {
-		ginkgo.It("should return RuntimePodman when Podman marker file exists", func() {
+		ginkgo.It("should return runtimePodman when Podman marker file exists", func() {
 			memFs := afero.NewMemMapFs()
 			afero.WriteFile(memFs, "/run/.containerenv", []byte{}, 0o644)
 			testClient := &client{
@@ -857,10 +857,10 @@ var _ = ginkgo.Describe("the client", func() {
 			}
 			result, err := testClient.detectRuntimeByMarker()
 			gomega.Expect(err).ToNot(gomega.HaveOccurred())
-			gomega.Expect(result).To(gomega.Equal(RuntimePodman))
+			gomega.Expect(result).To(gomega.Equal(runtimePodman))
 		})
 
-		ginkgo.It("should return RuntimeDocker when Docker marker file exists", func() {
+		ginkgo.It("should return runtimeDocker when Docker marker file exists", func() {
 			memFs := afero.NewMemMapFs()
 			afero.WriteFile(memFs, "/.dockerenv", []byte{}, 0o644)
 			testClient := &client{
@@ -868,20 +868,20 @@ var _ = ginkgo.Describe("the client", func() {
 			}
 			result, err := testClient.detectRuntimeByMarker()
 			gomega.Expect(err).ToNot(gomega.HaveOccurred())
-			gomega.Expect(result).To(gomega.Equal(RuntimeDocker))
+			gomega.Expect(result).To(gomega.Equal(runtimeDocker))
 		})
 
-		ginkgo.It("should return RuntimeUnknown when neither marker file exists", func() {
+		ginkgo.It("should return runtimeUnknown when neither marker file exists", func() {
 			memFs := afero.NewMemMapFs()
 			testClient := &client{
 				Fs: memFs,
 			}
 			result, err := testClient.detectRuntimeByMarker()
 			gomega.Expect(err).ToNot(gomega.HaveOccurred())
-			gomega.Expect(result).To(gomega.Equal(RuntimeUnknown))
+			gomega.Expect(result).To(gomega.Equal(runtimeUnknown))
 		})
 
-		ginkgo.It("should return RuntimePodman when Podman marker exists alongside Docker marker", func() {
+		ginkgo.It("should return runtimePodman when Podman marker exists alongside Docker marker", func() {
 			memFs := afero.NewMemMapFs()
 			afero.WriteFile(memFs, "/run/.containerenv", []byte{}, 0o644)
 			afero.WriteFile(memFs, "/.dockerenv", []byte{}, 0o644)
@@ -890,7 +890,7 @@ var _ = ginkgo.Describe("the client", func() {
 			}
 			result, err := testClient.detectRuntimeByMarker()
 			gomega.Expect(err).ToNot(gomega.HaveOccurred())
-			gomega.Expect(result).To(gomega.Equal(RuntimePodman))
+			gomega.Expect(result).To(gomega.Equal(runtimePodman))
 		})
 	})
 
@@ -1732,22 +1732,22 @@ var _ = ginkgo.Describe("the client", func() {
 		})
 	})
 
-	ginkgo.Describe("DaemonInitTimeout constant", func() {
+	ginkgo.Describe("daemonInitTimeout constant", func() {
 		ginkgo.It("should have a reasonable timeout value of 30 seconds", func() {
 			expectedTimeout := 30 * time.Second
-			gomega.Expect(DaemonInitTimeout).To(gomega.Equal(expectedTimeout))
+			gomega.Expect(daemonInitTimeout).To(gomega.Equal(expectedTimeout))
 		})
 
 		ginkgo.It("should not be zero", func() {
-			gomega.Expect(DaemonInitTimeout).To(gomega.BeNumerically(">", 0))
+			gomega.Expect(daemonInitTimeout).To(gomega.BeNumerically(">", 0))
 		})
 
 		ginkgo.It("should be within reasonable bounds (10s to 5min)", func() {
 			minTimeout := 10 * time.Second
 			maxTimeout := 5 * time.Minute
 
-			gomega.Expect(DaemonInitTimeout).To(gomega.BeNumerically(">=", minTimeout))
-			gomega.Expect(DaemonInitTimeout).To(gomega.BeNumerically("<=", maxTimeout))
+			gomega.Expect(daemonInitTimeout).To(gomega.BeNumerically(">=", minTimeout))
+			gomega.Expect(daemonInitTimeout).To(gomega.BeNumerically("<=", maxTimeout))
 		})
 	})
 
@@ -2561,7 +2561,7 @@ func TestListContainers_RestartingFilterFollowsRuntime(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		for _, mode := range []string{CPUCopyModeAuto, "full", "none"} {
+		for _, mode := range []string{cpuCopyModeAuto, "full", "none"} {
 			t.Run(tt.name+"/"+mode, func(t *testing.T) {
 				t.Parallel()
 
@@ -2652,7 +2652,7 @@ func TestGetRuntime_RetriesFailedDetection(t *testing.T) {
 	c := &client{
 		log:         testLog(),
 		api:         api,
-		CPUCopyMode: CPUCopyModeAuto,
+		CPUCopyMode: cpuCopyModeAuto,
 		Fs:          afero.NewMemMapFs(),
 	}
 

@@ -58,8 +58,6 @@ var (
 	errNoContainerInfo = errors.New("no container info available")
 	// errInvalidConfig indicates the container's configuration is invalid for recreation.
 	errInvalidConfig = errors.New("invalid container configuration")
-	// ErrUnexpectedContainerType indicates an unexpected container type was encountered.
-	ErrUnexpectedContainerType = errors.New("unexpected container type")
 	// errCurrentContainerNotCached indicates the current container is not cached for scope derivation.
 	errCurrentContainerNotCached = errors.New("current container not cached for scope derivation")
 )
@@ -76,10 +74,10 @@ var (
 	errPullImageFailed = errors.New("failed to pull image")
 	// errFailedToLoadPullOptions indicates pull options could not be resolved.
 	errFailedToLoadPullOptions = errors.New("failed to load pull options")
-	// ErrPullImageUnauthorized indicates an authentication failure during image pull.
-	ErrPullImageUnauthorized = errors.New("failed to pull image: authentication required")
-	// ErrPullImageNotFound indicates the image was not found in the registry.
-	ErrPullImageNotFound = errors.New("failed to pull image: image not found")
+	// errPullImageUnauthorized indicates an authentication failure during image pull.
+	errPullImageUnauthorized = errors.New("failed to pull image: authentication required")
+	// errPullImageNotFound indicates the image was not found in the registry.
+	errPullImageNotFound = errors.New("failed to pull image: image not found")
 	// errReadPullResponseFailed indicates a failure to read the pull response stream.
 	errReadPullResponseFailed = errors.New("failed to read pull response")
 	// errRemoveImageFailed indicates a failure to remove an image from the Docker host.
@@ -116,18 +114,18 @@ var (
 	errExtractContainerID = errors.New("failed to extract container ID")
 	// errNoValidContainerID indicates no valid Docker container ID was found in the input data.
 	errNoValidContainerID = errors.New("no valid docker container ID found in input")
-	// ErrContainerIDNotFound indicates the container ID could not be found using hostname matching.
-	ErrContainerIDNotFound = errors.New("HOSTNAME environment variable is not set")
+	// errContainerIDNotFound indicates the container ID could not be found using hostname matching.
+	errContainerIDNotFound = errors.New("HOSTNAME environment variable is not set")
 	// errNoContainerWithHostname indicates no container was found with the matching hostname.
 	errNoContainerWithHostname = errors.New("no container found with matching hostname")
 )
 
 // Errors for ephemeral orchestrator operations in ephemeral.go.
 var (
-	// ErrEphemeralCreateFailed indicates a failure to create the ephemeral orchestrator container.
-	ErrEphemeralCreateFailed = errors.New("failed to create ephemeral orchestrator container")
-	// ErrEphemeralStartFailed indicates a failure to start the ephemeral orchestrator container.
-	ErrEphemeralStartFailed = errors.New("failed to start ephemeral orchestrator container")
+	// errEphemeralCreateFailed indicates a failure to create the ephemeral orchestrator container.
+	errEphemeralCreateFailed = errors.New("failed to create ephemeral orchestrator container")
+	// errEphemeralStartFailed indicates a failure to start the ephemeral orchestrator container.
+	errEphemeralStartFailed = errors.New("failed to start ephemeral orchestrator container")
 )
 
 // Errors for copy-file label operations in copyfile.go.

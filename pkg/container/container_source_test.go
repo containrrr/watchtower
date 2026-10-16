@@ -36,7 +36,7 @@ const (
 	testShortID     = "abc123def456"
 )
 
-var _ = ginkgo.Describe("ListSourceContainers", func() {
+var _ = ginkgo.Describe("listSourceContainers", func() {
 	var (
 		docker     *dockerClient.Client
 		mockServer *ghttp.Server
@@ -143,7 +143,7 @@ var _ = ginkgo.Describe("ListSourceContainers", func() {
 			)
 			mockServer.AppendHandlers(mockInspects(testContainerID)...)
 
-			containers, err := ListSourceContainers(testLog(), context.Background(),
+			containers, err := listSourceContainers(testLog(), context.Background(),
 				docker,
 				ClientOptions{},
 				nil,
@@ -160,7 +160,7 @@ var _ = ginkgo.Describe("ListSourceContainers", func() {
 			)
 			mockServer.AppendHandlers(mockInspects(testContainerID)...)
 
-			containers, err := ListSourceContainers(testLog(), context.Background(),
+			containers, err := listSourceContainers(testLog(), context.Background(),
 				docker,
 				ClientOptions{IncludeStopped: true},
 				nil,
@@ -177,7 +177,7 @@ var _ = ginkgo.Describe("ListSourceContainers", func() {
 			)
 			mockServer.AppendHandlers(mockInspects(testContainerID)...)
 
-			containers, err := ListSourceContainers(testLog(), context.Background(),
+			containers, err := listSourceContainers(testLog(), context.Background(),
 				docker,
 				ClientOptions{IncludeRestarting: true},
 				nil,
@@ -194,7 +194,7 @@ var _ = ginkgo.Describe("ListSourceContainers", func() {
 			)
 			mockServer.AppendHandlers(mockInspects(testContainerID)...)
 
-			containers, err := ListSourceContainers(testLog(), context.Background(),
+			containers, err := listSourceContainers(testLog(), context.Background(),
 				docker,
 				ClientOptions{},
 				filters.NoFilter,
@@ -216,7 +216,7 @@ var _ = ginkgo.Describe("ListSourceContainers", func() {
 				),
 			)
 
-			containers, err := ListSourceContainers(testLog(), context.Background(),
+			containers, err := listSourceContainers(testLog(), context.Background(),
 				docker,
 				ClientOptions{},
 				nil,
@@ -238,7 +238,7 @@ var _ = ginkgo.Describe("ListSourceContainers", func() {
 				filters.NoFilter,
 			)
 
-			containers, err := ListSourceContainers(log, context.Background(),
+			containers, err := listSourceContainers(log, context.Background(),
 				docker,
 				ClientOptions{},
 				excludeAll,
@@ -255,7 +255,7 @@ var _ = ginkgo.Describe("ListSourceContainers", func() {
 
 			log, logBuf := captureLog(zerolog.WarnLevel)
 
-			containers, err := ListSourceContainers(log, context.Background(),
+			containers, err := listSourceContainers(log, context.Background(),
 				docker,
 				ClientOptions{},
 				nil,
@@ -415,9 +415,10 @@ var _ = ginkgo.Describe("GetSourceContainer", func() {
 				),
 			)
 
-			container, err := GetSourceContainer(testLog(), context.Background(),
+			container, err := getSourceContainer(testLog(), context.Background(),
 				docker,
 				types.ContainerID(containerID),
+				nil,
 			)
 			gomega.Expect(err).ToNot(gomega.HaveOccurred())
 			gomega.Expect(container).ToNot(gomega.BeNil())
@@ -464,9 +465,10 @@ var _ = ginkgo.Describe("GetSourceContainer", func() {
 				),
 			)
 
-			container, err := GetSourceContainer(testLog(), context.Background(),
+			container, err := getSourceContainer(testLog(), context.Background(),
 				docker,
 				types.ContainerID(containerID),
+				nil,
 			)
 			gomega.Expect(err).ToNot(gomega.HaveOccurred())
 			gomega.Expect(container).ToNot(gomega.BeNil())
@@ -526,9 +528,10 @@ var _ = ginkgo.Describe("GetSourceContainer", func() {
 				),
 			)
 
-			container, err := GetSourceContainer(testLog(), context.Background(),
+			container, err := getSourceContainer(testLog(), context.Background(),
 				docker,
 				types.ContainerID(containerID),
+				nil,
 			)
 			gomega.Expect(err).ToNot(gomega.HaveOccurred())
 			gomega.Expect(container).ToNot(gomega.BeNil())
@@ -588,9 +591,10 @@ var _ = ginkgo.Describe("GetSourceContainer", func() {
 				),
 			)
 
-			container, err := GetSourceContainer(testLog(), context.Background(),
+			container, err := getSourceContainer(testLog(), context.Background(),
 				docker,
 				types.ContainerID(containerID),
+				nil,
 			)
 			gomega.Expect(err).ToNot(gomega.HaveOccurred())
 			gomega.Expect(container.ContainerInfo().HostConfig.VolumesFrom).
@@ -646,9 +650,10 @@ var _ = ginkgo.Describe("GetSourceContainer", func() {
 				),
 			)
 
-			container, err := GetSourceContainer(testLog(), context.Background(),
+			container, err := getSourceContainer(testLog(), context.Background(),
 				docker,
 				types.ContainerID(containerID),
+				nil,
 			)
 			gomega.Expect(err).ToNot(gomega.HaveOccurred())
 			gomega.Expect(container.ContainerInfo().HostConfig.VolumesFrom).
@@ -705,9 +710,10 @@ var _ = ginkgo.Describe("GetSourceContainer", func() {
 				),
 			)
 
-			container, err := GetSourceContainer(testLog(), context.Background(),
+			container, err := getSourceContainer(testLog(), context.Background(),
 				docker,
 				types.ContainerID(containerID),
+				nil,
 			)
 			gomega.Expect(err).ToNot(gomega.HaveOccurred())
 			gomega.Expect(container.ContainerInfo().HostConfig.VolumesFrom).
@@ -777,9 +783,10 @@ var _ = ginkgo.Describe("GetSourceContainer", func() {
 				),
 			)
 
-			container, err := GetSourceContainer(testLog(), context.Background(),
+			container, err := getSourceContainer(testLog(), context.Background(),
 				docker,
 				types.ContainerID(containerID),
+				nil,
 			)
 			gomega.Expect(err).ToNot(gomega.HaveOccurred())
 			gomega.Expect(container.ContainerInfo().HostConfig.VolumesFrom).
@@ -846,9 +853,10 @@ var _ = ginkgo.Describe("GetSourceContainer", func() {
 				),
 			)
 
-			container, err := GetSourceContainer(testLog(), context.Background(),
+			container, err := getSourceContainer(testLog(), context.Background(),
 				docker,
 				types.ContainerID(containerID),
+				nil,
 			)
 			gomega.Expect(err).ToNot(gomega.HaveOccurred())
 			gomega.Expect(container.ContainerInfo().HostConfig.VolumesFrom).
@@ -871,9 +879,10 @@ var _ = ginkgo.Describe("GetSourceContainer", func() {
 				),
 			)
 
-			container, err := GetSourceContainer(testLog(), context.Background(),
+			container, err := getSourceContainer(testLog(), context.Background(),
 				docker,
 				types.ContainerID(containerID),
+				nil,
 			)
 			gomega.Expect(err).To(gomega.HaveOccurred())
 			gomega.Expect(err.Error()).To(gomega.ContainSubstring("failed to inspect container"))
@@ -896,9 +905,10 @@ var _ = ginkgo.Describe("GetSourceContainer", func() {
 				),
 			)
 
-			container, err := GetSourceContainer(testLog(), context.Background(),
+			container, err := getSourceContainer(testLog(), context.Background(),
 				docker,
 				types.ContainerID(containerID),
+				nil,
 			)
 			gomega.Expect(err).To(gomega.HaveOccurred())
 			gomega.Expect(err.Error()).To(gomega.ContainSubstring("failed to inspect container"))
@@ -921,9 +931,10 @@ var _ = ginkgo.Describe("GetSourceContainer", func() {
 				),
 			)
 
-			container, err := GetSourceContainer(testLog(), context.Background(),
+			container, err := getSourceContainer(testLog(), context.Background(),
 				docker,
 				types.ContainerID(containerID),
+				nil,
 			)
 			gomega.Expect(err).To(gomega.HaveOccurred())
 			gomega.Expect(err.Error()).To(gomega.ContainSubstring("failed to inspect container"))
@@ -932,7 +943,7 @@ var _ = ginkgo.Describe("GetSourceContainer", func() {
 	})
 })
 
-var _ = ginkgo.Describe("StopAndRemoveSourceContainer", func() {
+var _ = ginkgo.Describe("stopAndRemoveSourceContainer", func() {
 	var (
 		docker     *dockerClient.Client
 		mockServer *ghttp.Server
@@ -989,7 +1000,7 @@ var _ = ginkgo.Describe("StopAndRemoveSourceContainer", func() {
 					),
 				)
 
-				err := StopAndRemoveSourceContainer(testLog(), context.Background(),
+				err := stopAndRemoveSourceContainer(testLog(), context.Background(),
 					docker,
 					container,
 					10*time.Second,
@@ -1033,7 +1044,7 @@ var _ = ginkgo.Describe("StopAndRemoveSourceContainer", func() {
 					),
 				)
 
-				err := StopAndRemoveSourceContainer(testLog(), context.Background(),
+				err := stopAndRemoveSourceContainer(testLog(), context.Background(),
 					docker,
 					container,
 					10*time.Second,
@@ -1061,7 +1072,7 @@ var _ = ginkgo.Describe("StopAndRemoveSourceContainer", func() {
 				),
 			)
 
-			err := StopAndRemoveSourceContainer(testLog(), context.Background(),
+			err := stopAndRemoveSourceContainer(testLog(), context.Background(),
 				docker,
 				container,
 				10*time.Second,
@@ -1099,7 +1110,7 @@ var _ = ginkgo.Describe("StopAndRemoveSourceContainer", func() {
 				),
 			)
 
-			err := StopAndRemoveSourceContainer(testLog(), context.Background(),
+			err := stopAndRemoveSourceContainer(testLog(), context.Background(),
 				docker,
 				container,
 				10*time.Second,
@@ -1128,7 +1139,7 @@ var _ = ginkgo.Describe("StopAndRemoveSourceContainer", func() {
 				),
 			)
 
-			err := StopAndRemoveSourceContainer(testLog(), context.Background(),
+			err := stopAndRemoveSourceContainer(testLog(), context.Background(),
 				docker,
 				container,
 				10*time.Second,
@@ -1159,7 +1170,7 @@ var _ = ginkgo.Describe("StopAndRemoveSourceContainer", func() {
 				),
 			)
 
-			err := StopAndRemoveSourceContainer(testLog(), context.Background(),
+			err := stopAndRemoveSourceContainer(testLog(), context.Background(),
 				docker,
 				container,
 				10*time.Second,
@@ -1198,7 +1209,7 @@ var _ = ginkgo.Describe("StopAndRemoveSourceContainer", func() {
 				),
 			)
 
-			err := StopAndRemoveSourceContainer(testLog(), context.Background(),
+			err := stopAndRemoveSourceContainer(testLog(), context.Background(),
 				docker,
 				container,
 				10*time.Second,
@@ -1232,7 +1243,7 @@ var _ = ginkgo.Describe("StopAndRemoveSourceContainer", func() {
 				),
 			)
 
-			err := StopAndRemoveSourceContainer(testLog(), context.Background(),
+			err := stopAndRemoveSourceContainer(testLog(), context.Background(),
 				docker,
 				container,
 				10*time.Second,
@@ -1275,7 +1286,7 @@ var _ = ginkgo.Describe("StopAndRemoveSourceContainer", func() {
 				),
 			)
 
-			err := StopAndRemoveSourceContainer(testLog(), context.Background(),
+			err := stopAndRemoveSourceContainer(testLog(), context.Background(),
 				docker,
 				container,
 				timeout,
@@ -1309,7 +1320,7 @@ var _ = ginkgo.Describe("StopAndRemoveSourceContainer", func() {
 				),
 			)
 
-			err := StopAndRemoveSourceContainer(testLog(), context.Background(),
+			err := stopAndRemoveSourceContainer(testLog(), context.Background(),
 				docker,
 				container,
 				10*time.Second,
@@ -1336,7 +1347,7 @@ var _ = ginkgo.Describe("StopAndRemoveSourceContainer", func() {
 				),
 			)
 
-			err := StopAndRemoveSourceContainer(testLog(), context.Background(),
+			err := stopAndRemoveSourceContainer(testLog(), context.Background(),
 				docker,
 				container,
 				10*time.Second,
@@ -2627,7 +2638,7 @@ var _ = ginkgo.Describe("filterAliases", func() {
 	})
 })
 
-var _ = ginkgo.Describe("StopSourceContainer", func() {
+var _ = ginkgo.Describe("stopSourceContainer", func() {
 	var (
 		docker     *dockerClient.Client
 		mockServer *ghttp.Server
@@ -2669,7 +2680,7 @@ var _ = ginkgo.Describe("StopSourceContainer", func() {
 
 			log, logbuf := captureLog(zerolog.InfoLevel)
 
-			err := StopSourceContainer(log, context.Background(),
+			err := stopSourceContainer(log, context.Background(),
 				docker,
 				container,
 				10*time.Second,
@@ -2696,7 +2707,7 @@ var _ = ginkgo.Describe("StopSourceContainer", func() {
 				),
 			)
 
-			err := StopSourceContainer(testLog(), context.Background(),
+			err := stopSourceContainer(testLog(), context.Background(),
 				docker,
 				container,
 				10*time.Second,
@@ -2722,7 +2733,7 @@ var _ = ginkgo.Describe("StopSourceContainer", func() {
 				),
 			)
 
-			err := StopSourceContainer(testLog(), context.Background(),
+			err := stopSourceContainer(testLog(), context.Background(),
 				docker,
 				container,
 				10*time.Second,
@@ -2759,7 +2770,7 @@ var _ = ginkgo.Describe("StopSourceContainer", func() {
 				),
 			)
 
-			err := StopSourceContainer(testLog(), context.Background(), docker, container, timeout)
+			err := stopSourceContainer(testLog(), context.Background(), docker, container, timeout)
 			gomega.Expect(err).ToNot(gomega.HaveOccurred())
 		})
 	})
@@ -2770,7 +2781,7 @@ var _ = ginkgo.Describe("StopSourceContainer", func() {
 				WithContainerState(dockerContainer.State{Running: false}),
 			)
 
-			err := StopSourceContainer(testLog(), context.Background(),
+			err := stopSourceContainer(testLog(), context.Background(),
 				docker,
 				container,
 				10*time.Second,
@@ -2797,7 +2808,7 @@ var _ = ginkgo.Describe("StopSourceContainer", func() {
 				),
 			)
 
-			err := StopSourceContainer(testLog(), context.Background(),
+			err := stopSourceContainer(testLog(), context.Background(),
 				docker,
 				container,
 				10*time.Second,
@@ -3329,7 +3340,7 @@ func TestListSourceContainers_ImageInspectFailure(t *testing.T) {
 			log := zerolog.New(&out).Level(zerolog.WarnLevel)
 			api := imageInspectFailAPI{err: tt.inspectErr}
 
-			containers, err := ListSourceContainers(&log, t.Context(), api, ClientOptions{}, nil)
+			containers, err := listSourceContainers(&log, t.Context(), api, ClientOptions{}, nil)
 
 			if tt.wantErr != nil {
 				require.ErrorIs(t, err, tt.wantErr)
@@ -3426,7 +3437,7 @@ func TestStopAndRemoveSourceContainer_NotFound(t *testing.T) {
 			log := zerolog.Nop()
 			api := &stopRemoveAPI{stopErr: tt.stopErr, removeErr: tt.removeErr}
 
-			err := StopAndRemoveSourceContainer(&log, t.Context(), api,
+			err := stopAndRemoveSourceContainer(&log, t.Context(), api,
 				stopRemoveContainer(tt.running, tt.autoRemove), time.Second, false)
 
 			if tt.wantNotFound {
@@ -3449,7 +3460,7 @@ func TestStopSourceContainer_NotFound(t *testing.T) {
 	log := zerolog.Nop()
 	api := &stopRemoveAPI{stopErr: fmt.Errorf("no such container: %w", cerrdefs.ErrNotFound)}
 
-	err := StopSourceContainer(&log, t.Context(), api, stopRemoveContainer(true, false), time.Second)
+	err := stopSourceContainer(&log, t.Context(), api, stopRemoveContainer(true, false), time.Second)
 	require.Error(t, err)
 	assert.True(t, cerrdefs.IsNotFound(err), "error: %v", err)
 }

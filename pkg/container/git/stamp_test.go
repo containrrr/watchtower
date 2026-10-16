@@ -80,7 +80,7 @@ func TestImageRevision(t *testing.T) {
 	t.Run("nil container", func(t *testing.T) {
 		t.Parallel()
 
-		commit, tag := ImageRevision(nil)
+		commit, tag := imageRevision(nil)
 		assert.Empty(t, commit)
 		assert.Empty(t, tag)
 	})
@@ -88,7 +88,7 @@ func TestImageRevision(t *testing.T) {
 	t.Run("git shortsha image name", func(t *testing.T) {
 		t.Parallel()
 
-		commit, tag := ImageRevision(imageContainer(t, "localhost:5000/app:git-aaa111bbbbcc", "", ""))
+		commit, tag := imageRevision(imageContainer(t, "localhost:5000/app:git-aaa111bbbbcc", "", ""))
 		assert.Equal(t, "aaa111bbbbcc", commit)
 		assert.Empty(t, tag)
 	})
@@ -96,7 +96,7 @@ func TestImageRevision(t *testing.T) {
 	t.Run("ignores non git tags", func(t *testing.T) {
 		t.Parallel()
 
-		commit, tag := ImageRevision(imageContainer(t, "app:latest", "", ""))
+		commit, tag := imageRevision(imageContainer(t, "app:latest", "", ""))
 		assert.Empty(t, commit)
 		assert.Empty(t, tag)
 	})

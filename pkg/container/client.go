@@ -21,23 +21,22 @@ import (
 	dockerClient "github.com/moby/moby/client"
 
 	registryConfig "github.com/nicholas-fedor/watchtower/internal/config/registry"
-	"github.com/nicholas-fedor/watchtower/internal/flags"
 	"github.com/nicholas-fedor/watchtower/pkg/container/oci"
 	"github.com/nicholas-fedor/watchtower/pkg/types"
 )
 
 // Constants for CPUCopyMode values.
 const (
-	// CPUCopyModeAuto indicates automatic detection of container runtime for
+	// cpuCopyModeAuto indicates automatic detection of container runtime for
 	// CPU copying behavior.
-	CPUCopyModeAuto = "auto"
+	cpuCopyModeAuto = "auto"
 
-	// DaemonInitTimeout is the default timeout for Docker daemon initialization operations.
+	// daemonInitTimeout is the default timeout for Docker daemon initialization operations.
 	// This timeout applies to initial connection, ping, API version negotiation, and
 	// server version retrieval during client initialization.
 	// The value is 30 seconds, which should be sufficient for most Docker daemon
 	// initialization scenarios while preventing indefinite hangs.
-	DaemonInitTimeout = 30 * time.Second
+	daemonInitTimeout = 30 * time.Second
 
 	// maxListRetries is the maximum number of retry attempts for transient Docker
 	// connection failures when listing containers.
@@ -63,16 +62,16 @@ var (
 	errRecreateDockerClient = errors.New("failed to recreate Docker client")
 )
 
-// Runtime represents the type of container runtime detected.
-type Runtime int
+// containerRuntime represents the type of container runtime detected.
+type containerRuntime int
 
 const (
-	// RuntimeUnknown indicates no container runtime has been detected.
-	RuntimeUnknown Runtime = iota
-	// RuntimeDocker indicates Docker is the container runtime.
-	RuntimeDocker
-	// RuntimePodman indicates Podman is the container runtime.
-	RuntimePodman
+	// runtimeUnknown indicates no container runtime has been detected.
+	runtimeUnknown containerRuntime = iota
+	// runtimeDocker indicates Docker is the container runtime.
+	runtimeDocker
+	// runtimePodman indicates Podman is the container runtime.
+	runtimePodman
 )
 
 // Client defines the interface for interacting with the Docker API within Watchtower.
@@ -508,7 +507,7 @@ func negotiateDockerAPI(
 ) (*dockerClient.Client, dockerClient.PingResult, error) {
 	ctx, cancel := context.WithTimeout(
 		context.Background(),
-		DaemonInitTimeout,
+		daemonInitTimeout,
 	)
 	defer cancel()
 
@@ -588,7 +587,7 @@ func (c *client) ListContainers(ctx context.Context, filter ...types.Filter) ([]
 	)
 
 	for attempt := range maxListRetries {
-		containers, err = ListSourceContainers(c.logger(),
+		containers, err = listSourceContainers(c.logger(),
 			ctx,
 			c.api,
 			c.ClientOptions,
@@ -650,7 +649,7 @@ func (c *client) ListContainers(ctx context.Context, filter ...types.Filter) ([]
 //   - error: Non-nil if retrieval fails, nil on success.
 func (c *client) GetContainer(ctx context.Context, containerID types.ContainerID) (types.Container, error) {
 	// Retrieve container details using helper function.
-	container, err := GetSourceContainer(c.logger(), ctx, c.api, containerID)
+	container, err := getSourceContainer(c.logger(), ctx, c.api, containerID, nil)
 	if err != nil {
 		c.logger().Debug().
 			Err(err).
@@ -725,7 +724,7 @@ func (c *client) GetCurrentWatchtowerContainer(
 //   - error: Non-nil if stop fails, nil on success.
 func (c *client) StopContainer(ctx context.Context, container types.Container, timeout time.Duration) error {
 	// Stop container using helper function.
-	err := StopSourceContainer(c.logger(), ctx, c.api, container, timeout)
+	err := stopSourceContainer(c.logger(), ctx, c.api, container, timeout)
 	if err != nil {
 		c.logger().Debug().
 			Err(err).
@@ -759,7 +758,7 @@ func (c *client) StopContainer(ctx context.Context, container types.Container, t
 //   - error: Non-nil if stop/removal fails, nil on success.
 func (c *client) StopAndRemoveContainer(ctx context.Context, container types.Container, timeout time.Duration) error {
 	// Stop and remove container using helper function with volume option.
-	err := StopAndRemoveSourceContainer(c.logger(),
+	err := stopAndRemoveSourceContainer(c.logger(),
 		ctx,
 		c.api,
 		container,
@@ -803,7 +802,7 @@ func (c *client) CreateContainer(ctx context.Context, container types.Container)
 		Logger()
 	clog := &clogVal
 	// Only the auto CPU copy mode depends on the runtime.
-	isPodman := c.CPUCopyMode == CPUCopyModeAuto && c.getRuntime(ctx)
+	isPodman := c.CPUCopyMode == cpuCopyModeAuto && c.getRuntime(ctx)
 
 	clientVersion := c.GetVersion()
 
@@ -813,13 +812,12 @@ func (c *client) CreateContainer(ctx context.Context, container types.Container)
 
 	networkConfig := getNetworkConfig(c.logger(), container, clientVersion)
 
-	newID, err := CreateTargetContainer(c.logger(),
+	newID, err := createTargetContainer(c.logger(),
 		ctx,
 		c.api,
 		container,
 		networkConfig,
 		clientVersion,
-		flags.DockerAPIMinVersion, // Docker API Version 1.24
 		c.DisableMemorySwappiness,
 		c.CPUCopyMode,
 		isPodman,
@@ -1033,7 +1031,7 @@ func (c *client) RemoveContainer(ctx context.Context, container types.Container)
 //   - error: Non-nil if rename fails, nil on success.
 func (c *client) RenameContainer(ctx context.Context, container types.Container, newName string) error {
 	// Perform rename using helper function.
-	err := RenameTargetContainer(c.logger(), ctx, c.api, container, newName)
+	err := renameTargetContainer(c.logger(), ctx, c.api, container, newName)
 	if err != nil {
 		c.logger().Debug().
 			Err(err).
@@ -1572,11 +1570,11 @@ func (c *client) detectRuntime(ctx context.Context) (bool, error) {
 
 	// Handle the detected runtime from marker files
 	switch runtime {
-	case RuntimePodman:
+	case runtimePodman:
 		return true, nil
-	case RuntimeDocker:
+	case runtimeDocker:
 		return false, nil
-	case RuntimeUnknown:
+	case runtimeUnknown:
 		// Continue to next detection method
 	default:
 		// Continue to next detection method
@@ -1601,15 +1599,15 @@ func (c *client) detectRuntime(ctx context.Context) (bool, error) {
 //   - c: The client instance for filesystem access.
 //
 // Returns:
-//   - Runtime: The detected container runtime (RuntimePodman, RuntimeDocker, or RuntimeUnknown).
+//   - containerRuntime: The detected container runtime (runtimePodman, runtimeDocker, or runtimeUnknown).
 //   - error: Non-nil if checking fails with a non-NotExist error, nil on success.
-func (c *client) detectRuntimeByMarker() (Runtime, error) {
+func (c *client) detectRuntimeByMarker() (containerRuntime, error) {
 	// Check for Podman marker file
 	_, podmanErr := c.Fs.Stat("/run/.containerenv")
 	if podmanErr == nil {
 		c.logger().Debug().Msg("Detected Podman via marker file /run/.containerenv")
 
-		return RuntimePodman, nil
+		return runtimePodman, nil
 	}
 
 	// Check for Docker marker file
@@ -1617,7 +1615,7 @@ func (c *client) detectRuntimeByMarker() (Runtime, error) {
 	if dockerErr == nil {
 		c.logger().Debug().Msg("Detected Docker via marker file /.dockerenv")
 
-		return RuntimeDocker, nil
+		return runtimeDocker, nil
 	}
 
 	// Both checks failed - determine if it's due to missing files or actual errors
@@ -1626,7 +1624,7 @@ func (c *client) detectRuntimeByMarker() (Runtime, error) {
 
 	// If both files simply don't exist, that's expected (not an error)
 	if podmanNotExist && dockerNotExist {
-		return RuntimeUnknown, nil
+		return runtimeUnknown, nil
 	}
 
 	// At least one check returned a non-NotExist error (e.g., permission denied)
@@ -1634,19 +1632,19 @@ func (c *client) detectRuntimeByMarker() (Runtime, error) {
 	switch {
 	case !podmanNotExist && dockerNotExist:
 		// Podman check failed with non-NotExist error
-		return RuntimeUnknown, fmt.Errorf(
+		return runtimeUnknown, fmt.Errorf(
 			"failed to check Podman marker file /run/.containerenv: %w",
 			podmanErr,
 		)
 	case podmanNotExist && !dockerNotExist:
 		// Docker check failed with non-NotExist error
-		return RuntimeUnknown, fmt.Errorf(
+		return runtimeUnknown, fmt.Errorf(
 			"failed to check Docker marker file /.dockerenv: %w",
 			dockerErr,
 		)
 	default:
 		// Both checks failed with non-NotExist errors
-		return RuntimeUnknown, fmt.Errorf(
+		return runtimeUnknown, fmt.Errorf(
 			"failed to check marker files: /run/.containerenv: %w, /.dockerenv: %w",
 			podmanErr,
 			dockerErr,

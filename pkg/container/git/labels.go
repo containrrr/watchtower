@@ -4,7 +4,7 @@ package git
 const (
 	RepoLabel            = "com.centurylinklabs.watchtower.git-repo"
 	RefLabel             = "com.centurylinklabs.watchtower.git-ref"
-	BranchLabel          = "com.centurylinklabs.watchtower.git-branch"
+	branchLabel          = "com.centurylinklabs.watchtower.git-branch"
 	HostLabel            = "com.centurylinklabs.watchtower.git-host"
 	SemverPolicyLabel    = "com.centurylinklabs.watchtower.git-semver-policy"
 	WatchLabel           = "com.centurylinklabs.watchtower.git-watch"

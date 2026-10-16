@@ -283,7 +283,7 @@ var _ = ginkgo.Describe("PullImage cooldown gate", func() {
 				WithRepoDigests([]string{"registry.example.com/test@sha256:12345"}),
 			)
 
-			err := i.PullImage(context.Background(), c, WarnAuto, types.UpdateParams{
+			err := i.PullImage(context.Background(), c, warnAuto, types.UpdateParams{
 				CooldownDelay: 1 * time.Hour,
 			})
 			gomega.Expect(err).To(gomega.HaveOccurred())

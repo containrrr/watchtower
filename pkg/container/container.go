@@ -25,7 +25,7 @@ const (
 	linkPartsCount = 2 // Number of parts expected in a link (name:alias)
 )
 
-// Operations defines the minimal interface for container operations in Watchtower.
+// Operations defines the minimal interface for container Operations in Watchtower.
 type Operations interface {
 	ContainerCreate(
 		ctx context.Context,

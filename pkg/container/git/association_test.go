@@ -86,7 +86,7 @@ func TestResolveAssociation(t *testing.T) {
 
 		c := testContainer(t, map[string]string{
 			RepoLabel:   "https://github.com/org/app.git",
-			BranchLabel: "develop",
+			branchLabel: "develop",
 		}, "myapp:latest")
 
 		got, ok := ResolveAssociation(c, types.UpdateParams{})
@@ -218,10 +218,10 @@ func TestRefLabel(t *testing.T) {
 
 	assert.Equal(t, "release", refLabel(testContainer(t, map[string]string{
 		RefLabel:    "release",
-		BranchLabel: "ignored",
+		branchLabel: "ignored",
 	}, "app:latest")))
 	assert.Equal(t, "develop", refLabel(testContainer(t, map[string]string{
-		BranchLabel: "develop",
+		branchLabel: "develop",
 	}, "app:latest")))
 	assert.Empty(t, refLabel(testContainer(t, nil, "app:latest")))
 }

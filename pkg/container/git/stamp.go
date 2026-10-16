@@ -48,10 +48,10 @@ func Baseline(c types.Container) (string, string) {
 		return commit, tag
 	}
 
-	return ImageRevision(c)
+	return imageRevision(c)
 }
 
-// ImageRevision returns a commit and tag inferred from the running image.
+// imageRevision returns a commit and tag inferred from the running image.
 //
 // Parameters:
 //   - c: Container whose image name and inspect labels are read.
@@ -59,7 +59,7 @@ func Baseline(c types.Container) (string, string) {
 // Returns:
 //   - string: OCI revision or git-<shortsha> tag, or empty.
 //   - string: OCI image version when it looks like a semver tag, or empty.
-func ImageRevision(c types.Container) (string, string) {
+func imageRevision(c types.Container) (string, string) {
 	if c == nil {
 		return "", ""
 	}

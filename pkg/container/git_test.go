@@ -203,16 +203,16 @@ var _ = ginkgo.Describe("Git wrappers", func() {
 
 	ginkgo.Describe("ApplyGitAssociation", func() {
 		ginkgo.It("is a no-op for a nil container or empty repo", func() {
-			ApplyGitAssociation(nil, GitAssociation{Repo: "https://github.com/org/app.git"}, true)
+			ApplyGitAssociation(nil, gitAssociation{Repo: "https://github.com/org/app.git"}, true)
 
 			c := MockContainer()
-			ApplyGitAssociation(c, GitAssociation{}, true)
+			ApplyGitAssociation(c, gitAssociation{}, true)
 			gomega.Expect(c.containerInfo.Config.Labels).NotTo(gomega.HaveKey(git.RepoLabel))
 		})
 
 		ginkgo.It("persists association labels and watch", func() {
 			c := MockContainer()
-			ApplyGitAssociation(c, GitAssociation{
+			ApplyGitAssociation(c, gitAssociation{
 				Repo:       "https://github.com/org/app.git",
 				Ref:        "main",
 				Policy:     types.GitPolicyPatch,
@@ -234,7 +234,7 @@ var _ = ginkgo.Describe("Git wrappers", func() {
 
 		ginkgo.It("preserves bare local repository paths in labels", func() {
 			c := MockContainer()
-			ApplyGitAssociation(c, GitAssociation{Repo: "../repos/app", Ref: "main"}, true)
+			ApplyGitAssociation(c, gitAssociation{Repo: "../repos/app", Ref: "main"}, true)
 
 			repo, ok := c.GetLabel(git.RepoLabel)
 			gomega.Expect(ok).To(gomega.BeTrue())
@@ -243,13 +243,13 @@ var _ = ginkgo.Describe("Git wrappers", func() {
 
 		ginkgo.It("preserves SSH identities and benign local path queries", func() {
 			sshContainer := MockContainer()
-			ApplyGitAssociation(sshContainer, GitAssociation{Repo: "ssh://git@git.example.com/org/app.git"}, true)
+			ApplyGitAssociation(sshContainer, gitAssociation{Repo: "ssh://git@git.example.com/org/app.git"}, true)
 			sshRepo, ok := sshContainer.GetLabel(git.RepoLabel)
 			gomega.Expect(ok).To(gomega.BeTrue())
 			gomega.Expect(sshRepo).To(gomega.Equal("ssh://git@git.example.com/org/app.git"))
 
 			pathContainer := MockContainer()
-			ApplyGitAssociation(pathContainer, GitAssociation{Repo: "/srv/repos/app?release=1"}, true)
+			ApplyGitAssociation(pathContainer, gitAssociation{Repo: "/srv/repos/app?release=1"}, true)
 			pathRepo, ok := pathContainer.GetLabel(git.RepoLabel)
 			gomega.Expect(ok).To(gomega.BeTrue())
 			gomega.Expect(pathRepo).To(gomega.Equal("/srv/repos/app?release=1"))
@@ -257,7 +257,7 @@ var _ = ginkgo.Describe("Git wrappers", func() {
 
 		ginkgo.It("redacts credentials and query tokens before persisting labels", func() {
 			c := MockContainer()
-			ApplyGitAssociation(c, GitAssociation{
+			ApplyGitAssociation(c, gitAssociation{
 				Repo: "https://user:secret@github.com/org/app.git?access_token=query#main",
 				Host: "https://git.example.com:3000?token=host-secret",
 				Ref:  "main",
@@ -278,7 +278,7 @@ var _ = ginkgo.Describe("Git wrappers", func() {
 			c := MockContainer(WithLabels(map[string]string{
 				git.RepoLabel: "https://user:secret@github.com/org/app.git",
 			}))
-			ApplyGitAssociation(c, GitAssociation{Repo: "://invalid"}, true)
+			ApplyGitAssociation(c, gitAssociation{Repo: "://invalid"}, true)
 
 			_, ok := c.GetLabel(git.RepoLabel)
 			gomega.Expect(ok).To(gomega.BeFalse())
@@ -286,7 +286,7 @@ var _ = ginkgo.Describe("Git wrappers", func() {
 
 		ginkgo.It("does not persist process defaults", func() {
 			c := MockContainer()
-			ApplyGitAssociation(c, GitAssociation{
+			ApplyGitAssociation(c, gitAssociation{
 				Repo:                  "https://github.com/org/app.git",
 				Ref:                   "main",
 				Policy:                types.GitPolicyNone,
@@ -307,7 +307,7 @@ var _ = ginkgo.Describe("Git wrappers", func() {
 			c := MockContainer()
 			c.SetLabel(git.RefLabel, "old")
 			c.SetLabel(git.WatchLabel, "true")
-			ApplyGitAssociation(c, GitAssociation{Repo: "https://github.com/org/app.git"}, false)
+			ApplyGitAssociation(c, gitAssociation{Repo: "https://github.com/org/app.git"}, false)
 
 			gomega.Expect(c.containerInfo.Config.Labels).To(gomega.Equal(map[string]string{
 				git.RepoLabel: "https://github.com/org/app.git",

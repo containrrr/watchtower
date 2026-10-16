@@ -82,7 +82,7 @@ func TestRemoveOrphanedOrchestrators_SkipsInFlight(t *testing.T) {
 			orchestrator := MockContainer(
 				WithID("orch123"),
 				WithName("watchtower-orchestrator"),
-				WithLabels(map[string]string{OrchestratorLabel: "true"}),
+				WithLabels(map[string]string{orchestratorLabel: "true"}),
 				WithContainerState(tt.state),
 				func(c *dockerContainer.InspectResponse, _ *dockerImage.InspectResponse) {
 					c.Created = tt.created
@@ -120,7 +120,7 @@ func TestRemoveOrphanedOrchestrators_AlreadyGone(t *testing.T) {
 	orchestrator := MockContainer(
 		WithID("orch123"),
 		WithName("watchtower-orchestrator"),
-		WithLabels(map[string]string{OrchestratorLabel: "true"}),
+		WithLabels(map[string]string{orchestratorLabel: "true"}),
 		WithContainerState(dockerContainer.State{
 			Running:   true,
 			StartedAt: time.Now().Add(-time.Hour).UTC().Format(time.RFC3339Nano),

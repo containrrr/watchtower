@@ -832,7 +832,7 @@ func TestContainsWatchtowerLabel(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := ContainsWatchtowerLabel(tt.args.labels)
+			got := containsWatchtowerLabel(tt.args.labels)
 			assert.Equal(t, tt.want, got)
 		})
 	}

@@ -286,7 +286,7 @@ func TestExecutePreCheckCommand(t *testing.T) {
 				tt.setupClient(client)
 			}
 
-			ExecutePreCheckCommand(log, context.Background(), client, tt.container, 0, 0)
+			executePreCheckCommand(log, context.Background(), client, tt.container, 0, 0)
 
 			output := logBuf.String()
 			assert.NotEmpty(t, output, "expected log output")
@@ -353,7 +353,7 @@ func TestExecutePostCheckCommand(t *testing.T) {
 				tt.setupClient(client)
 			}
 
-			ExecutePostCheckCommand(log, context.Background(), client, tt.container, 0, 0)
+			executePostCheckCommand(log, context.Background(), client, tt.container, 0, 0)
 
 			output := logBuf.String()
 			assert.NotEmpty(t, output, "expected log output")

@@ -27,7 +27,7 @@ import (
 // defaultStopSignal is the default signal for stopping containers ("SIGTERM").
 const defaultStopSignal = "SIGTERM"
 
-// ListSourceContainers retrieves a list of containers from the container runtime host.
+// listSourceContainers retrieves a list of containers from the container runtime host.
 //
 // It filters containers based on options and a provided filter function.
 //
@@ -41,7 +41,7 @@ const defaultStopSignal = "SIGTERM"
 // Returns:
 //   - []types.Container: Filtered list of containers.
 //   - error: Non-nil if listing fails, nil on success.
-func ListSourceContainers(log *zerolog.Logger,
+func listSourceContainers(log *zerolog.Logger,
 	ctx context.Context,
 	api dockerClient.APIClient,
 	opts ClientOptions,
@@ -155,29 +155,9 @@ func ListSourceContainers(log *zerolog.Logger,
 	return hostContainers, nil
 }
 
-// GetSourceContainer retrieves detailed information about a container by its ID.
-//
-// It resolves network mode if it references another container.
-//
-// Parameters:
-//   - log: Logger for debug output.
-//   - ctx: Context for cancellation and timeout control.
-//   - api: Docker API client.
-//   - containerID: ID of the container to inspect.
-//
-// Returns:
-//   - types.Container: Container object if successful.
-//   - error: Non-nil if inspection fails, nil on success.
-func GetSourceContainer(log *zerolog.Logger,
-	ctx context.Context,
-	api dockerClient.APIClient,
-	containerID types.ContainerID,
-) (types.Container, error) {
-	// No per-list cache for standalone inspects.
-	return getSourceContainer(log, ctx, api, containerID, nil)
-}
-
 // getSourceContainer inspects a container and optionally reuses ImageInspect results.
+//
+// It resolves the network mode when it references another container.
 //
 // Parameters:
 //   - log: Logger for debug output.
@@ -438,7 +418,7 @@ func cloneImageInspect(src *dockerImage.InspectResponse) *dockerImage.InspectRes
 	return &dst
 }
 
-// StopSourceContainer stops the specified container using the Docker API's StopContainer method.
+// stopSourceContainer stops the specified container using the Docker API's StopContainer method.
 //
 // It checks if the container is running, sends the configured stop signal (defaulting to SIGTERM if unset),
 // and waits for the specified timeout for graceful shutdown, forcing termination with SIGKILL if necessary.
@@ -452,7 +432,7 @@ func cloneImageInspect(src *dockerImage.InspectResponse) *dockerImage.InspectRes
 // Returns:
 //   - error: Non-nil if stopping the container fails, including a not-found error when the container no
 //     longer exists. Nil on successful completion.
-func StopSourceContainer(log *zerolog.Logger,
+func stopSourceContainer(log *zerolog.Logger,
 	ctx context.Context,
 	api dockerClient.APIClient,
 	sourceContainer types.Container,
@@ -547,7 +527,7 @@ func StopSourceContainer(log *zerolog.Logger,
 	return nil
 }
 
-// StopAndRemoveSourceContainer stops and removes the specified container using the Docker API.
+// stopAndRemoveSourceContainer stops and removes the specified container using the Docker API.
 //
 // It first stops the container if running, then removes it with optional volume cleanup.
 // When HostConfig.AutoRemove is set, Docker only removes the container after a started
@@ -566,7 +546,7 @@ func StopSourceContainer(log *zerolog.Logger,
 //   - error: Non-nil if stopping or removing the container fails. A not-found error means the container was
 //     gone before this call stopped or removed it. Nil on successful completion, including a container that
 //     disappeared after this call stopped it.
-func StopAndRemoveSourceContainer(log *zerolog.Logger,
+func stopAndRemoveSourceContainer(log *zerolog.Logger,
 	ctx context.Context,
 	api dockerClient.APIClient,
 	sourceContainer types.Container,
@@ -583,7 +563,7 @@ func StopAndRemoveSourceContainer(log *zerolog.Logger,
 	wasRunning := sourceContainer.IsRunning()
 
 	// Stop the container first.
-	err := StopSourceContainer(log, ctx, api, sourceContainer, timeout)
+	err := stopSourceContainer(log, ctx, api, sourceContainer, timeout)
 	if err != nil {
 		return err
 	}

@@ -8,19 +8,11 @@ import (
 	"github.com/nicholas-fedor/watchtower/pkg/container/git"
 )
 
-const (
-	// GitLastCommitLabel is stamped on a replacement container after a git rebuild.
-	GitLastCommitLabel = git.LastCommitLabel
-	// GitLastTagLabel is stamped on a replacement container after a tag rebuild.
-	GitLastTagLabel = git.LastTagLabel
-	// DefaultGitDockerfile is used when no Dockerfile path is configured.
-	DefaultGitDockerfile = git.DefaultDockerfile
-	// DefaultGitContext is the repository root.
-	DefaultGitContext = git.DefaultContext
-)
+// DefaultGitDockerfile is used when no Dockerfile path is configured.
+const DefaultGitDockerfile = git.DefaultDockerfile
 
-// GitAssociation is the monitor association for a container.
-type GitAssociation = git.Association
+// gitAssociation is the monitor association for a container.
+type gitAssociation = git.Association
 
 // SetLabel sets a container config label used on the next create.
 //
@@ -113,7 +105,7 @@ func ApplyGitStamp(c *Container, commit, tag string) {
 //   - assoc: Resolved repo, ref, policy, and build paths.
 //   - watch: When true, persist git-watch=true. False leaves the process-wide
 //     --git-enable default in effect on the replacement.
-func ApplyGitAssociation(c *Container, assoc GitAssociation, watch bool) {
+func ApplyGitAssociation(c *Container, assoc gitAssociation, watch bool) {
 	if c == nil || assoc.Repo == "" {
 		return
 	}

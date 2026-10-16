@@ -9,12 +9,8 @@ import (
 	"github.com/nicholas-fedor/watchtower/pkg/types"
 )
 
-const (
-	// DefaultDockerfile is used when no Dockerfile path is configured.
-	DefaultDockerfile = "Dockerfile"
-	// DefaultContext is the repository root of a Git URL context.
-	DefaultContext = "."
-)
+// DefaultDockerfile is used when no Dockerfile path is configured.
+const DefaultDockerfile = "Dockerfile"
 
 // Association is a Git monitor association from labels or image mapping.
 type Association struct {
@@ -230,7 +226,7 @@ func label(c types.Container, key string) string {
 // Returns:
 //   - string: Ref label value, or empty.
 func refLabel(c types.Container) string {
-	return cmp.Or(label(c, RefLabel), label(c, BranchLabel))
+	return cmp.Or(label(c, RefLabel), label(c, branchLabel))
 }
 
 // policyLabel returns a valid semver policy from the container label.

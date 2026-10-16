@@ -191,7 +191,7 @@ func GetContainerIDFromMountinfo(log *zerolog.Logger) (types.ContainerID, error)
 		Str("file", "/proc/self/mountinfo").
 		Msg("Read mountinfo file successfully")
 
-	containerID, err := ParseContainerIDFromMountinfo(log, string(file))
+	containerID, err := parseContainerIDFromMountinfo(log, string(file))
 	if err != nil {
 		log.Debug().
 			Err(err).
@@ -204,8 +204,8 @@ func GetContainerIDFromMountinfo(log *zerolog.Logger) (types.ContainerID, error)
 	return containerID, nil
 }
 
-// ParseContainerIDFromMountinfo parses the mountinfo string to extract container ID.
-func ParseContainerIDFromMountinfo(log *zerolog.Logger, mountinfoString string) (types.ContainerID, error) {
+// parseContainerIDFromMountinfo parses the mountinfo string to extract container ID.
+func parseContainerIDFromMountinfo(log *zerolog.Logger, mountinfoString string) (types.ContainerID, error) {
 	lines := strings.SplitSeq(strings.TrimSpace(mountinfoString), "\n")
 
 	for line := range lines {
@@ -228,7 +228,7 @@ func ParseContainerIDFromMountinfo(log *zerolog.Logger, mountinfoString string) 
 				Str("root", root).
 				Msg("Processing mountinfo root")
 
-			containerID := ExtractContainerIDFromPath(root)
+			containerID := extractContainerIDFromPath(root)
 			if containerID != "" {
 				log.Debug().
 					Str("id", string(containerID)).
@@ -242,8 +242,8 @@ func ParseContainerIDFromMountinfo(log *zerolog.Logger, mountinfoString string) 
 	return "", errNoValidContainerID
 }
 
-// ExtractContainerIDFromPath extracts container ID from a path containing /containers/<id>.
-func ExtractContainerIDFromPath(path string) types.ContainerID {
+// extractContainerIDFromPath extracts container ID from a path containing /containers/<id>.
+func extractContainerIDFromPath(path string) types.ContainerID {
 	matches := containerIDPattern.FindStringSubmatch(path)
 	if len(matches) >= minMatchGroups {
 		return types.ContainerID(matches[1])
@@ -271,7 +271,7 @@ func GetContainerIDFromCgroupFile(log *zerolog.Logger) (types.ContainerID, error
 		Str("file", filePath).
 		Msg("Read cgroup file successfully")
 
-	containerID, err := ParseContainerIDFromCgroupString(log, string(file))
+	containerID, err := parseContainerIDFromCgroupString(log, string(file))
 	if err != nil {
 		log.Debug().
 			Err(err).
@@ -284,12 +284,12 @@ func GetContainerIDFromCgroupFile(log *zerolog.Logger) (types.ContainerID, error
 	return containerID, nil
 }
 
-// ParseContainerIDFromCgroupString parses the cgroup string to extract container ID.
+// parseContainerIDFromCgroupString parses the cgroup string to extract container ID.
 //
 // It reads the ID from a Docker path under the cgroupfs driver, /docker/<id>,
 // or from a container's systemd scope under the systemd driver,
 // docker-<id>.scope for Docker or libpod-<id>.scope for Podman.
-func ParseContainerIDFromCgroupString(log *zerolog.Logger, cgroupString string) (types.ContainerID, error) {
+func parseContainerIDFromCgroupString(log *zerolog.Logger, cgroupString string) (types.ContainerID, error) {
 	var lines iter.Seq[string]
 	if strings.Contains(cgroupString, "\n") {
 		lines = strings.Lines(cgroupString)
@@ -342,7 +342,7 @@ func ParseContainerIDFromCgroupString(log *zerolog.Logger, cgroupString string) 
 func GetContainerIDFromHostname(log *zerolog.Logger, ctx context.Context, client Client) (types.ContainerID, error) {
 	hostname := os.Getenv("HOSTNAME")
 	if hostname == "" {
-		return "", ErrContainerIDNotFound
+		return "", errContainerIDNotFound
 	}
 
 	containers, err := client.ListContainers(ctx)

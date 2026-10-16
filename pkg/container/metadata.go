@@ -33,8 +33,8 @@ const (
 	zodiacLabel = "com.centurylinklabs.zodiac.original-image"
 	// scope defines a unique monitoring scope for this Watchtower instance.
 	scope = "com.centurylinklabs.watchtower.scope"
-	// OrchestratorLabel identifies ephemeral orchestrator containers used during self-update.
-	OrchestratorLabel = "com.centurylinklabs.watchtower.ephemeral-orchestrator"
+	// orchestratorLabel identifies ephemeral orchestrator containers used during self-update.
+	orchestratorLabel = "com.centurylinklabs.watchtower.ephemeral-orchestrator"
 	// cooldownDelayLabel sets the minimum image age before updating this container.
 	// Accepts duration strings (e.g., "24h", "3d", "1w", "0" to disable).
 	cooldownDelayLabel = "com.centurylinklabs.watchtower.cooldown-delay"
@@ -515,7 +515,7 @@ func (c *Container) IsWatchtower() bool {
 		return false
 	}
 
-	return ContainsWatchtowerLabel(info.Config.Labels)
+	return containsWatchtowerLabel(info.Config.Labels)
 }
 
 // StopSignal returns the custom stop signal from labels or HostConfig.
@@ -586,14 +586,14 @@ func (c *Container) StopTimeout() *int {
 	return nil
 }
 
-// ContainsWatchtowerLabel checks if the container is Watchtower.
+// containsWatchtowerLabel checks if the container is Watchtower.
 //
 // Parameters:
 //   - labels: Label map to check.
 //
 // Returns:
 //   - bool: True if watchtower label is "true", false otherwise.
-func ContainsWatchtowerLabel(labels map[string]string) bool {
+func containsWatchtowerLabel(labels map[string]string) bool {
 	if labels == nil {
 		return false
 	}

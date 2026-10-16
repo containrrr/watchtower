@@ -74,12 +74,12 @@ var remoteDockerSchemes = []string{
 	"ssh://",
 }
 
-// DockerConnectionConfig holds the Docker connection configuration extracted from
+// dockerConnectionConfig holds the Docker connection configuration extracted from
 // a source container's environment variables and bind mounts. This enables the
 // ephemeral orchestrator to maintain the same Docker connection as the source
 // container, supporting local sockets, Windows named pipes, remote TCP/TLS hosts,
 // and socket proxies.
-type DockerConnectionConfig struct {
+type dockerConnectionConfig struct {
 	// Host is the DOCKER_HOST value (e.g., "unix:///var/run/docker.sock", "tcp://host:2375").
 	Host string
 	// TLSVerify indicates whether TLS verification is enabled ("1" or empty).
@@ -179,7 +179,7 @@ func (c *client) CreateEphemeralOrchestrator(
 			Err(err).
 			Msg("Failed to create ephemeral orchestrator container")
 
-		return "", fmt.Errorf("%w: %w", ErrEphemeralCreateFailed, err)
+		return "", fmt.Errorf("%w: %w", errEphemeralCreateFailed, err)
 	}
 
 	orchestratorID := types.ContainerID(resp.ID)
@@ -219,7 +219,7 @@ func (c *client) CreateEphemeralOrchestrator(
 				Msg("Failed to clean up ephemeral orchestrator after start failure")
 		}
 
-		return "", fmt.Errorf("%w: %w", ErrEphemeralStartFailed, err)
+		return "", fmt.Errorf("%w: %w", errEphemeralStartFailed, err)
 	}
 
 	clog.Debug().
@@ -254,7 +254,7 @@ func buildOrchestratorConfig(
 	sourceContainer types.Container,
 	newImage string,
 	containerChain string,
-	connConfig *DockerConnectionConfig,
+	connConfig *dockerConnectionConfig,
 	cleanup bool,
 ) *dockerContainer.Config {
 	// Build the environment variables with orchestrator-specific values.
@@ -279,7 +279,7 @@ func buildOrchestratorConfig(
 		Env:   env,
 		Labels: map[string]string{
 			// Orchestrator label only — watchtower label omitted to avoid excess instance detection.
-			OrchestratorLabel: "true",
+			orchestratorLabel: "true",
 		},
 	}
 }
@@ -303,7 +303,7 @@ func buildOrchestratorConfig(
 // Returns:
 //   - *dockerContainer.HostConfig: The host configuration.
 func buildOrchestratorHostConfig(
-	connConfig *DockerConnectionConfig,
+	connConfig *dockerConnectionConfig,
 	sourceContainer types.Container,
 ) *dockerContainer.HostConfig {
 	var binds []string
@@ -480,9 +480,9 @@ func isWindows() bool {
 //   - log: Logger for isLocalDockerHost diagnostics.
 //
 // Returns:
-//   - *DockerConnectionConfig: The extracted connection configuration.
-func extractDockerConnectionConfig(sourceContainer types.Container, log *zerolog.Logger) *DockerConnectionConfig {
-	config := &DockerConnectionConfig{
+//   - *dockerConnectionConfig: The extracted connection configuration.
+func extractDockerConnectionConfig(sourceContainer types.Container, log *zerolog.Logger) *dockerConnectionConfig {
+	config := &dockerConnectionConfig{
 		// Default to local connection with platform-appropriate socket.
 		IsLocal:    true,
 		SocketBind: defaultSocketBind(),
@@ -559,7 +559,7 @@ func extractDockerConnectionConfig(sourceContainer types.Container, log *zerolog
 //
 // Returns:
 //   - []string: The updated environment variable slice.
-func appendDockerEnvVars(env []string, connConfig *DockerConnectionConfig) []string {
+func appendDockerEnvVars(env []string, connConfig *dockerConnectionConfig) []string {
 	// Always forward DOCKER_HOST if set, as it determines the connection endpoint.
 	if connConfig.Host != "" {
 		env = append(env, fmt.Sprintf("%s=%s", dockerHostEnv, connConfig.Host))
@@ -858,7 +858,7 @@ func RemoveOrphanedOrchestrators(log *zerolog.Logger,
 		}
 
 		// Check for the orchestrator label.
-		if containerInfo.Config.Labels[OrchestratorLabel] != "true" {
+		if containerInfo.Config.Labels[orchestratorLabel] != "true" {
 			continue
 		}
 

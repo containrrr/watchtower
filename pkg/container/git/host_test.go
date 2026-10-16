@@ -53,7 +53,7 @@ func TestParseAPIOrigin(t *testing.T) {
 
 			got, err := ParseAPIOrigin(tt.raw)
 			if tt.wantErrContains != "" {
-				require.ErrorIs(t, err, ErrInvalidHost)
+				require.ErrorIs(t, err, errInvalidHost)
 				assert.ErrorContains(t, err, tt.wantErrContains)
 
 				for _, secret := range tt.secrets {

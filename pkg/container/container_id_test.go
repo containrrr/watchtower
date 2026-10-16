@@ -87,10 +87,10 @@ var _ = ginkgo.Describe("GetContainerIDFromCgroupFile", func() {
 	)
 })
 
-var _ = ginkgo.Describe("ParseContainerIDFromCgroupString", func() {
+var _ = ginkgo.Describe("parseContainerIDFromCgroupString", func() {
 	ginkgo.DescribeTable("should extract container ID from string",
 		func(s string, want types.ContainerID, wantErr error) {
-			got, err := ParseContainerIDFromCgroupString(testLog(), s)
+			got, err := parseContainerIDFromCgroupString(testLog(), s)
 			if wantErr == nil {
 				gomega.Expect(err).ToNot(gomega.HaveOccurred())
 			} else {
@@ -216,10 +216,10 @@ var _ = ginkgo.Describe("GetContainerIDFromMountinfo", func() {
 	)
 })
 
-var _ = ginkgo.Describe("ParseContainerIDFromMountinfo", func() {
+var _ = ginkgo.Describe("parseContainerIDFromMountinfo", func() {
 	ginkgo.DescribeTable("should extract container ID from mountinfo string",
 		func(s string, want types.ContainerID, wantErr error) {
-			got, err := ParseContainerIDFromMountinfo(testLog(), s)
+			got, err := parseContainerIDFromMountinfo(testLog(), s)
 			if wantErr == nil {
 				gomega.Expect(err).ToNot(gomega.HaveOccurred())
 			} else {
@@ -272,10 +272,10 @@ var _ = ginkgo.Describe("ParseContainerIDFromMountinfo", func() {
 	)
 })
 
-var _ = ginkgo.Describe("ExtractContainerIDFromPath", func() {
+var _ = ginkgo.Describe("extractContainerIDFromPath", func() {
 	ginkgo.DescribeTable("should extract container ID from path",
 		func(path string, want types.ContainerID) {
-			got := ExtractContainerIDFromPath(path)
+			got := extractContainerIDFromPath(path)
 			gomega.Expect(got).To(gomega.Equal(want))
 		},
 		ginkgo.Entry(
@@ -783,7 +783,7 @@ func TestParseContainerIDFromMountinfo_Layouts(t *testing.T) {
 
 			mountinfo := "1234 24 0:52 " + tt.root + " /etc/hostname rw,relatime - ext4 /dev/sda1 rw\n"
 
-			got, err := ParseContainerIDFromMountinfo(testLog(), mountinfo)
+			got, err := parseContainerIDFromMountinfo(testLog(), mountinfo)
 			if tt.want == "" {
 				require.ErrorIs(t, err, errNoValidContainerID)
 
@@ -827,7 +827,7 @@ func TestParseContainerIDFromCgroupString_Layouts(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, err := ParseContainerIDFromCgroupString(testLog(), tt.cgroup)
+			got, err := parseContainerIDFromCgroupString(testLog(), tt.cgroup)
 			if tt.want == "" {
 				require.ErrorIs(t, err, errNoValidContainerID)
 

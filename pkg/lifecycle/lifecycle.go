@@ -39,7 +39,7 @@ func ExecutePreChecks(log *zerolog.Logger, ctx context.Context, client container
 	}
 
 	for _, currentContainer := range containers {
-		ExecutePreCheckCommand(log, ctx, client, currentContainer, params.LifecycleUID, params.LifecycleGID)
+		executePreCheckCommand(log, ctx, client, currentContainer, params.LifecycleUID, params.LifecycleGID)
 	}
 }
 
@@ -62,7 +62,7 @@ func ExecutePostChecks(log *zerolog.Logger, ctx context.Context, client containe
 	}
 
 	for _, currentContainer := range containers {
-		ExecutePostCheckCommand(log, ctx, client, currentContainer, params.LifecycleUID, params.LifecycleGID)
+		executePostCheckCommand(log, ctx, client, currentContainer, params.LifecycleUID, params.LifecycleGID)
 	}
 }
 
@@ -120,7 +120,7 @@ func resolveCheckContainers(
 	return containers, true
 }
 
-// ExecutePreCheckCommand executes the pre-check hook for a container.
+// executePreCheckCommand executes the pre-check hook for a container.
 //
 // Parameters:
 //   - ctx: Context for cancellation and timeout.
@@ -128,7 +128,7 @@ func resolveCheckContainers(
 //   - container: Container to process.
 //   - uid: Default UID to run command as.
 //   - gid: Default GID to run command as.
-func ExecutePreCheckCommand(log *zerolog.Logger, ctx context.Context, client container.Client, container types.Container, uid, gid int) {
+func executePreCheckCommand(log *zerolog.Logger, ctx context.Context, client container.Client, container types.Container, uid, gid int) {
 	executeCheckCommand(
 		log,
 		ctx,
@@ -141,7 +141,7 @@ func ExecutePreCheckCommand(log *zerolog.Logger, ctx context.Context, client con
 	)
 }
 
-// ExecutePostCheckCommand executes the post-check hook for a container.
+// executePostCheckCommand executes the post-check hook for a container.
 //
 // Parameters:
 //   - ctx: Context for cancellation and timeout.
@@ -149,7 +149,7 @@ func ExecutePreCheckCommand(log *zerolog.Logger, ctx context.Context, client con
 //   - container: Container to process.
 //   - uid: Default UID to run command as.
 //   - gid: Default GID to run command as.
-func ExecutePostCheckCommand(log *zerolog.Logger, ctx context.Context, client container.Client, container types.Container, uid, gid int) {
+func executePostCheckCommand(log *zerolog.Logger, ctx context.Context, client container.Client, container types.Container, uid, gid int) {
 	executeCheckCommand(
 		log,
 		ctx,

@@ -60,26 +60,26 @@ var _ = ginkgo.Describe("the client", func() {
 			c := imageClient{}
 
 			ginkgo.It("should always return true", func() {
-				gomega.Expect(c.warnOnHeadFailed(containerUnknown, WarnAlways)).To(gomega.BeTrue())
-				gomega.Expect(c.warnOnHeadFailed(containerKnown, WarnAlways)).To(gomega.BeTrue())
+				gomega.Expect(c.warnOnHeadFailed(containerUnknown, warnAlways)).To(gomega.BeTrue())
+				gomega.Expect(c.warnOnHeadFailed(containerKnown, warnAlways)).To(gomega.BeTrue())
 			})
 		})
 		ginkgo.When(`warn on head failure is set to "auto"`, func() {
 			c := imageClient{}
 
 			ginkgo.It("should return false for unknown repos", func() {
-				gomega.Expect(c.warnOnHeadFailed(containerUnknown, WarnAuto)).To(gomega.BeFalse())
+				gomega.Expect(c.warnOnHeadFailed(containerUnknown, warnAuto)).To(gomega.BeFalse())
 			})
 			ginkgo.It("should return true for known repos", func() {
-				gomega.Expect(c.warnOnHeadFailed(containerKnown, WarnAuto)).To(gomega.BeTrue())
+				gomega.Expect(c.warnOnHeadFailed(containerKnown, warnAuto)).To(gomega.BeTrue())
 			})
 		})
 		ginkgo.When(`warn on head failure is set to "never"`, func() {
 			c := imageClient{}
 
 			ginkgo.It("should never return true", func() {
-				gomega.Expect(c.warnOnHeadFailed(containerUnknown, WarnNever)).To(gomega.BeFalse())
-				gomega.Expect(c.warnOnHeadFailed(containerKnown, WarnNever)).To(gomega.BeFalse())
+				gomega.Expect(c.warnOnHeadFailed(containerUnknown, warnNever)).To(gomega.BeFalse())
+				gomega.Expect(c.warnOnHeadFailed(containerKnown, warnNever)).To(gomega.BeFalse())
 			})
 		})
 	})
@@ -106,8 +106,8 @@ var _ = ginkgo.Describe("the client", func() {
 					level,
 				))
 			},
-			ginkgo.Entry("warning strategy always", WarnAlways, "warn"),
-			ginkgo.Entry("warning strategy never", WarnNever, "debug"),
+			ginkgo.Entry("warning strategy always", warnAlways, "warn"),
+			ginkgo.Entry("warning strategy never", warnNever, "debug"),
 		)
 	})
 	ginkgo.When("pulling the latest image", func() {
@@ -119,7 +119,7 @@ var _ = ginkgo.Describe("the client", func() {
 						"sha256:fa5269854a5e615e51a72b17ad3fd1e01268f278a6684c8ed3c5f0cdce3f230b",
 					),
 				)
-				err := i.PullImage(context.Background(), pinnedContainer, WarnAuto, types.UpdateParams{})
+				err := i.PullImage(context.Background(), pinnedContainer, warnAuto, types.UpdateParams{})
 				gomega.Expect(err).
 					To(gomega.MatchError(`image is pinned with sha256, skipping pull`))
 			})
@@ -130,14 +130,14 @@ var _ = ginkgo.Describe("the client", func() {
 						"nginx@sha256:fa5269854a5e615e51a72b17ad3fd1e01268f278a6684c8ed3c5f0cdce3f230b",
 					),
 				)
-				err := i.PullImage(context.Background(), pinnedContainer, WarnAuto, types.UpdateParams{})
+				err := i.PullImage(context.Background(), pinnedContainer, warnAuto, types.UpdateParams{})
 				gomega.Expect(err).
 					To(gomega.MatchError(`image is pinned with sha256, skipping pull`))
 			})
 		})
 	})
 	ginkgo.When("pulling an image that requires authentication", func() {
-		ginkgo.It("should log at Warn level and return ErrPullImageUnauthorized for auth failures", func() {
+		ginkgo.It("should log at Warn level and return errPullImageUnauthorized for auth failures", func() {
 			mockServer.AllowUnhandledRequests = true
 			mockServer.AppendHandlers(
 				ghttp.CombineHandlers(
@@ -155,17 +155,17 @@ var _ = ginkgo.Describe("the client", func() {
 			log, logbuf := captureLog(zerolog.DebugLevel)
 			i.log = log
 
-			err := i.PullImage(context.Background(), pullContainer, WarnAuto, types.UpdateParams{})
+			err := i.PullImage(context.Background(), pullContainer, warnAuto, types.UpdateParams{})
 			gomega.Expect(err).To(gomega.HaveOccurred())
 			gomega.Expect(err.Error()).To(gomega.ContainSubstring("authentication required"))
-			gomega.Expect(errors.Is(err, ErrPullImageUnauthorized)).To(gomega.BeTrue())
+			gomega.Expect(errors.Is(err, errPullImageUnauthorized)).To(gomega.BeTrue())
 			gomega.Expect(errors.Is(err, errPullImageFailed)).To(gomega.BeFalse())
 			gomega.Eventually(logbuf).Should(gbytes.Say(`level=warn`))
 			gomega.Eventually(logbuf).Should(gbytes.Say(`Image pull failed: authentication required`))
 		})
 	})
 	ginkgo.When("pulling an image that does not exist in registry", func() {
-		ginkgo.It("should log at Debug level and return ErrPullImageNotFound for not found errors", func() {
+		ginkgo.It("should log at Debug level and return errPullImageNotFound for not found errors", func() {
 			mockServer.AllowUnhandledRequests = true
 			mockServer.AppendHandlers(
 				ghttp.CombineHandlers(
@@ -183,10 +183,10 @@ var _ = ginkgo.Describe("the client", func() {
 			log, logbuf := captureLog(zerolog.DebugLevel)
 			i.log = log
 
-			err := i.PullImage(context.Background(), pullContainer, WarnAuto, types.UpdateParams{})
+			err := i.PullImage(context.Background(), pullContainer, warnAuto, types.UpdateParams{})
 			gomega.Expect(err).To(gomega.HaveOccurred())
 			gomega.Expect(err.Error()).To(gomega.ContainSubstring("image not found"))
-			gomega.Expect(errors.Is(err, ErrPullImageNotFound)).To(gomega.BeTrue())
+			gomega.Expect(errors.Is(err, errPullImageNotFound)).To(gomega.BeTrue())
 			gomega.Expect(errors.Is(err, errPullImageFailed)).To(gomega.BeFalse())
 			gomega.Eventually(logbuf).Should(gbytes.Say(`Image pull failed: image not found in registry`))
 		})
@@ -210,12 +210,12 @@ var _ = ginkgo.Describe("the client", func() {
 			log, logbuf := captureLog(zerolog.DebugLevel)
 			i.log = log
 
-			err := i.PullImage(context.Background(), pullContainer, WarnAuto, types.UpdateParams{})
+			err := i.PullImage(context.Background(), pullContainer, warnAuto, types.UpdateParams{})
 			gomega.Expect(err).To(gomega.HaveOccurred())
 			gomega.Expect(err.Error()).To(gomega.ContainSubstring("failed to pull image"))
 			gomega.Expect(errors.Is(err, errPullImageFailed)).To(gomega.BeTrue())
-			gomega.Expect(errors.Is(err, ErrPullImageUnauthorized)).To(gomega.BeFalse())
-			gomega.Expect(errors.Is(err, ErrPullImageNotFound)).To(gomega.BeFalse())
+			gomega.Expect(errors.Is(err, errPullImageUnauthorized)).To(gomega.BeFalse())
+			gomega.Expect(errors.Is(err, errPullImageNotFound)).To(gomega.BeFalse())
 			gomega.Eventually(logbuf).Should(gbytes.Say(`Failed to initiate image pull`))
 		})
 	})
@@ -542,10 +542,10 @@ var _ = ginkgo.Describe("the client", func() {
 				WithRepoDigests([]string{"private-registry.io/app@sha256:abc"}),
 			)
 
-			err := i.PullImage(context.Background(), pullContainer, WarnAuto, types.UpdateParams{})
+			err := i.PullImage(context.Background(), pullContainer, warnAuto, types.UpdateParams{})
 			// Should proceed to pull (shouldSkipPull returns false since no mirrors and
-			// canonical registry request fails), resulting in ErrPullImageUnauthorized.
-			gomega.Expect(errors.Is(err, ErrPullImageUnauthorized)).To(gomega.BeTrue())
+			// canonical registry request fails), resulting in errPullImageUnauthorized.
+			gomega.Expect(errors.Is(err, errPullImageUnauthorized)).To(gomega.BeTrue())
 		})
 
 		ginkgo.It("should handle Info() API failure gracefully and fall back to canonical", func() {
@@ -568,10 +568,10 @@ var _ = ginkgo.Describe("the client", func() {
 				WithRepoDigests([]string{"private-registry.io/app@sha256:abc"}),
 			)
 
-			err := i.PullImage(context.Background(), pullContainer, WarnAuto, types.UpdateParams{})
+			err := i.PullImage(context.Background(), pullContainer, warnAuto, types.UpdateParams{})
 			// Info() fails, so resolveRegistryMirrorConfig returns nil, buildMirrorEndpoints
 			// returns nil, and shouldSkipPull falls back to canonical host.
-			gomega.Expect(errors.Is(err, ErrPullImageUnauthorized)).To(gomega.BeTrue())
+			gomega.Expect(errors.Is(err, errPullImageUnauthorized)).To(gomega.BeTrue())
 		})
 	})
 

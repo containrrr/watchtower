@@ -12,6 +12,7 @@ import (
 	dockerNetwork "github.com/moby/moby/api/types/network"
 	dockerClient "github.com/moby/moby/client"
 
+	"github.com/nicholas-fedor/watchtower/internal/flags"
 	"github.com/nicholas-fedor/watchtower/pkg/types"
 )
 
@@ -141,7 +142,7 @@ func cleanupFailedStartContainer(
 	}
 }
 
-// CreateTargetContainer creates a new container based on the source container's
+// createTargetContainer creates a new container based on the source container's
 // configuration but does not start it. It applies the provided network configuration,
 // renames the container, and attaches additional networks for legacy API versions.
 //
@@ -151,7 +152,6 @@ func cleanupFailedStartContainer(
 //   - sourceContainer: Source container to replicate.
 //   - networkConfig: Network configuration to apply to the new container.
 //   - clientVersion: Docker API version used by the client.
-//   - minSupportedVersion: Minimum Docker API version required for full network features.
 //   - disableMemorySwappiness: If true, disables memory swappiness for Podman compatibility.
 //   - cpuCopyMode: CPU copy mode for container recreation, used for compatibility with Podman.
 //   - isPodman: If true, indicates Podman is being used for CPU compatibility.
@@ -159,13 +159,12 @@ func cleanupFailedStartContainer(
 // Returns:
 //   - types.ContainerID: ID of the new container.
 //   - error: Non-nil if creation fails, nil on success.
-func CreateTargetContainer(log *zerolog.Logger,
+func createTargetContainer(log *zerolog.Logger,
 	ctx context.Context,
 	api Operations,
 	sourceContainer types.Container,
 	networkConfig *dockerNetwork.NetworkingConfig,
 	clientVersion string,
-	minSupportedVersion string,
 	disableMemorySwappiness bool,
 	cpuCopyMode string,
 	isPodman bool,
@@ -202,7 +201,7 @@ func CreateTargetContainer(log *zerolog.Logger,
 		networkConfig,
 		sourceContainer.ID(),
 		clientVersion,
-		minSupportedVersion,
+		flags.DockerAPIMinVersion,
 		isHostNetwork,
 	)
 
@@ -390,7 +389,7 @@ func attachNetworks(
 	return nil
 }
 
-// RenameTargetContainer renames an existing container to the specified target name in Watchtower.
+// renameTargetContainer renames an existing container to the specified target name in Watchtower.
 //
 // Parameters:
 //   - ctx: Context for cancellation and timeout control.
@@ -400,7 +399,7 @@ func attachNetworks(
 //
 // Returns:
 //   - error: Non-nil if rename fails, nil on success.
-func RenameTargetContainer(log *zerolog.Logger,
+func renameTargetContainer(log *zerolog.Logger,
 	ctx context.Context,
 	api Operations,
 	targetContainer types.Container,

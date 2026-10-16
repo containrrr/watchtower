@@ -121,7 +121,7 @@ var _ = ginkgo.Describe("Ephemeral Orchestrator", func() {
 	ginkgo.Describe("appendDockerEnvVars", func() {
 		ginkgo.It("should append nothing for empty config", func() {
 			env := []string{"EXISTING=val"}
-			config := &DockerConnectionConfig{}
+			config := &dockerConnectionConfig{}
 			result := appendDockerEnvVars(env, config)
 
 			gomega.Expect(result).To(gomega.Equal([]string{"EXISTING=val"}))
@@ -129,7 +129,7 @@ var _ = ginkgo.Describe("Ephemeral Orchestrator", func() {
 
 		ginkgo.It("should append Host only when set", func() {
 			env := []string{}
-			config := &DockerConnectionConfig{Host: "tcp://host:2375"}
+			config := &dockerConnectionConfig{Host: "tcp://host:2375"}
 			result := appendDockerEnvVars(env, config)
 
 			gomega.Expect(result).To(gomega.HaveLen(1))
@@ -138,7 +138,7 @@ var _ = ginkgo.Describe("Ephemeral Orchestrator", func() {
 
 		ginkgo.It("should append all fields when populated", func() {
 			env := []string{}
-			config := &DockerConnectionConfig{
+			config := &dockerConnectionConfig{
 				Host:       "tcp://host:2376",
 				TLSVerify:  "1",
 				CertPath:   "/certs",
@@ -155,7 +155,7 @@ var _ = ginkgo.Describe("Ephemeral Orchestrator", func() {
 
 		ginkgo.It("should append only populated fields", func() {
 			env := []string{"HOME=/root"}
-			config := &DockerConnectionConfig{
+			config := &dockerConnectionConfig{
 				Host:      "tcp://host:2375",
 				TLSVerify: "1",
 			}
@@ -368,7 +368,7 @@ var _ = ginkgo.Describe("Ephemeral Orchestrator", func() {
 					WithName("watchtower-test"),
 					WithImageName("watchtower:latest"),
 				)
-				connConfig := &DockerConnectionConfig{
+				connConfig := &dockerConnectionConfig{
 					IsLocal:    true,
 					SocketBind: "/var/run/docker.sock:/var/run/docker.sock",
 				}
@@ -398,7 +398,7 @@ var _ = ginkgo.Describe("Ephemeral Orchestrator", func() {
 				))
 
 				// Verify the orchestrator label is set but the watchtower label is NOT set.
-				gomega.Expect(config.Labels).To(gomega.HaveKeyWithValue(OrchestratorLabel, "true"))
+				gomega.Expect(config.Labels).To(gomega.HaveKeyWithValue(orchestratorLabel, "true"))
 				gomega.Expect(config.Labels).NotTo(gomega.HaveKey("com.centurylinklabs.watchtower"))
 			})
 		})
@@ -426,7 +426,7 @@ var _ = ginkgo.Describe("Ephemeral Orchestrator", func() {
 					WithName("watchtower"),
 					WithImageName("watchtower:latest"),
 				)
-				connConfig := &DockerConnectionConfig{
+				connConfig := &dockerConnectionConfig{
 					IsLocal:    true,
 					SocketBind: "/var/run/docker.sock:/var/run/docker.sock",
 				}
@@ -446,7 +446,7 @@ var _ = ginkgo.Describe("Ephemeral Orchestrator", func() {
 					WithName("watchtower"),
 					WithImageName("watchtower:latest"),
 				)
-				connConfig := &DockerConnectionConfig{
+				connConfig := &dockerConnectionConfig{
 					Host:       "tcp://remote:2375",
 					TLSVerify:  "1",
 					CertPath:   "/certs",
@@ -526,7 +526,7 @@ var _ = ginkgo.Describe("Ephemeral Orchestrator", func() {
 
 		ginkgo.When("connection is remote", func() {
 			ginkgo.It("should have empty binds", func() {
-				connConfig := &DockerConnectionConfig{
+				connConfig := &dockerConnectionConfig{
 					Host:    "tcp://remote:2375",
 					IsLocal: false,
 				}
@@ -540,7 +540,7 @@ var _ = ginkgo.Describe("Ephemeral Orchestrator", func() {
 
 		ginkgo.When("connection is local", func() {
 			ginkgo.It("should include socket bind", func() {
-				connConfig := &DockerConnectionConfig{
+				connConfig := &dockerConnectionConfig{
 					Host:       "unix:///custom/docker.sock",
 					IsLocal:    true,
 					SocketBind: "/custom/docker.sock:/var/run/docker.sock",
@@ -556,7 +556,7 @@ var _ = ginkgo.Describe("Ephemeral Orchestrator", func() {
 
 		ginkgo.When("TLS cert binds are present", func() {
 			ginkgo.It("should include TLS cert binds alongside socket bind", func() {
-				connConfig := &DockerConnectionConfig{
+				connConfig := &dockerConnectionConfig{
 					Host:       "unix:///var/run/docker.sock",
 					IsLocal:    true,
 					SocketBind: "/var/run/docker.sock:/var/run/docker.sock",
@@ -583,7 +583,7 @@ var _ = ginkgo.Describe("Ephemeral Orchestrator", func() {
 
 		ginkgo.When("TLS cert binds are present on remote connection", func() {
 			ginkgo.It("should include cert binds without socket bind", func() {
-				connConfig := &DockerConnectionConfig{
+				connConfig := &dockerConnectionConfig{
 					Host:      "tcp://remote:2376",
 					IsLocal:   false,
 					TLSVerify: "1",
@@ -706,13 +706,13 @@ var _ = ginkgo.Describe("Ephemeral Orchestrator", func() {
 				)
 			})
 
-			ginkgo.It("should return an error wrapping ErrEphemeralCreateFailed", func() {
+			ginkgo.It("should return an error wrapping errEphemeralCreateFailed", func() {
 				orchestratorID, err := testClient.CreateEphemeralOrchestrator(
 					ctx, source, "watchtower:v2", "chain1", false,
 				)
 
 				gomega.Expect(err).To(gomega.MatchError(gomega.ContainSubstring(
-					ErrEphemeralCreateFailed.Error(),
+					errEphemeralCreateFailed.Error(),
 				)))
 				gomega.Expect(orchestratorID).To(gomega.BeEmpty())
 			})
@@ -762,13 +762,13 @@ var _ = ginkgo.Describe("Ephemeral Orchestrator", func() {
 				)
 			})
 
-			ginkgo.It("should attempt cleanup and return ErrEphemeralStartFailed", func() {
+			ginkgo.It("should attempt cleanup and return errEphemeralStartFailed", func() {
 				orchestratorID, err := testClient.CreateEphemeralOrchestrator(
 					ctx, source, "watchtower:v2", "chain1", false,
 				)
 
 				gomega.Expect(err).To(gomega.MatchError(gomega.ContainSubstring(
-					ErrEphemeralStartFailed.Error(),
+					errEphemeralStartFailed.Error(),
 				)))
 				gomega.Expect(orchestratorID).To(gomega.BeEmpty())
 				// Verify all handlers were called (including cleanup remove).
@@ -833,7 +833,7 @@ var _ = ginkgo.Describe("Ephemeral Orchestrator", func() {
 					WithID("orch123"),
 					WithName("watchtower-orchestrator-abc"),
 					WithLabels(map[string]string{
-						OrchestratorLabel: "true",
+						orchestratorLabel: "true",
 					}),
 					orphaned,
 				)
@@ -863,7 +863,7 @@ var _ = ginkgo.Describe("Ephemeral Orchestrator", func() {
 					WithID("orch001"),
 					WithName("watchtower-orchestrator-001"),
 					WithLabels(map[string]string{
-						OrchestratorLabel: "true",
+						orchestratorLabel: "true",
 					}),
 					orphaned,
 				)
@@ -871,7 +871,7 @@ var _ = ginkgo.Describe("Ephemeral Orchestrator", func() {
 					WithID("orch002"),
 					WithName("watchtower-orchestrator-002"),
 					WithLabels(map[string]string{
-						OrchestratorLabel: "true",
+						orchestratorLabel: "true",
 					}),
 					orphaned,
 				)
@@ -928,7 +928,7 @@ var _ = ginkgo.Describe("Ephemeral Orchestrator", func() {
 					WithID("orch001"),
 					WithName("watchtower-orchestrator-001"),
 					WithLabels(map[string]string{
-						OrchestratorLabel: "true",
+						orchestratorLabel: "true",
 					}),
 					orphaned,
 				)
@@ -936,7 +936,7 @@ var _ = ginkgo.Describe("Ephemeral Orchestrator", func() {
 					WithID("orch002"),
 					WithName("watchtower-orchestrator-002"),
 					WithLabels(map[string]string{
-						OrchestratorLabel: "true",
+						orchestratorLabel: "true",
 					}),
 					orphaned,
 				)

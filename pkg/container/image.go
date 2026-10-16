@@ -26,12 +26,12 @@ import (
 
 // Warning strategies for HEAD request failures.
 const (
-	// WarnAlways indicates warnings should always be logged for HEAD request failures.
-	WarnAlways WarningStrategy = "always"
-	// WarnNever indicates warnings should never be logged for HEAD request failures.
-	WarnNever WarningStrategy = "never"
-	// WarnAuto indicates warnings should be logged for HEAD request failures based on registry heuristics.
-	WarnAuto WarningStrategy = "auto"
+	// warnAlways indicates warnings should always be logged for HEAD request failures.
+	warnAlways WarningStrategy = "always"
+	// warnNever indicates warnings should never be logged for HEAD request failures.
+	warnNever WarningStrategy = "never"
+	// warnAuto indicates warnings should be logged for HEAD request failures based on registry heuristics.
+	warnAuto WarningStrategy = "auto"
 
 	// maxConcurrentPulls caps simultaneous ImagePull calls per registry host
 	// so digest checks can stay parallel without bursting blob downloads
@@ -145,7 +145,7 @@ func (c imageClient) IsContainerStale(
 			return false, sourceContainer.ImageID(), "", err
 		}
 
-		if errors.Is(err, ErrPullImageNotFound) {
+		if errors.Is(err, errPullImageNotFound) {
 			clog.Debug().
 				Err(err).
 				Msg("Image not found in any registry - treating as up-to-date")
@@ -816,13 +816,13 @@ func (c imageClient) performImagePull(
 					Err(err).
 					Msg("Image pull failed: authentication required")
 
-				return fmt.Errorf("%w: %s: %w", ErrPullImageUnauthorized, imageName, err)
+				return fmt.Errorf("%w: %s: %w", errPullImageUnauthorized, imageName, err)
 			case cerrdefs.IsNotFound(err):
 				clog.Debug().
 					Err(err).
 					Msg("Image pull failed: image not found in registry")
 
-				return fmt.Errorf("%w: %s: %w", ErrPullImageNotFound, imageName, err)
+				return fmt.Errorf("%w: %s: %w", errPullImageNotFound, imageName, err)
 			default:
 				clog.Debug().
 					Err(err).
@@ -929,11 +929,11 @@ func (c imageClient) warnOnHeadFailed(
 	sourceContainer types.Container,
 	warnOnHeadFailed WarningStrategy,
 ) bool {
-	if warnOnHeadFailed == WarnAlways {
+	if warnOnHeadFailed == warnAlways {
 		return true
 	}
 
-	if warnOnHeadFailed == WarnNever {
+	if warnOnHeadFailed == warnNever {
 		return false
 	}
 
