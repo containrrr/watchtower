@@ -3,7 +3,6 @@
 //
 // Key components:
 //   - NewNotifier: Constructs the client from a *zerolog.Logger and internal/config/notify.Notify (notifier.go).
-//   - NewNotifierFromFlags: Test helper that reads Cobra flags then calls NewNotifier.
 //   - RegisterHook: Attaches the notifier as a zerolog.Hook on the process logger (shoutrrr.go).
 //   - Shoutrrr Integration: Handles message sending and batching (shoutrrr.go).
 //   - JSON Marshaling: Formats notification data (json.go).

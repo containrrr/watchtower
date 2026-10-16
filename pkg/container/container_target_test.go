@@ -78,8 +78,7 @@ var _ = ginkgo.Describe("Target Container Operations", func() {
 		})
 
 		ginkgo.It("should strip all CPU settings when mode is 'none'", func() {
-			clog := logging.With(targetLog, "test", "handleCPUSettings")
-			handleCPUSettings(hostConfig, "none", false, clog)
+			handleCPUSettings(hostConfig, "none", false, targetLog)
 			gomega.Expect(hostConfig.NanoCPUs).To(gomega.Equal(int64(0)))
 			gomega.Expect(hostConfig.CPUShares).To(gomega.Equal(int64(0)))
 			gomega.Expect(hostConfig.CPUQuota).To(gomega.Equal(int64(0)))
@@ -90,8 +89,7 @@ var _ = ginkgo.Describe("Target Container Operations", func() {
 		})
 
 		ginkgo.It("should preserve all CPU settings when mode is 'full'", func() {
-			clog := logging.With(targetLog, "test", "handleCPUSettings")
-			handleCPUSettings(hostConfig, "full", false, clog)
+			handleCPUSettings(hostConfig, "full", false, targetLog)
 			gomega.Expect(hostConfig.NanoCPUs).To(gomega.Equal(defaultNanoCPUs))
 			gomega.Expect(hostConfig.CPUShares).To(gomega.Equal(defaultCPUShares))
 			gomega.Expect(hostConfig.CPUQuota).To(gomega.Equal(defaultCPUQuota))
@@ -102,8 +100,7 @@ var _ = ginkgo.Describe("Target Container Operations", func() {
 		})
 
 		ginkgo.It("should filter NanoCPUs when mode is 'auto' and isPodman is true", func() {
-			clog := logging.With(targetLog, "test", "handleCPUSettings")
-			handleCPUSettings(hostConfig, "auto", true, clog)
+			handleCPUSettings(hostConfig, "auto", true, targetLog)
 			gomega.Expect(hostConfig.NanoCPUs).To(gomega.Equal(int64(0)))
 			gomega.Expect(hostConfig.CPUShares).To(gomega.Equal(defaultCPUShares))
 			gomega.Expect(hostConfig.CPUQuota).To(gomega.Equal(defaultCPUQuota))
@@ -111,16 +108,14 @@ var _ = ginkgo.Describe("Target Container Operations", func() {
 		})
 
 		ginkgo.It("should preserve all CPU settings when mode is 'auto' and isPodman is false", func() {
-			clog := logging.With(targetLog, "test", "handleCPUSettings")
-			handleCPUSettings(hostConfig, "auto", false, clog)
+			handleCPUSettings(hostConfig, "auto", false, targetLog)
 			gomega.Expect(hostConfig.NanoCPUs).To(gomega.Equal(defaultNanoCPUs))
 			gomega.Expect(hostConfig.CPUShares).To(gomega.Equal(defaultCPUShares))
 			gomega.Expect(logOutput.String()).To(gomega.ContainSubstring("Detected Docker, copied all CPU settings"))
 		})
 
 		ginkgo.It("should default to 'full' mode for unknown CPU copy mode", func() {
-			clog := logging.With(targetLog, "test", "handleCPUSettings")
-			handleCPUSettings(hostConfig, "unknown", false, clog)
+			handleCPUSettings(hostConfig, "unknown", false, targetLog)
 			gomega.Expect(hostConfig.NanoCPUs).To(gomega.Equal(defaultNanoCPUs))
 			gomega.Expect(logOutput.String()).To(gomega.ContainSubstring("Unknown CPU copy mode, defaulting to full"))
 		})
@@ -513,7 +508,6 @@ var _ = ginkgo.Describe("Target Container Operations", func() {
 		})
 
 		ginkgo.It("should attach additional networks successfully", func() {
-			clog := logging.With(targetLog, "test", "attachNetworks")
 			fullConfig := &dockerNetwork.NetworkingConfig{
 				EndpointsConfig: map[string]*dockerNetwork.EndpointSettings{
 					"network1": {NetworkID: "net1"},
@@ -526,7 +520,7 @@ var _ = ginkgo.Describe("Target Container Operations", func() {
 				},
 			}
 
-			err := attachNetworks(context.Background(), client, "container-id", fullConfig, initialConfig, clog)
+			err := attachNetworks(context.Background(), client, "container-id", fullConfig, initialConfig, targetLog)
 			gomega.Expect(err).ToNot(gomega.HaveOccurred())
 			gomega.Expect(logOutput.String()).To(gomega.ContainSubstring("Attaching additional network to container"))
 			gomega.Expect(logOutput.String()).To(gomega.ContainSubstring("Successfully attached additional network"))
@@ -536,7 +530,6 @@ var _ = ginkgo.Describe("Target Container Operations", func() {
 			client.connectFunc = func(_ context.Context, _, _ string, _ *dockerNetwork.EndpointSettings) (dockerClient.NetworkConnectResult, error) {
 				return dockerClient.NetworkConnectResult{}, errors.New("connect failed")
 			}
-			clog := logging.With(targetLog, "test", "attachNetworks")
 			fullConfig := &dockerNetwork.NetworkingConfig{
 				EndpointsConfig: map[string]*dockerNetwork.EndpointSettings{
 					"network1": {NetworkID: "net1"},
@@ -549,14 +542,13 @@ var _ = ginkgo.Describe("Target Container Operations", func() {
 				},
 			}
 
-			err := attachNetworks(context.Background(), client, "container-id", fullConfig, initialConfig, clog)
+			err := attachNetworks(context.Background(), client, "container-id", fullConfig, initialConfig, targetLog)
 			gomega.Expect(err).To(gomega.HaveOccurred())
 			gomega.Expect(err.Error()).To(gomega.ContainSubstring("failed to attach network"))
 			gomega.Expect(logOutput.String()).To(gomega.ContainSubstring("Failed to attach additional network"))
 		})
 
 		ginkgo.It("should skip initial network and only attach additional ones", func() {
-			clog := logging.With(targetLog, "test", "attachNetworks")
 			fullConfig := &dockerNetwork.NetworkingConfig{
 				EndpointsConfig: map[string]*dockerNetwork.EndpointSettings{
 					"network1": {NetworkID: "net1"},
@@ -568,7 +560,7 @@ var _ = ginkgo.Describe("Target Container Operations", func() {
 				},
 			}
 
-			err := attachNetworks(context.Background(), client, "container-id", fullConfig, initialConfig, clog)
+			err := attachNetworks(context.Background(), client, "container-id", fullConfig, initialConfig, targetLog)
 			gomega.Expect(err).ToNot(gomega.HaveOccurred())
 			gomega.Expect(logOutput.String()).ToNot(gomega.ContainSubstring("Attaching additional network"))
 		})

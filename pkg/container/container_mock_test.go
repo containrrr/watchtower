@@ -18,7 +18,6 @@ import (
 	dockerClient "github.com/moby/moby/client"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 
-	"github.com/nicholas-fedor/watchtower/internal/logging"
 	mockContainer "github.com/nicholas-fedor/watchtower/pkg/container/mocks"
 )
 
@@ -223,10 +222,10 @@ func WithNetworkMode(mode string) MockContainerUpdate {
 		}
 
 		c.HostConfig.NetworkMode = dockerContainer.NetworkMode(mode)
-		logging.WithFields(testLog(), map[string]any{
-			"mode":    mode,
-			"is_host": mode == "host",
-		}).Debug().Msg("MockContainer set NetworkMode")
+		testLog().Debug().
+			Str("mode", mode).
+			Bool("is_host", mode == "host").
+			Msg("MockContainer set NetworkMode")
 	}
 }
 
@@ -314,10 +313,10 @@ func WithNetworks(networkNames ...string) MockContainerUpdate {
 				NetworkID: fmt.Sprintf("network_%s_id", name),
 				Aliases:   []string{c.Name},
 			}
-			logging.WithFields(testLog(), map[string]any{
-				"container": c.Name,
-				"network":   name,
-			}).Debug().Msg("MockContainer added network")
+			testLog().Debug().
+				Str("container", c.Name).
+				Str("network", name).
+				Msg("MockContainer added network")
 		}
 	}
 }
