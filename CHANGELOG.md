@@ -37,6 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Delete unused container, filter, and sorter code by @nicholas-fedor in [#2877](https://github.com/nicholas-fedor/watchtower/pull/2877)
 - Delete unused notification and logging helpers by @nicholas-fedor in [#2875](https://github.com/nicholas-fedor/watchtower/pull/2875)
 - Delete unused flag and environment helpers by @nicholas-fedor in [#2873](https://github.com/nicholas-fedor/watchtower/pull/2873)
 
