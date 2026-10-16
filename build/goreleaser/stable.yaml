@@ -44,9 +44,6 @@ builds:
       - -trimpath
     ldflags:
       - -s -w
-      - -X main.version={{ .Version }}
-      - -X main.commit={{ .Commit }}
-      - -X main.date={{ .CommitDate }}
       - -X github.com/nicholas-fedor/watchtower/internal/meta.Version={{ .Version }}
     env:
       - CGO_ENABLED=0
