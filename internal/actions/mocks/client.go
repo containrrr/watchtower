@@ -45,7 +45,6 @@ type TestData struct {
 	LastCreatedContainerID       types.ContainerID                     // ID returned by the last successful CreateContainer call.
 	LastRenameTarget             string                                // Last new name passed to RenameContainer.
 	RenameTargets                []string                              // Ordered list of rename targets.
-	UpdateContainerCount         atomic.Int32                          // Number of times UpdateContainer was called.
 	SetRestartPolicyCount        atomic.Int32                          // Number of times SetRestartPolicy was called.
 	IsContainerStaleCount        atomic.Int32                          // Number of times IsContainerStale was called.
 	WaitForContainerHealthyCount atomic.Int32                          // Number of times WaitForContainerHealthy was called.
@@ -61,7 +60,6 @@ type TestData struct {
 	StartContainerError          error                                 // Error to return from StartContainer (for testing).
 	StartContainerByIDError      error                                 // Error to return from StartContainerByID (for testing).
 	CreateContainerError         error                                 // Error to return from CreateContainer (for testing).
-	UpdateContainerError         error                                 // Error to return from UpdateContainer (for testing).
 	StopContainerFailCount       int                                   // Number of times StopContainer should fail before succeeding.
 	RemoveImageError             error                                 // Error to return from RemoveImageByID (for testing).
 	FailedImageIDs               []types.ImageID                       // List of image IDs that should fail removal.
@@ -74,7 +72,6 @@ type TestData struct {
 	SimulatedLatency          time.Duration                 // Simulated latency for operations (default 0 for fast tests, set for context cancellation tests).
 	LastContainerChain        string                        // Last container chain passed to CreateEphemeralOrchestrator.
 	LastCleanup               bool                          // Last cleanup flag passed to CreateEphemeralOrchestrator.
-	LastUpdateConfig          *dockerContainer.UpdateConfig // Last UpdateContainer config received.
 	LastStartedContainer      types.Container               // Last container passed to StartContainer.
 	LastStartedContainerID    types.ContainerID             // ID returned by the last successful StartContainer call.
 	SetRestartPolicyContainer types.Container               // Last container passed to SetRestartPolicy.
@@ -387,19 +384,6 @@ func (client MockClient) RenameContainer(ctx context.Context, _ types.Container,
 	return nil
 }
 
-// UpdateContainer simulates updating a container's configuration.
-// It increments the UpdateContainerCount and returns the configured error if set.
-func (client MockClient) UpdateContainer(ctx context.Context, _ types.Container, config dockerContainer.UpdateConfig) error {
-	client.TestData.UpdateContainerCount.Add(1)
-	client.TestData.LastUpdateConfig = &config
-
-	if err := client.checkContextCancellation(ctx); err != nil {
-		return err
-	}
-
-	return client.TestData.UpdateContainerError
-}
-
 // SetRestartPolicy simulates updating a container's restart policy.
 func (client MockClient) SetRestartPolicy(
 	ctx context.Context,
@@ -547,12 +531,6 @@ func (client MockClient) GetImageAnnotations(
 	}
 
 	return client.TestData.ImageAnnotations[imageRef]
-}
-
-// WarnOnHeadPullFailed always returns true for the mock client.
-// It simulates a warning condition for HEAD pull failures in tests.
-func (client MockClient) WarnOnHeadPullFailed(_ types.Container) bool {
-	return true
 }
 
 // WaitForContainerHealthy simulates waiting for a container to become healthy.

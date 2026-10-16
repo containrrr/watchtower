@@ -23,7 +23,6 @@ import (
 	registryConfig "github.com/nicholas-fedor/watchtower/internal/config/registry"
 	"github.com/nicholas-fedor/watchtower/internal/flags"
 	"github.com/nicholas-fedor/watchtower/pkg/container/oci"
-	"github.com/nicholas-fedor/watchtower/pkg/registry"
 	"github.com/nicholas-fedor/watchtower/pkg/types"
 )
 
@@ -264,17 +263,6 @@ type Client interface {
 	//   - error: Non-nil if removal fails, nil on success.
 	RemoveImageByID(ctx context.Context, imageID types.ImageID, imageName string) error
 
-	// WarnOnHeadPullFailed determines whether to log a warning when a HEAD request fails during image pulls.
-	//
-	// The decision is based on the configured warning strategy and container context.
-	//
-	// Parameters:
-	//   - container: Container to evaluate.
-	//
-	// Returns:
-	//   - bool: True if warning is needed, false otherwise.
-	WarnOnHeadPullFailed(container types.Container) bool
-
 	// GetVersion returns the client's API version.
 	//
 	// Returns:
@@ -330,17 +318,6 @@ type Client interface {
 	//   - error: Non-nil if timeout is reached, container becomes unhealthy, or inspection
 	//     fails. nil if healthy or no health check is configured.
 	WaitForContainerHealthy(ctx context.Context, containerID types.ContainerID, timeout time.Duration) error
-
-	// UpdateContainer updates the configuration of an existing container.
-	//
-	// Parameters:
-	//   - ctx: Context for cancellation and timeout control.
-	//   - container: Container to update.
-	//   - config: Update configuration containing the changes to apply.
-	//
-	// Returns:
-	//   - error: Non-nil if update fails, nil on success.
-	UpdateContainer(ctx context.Context, container types.Container, config dockerContainer.UpdateConfig) error
 
 	// SetRestartPolicy updates a container's restart policy.
 	//
@@ -900,38 +877,10 @@ func (c *client) StartContainer(ctx context.Context, container types.Container) 
 		return "", err
 	}
 
-	if !container.IsRunning() && !c.ReviveStopped {
-		clog.Debug().
-			Str("new_id", string(newID)).
-			Msg("Created container, not starting due to stopped state")
-
-		return newID, nil
-	}
-
-	_, err = c.api.ContainerStart(
-		ctx,
-		string(newID),
-		dockerClient.ContainerStartOptions{},
-	)
+	err = startTargetContainer(ctx, c.api, clog, container, newID, c.ReviveStopped)
 	if err != nil {
-		clog.Debug().
-			Err(err).
-			Str("new_id", string(newID)).
-			Msg("Failed to start new container")
-
-		cleanupFailedStartContainer(ctx, c.api, clog, newID)
-
-		return "", fmt.Errorf("%w: %w", errStartContainerFailed, err)
+		return "", err
 	}
-
-	message := "Started new container"
-	if container.IsLinkedToRestarting() {
-		message = "Started linked container"
-	}
-
-	clog.Debug().
-		Str("new_id", newID.ShortID()).
-		Msg(message)
 
 	return newID, nil
 }
@@ -978,48 +927,6 @@ func (c *client) StartContainerByID(
 	}
 
 	clog.Debug().Msg("Container started successfully")
-
-	return nil
-}
-
-// UpdateContainer updates the configuration of an existing container.
-//
-// Parameters:
-//   - ctx: Context for cancellation and timeout control.
-//   - container: Container to update.
-//   - config: Update configuration containing the changes to apply.
-//
-// Returns:
-//   - error: Non-nil if update fails, nil on success.
-func (c *client) UpdateContainer(
-	ctx context.Context,
-	container types.Container,
-	config dockerContainer.UpdateConfig,
-) error {
-	clogVal := c.logger().With().
-		Str("container_id", string(container.ID())).
-		Logger()
-	clog := &clogVal
-
-	clog.Debug().Msg("Updating container configuration")
-
-	_, err := c.api.ContainerUpdate(
-		ctx,
-		string(container.ID()),
-		dockerClient.ContainerUpdateOptions{
-			Resources:     &config.Resources,
-			RestartPolicy: &config.RestartPolicy,
-		},
-	)
-	if err != nil {
-		clog.Debug().
-			Err(err).
-			Msg("Failed to update container")
-
-		return fmt.Errorf("failed to update container %s: %w", container.ID(), err)
-	}
-
-	clog.Debug().Msg("Container configuration updated")
 
 	return nil
 }
@@ -1143,27 +1050,6 @@ func (c *client) RenameContainer(ctx context.Context, container types.Container,
 		Msg("Renamed container")
 
 	return nil
-}
-
-// WarnOnHeadPullFailed decides whether to warn about failed HEAD requests.
-//
-// Parameters:
-//   - container: Container to evaluate.
-//
-// Returns:
-//   - bool: True if warning is needed, false otherwise.
-func (c *client) WarnOnHeadPullFailed(container types.Container) bool {
-	// Apply warning strategy based on configuration.
-	if c.WarnOnHeadFailed == WarnAlways {
-		return true
-	}
-
-	if c.WarnOnHeadFailed == WarnNever {
-		return false
-	}
-
-	// Delegate to registry logic for auto strategy.
-	return registry.WarnOnAPIConsumption(c.logger(), container)
 }
 
 // IsContainerStale checks if a container's image is outdated.

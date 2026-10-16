@@ -241,6 +241,11 @@ linters:
           disabled: false
           exclude:
             - ".*internal/metrics/.*"
+    wrapcheck:
+      # Constructors that build a new error rather than return one from another call.
+      extra-ignore-sigs:
+        - ratelimit.FromResponse(
+        - ratelimit.FromErrorMessage(
     gocyclo:
       # Functions above this complexity are reported. The functions listed under
       # exclusions are already above it and are excluded until they are split up.

@@ -52,34 +52,34 @@ var _ = ginkgo.Describe("the client", func() {
 	ginkgo.AfterEach(func() {
 		mockServer.Close()
 	})
-	ginkgo.Describe("WarnOnHeadPullFailed", func() {
+	ginkgo.Describe("warnOnHeadFailed", func() {
 		containerUnknown := MockContainer(WithImageName("unknown.repo/prefix/imagename:latest"))
 		containerKnown := MockContainer(WithImageName("docker.io/prefix/imagename:latest"))
 
 		ginkgo.When(`warn on head failure is set to "always"`, func() {
-			c := &client{WarnOnHeadFailed: WarnAlways}
+			c := imageClient{}
 
 			ginkgo.It("should always return true", func() {
-				gomega.Expect(c.WarnOnHeadPullFailed(containerUnknown)).To(gomega.BeTrue())
-				gomega.Expect(c.WarnOnHeadPullFailed(containerKnown)).To(gomega.BeTrue())
+				gomega.Expect(c.warnOnHeadFailed(containerUnknown, WarnAlways)).To(gomega.BeTrue())
+				gomega.Expect(c.warnOnHeadFailed(containerKnown, WarnAlways)).To(gomega.BeTrue())
 			})
 		})
 		ginkgo.When(`warn on head failure is set to "auto"`, func() {
-			c := &client{WarnOnHeadFailed: WarnAuto}
+			c := imageClient{}
 
 			ginkgo.It("should return false for unknown repos", func() {
-				gomega.Expect(c.WarnOnHeadPullFailed(containerUnknown)).To(gomega.BeFalse())
+				gomega.Expect(c.warnOnHeadFailed(containerUnknown, WarnAuto)).To(gomega.BeFalse())
 			})
 			ginkgo.It("should return true for known repos", func() {
-				gomega.Expect(c.WarnOnHeadPullFailed(containerKnown)).To(gomega.BeTrue())
+				gomega.Expect(c.warnOnHeadFailed(containerKnown, WarnAuto)).To(gomega.BeTrue())
 			})
 		})
 		ginkgo.When(`warn on head failure is set to "never"`, func() {
-			c := &client{WarnOnHeadFailed: WarnNever}
+			c := imageClient{}
 
 			ginkgo.It("should never return true", func() {
-				gomega.Expect(c.WarnOnHeadPullFailed(containerUnknown)).To(gomega.BeFalse())
-				gomega.Expect(c.WarnOnHeadPullFailed(containerKnown)).To(gomega.BeFalse())
+				gomega.Expect(c.warnOnHeadFailed(containerUnknown, WarnNever)).To(gomega.BeFalse())
+				gomega.Expect(c.warnOnHeadFailed(containerKnown, WarnNever)).To(gomega.BeFalse())
 			})
 		})
 	})

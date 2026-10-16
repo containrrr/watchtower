@@ -1,8 +1,6 @@
 package sorter_test
 
 import (
-	"time"
-
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	"github.com/rs/zerolog"
@@ -16,82 +14,6 @@ import (
 )
 
 var _ = ginkgo.Describe("Container Sorting", func() {
-	ginkgo.Describe("SortByCreated", func() {
-		ginkgo.When("sorting by creation date", func() {
-			ginkgo.It("sorts containers in ascending order", func() {
-				now := time.Now()
-				c3 := mockTypes.NewMockContainer(ginkgo.GinkgoT())
-				c3.EXPECT().ContainerInfo().Return(&dockerContainer.InspectResponse{
-					Created: now.Add(-1 * time.Hour).Format(time.RFC3339Nano),
-					Config: &dockerContainer.Config{
-						Labels: map[string]string{},
-					},
-				})
-				c3.EXPECT().Name().Return("c3")
-
-				c1 := mockTypes.NewMockContainer(ginkgo.GinkgoT())
-				c1.EXPECT().ContainerInfo().Return(&dockerContainer.InspectResponse{
-					Created: now.Add(-3 * time.Hour).Format(time.RFC3339Nano),
-					Config: &dockerContainer.Config{
-						Labels: map[string]string{},
-					},
-				})
-				c1.EXPECT().Name().Return("c1")
-
-				c2 := mockTypes.NewMockContainer(ginkgo.GinkgoT())
-				c2.EXPECT().ContainerInfo().Return(&dockerContainer.InspectResponse{
-					Created: now.Add(-2 * time.Hour).Format(time.RFC3339Nano),
-					Config: &dockerContainer.Config{
-						Labels: map[string]string{},
-					},
-				})
-				c2.EXPECT().Name().Return("c2")
-				containers := []types.Container{c3, c1, c2}
-				err := sorter.SortByCreated(testLog(), containers)
-				gomega.Expect(err).ToNot(gomega.HaveOccurred())
-				gomega.Expect(containers[0].Name()).To(gomega.Equal("c1"))
-				gomega.Expect(containers[1].Name()).To(gomega.Equal("c2"))
-				gomega.Expect(containers[2].Name()).To(gomega.Equal("c3"))
-			})
-
-			ginkgo.It("handles invalid creation dates gracefully", func() {
-				now := time.Now()
-				c1 := mockTypes.NewMockContainer(ginkgo.GinkgoT())
-				c1.EXPECT().ContainerInfo().Return(&dockerContainer.InspectResponse{
-					Created: "invalid-date",
-					Config: &dockerContainer.Config{
-						Labels: map[string]string{},
-					},
-				})
-				c1.EXPECT().Name().Return("c1").Maybe()
-				c1.EXPECT().ID().Return(types.ContainerID("id-c1")).Maybe()
-
-				c2 := mockTypes.NewMockContainer(ginkgo.GinkgoT())
-				c2.EXPECT().ContainerInfo().Return(&dockerContainer.InspectResponse{
-					Created: now.Format(time.RFC3339Nano),
-					Config: &dockerContainer.Config{
-						Labels: map[string]string{},
-					},
-				})
-				c2.EXPECT().Name().Return("c2").Maybe()
-				c2.EXPECT().ID().Return(types.ContainerID("id-c2")).Maybe()
-				containers := []types.Container{c1, c2}
-				err := sorter.SortByCreated(testLog(), containers)
-				gomega.Expect(err).ToNot(gomega.HaveOccurred())
-				// Invalid date uses far future time, so c1 (far future) should come after c2 (now)
-				gomega.Expect(containers[0].Name()).To(gomega.Equal("c2"))
-				gomega.Expect(containers[1].Name()).To(gomega.Equal("c1"))
-			})
-
-			ginkgo.It("handles empty list", func() {
-				containers := []types.Container{}
-				err := sorter.SortByCreated(testLog(), containers)
-				gomega.Expect(err).ToNot(gomega.HaveOccurred())
-				gomega.Expect(containers).To(gomega.BeEmpty())
-			})
-		})
-	})
-
 	ginkgo.Describe("SortByDependencies", func() {
 		ginkgo.When("sorting by dependencies", func() {
 			ginkgo.It("sorts containers with no links first", func() {

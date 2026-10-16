@@ -17,6 +17,21 @@ import (
 // DependencySorter handles topological sorting by dependencies.
 type DependencySorter struct{}
 
+// SortByDependencies sorts containers in place by dependencies.
+//
+// Parameters:
+//   - log: Process logger.
+//   - containers: Slice to sort in place.
+//   - useComposeDependsOn: Whether to include Docker Compose depends_on label in dependency resolution.
+//
+// Returns:
+//   - error: Non-nil if circular reference detected, nil on success.
+func SortByDependencies(log *zerolog.Logger, containers []types.Container, useComposeDependsOn bool) error {
+	sorter := DependencySorter{}
+
+	return sorter.Sort(log, containers, useComposeDependsOn)
+}
+
 // Sort sorts containers in place by dependencies, placing Watchtower containers last.
 //
 // This function implements a two-phase sorting strategy to ensure proper update order:
@@ -220,7 +235,7 @@ func kahnSort(log *zerolog.Logger,
 // strings often differ from the canonical graph key when Compose labels are present.
 //
 // Link Matching Strategy:
-// Matching uses findMatchingIdentifiersInSet against the canonical keys plus unique bare
+// Matching uses a matchSet of the canonical keys plus unique bare
 // Name() aliases, then maps every hit back to a canonical key before recording edges.
 // Strategies:
 //  1. Exact match on canonical identifier or bare container name
@@ -562,55 +577,6 @@ func ExtractServiceName(identifier string) string {
 	return identifier[last+1:]
 }
 
-// FindMatchingIdentifiers returns the identifiers from the given list that match
-// the provided link. It applies the same strategies used when building the
-// dependency graph:
-//
-//  1. Exact match.
-//  2. Replica prefix match: the identifier starts with "<link>-" and the suffix
-//     after the hyphen is a positive integer (Docker Compose replica numbering).
-//  3. Project-qualified suffix match (the identifier, without a replica
-//     number, ends with "-"+link), and for unhyphenated links only,
-//     ExtractServiceName equality on both sides. This strategy only succeeds
-//     when every candidate belongs to the same service, and then returns all
-//     of its replicas. Candidates from more than one service (e.g. the same
-//     service name in different projects) are treated as ambiguous and return
-//     no results.
-//
-// Parameters:
-//   - link: Dependency link to resolve (typically from Container.Links()).
-//   - identifiers: List of known container identifiers to search within.
-//
-// Returns:
-//   - []string: Matching identifiers. Returns nil or an empty slice when there
-//     is no match or when the service-only strategy finds more than one service.
-func FindMatchingIdentifiers(link string, identifiers []string) []string {
-	if link == "" || len(identifiers) == 0 {
-		return nil
-	}
-
-	idSet := make(map[string]bool, len(identifiers))
-	for _, id := range identifiers {
-		idSet[id] = true
-	}
-
-	return findMatchingIdentifiersInSet(link, idSet)
-}
-
-// findMatchingIdentifiersInSet returns identifiers from a set that match the
-// provided link. See FindMatchingIdentifiers for matching strategy details.
-// Callers that match many links against one set should build a matchSet once.
-//
-// Parameters:
-//   - link: Dependency link to resolve.
-//   - idSet: Set of known container identifiers.
-//
-// Returns:
-//   - []string: Matching identifiers, or nil/empty when none or ambiguous.
-func findMatchingIdentifiersInSet(link string, idSet map[string]bool) []string {
-	return newMatchSet(idSet).match(link)
-}
-
 // matchSet is a set of container identifiers indexed for link matching.
 //
 // The identifiers are kept in sorted order, so the replicas of a link are one
@@ -647,8 +613,19 @@ func newMatchSet(idSet map[string]bool) *matchSet {
 	return &matchSet{names: idSet, sorted: sorted, services: services, serviceNames: serviceNames}
 }
 
-// match returns the identifiers of the set that match the provided link. See
-// FindMatchingIdentifiers for matching strategy details.
+// match returns the identifiers of the set that match the provided link. It
+// applies the same strategies used when building the dependency graph:
+//
+//  1. Exact match.
+//  2. Replica prefix match: the identifier starts with "<link>-" and the suffix
+//     after the hyphen is a positive integer (Docker Compose replica numbering).
+//  3. Project-qualified suffix match (the identifier, without a replica
+//     number, ends with "-"+link), and for unhyphenated links only,
+//     ExtractServiceName equality on both sides. This strategy only succeeds
+//     when every candidate belongs to the same service, and then returns all
+//     of its replicas. Candidates from more than one service (e.g. the same
+//     service name in different projects) are treated as ambiguous and return
+//     no results.
 //
 // Parameters:
 //   - link: Dependency link to resolve.

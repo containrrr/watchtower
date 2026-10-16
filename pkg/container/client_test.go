@@ -2780,3 +2780,54 @@ func TestDetectRuntimeByAPI(t *testing.T) {
 		})
 	}
 }
+
+// TestStartContainer_StartsCreatedContainer verifies that StartContainer starts
+// the container it created, by the ID the create returned, and returns that ID.
+func TestStartContainer_StartsCreatedContainer(t *testing.T) {
+	t.Parallel()
+
+	const createdID = "created-container-id"
+
+	// started records the path of every start request.
+	started := make(chan string, 4)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case strings.HasSuffix(r.URL.Path, "/_ping"):
+			w.WriteHeader(http.StatusOK)
+		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/containers/create"):
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusCreated)
+			_, _ = w.Write([]byte(`{"Id":"` + createdID + `"}`))
+		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/rename"):
+			w.WriteHeader(http.StatusNoContent)
+		case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/start"):
+			started <- r.URL.Path
+
+			w.WriteHeader(http.StatusNoContent)
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	t.Cleanup(server.Close)
+
+	docker, err := dockerClient.New(
+		dockerClient.WithHost(server.URL),
+		dockerClient.WithHTTPClient(server.Client()),
+	)
+	require.NoError(t, err)
+
+	source := MockContainer(
+		WithNetworkMode("bridge"),
+		WithContainerState(dockerContainer.State{Running: true, Status: "running"}),
+	)
+
+	newID, err := (&client{log: testLog(), api: docker}).StartContainer(t.Context(), source)
+	require.NoError(t, err)
+	assert.Equal(t, types.ContainerID(createdID), newID)
+
+	require.Len(t, started, 1)
+
+	path := <-started
+	assert.True(t, strings.HasSuffix(path, "/containers/"+createdID+"/start"), "started %s", path)
+}

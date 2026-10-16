@@ -657,40 +657,6 @@ func debugEnabled(log *zerolog.Logger) bool {
 	return log != nil && log.GetLevel() <= zerolog.DebugLevel
 }
 
-// matchesImageName checks if a container's image name matches a given pattern (exact or regex).
-// Returns true if it matches, false otherwise.
-// Invalid regex patterns are treated as literal strings for exact matching.
-func matchesImageName(imageName, pattern string) bool {
-	if pattern == imageName {
-		return true
-	}
-
-	regex, err := regexp.Compile("^" + pattern + "$")
-	if err != nil {
-		return false
-	}
-
-	return regex.MatchString(imageName)
-}
-
-// matchesName checks if a container name matches a given pattern (exact or regex).
-// Returns true if it matches, false otherwise.
-// Invalid regex patterns are treated as literal strings for exact matching.
-func matchesName(containerName, pattern string) bool {
-	pattern = strings.TrimPrefix(pattern, "/")
-
-	if pattern == containerName {
-		return true
-	}
-
-	regex, err := regexp.Compile("^" + pattern + "$")
-	if err != nil {
-		return false
-	}
-
-	return regex.MatchString(containerName)
-}
-
 // matchImageAndTag checks if a container's image matches a target image, including optional tag.
 //
 // Image references are parsed with distribution/reference so host:port registries

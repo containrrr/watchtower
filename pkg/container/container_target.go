@@ -21,106 +21,67 @@ const (
 	cleanupTimeout = 10 * time.Second
 )
 
-// StartTargetContainer creates and starts a new container based on the source container's configuration.
+// startTargetContainer starts a container created from sourceContainer.
 //
-// It applies the provided network configuration and respects the reviveStopped option.
-// For legacy Docker API versions (< 1.44) with multiple networks, it creates the container with a single
-// network and attaches others sequentially to avoid issues with multiple network endpoints in ContainerCreate.
-// For modern API versions (>= 1.44) or single networks, it attaches all networks at creation.
+// It leaves the container stopped when sourceContainer is not running and
+// reviveStopped is false. When the start fails, it removes the container if it
+// is still stopped.
 //
 // Parameters:
 //   - ctx: Context for cancellation and timeout control.
 //   - api: Interface for container operations (Operations).
-//   - sourceContainer: Source container to replicate.
-//   - networkConfig: Network configuration to apply to the new container.
+//   - clog: Logger with container context fields.
+//   - sourceContainer: Source container the new container replaces.
+//   - containerID: ID of the created container to start.
 //   - reviveStopped: If true, starts the new container even if the source is stopped.
-//   - clientVersion: Docker API version used by the client.
-//   - minSupportedVersion: Minimum Docker API version required for full network features.
-//   - disableMemorySwappiness: If true, disables memory swappiness for Podman compatibility.
-//   - cpuCopyMode: CPU copy mode for container recreation, used for compatibility with Podman.
-//   - isPodman: If true, indicates Podman is being used for CPU compatibility.
 //
 // Returns:
-//   - types.ContainerID: ID of the new container.
-//   - error: Non-nil if creation or start fails, nil on success.
-func StartTargetContainer(log *zerolog.Logger,
+//   - error: Non-nil if the start fails, nil on success or when the start is skipped.
+func startTargetContainer(
 	ctx context.Context,
 	api Operations,
+	clog *zerolog.Logger,
 	sourceContainer types.Container,
-	networkConfig *dockerNetwork.NetworkingConfig,
+	containerID types.ContainerID,
 	reviveStopped bool,
-	clientVersion string,
-	minSupportedVersion string,
-	disableMemorySwappiness bool,
-	cpuCopyMode string,
-	isPodman bool,
-) (types.ContainerID, error) {
-	createdContainerID, err := CreateTargetContainer(log,
-		ctx,
-		api,
-		sourceContainer,
-		networkConfig,
-		clientVersion,
-		minSupportedVersion,
-		disableMemorySwappiness,
-		cpuCopyMode,
-		isPodman,
-	)
-	if err != nil {
-		return "", err
-	}
-
-	clogVal := log.With().
-		Str("container", sourceContainer.Name()).
-		Str("id", sourceContainer.ID().ShortID()).
-		Logger()
-	clog := &clogVal
-
-	// Skip starting if source isn't running and revive isn't enabled.
+) error {
 	if !sourceContainer.IsRunning() && !reviveStopped {
 		clog.Debug().
-			Str("new_id", string(createdContainerID)).
+			Str("new_id", string(containerID)).
 			Msg("Created container, not starting due to stopped state")
 
-		return createdContainerID, nil
+		return nil
 	}
 
-	// Start the newly created container.
-	clog.Debug().
-		Str("new_id", string(createdContainerID)).
-		Msg("Starting new container")
-
-	_, err = api.ContainerStart(
+	_, err := api.ContainerStart(
 		ctx,
-		string(createdContainerID),
+		string(containerID),
 		dockerClient.ContainerStartOptions{},
 	)
 	if err != nil {
 		clog.Debug().
 			Err(err).
-			Str("new_id", string(createdContainerID)).
+			Str("new_id", string(containerID)).
 			Msg("Failed to start new container")
 
 		// Start failures from cancellation or transport errors can leave the
 		// container state ambiguous. Inspect first and force-remove only when
 		// the container is still stopped so a late-started instance is kept.
+		cleanupFailedStartContainer(ctx, api, clog, containerID)
 
-		cleanupFailedStartContainer(ctx, api, clog, createdContainerID)
-
-		return "", fmt.Errorf("%w: %w", errStartContainerFailed, err)
+		return fmt.Errorf("%w: %w", errStartContainerFailed, err)
 	}
 
-	// Log detailed start message
 	message := "Started new container"
 	if sourceContainer.IsLinkedToRestarting() {
 		message = "Started linked container"
 	}
 
-	clog.Info().
-		Str("new_id", createdContainerID.ShortID()).
+	clog.Debug().
+		Str("new_id", containerID.ShortID()).
 		Msg(message)
 
-	return createdContainerID, nil
+	return nil
 }
 
 // cleanupFailedStartContainer inspects a container that failed to start and

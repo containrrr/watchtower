@@ -2096,13 +2096,13 @@ func concreteLinkedContainer(
 	}, nil)
 }
 
-var _ = ginkgo.Describe("FindMatchingIdentifiers", func() {
+var _ = ginkgo.Describe("matchSet.match", func() {
 	// Exhaustive link x identifier permutations across Compose stacks, multi-segment
 	// services, replicas, bare container names, and ambiguous cross-project cases.
 	ginkgo.DescribeTable(
 		"matches identifiers for each link form",
 		func(link string, identifiers, expected []string) {
-			matches := FindMatchingIdentifiers(link, identifiers)
+			matches := newMatchSet(identifierSet(identifiers...)).match(link)
 			if expected == nil {
 				gomega.Expect(matches).To(gomega.BeEmpty())
 

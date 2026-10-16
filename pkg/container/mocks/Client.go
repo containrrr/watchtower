@@ -1505,69 +1505,6 @@ func (_c *MockClient_StopContainer_Call) RunAndReturn(run func(ctx context.Conte
 	return _c
 }
 
-// UpdateContainer provides a mock function for the type MockClient
-func (_mock *MockClient) UpdateContainer(ctx context.Context, container1 types.Container, config container.UpdateConfig) error {
-	ret := _mock.Called(ctx, container1, config)
-
-	if len(ret) == 0 {
-		panic("no return value specified for UpdateContainer")
-	}
-
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, types.Container, container.UpdateConfig) error); ok {
-		r0 = returnFunc(ctx, container1, config)
-	} else {
-		r0 = ret.Error(0)
-	}
-	return r0
-}
-
-// MockClient_UpdateContainer_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateContainer'
-type MockClient_UpdateContainer_Call struct {
-	*mock.Call
-}
-
-// UpdateContainer is a helper method to define mock.On call
-//   - ctx context.Context
-//   - container1 types.Container
-//   - config container.UpdateConfig
-func (_e *MockClient_Expecter) UpdateContainer(ctx any, container1 any, config any) *MockClient_UpdateContainer_Call {
-	return &MockClient_UpdateContainer_Call{Call: _e.mock.On("UpdateContainer", ctx, container1, config)}
-}
-
-func (_c *MockClient_UpdateContainer_Call) Run(run func(ctx context.Context, container1 types.Container, config container.UpdateConfig)) *MockClient_UpdateContainer_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 context.Context
-		if args[0] != nil {
-			arg0 = args[0].(context.Context)
-		}
-		var arg1 types.Container
-		if args[1] != nil {
-			arg1 = args[1].(types.Container)
-		}
-		var arg2 container.UpdateConfig
-		if args[2] != nil {
-			arg2 = args[2].(container.UpdateConfig)
-		}
-		run(
-			arg0,
-			arg1,
-			arg2,
-		)
-	})
-	return _c
-}
-
-func (_c *MockClient_UpdateContainer_Call) Return(err error) *MockClient_UpdateContainer_Call {
-	_c.Call.Return(err)
-	return _c
-}
-
-func (_c *MockClient_UpdateContainer_Call) RunAndReturn(run func(ctx context.Context, container1 types.Container, config container.UpdateConfig) error) *MockClient_UpdateContainer_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
 // WaitForContainerHealthy provides a mock function for the type MockClient
 func (_mock *MockClient) WaitForContainerHealthy(ctx context.Context, containerID types.ContainerID, timeout time.Duration) error {
 	ret := _mock.Called(ctx, containerID, timeout)
@@ -1627,57 +1564,6 @@ func (_c *MockClient_WaitForContainerHealthy_Call) Return(err error) *MockClient
 }
 
 func (_c *MockClient_WaitForContainerHealthy_Call) RunAndReturn(run func(ctx context.Context, containerID types.ContainerID, timeout time.Duration) error) *MockClient_WaitForContainerHealthy_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// WarnOnHeadPullFailed provides a mock function for the type MockClient
-func (_mock *MockClient) WarnOnHeadPullFailed(container1 types.Container) bool {
-	ret := _mock.Called(container1)
-
-	if len(ret) == 0 {
-		panic("no return value specified for WarnOnHeadPullFailed")
-	}
-
-	var r0 bool
-	if returnFunc, ok := ret.Get(0).(func(types.Container) bool); ok {
-		r0 = returnFunc(container1)
-	} else {
-		r0 = ret.Get(0).(bool)
-	}
-	return r0
-}
-
-// MockClient_WarnOnHeadPullFailed_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'WarnOnHeadPullFailed'
-type MockClient_WarnOnHeadPullFailed_Call struct {
-	*mock.Call
-}
-
-// WarnOnHeadPullFailed is a helper method to define mock.On call
-//   - container1 types.Container
-func (_e *MockClient_Expecter) WarnOnHeadPullFailed(container1 any) *MockClient_WarnOnHeadPullFailed_Call {
-	return &MockClient_WarnOnHeadPullFailed_Call{Call: _e.mock.On("WarnOnHeadPullFailed", container1)}
-}
-
-func (_c *MockClient_WarnOnHeadPullFailed_Call) Run(run func(container1 types.Container)) *MockClient_WarnOnHeadPullFailed_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 types.Container
-		if args[0] != nil {
-			arg0 = args[0].(types.Container)
-		}
-		run(
-			arg0,
-		)
-	})
-	return _c
-}
-
-func (_c *MockClient_WarnOnHeadPullFailed_Call) Return(b bool) *MockClient_WarnOnHeadPullFailed_Call {
-	_c.Call.Return(b)
-	return _c
-}
-
-func (_c *MockClient_WarnOnHeadPullFailed_Call) RunAndReturn(run func(container1 types.Container) bool) *MockClient_WarnOnHeadPullFailed_Call {
 	_c.Call.Return(run)
 	return _c
 }

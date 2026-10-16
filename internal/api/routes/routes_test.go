@@ -15,10 +15,11 @@ import (
 	"github.com/gofiber/fiber/v3/middleware/keyauth"
 	"github.com/gofiber/fiber/v3/middleware/limiter"
 	"github.com/gofiber/fiber/v3/middleware/logger"
-	"github.com/gofiber/fiber/v3/middleware/recover"
 	"github.com/gofiber/fiber/v3/middleware/requestid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	fiberRecover "github.com/gofiber/fiber/v3/middleware/recover"
 
 	"github.com/nicholas-fedor/watchtower/internal/api/config"
 	"github.com/nicholas-fedor/watchtower/internal/api/handlers/events"
@@ -44,7 +45,7 @@ func testApp() *fiber.App {
 		CaseSensitive: true,
 	})
 	app.Use(
-		recover.New(),
+		fiberRecover.New(),
 		helmet.New(),
 		requestid.New(),
 		logger.New(logger.Config{

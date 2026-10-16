@@ -9,11 +9,11 @@ import (
 	"github.com/gofiber/fiber/v3/middleware/cors"
 	"github.com/gofiber/fiber/v3/middleware/helmet"
 	"github.com/gofiber/fiber/v3/middleware/limiter"
-	"github.com/gofiber/fiber/v3/middleware/recover"
 	"github.com/gofiber/fiber/v3/middleware/requestid"
 	"github.com/rs/zerolog"
 
-	fiberzerolog "github.com/gofiber/contrib/v3/zerolog"
+	fiberZerolog "github.com/gofiber/contrib/v3/zerolog"
+	fiberRecover "github.com/gofiber/fiber/v3/middleware/recover"
 )
 
 const (
@@ -122,7 +122,7 @@ func New(
 	}
 
 	middlewares := []any{
-		recover.New(),
+		fiberRecover.New(),
 		helmet.New(),
 	}
 
@@ -150,19 +150,19 @@ func New(
 
 	middlewares = append(middlewares,
 		requestid.New(),
-		fiberzerolog.New(fiberzerolog.Config{
+		fiberZerolog.New(fiberZerolog.Config{
 			Logger: &requestLog,
 			// Structured access fields: status/method/path (prior stream shape) plus
 			// ip/latency/error and request ID for correlation with requestid middleware.
 			// Messages/Levels omit so contrib defaults apply (5xx Error, 4xx Warn, else Info).
 			Fields: []string{
-				fiberzerolog.FieldStatus,
-				fiberzerolog.FieldMethod,
-				fiberzerolog.FieldPath,
-				fiberzerolog.FieldIP,
-				fiberzerolog.FieldLatency,
-				fiberzerolog.FieldError,
-				fiberzerolog.FieldRequestID,
+				fiberZerolog.FieldStatus,
+				fiberZerolog.FieldMethod,
+				fiberZerolog.FieldPath,
+				fiberZerolog.FieldIP,
+				fiberZerolog.FieldLatency,
+				fiberZerolog.FieldError,
+				fiberZerolog.FieldRequestID,
 			},
 		}),
 		compress.New(compress.Config{

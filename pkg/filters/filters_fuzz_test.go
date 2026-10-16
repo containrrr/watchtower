@@ -88,29 +88,6 @@ func FuzzParseLabelPairs(f *testing.F) {
 	})
 }
 
-func FuzzMatchesName(f *testing.F) {
-	f.Add("test-container", "test")
-	f.Add("nginx-proxy-1", "nginx.*")
-	f.Add("watchtower", "watchtower")
-	f.Add("app", "^[a-z]+$")
-	f.Add("container", "")
-
-	f.Fuzz(func(t *testing.T, containerName, pattern string) {
-		_ = matchesName(containerName, pattern)
-	})
-}
-
-func FuzzMatchesImageName(f *testing.F) {
-	f.Add("nginx:latest", "nginx:.*")
-	f.Add("redis:alpine", "redis:.*")
-	f.Add("myapp:1.0", "myapp")
-	f.Add("registry:5000/app:v1", "registry:5000/app:.*")
-
-	f.Fuzz(func(t *testing.T, imageName, pattern string) {
-		_ = matchesImageName(imageName, pattern)
-	})
-}
-
 func FuzzFilterByEnabledLabels(f *testing.F) {
 	f.Add("app", "nginx:latest", "com.example.enabled=true", "com.example.enabled=true")
 	f.Add("web", "redis:alpine", "com.example.env=prod", "")

@@ -1521,12 +1521,3 @@ func TestFilters_DebugLogging(t *testing.T) {
 	keptImage.AssertExpectations(t)
 	assert.Contains(t, logBuf.String(), "Container not skipped by image name patterns")
 }
-
-func TestMatchesImageName(t *testing.T) {
-	t.Parallel()
-
-	assert.True(t, matchesImageName("nginx:latest", "nginx:latest"))
-	assert.True(t, matchesImageName("nginx:1.25", "nginx:.*"))
-	assert.False(t, matchesImageName("redis:latest", "nginx:.*"))
-	assert.False(t, matchesImageName("app", "["))
-}

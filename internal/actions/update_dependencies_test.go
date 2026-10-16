@@ -515,7 +515,7 @@ var _ = ginkgo.Describe("the update action", func() {
 
 		ginkgo.It("should allow replica matches for qualified links via hasExactOrReplica even without project label on dependent", func() {
 			// Dependent has no project label and a hyphenated link from compose depends_on.
-			// The restarting candidate is a replica. FindMatchingIdentifiers hits replica
+			// The restarting candidate is a replica. The link matcher hits the replica
 			// strategy so hasExactOrReplica is true and the qualified-link guard permits it.
 			base := mockActions.CreateMockContainerWithConfig(
 				"project-base-1",
