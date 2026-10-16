@@ -109,7 +109,6 @@ func TestUpdateParamsAssignsEveryField(t *testing.T) {
 	assert.Equal(t, 5*time.Second, params.PullFailureDelay)
 	assert.Equal(t, 1000, params.LifecycleUID)
 	assert.Equal(t, 1000, params.LifecycleGID)
-	assert.Equal(t, "auto", params.CPUCopyMode)
 	assert.True(t, params.RunOnce)
 	assert.Equal(t, types.ContainerID("abc123"), params.CurrentContainerID)
 	assert.True(t, params.UseComposeDependsOn)
@@ -196,7 +195,7 @@ func TestClientOptionsMapsClientAndCompat(t *testing.T) {
 	assert.True(t, opts.ReviveStopped)
 	assert.True(t, opts.RemoveVolumes)
 	assert.True(t, opts.DisableMemorySwappiness)
-	// Compatibility wins over Client when both are non-empty (matches UpdateParams).
+	// Compatibility wins over Client when both are non-empty.
 	assert.Equal(t, "auto", opts.CPUCopyMode)
 	assert.Equal(t, "always", string(opts.WarnOnHeadFailed))
 	assert.Equal(t, cfg.Registry, opts.Registry)

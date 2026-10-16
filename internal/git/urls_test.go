@@ -195,7 +195,7 @@ func TestGithubAPI(t *testing.T) {
 	t.Run("github.com uses api.github.com", func(t *testing.T) {
 		t.Parallel()
 
-		got := (&Client{}).githubAPI("GitHub.com", "repos", "org", "app")
+		got := (&Client{}).githubAPIAt(url.URL{}, "GitHub.com", "repos", "org", "app")
 		assert.Equal(t, "https://api.github.com/repos/org/app", got.String())
 	})
 
@@ -205,14 +205,14 @@ func TestGithubAPI(t *testing.T) {
 		client := &Client{origins: map[string]url.URL{
 			"github.company.com": {Scheme: "https", Host: "github.company.com", Path: "/ghe"},
 		}}
-		got := client.githubAPI("github.company.com", "repos", "org", "app")
+		got := client.githubAPIAt(url.URL{}, "github.company.com", "repos", "org", "app")
 		assert.Equal(t, "https://github.company.com/ghe/api/v3/repos/org/app", got.String())
 	})
 
 	t.Run("enterprise default origin", func(t *testing.T) {
 		t.Parallel()
 
-		got := (&Client{}).githubAPI("github.company.com", "user")
+		got := (&Client{}).githubAPIAt(url.URL{}, "github.company.com", "user")
 		assert.Equal(t, "https://github.company.com/api/v3/user", got.String())
 	})
 }
@@ -224,18 +224,18 @@ func TestGitlabAPI(t *testing.T) {
 		"gitlab.internal": {Scheme: "https", Host: "gitlab.internal:8443", Path: "/gitlab"},
 	}}
 	assert.Equal(t, "https://gitlab.internal:8443/gitlab/api/v4/projects",
-		client.gitlabAPI("gitlab.internal", "projects").String())
+		client.gitlabAPIAt(url.URL{}, "gitlab.internal", "projects").String())
 	assert.Equal(t, "https://gitlab.com/api/v4/version",
-		(&Client{}).gitlabAPI("gitlab.com", "version").String())
+		(&Client{}).gitlabAPIAt(url.URL{}, "gitlab.com", "version").String())
 }
 
 func TestGiteaAPI(t *testing.T) {
 	t.Parallel()
 
 	assert.Equal(t, "https://git.example.com/api/v1/version",
-		(&Client{}).giteaAPI("git.example.com", "version").String())
+		(&Client{}).giteaAPIAt(url.URL{}, "git.example.com", "version").String())
 	assert.Equal(t, "https://codeberg.org/api/v1/repos/org/app",
-		(&Client{}).giteaAPI("codeberg.org", "repos", "org", "app").String())
+		(&Client{}).giteaAPIAt(url.URL{}, "codeberg.org", "repos", "org", "app").String())
 }
 
 func TestRejectCrossHostRedirect(t *testing.T) {

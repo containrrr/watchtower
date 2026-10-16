@@ -1,5 +1,5 @@
 // Package manifest_test provides tests for constructing manifest URLs in Watchtower.
-// It verifies the behavior of BuildManifestURL across various image reference scenarios.
+// It verifies the behavior of BuildManifestURLForImage across various image reference scenarios.
 package manifest_test
 
 import (
@@ -20,7 +20,7 @@ func TestManifest(t *testing.T) {
 	ginkgo.RunSpecs(t, "Manifest Suite")
 }
 
-// testScheme is the URL scheme the suite passes to BuildManifestURL. Specs
+// testScheme is the URL scheme the suite passes to BuildManifestURLForImage. Specs
 // change it to exercise plain HTTP manifest URLs.
 var testScheme string
 
@@ -30,7 +30,7 @@ var _ = ginkgo.BeforeEach(func() {
 })
 
 var _ = ginkgo.Describe("the manifest module", func() {
-	ginkgo.Describe("BuildManifestURL", func() {
+	ginkgo.Describe("BuildManifestURLForImage", func() {
 		ginkgo.It("should return a valid url given a fully qualified image", func() {
 			imageRef := "ghcr.io/nicholas-fedor/watchtower:mytag"
 			expected := "https://ghcr.io/v2/nicholas-fedor/watchtower/manifests/mytag"
@@ -171,7 +171,7 @@ var _ = ginkgo.Describe("the manifest module", func() {
 })
 
 // buildMockContainerManifestURL creates a mock container and builds its manifest URL.
-// It constructs a container with the given image reference for testing BuildManifestURL.
+// It constructs a container with the given image reference for testing BuildManifestURLForImage.
 func buildMockContainerManifestURL(imageRef string) (string, error) {
 	imageInfo := dockerImage.InspectResponse{
 		RepoTags: []string{
@@ -189,5 +189,5 @@ func buildMockContainerManifestURL(imageRef string) (string, error) {
 		imageInfo,
 	)
 
-	return manifest.BuildManifestURL(testLog(), mock, testScheme)
+	return manifest.BuildManifestURLForImage(testLog(), mock.ImageName(), mock.Name(), testScheme)
 }

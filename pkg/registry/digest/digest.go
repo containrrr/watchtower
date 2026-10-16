@@ -454,7 +454,7 @@ func FetchDigestForTag(
 // BuildManifestURL constructs and validates a manifest URL for a container.
 //
 // It determines the scheme from the registry settings, builds the initial URL via
-// manifest.BuildManifestURL (which always uses the canonical host from the image reference),
+// manifest.BuildManifestURLForImage (which always uses the canonical host from the image reference),
 // then overrides the host and scheme if hostOverride is a non-empty bare host or full endpoint
 // URL (e.g. "https://mirror.example.com"). It returns the final URL, the original host before
 // override, and the parsed URL object.

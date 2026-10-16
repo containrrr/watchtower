@@ -14,18 +14,10 @@ func TestNewBroadcaster(t *testing.T) {
 	assert.Equal(t, 0, b.SubscriberCount())
 }
 
-func TestSubscribe(t *testing.T) {
-	b := NewBroadcaster()
-
-	ch := b.Subscribe()
-	require.NotNil(t, ch)
-	assert.Equal(t, 1, b.SubscriberCount())
-}
-
 func TestUnsubscribe(t *testing.T) {
 	b := NewBroadcaster()
 
-	ch := b.Subscribe()
+	ch, _ := b.SubscribeWithDone()
 	assert.Equal(t, 1, b.SubscriberCount())
 
 	b.Unsubscribe(ch)
@@ -35,7 +27,7 @@ func TestUnsubscribe(t *testing.T) {
 func TestPublish(t *testing.T) {
 	b := NewBroadcaster()
 
-	ch := b.Subscribe()
+	ch, _ := b.SubscribeWithDone()
 
 	event := Event{
 		Type:      "scan_completed",
@@ -57,8 +49,8 @@ func TestPublish(t *testing.T) {
 func TestPublishMultipleSubscribers(t *testing.T) {
 	b := NewBroadcaster()
 
-	ch1 := b.Subscribe()
-	ch2 := b.Subscribe()
+	ch1, _ := b.SubscribeWithDone()
+	ch2, _ := b.SubscribeWithDone()
 
 	event := Event{Type: "scan_started", Timestamp: time.Now().UTC()}
 	b.Publish(event)
@@ -81,7 +73,7 @@ func TestPublishMultipleSubscribers(t *testing.T) {
 func TestPublishBackpressure(t *testing.T) {
 	b := NewBroadcaster()
 
-	ch := b.Subscribe()
+	ch, _ := b.SubscribeWithDone()
 
 	for range subscriberChannelSize + 5 {
 		b.Publish(Event{Type: "test", Timestamp: time.Now().UTC()})
@@ -115,7 +107,7 @@ func TestUnsubscribeNonExistent(t *testing.T) {
 func TestUnsubscribeIdempotent(t *testing.T) {
 	b := NewBroadcaster()
 
-	ch := b.Subscribe()
+	ch, _ := b.SubscribeWithDone()
 	assert.Equal(t, 1, b.SubscriberCount())
 
 	found1 := b.Unsubscribe(ch)
@@ -146,8 +138,8 @@ func TestSubscribeWithDone(t *testing.T) {
 func TestPublishIgnoresUnsubscribed(t *testing.T) {
 	b := NewBroadcaster()
 
-	ch1 := b.Subscribe()
-	ch2 := b.Subscribe()
+	ch1, _ := b.SubscribeWithDone()
+	ch2, _ := b.SubscribeWithDone()
 
 	b.Unsubscribe(ch1)
 

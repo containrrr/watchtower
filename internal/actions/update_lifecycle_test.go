@@ -51,7 +51,6 @@ var _ = ginkgo.Describe("the update action", func() {
 					types.UpdateParams{
 						Cleanup:        true,
 						LifecycleHooks: true,
-						CPUCopyMode:    "auto",
 					},
 				)
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
@@ -97,7 +96,6 @@ var _ = ginkgo.Describe("the update action", func() {
 						LifecycleHooks: true,
 						LifecycleUID:   1000,
 						LifecycleGID:   1001,
-						CPUCopyMode:    "auto",
 					},
 				)
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
@@ -144,7 +142,6 @@ var _ = ginkgo.Describe("the update action", func() {
 					types.UpdateParams{
 						Cleanup:        true,
 						LifecycleHooks: true,
-						CPUCopyMode:    "auto",
 					},
 				)
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
@@ -191,7 +188,6 @@ var _ = ginkgo.Describe("the update action", func() {
 					types.UpdateParams{
 						Cleanup:        true,
 						LifecycleHooks: true,
-						CPUCopyMode:    "auto",
 					},
 				)
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
@@ -392,7 +388,6 @@ var _ = ginkgo.Describe("the update action", func() {
 					types.UpdateParams{
 						Cleanup:        true,
 						LifecycleHooks: true,
-						CPUCopyMode:    "auto",
 					},
 				)
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
@@ -439,7 +434,6 @@ var _ = ginkgo.Describe("the update action", func() {
 					types.UpdateParams{
 						Cleanup:        true,
 						LifecycleHooks: true,
-						CPUCopyMode:    "auto",
 					},
 				)
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())

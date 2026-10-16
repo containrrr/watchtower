@@ -317,14 +317,12 @@ func (m Progress) MarkRestarted(log *zerolog.Logger, containerID types.Container
 //   - delay: Human-readable cooldown duration.
 //   - remaining: Human-readable remaining time (empty if passed).
 //   - eligibleAt: Time when the container becomes eligible for update.
-//   - passed: True if the image passed the cooldown check.
 func (m Progress) SetCooldownInfo(log *zerolog.Logger,
 	containerID types.ContainerID,
 	age,
 	delay,
 	remaining string,
 	eligibleAt time.Time,
-	passed bool,
 ) {
 	update, exists := m[containerID]
 	if !exists {
@@ -335,35 +333,14 @@ func (m Progress) SetCooldownInfo(log *zerolog.Logger,
 		return
 	}
 
-	update.SetCooldownInfo(age, delay, remaining, eligibleAt, passed)
+	update.SetCooldownInfo(age, delay, remaining, eligibleAt)
 	log.Debug().
 		Str("container_id", containerID.ShortID()).
 		Str("name", update.Name()).
-		Bool("passed", passed).
 		Str("image_age", age).
 		Str("cooldown", delay).
 		Str("remaining", remaining).
 		Msg("Set cooldown info on container")
-}
-
-// Restarted returns all containers marked as restarted.
-//
-// Returns:
-//   - []types.ContainerReport: List of restarted containers.
-func (m Progress) Restarted(log *zerolog.Logger) []types.ContainerReport {
-	var restarted []types.ContainerReport
-
-	for _, update := range m {
-		if update.state == RestartedState {
-			restarted = append(restarted, update)
-		}
-	}
-
-	log.Debug().
-		Int("count", len(restarted)).
-		Msg("Retrieved restarted containers")
-
-	return restarted
 }
 
 // Report generates a report from the progress data.

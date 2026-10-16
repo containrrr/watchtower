@@ -195,14 +195,6 @@ func NewMetric(report types.Report) *Metric {
 	}
 }
 
-// QueueIsEmpty checks if the metrics channel is empty.
-//
-// Returns:
-//   - bool: True if empty, false otherwise.
-func (m *Metrics) QueueIsEmpty() bool {
-	return len(m.channel) == 0
-}
-
 // Register attempts to enqueue a metric for processing.
 // If the channel is full, the metric is dropped and the dropped counter is incremented.
 //

@@ -18,7 +18,7 @@ func registerUpdateRoute(ctx context.Context, app *fiber.App, auth fiber.Handler
 		updateTimeout = config.DefaultUpdateTimeout
 	}
 
-	handler := update.NewWithTimeout(opts.Logger, func(updateCtx context.Context, images, containers []string) *mt.Metric {
+	handler := update.New(opts.Logger, func(updateCtx context.Context, images, containers []string) *mt.Metric {
 		params := config.BuildUpdateParams(opts)
 
 		imageFilter := opts.FilterByImage(images, opts.Filter)

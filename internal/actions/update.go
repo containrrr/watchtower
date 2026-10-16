@@ -657,10 +657,8 @@ func Update(
 					progress.AddSkipped(log, sourceContainer, checkErr, config)
 				}
 
-				// Restore rich cooldown metadata for reports/notifications (preserves the
-				// structured CooldownAge/Delay/Remaining/Passed fields that the removed
-				// high-level block used to populate via SetCooldownInfo). The rich
-				// *container.CooldownError carries the details.
+				// Record the cooldown details for reports and notifications. The
+				// *container.CooldownError carries them.
 				cooldownErr, ok := errors.AsType[*container.CooldownError](checkErr)
 				if ok {
 					progress.SetCooldownInfo(log,
@@ -669,11 +667,10 @@ func Update(
 						cooldownErr.Delay,
 						cooldownErr.Remaining,
 						cooldownErr.EligibleAt,
-						cooldownErr.Passed,
 					)
 				} else if errors.Is(checkErr, container.ErrImageCooldown) {
 					// Fallback for plain sentinel (keeps basic deferral visible)
-					progress.SetCooldownInfo(log, sourceContainer.ID(), "", "", "", time.Time{}, false)
+					progress.SetCooldownInfo(log, sourceContainer.ID(), "", "", "", time.Time{})
 				}
 
 				// Track if Watchtower self-update pull failed for safeguard.

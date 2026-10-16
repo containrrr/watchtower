@@ -47,7 +47,7 @@ func TestRunUpdatesWithNotifications_OldSelfDetected(t *testing.T) {
 	notifier.EXPECT().StartNotification(false).Once()
 
 	broadcaster := events.NewBroadcaster()
-	published := broadcaster.Subscribe()
+	published, _ := broadcaster.SubscribeWithDone()
 
 	var detected int
 

@@ -28,7 +28,7 @@ var _ = ginkgo.Describe("the update action", func() {
 			report, cleanupImageInfos, err := actions.Update(testLogger(),
 				canceledCtx,
 				client,
-				types.UpdateParams{Cleanup: true, CPUCopyMode: "auto"},
+				types.UpdateParams{Cleanup: true},
 			)
 
 			gomega.Expect(err).To(gomega.HaveOccurred())
@@ -45,7 +45,7 @@ var _ = ginkgo.Describe("the update action", func() {
 			report, cleanupImageInfos, err := actions.Update(testLogger(),
 				context.Background(),
 				client,
-				types.UpdateParams{Cleanup: true, CPUCopyMode: "auto"},
+				types.UpdateParams{Cleanup: true},
 			)
 
 			// Context cancellation from IsContainerStale is propagated as the
@@ -76,7 +76,7 @@ var _ = ginkgo.Describe("the update action", func() {
 				report, cleanupImageInfos, err := actions.Update(testLogger(),
 					context.Background(),
 					client,
-					types.UpdateParams{Cleanup: true, CPUCopyMode: "auto"},
+					types.UpdateParams{Cleanup: true},
 				)
 
 				// Should still attempt to process and return a report
@@ -117,7 +117,6 @@ var _ = ginkgo.Describe("the update action", func() {
 				client,
 				types.UpdateParams{
 					Cleanup:            true,
-					CPUCopyMode:        "auto",
 					CurrentContainerID: "old-container-id",
 				},
 			)
@@ -152,7 +151,6 @@ var _ = ginkgo.Describe("the update action", func() {
 				client,
 				types.UpdateParams{
 					Cleanup:            true,
-					CPUCopyMode:        "auto",
 					CurrentContainerID: "old-container-id",
 				},
 			)
@@ -180,7 +178,6 @@ var _ = ginkgo.Describe("the update action", func() {
 				client,
 				types.UpdateParams{
 					Cleanup:            true,
-					CPUCopyMode:        "auto",
 					CurrentContainerID: "current-id",
 				},
 			)
@@ -199,8 +196,7 @@ var _ = ginkgo.Describe("the update action", func() {
 				context.Background(),
 				client,
 				types.UpdateParams{
-					Cleanup:     true,
-					CPUCopyMode: "auto",
+					Cleanup: true,
 				},
 			)
 
@@ -221,7 +217,7 @@ func TestUpdateAction_HandleTimeout(t *testing.T) {
 		report, cleanupImageInfos, err := actions.Update(testLogger(),
 			ctx,
 			client,
-			types.UpdateParams{Cleanup: true, CPUCopyMode: "auto"},
+			types.UpdateParams{Cleanup: true},
 		)
 
 		synctest.Wait()
@@ -253,7 +249,7 @@ func TestUpdateAction_EarlyCancellationCheck(t *testing.T) {
 		report, cleanupImageInfos, err := actions.Update(testLogger(),
 			canceledCtx,
 			client,
-			types.UpdateParams{Cleanup: true, CPUCopyMode: "auto"},
+			types.UpdateParams{Cleanup: true},
 		)
 
 		synctest.Wait()
@@ -298,7 +294,7 @@ func TestUpdateAction_MidOperationCancellationCheck(t *testing.T) {
 			report, _, err = actions.Update(testLogger(),
 				ctx,
 				client,
-				types.UpdateParams{Cleanup: true, CPUCopyMode: "auto"},
+				types.UpdateParams{Cleanup: true},
 			)
 		}()
 
@@ -352,7 +348,7 @@ func TestUpdateAction_ContextCancellationStartContainer(t *testing.T) {
 		_, _, err := actions.Update(testLogger(),
 			canceledCtx,
 			client,
-			types.UpdateParams{Cleanup: true, CPUCopyMode: "auto"},
+			types.UpdateParams{Cleanup: true},
 		)
 
 		synctest.Wait()
@@ -388,7 +384,7 @@ func TestUpdateAction_ContextTimeoutDuringProcessing(t *testing.T) {
 		report, _, err := actions.Update(testLogger(),
 			shortCtx,
 			client,
-			types.UpdateParams{Cleanup: true, CPUCopyMode: "auto"},
+			types.UpdateParams{Cleanup: true},
 		)
 
 		synctest.Wait()
@@ -433,7 +429,7 @@ func runErrorPropagationTest(
 	report, cleanupImageInfos, err := actions.Update(testLogger(),
 		context.Background(),
 		client,
-		types.UpdateParams{Cleanup: true, CPUCopyMode: "auto"},
+		types.UpdateParams{Cleanup: true},
 	)
 
 	return report, cleanupImageInfos, err
@@ -616,7 +612,7 @@ func TestUpdateAction_ContextEdgeCases(t *testing.T) {
 				report, cleanupImageInfos, err := actions.Update(testLogger(),
 					ctx,
 					client,
-					types.UpdateParams{Cleanup: true, CPUCopyMode: "auto"},
+					types.UpdateParams{Cleanup: true},
 				)
 
 				synctest.Wait()
@@ -682,7 +678,7 @@ func TestUpdateAction_ParallelStalenessCheckCancellationPropagation(t *testing.T
 			_, _, err = actions.Update(testLogger(),
 				ctx,
 				client,
-				types.UpdateParams{Cleanup: true, CPUCopyMode: "auto"},
+				types.UpdateParams{Cleanup: true},
 			)
 		}()
 
@@ -738,7 +734,7 @@ func TestEarlyCancellationStopContainers(t *testing.T) {
 			report, cleanupImageInfos, err = actions.Update(testLogger(),
 				ctx,
 				client,
-				types.UpdateParams{Cleanup: true, CPUCopyMode: "auto"},
+				types.UpdateParams{Cleanup: true},
 			)
 		}()
 
@@ -803,7 +799,7 @@ func TestEarlyCancellationRestartContainers(t *testing.T) {
 			report, cleanupImageInfos, err = actions.Update(testLogger(),
 				ctx,
 				client,
-				types.UpdateParams{Cleanup: true, CPUCopyMode: "auto"},
+				types.UpdateParams{Cleanup: true},
 			)
 		}()
 

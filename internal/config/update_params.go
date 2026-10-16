@@ -20,11 +20,6 @@ func (c Config) UpdateParams(overrides RunOverrides) types.UpdateParams {
 		filterFn = overrides.Filter
 	}
 
-	cpuCopyMode := c.Compatibility.CPUCopyMode
-	if cpuCopyMode == "" {
-		cpuCopyMode = c.Client.CPUCopyMode
-	}
-
 	return types.UpdateParams{
 		Filter:              filterFn,
 		Cleanup:             c.Update.Cleanup,
@@ -40,7 +35,6 @@ func (c Config) UpdateParams(overrides RunOverrides) types.UpdateParams {
 		PullFailureDelay:    c.Update.PullFailureDelay,
 		LifecycleUID:        c.Lifecycle.UID,
 		LifecycleGID:        c.Lifecycle.GID,
-		CPUCopyMode:         cpuCopyMode,
 		RunOnce:             overrides.RunOnce || c.Mode.RunOnce,
 		CurrentContainerID:  overrides.CurrentContainerID,
 		UseComposeDependsOn: c.Update.UseComposeDependsOn,

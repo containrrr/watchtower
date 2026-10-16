@@ -121,7 +121,6 @@ func cooldownConfig(cooldownDelay time.Duration) types.UpdateParams {
 		Cleanup:       true,
 		Filter:        filters.NoFilter,
 		CooldownDelay: cooldownDelay,
-		CPUCopyMode:   "auto",
 	}
 }
 

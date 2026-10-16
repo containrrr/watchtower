@@ -47,8 +47,6 @@ func testLogger() *zerolog.Logger {
 	return &nop
 }
 
-const testFilterDesc = "test filter"
-
 func TestFormatDuration(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -347,7 +345,7 @@ func TestConcurrentScheduledAndFullAPIUpdate(t *testing.T) {
 		return &metrics.Metric{Scanned: 1, Updated: 1, Failed: 0}
 	}
 
-	handler := update.New(testLogger(), updateFn, updateLock)
+	handler := update.New(testLogger(), updateFn, updateLock, 5*time.Minute)
 
 	// The scheduled update holds the lock until the API request has been
 	// asserted.
@@ -402,7 +400,7 @@ func TestHandleAsync(t *testing.T) {
 		return &metrics.Metric{Scanned: 1, Updated: 1, Failed: 0}
 	}
 
-	handler := update.New(testLogger(), updateFn, updateLock)
+	handler := update.New(testLogger(), updateFn, updateLock, 5*time.Minute)
 
 	require.True(t, updateLock.TryLock())
 
@@ -472,17 +470,15 @@ func TestHandleAsync(t *testing.T) {
 }
 
 // testScheduleDeps returns ScheduleDeps with shared defaults for cmd scheduling tests.
-// Callers set Filter, FilterDesc, Lock, UpdateOnStart, and BaseParams.EphemeralSelfUpdate as needed.
+// Callers set Filter, Lock, UpdateOnStart, and BaseParams.EphemeralSelfUpdate as needed.
 func testScheduleDeps(
 	filter types.Filter,
-	filterDesc string,
 	lock *scheduling.UpdateLock,
 	updateOnStart bool,
 ) scheduling.ScheduleDeps {
 	return scheduling.ScheduleDeps{
 		Logger:       testLogger(),
 		Filter:       filter,
-		FilterDesc:   filterDesc,
 		Lock:         lock,
 		ScheduleSpec: "",
 		// Suppress startup messaging in unit tests (Logger still set for safety if re-enabled).
@@ -534,10 +530,8 @@ func TestUpdateOnStartTriggersImmediateUpdate(t *testing.T) {
 
 	// Call runUpgradesOnSchedule with a filter that matches no containers
 	filter := types.Filter(func(_ types.FilterableContainer) bool { return false })
-	filterDesc := testFilterDesc
-
 	// The function should trigger immediate update and then start scheduler
-	deps := testScheduleDeps(filter, filterDesc, updateLock, true)
+	deps := testScheduleDeps(filter, updateLock, true)
 	err = scheduling.RunUpgradesOnSchedule(ctx, deps)
 
 	// Should not return an error (context cancellation is expected)
@@ -597,10 +591,8 @@ func TestUpdateOnStartIntegratesWithCronScheduling(t *testing.T) {
 
 		// Call runUpgradesOnSchedule
 		filter := types.Filter(func(_ types.FilterableContainer) bool { return false })
-		filterDesc := testFilterDesc
-
 		startTime := time.Now()
-		deps := testScheduleDeps(filter, filterDesc, updateLock, true)
+		deps := testScheduleDeps(filter, updateLock, true)
 		err = scheduling.RunUpgradesOnSchedule(ctx, deps)
 
 		// Should not return an error (context cancellation is expected)
@@ -673,9 +665,7 @@ func TestUpdateOnStartLockingBehavior(t *testing.T) {
 
 		// Call runUpgradesOnSchedule
 		filter := types.Filter(func(_ types.FilterableContainer) bool { return false })
-		filterDesc := testFilterDesc
-
-		deps := testScheduleDeps(filter, filterDesc, updateLock, false)
+		deps := testScheduleDeps(filter, updateLock, false)
 		err = scheduling.RunUpgradesOnSchedule(ctx, deps)
 
 		// Should not return an error
@@ -728,9 +718,7 @@ func TestUpdateOnStartSelfUpdateScenario(t *testing.T) {
 
 		// Call runUpgradesOnSchedule with a filter that includes containers
 		filter := types.Filter(func(_ types.FilterableContainer) bool { return true })
-		filterDesc := testFilterDesc
-
-		deps := testScheduleDeps(filter, filterDesc, updateLock, updateOnStart)
+		deps := testScheduleDeps(filter, updateLock, updateOnStart)
 		err = scheduling.RunUpgradesOnSchedule(ctx, deps)
 
 		// Should not return an error
@@ -796,9 +784,7 @@ func TestUpdateOnStartMultiInstanceScenario(t *testing.T) {
 			defer cancel()
 
 			filter := types.Filter(func(_ types.FilterableContainer) bool { return false })
-			filterDesc := "instance1"
-
-			deps := testScheduleDeps(filter, filterDesc, updateLock, updateOnStart1)
+			deps := testScheduleDeps(filter, updateLock, updateOnStart1)
 			runErr := scheduling.RunUpgradesOnSchedule(ctx, deps)
 			assert.NoError(t, runErr)
 			completed.Add(1)
@@ -810,9 +796,7 @@ func TestUpdateOnStartMultiInstanceScenario(t *testing.T) {
 			defer cancel()
 
 			filter := types.Filter(func(_ types.FilterableContainer) bool { return false })
-			filterDesc := "instance2"
-
-			deps := testScheduleDeps(filter, filterDesc, updateLock, updateOnStart2)
+			deps := testScheduleDeps(filter, updateLock, updateOnStart2)
 			runErr := scheduling.RunUpgradesOnSchedule(ctx, deps)
 			assert.NoError(t, runErr)
 			completed.Add(1)
@@ -919,10 +903,8 @@ func TestRunUpgradesOnSchedule_ShutdownWaitsForRunningUpdate(t *testing.T) {
 		// Start runUpgradesOnSchedule in a goroutine
 		go func() {
 			filter := types.Filter(func(_ types.FilterableContainer) bool { return false })
-			filterDesc := testFilterDesc
-
 			// This should start and wait for context cancellation
-			deps := testScheduleDeps(filter, filterDesc, updateLock, false)
+			deps := testScheduleDeps(filter, updateLock, false)
 			err = scheduling.RunUpgradesOnSchedule(ctx, deps)
 			assert.NoError(t, err)
 
@@ -1064,10 +1046,8 @@ func TestEphemeralSelfUpdateExercisesTruePath(t *testing.T) {
 	defer cancel()
 
 	filter := types.Filter(func(_ types.FilterableContainer) bool { return false })
-	filterDesc := testFilterDesc
-
 	// Call RunUpgradesOnSchedule with ephemeralSelfUpdate=true
-	deps := testScheduleDeps(filter, filterDesc, updateLock, true)
+	deps := testScheduleDeps(filter, updateLock, true)
 	deps.BaseParams.EphemeralSelfUpdate = true
 	err = scheduling.RunUpgradesOnSchedule(ctx, deps)
 

@@ -18,7 +18,7 @@ func (c Config) ClientOptions() container.ClientOptions {
 		ReviveStopped:           c.Client.ReviveStopped,
 		RemoveVolumes:           c.Client.RemoveVolumes,
 		DisableMemorySwappiness: c.Client.DisableMemorySwappiness || c.Compatibility.DisableMemorySwappiness,
-		// Prefer Compatibility, then Client — same order as UpdateParams.
+		// Prefer Compatibility, then Client.
 		CPUCopyMode:      firstNonEmpty(c.Compatibility.CPUCopyMode, c.Client.CPUCopyMode),
 		WarnOnHeadFailed: container.WarningStrategy(c.Client.WarnOnHeadFailure),
 		Registry:         c.Registry,

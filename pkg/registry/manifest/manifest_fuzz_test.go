@@ -12,10 +12,10 @@ import (
 	"github.com/nicholas-fedor/watchtower/pkg/types"
 )
 
-// FuzzBuildManifestURL fuzzes the BuildManifestURL function with various image reference strings
+// FuzzBuildManifestURLForImage fuzzes the BuildManifestURLForImage function with various image reference strings
 // to ensure robust parsing. It tests valid references, malformed strings, and edge cases to prevent
 // crashes and unexpected behavior during manifest URL construction.
-func FuzzBuildManifestURL(f *testing.F) {
+func FuzzBuildManifestURLForImage(f *testing.F) {
 	// Seed with valid image references
 	f.Add("ghcr.io/nicholas-fedor/watchtower:mytag")
 	f.Add("nickfedor/watchtower:latest")
@@ -74,12 +74,12 @@ func FuzzBuildManifestURL(f *testing.F) {
 	f.Fuzz(func(_ *testing.T, imageRef string) {
 		// Create a mock container with the fuzzed image reference
 		mock := createMockContainerForFuzz(imageRef)
-		// Call BuildManifestURL with HTTPS scheme because we don't care about the result, just that it doesn't panic
-		_, _ = manifest.BuildManifestURL(testLog(), mock, "https")
+		// Call BuildManifestURLForImage with HTTPS scheme because we don't care about the result, just that it doesn't panic
+		_, _ = manifest.BuildManifestURLForImage(testLog(), mock.ImageName(), mock.Name(), "https")
 	})
 }
 
-// createMockContainerForFuzz creates a minimal mock container for fuzz testing BuildManifestURL.
+// createMockContainerForFuzz creates a minimal mock container for fuzz testing BuildManifestURLForImage.
 func createMockContainerForFuzz(imageRef string) types.Container {
 	imageInfo := dockerImageType.InspectResponse{
 		RepoTags: []string{imageRef},

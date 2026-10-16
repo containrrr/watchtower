@@ -106,27 +106,6 @@ func NewBroadcaster() *Broadcaster {
 	}
 }
 
-// Subscribe registers a new subscriber and returns a channel for receiving events.
-// Returns nil if the maximum number of subscribers has been reached.
-func (b *Broadcaster) Subscribe() <-chan Event {
-	subCh := make(chan Event, subscriberChannelSize)
-	done := make(chan struct{})
-
-	b.mu.Lock()
-	if len(b.subscribers) >= maxSubscribers {
-		b.mu.Unlock()
-		close(subCh)
-		close(done)
-
-		return nil
-	}
-
-	b.subscribers = append(b.subscribers, &subscriber{ch: subCh, done: done})
-	b.mu.Unlock()
-
-	return subCh
-}
-
 // SubscribeWithDone registers a new subscriber and returns both the event channel
 // and a done channel. The done channel is closed when the subscriber is unsubscribed,
 // allowing the receiver to detect unsubscription even if no more events are sent.

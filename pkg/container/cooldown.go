@@ -15,7 +15,7 @@ import (
 )
 
 // CooldownError represents a cooldown deferral with human-readable details
-// (age, delay, remaining) and whether the window passed. It wraps
+// (age, delay, remaining). It wraps
 // ErrImageCooldown (or a fetch failure) so callers can use errors.Is/As
 // while still extracting the fields needed for progress reports and
 // rich notifications.
@@ -24,7 +24,6 @@ type CooldownError struct {
 	Delay      string
 	Remaining  string
 	EligibleAt time.Time
-	Passed     bool
 	err        error
 }
 

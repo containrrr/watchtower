@@ -16,25 +16,6 @@ import (
 	"github.com/nicholas-fedor/watchtower/pkg/types"
 )
 
-// Exported constants for update message literals to ensure consistency across the codebase.
-// These constants define the standard messages used in container update logging and notifications.
-const (
-	// FoundNewImageMessage is the message logged when a new image is found for a container.
-	FoundNewImageMessage = "Found new image"
-	// StoppingContainerMessage is the message logged when stopping a container for update.
-	StoppingContainerMessage = "Stopping container"
-	// StartedNewContainerMessage is the message logged when a new container is started after update.
-	StartedNewContainerMessage = "Started new container"
-	// StoppingLinkedContainerMessage is the message logged when stopping a linked container for restart.
-	StoppingLinkedContainerMessage = "Stopping linked container"
-	// StartedLinkedContainerMessage is the message logged when a linked container is started after restart.
-	StartedLinkedContainerMessage = "Started linked container"
-	// UpdateSkippedMessage is the message logged when an update is skipped in monitor-only mode.
-	UpdateSkippedMessage = "Update available but skipped (monitor-only mode)"
-	// ContainerRemainsRunningMessage is the message logged when a container remains running in monitor-only mode.
-	ContainerRemainsRunningMessage = "Container remains running (monitor-only mode)"
-)
-
 // RunUpdatesWithNotificationsParams holds runtime dependencies and update policy.
 //
 // Update carries the full types.UpdateParams snapshot from config.UpdateParams
@@ -765,10 +746,6 @@ func notifySkippedCooldownContainers(
 
 		containerStatus, ok := report.(*session.ContainerStatus)
 		if !ok || containerStatus.CooldownDelay() == "" {
-			continue
-		}
-
-		if containerStatus.CooldownPassed() {
 			continue
 		}
 

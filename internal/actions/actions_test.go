@@ -32,7 +32,6 @@ func defaultTestUpdateParams(filter types.Filter) types.UpdateParams {
 		Timeout:      time.Minute,
 		LifecycleUID: 1000,
 		LifecycleGID: 1001,
-		CPUCopyMode:  "auto",
 	}
 }
 
@@ -322,7 +321,6 @@ var _ = ginkgo.Describe("Actions", func() {
 				Timeout:          time.Minute,
 				LifecycleUID:     1000,
 				LifecycleGID:     1001,
-				CPUCopyMode:      "auto",
 				PullFailureDelay: time.Duration(0),
 				RunOnce:          true,
 			}

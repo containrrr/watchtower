@@ -28,9 +28,8 @@ var _ = ginkgo.Describe("the update action", func() {
 
 		ginkgo.BeforeEach(func() {
 			config = types.UpdateParams{
-				Cleanup:     true,
-				Filter:      filters.NoFilter,
-				CPUCopyMode: "auto",
+				Cleanup: true,
+				Filter:  filters.NoFilter,
 			}
 		})
 

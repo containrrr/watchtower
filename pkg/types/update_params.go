@@ -22,7 +22,6 @@ type UpdateParams struct {
 	PullFailureDelay    time.Duration           `json:"pull_failure_delay"`     // Delay after a failed self-update pull in run-once mode.
 	LifecycleUID        int                     `json:"lifecycle_uid"`          // Default UID for lifecycle hooks.
 	LifecycleGID        int                     `json:"lifecycle_gid"`          // Default GID for lifecycle hooks.
-	CPUCopyMode         string                  `json:"cpu_copy_mode"`          // CPU copy mode for container recreation.
 	RunOnce             bool                    `json:"run_once"`               // Run once mode if true.
 	CurrentContainerID  ContainerID             `json:"current_container_id"`   // ID of the current container being updated.
 	UseComposeDependsOn bool                    `json:"use_compose_depends_on"` // Enable Docker Compose depends_on label processing.

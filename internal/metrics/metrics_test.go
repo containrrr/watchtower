@@ -184,37 +184,6 @@ func TestNewMetric_ErrorHandling(t *testing.T) {
 	}
 }
 
-func TestMetrics_QueueIsEmpty(t *testing.T) {
-	tests := []struct {
-		name string
-		m    *Metrics
-		want bool
-	}{
-		{
-			name: "empty queue",
-			m:    &Metrics{channel: make(chan *Metric, 10)},
-			want: true,
-		},
-		{
-			name: "non-empty queue",
-			m: func() *Metrics {
-				ch := make(chan *Metric, 10)
-				ch <- &Metric{Scanned: 1}
-
-				return &Metrics{channel: ch}
-			}(),
-			want: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.m.QueueIsEmpty(); got != tt.want {
-				t.Errorf("Metrics.QueueIsEmpty() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func TestMetrics_StateTransitions(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		registry := prometheus.NewRegistry()

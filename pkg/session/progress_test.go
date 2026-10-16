@@ -1202,7 +1202,6 @@ func TestProgress_SetCooldownInfo(t *testing.T) {
 		delay       string
 		remaining   string
 		eligibleAt  time.Time
-		passed      bool
 	}
 
 	tests := []struct {
@@ -1222,13 +1221,11 @@ func TestProgress_SetCooldownInfo(t *testing.T) {
 				delay:       "24 hours",
 				remaining:   "",
 				eligibleAt:  time.Time{},
-				passed:      true,
 			},
 			want: Progress{
 				"cont1": &ContainerStatus{
 					containerID:        "cont1",
 					state:              ScannedState,
-					cooldownPassed:     true,
 					cooldownAge:        "47 days, 11 hours",
 					cooldownDelay:      "24 hours",
 					cooldownRemaining:  "",
@@ -1247,13 +1244,11 @@ func TestProgress_SetCooldownInfo(t *testing.T) {
 				delay:       "24 hours",
 				remaining:   "22 hours",
 				eligibleAt:  time.Date(2026, 5, 26, 0, 45, 0, 0, time.UTC),
-				passed:      false,
 			},
 			want: Progress{
 				"cont1": &ContainerStatus{
 					containerID:        "cont1",
 					state:              SkippedState,
-					cooldownPassed:     false,
 					cooldownAge:        "2 hours",
 					cooldownDelay:      "24 hours",
 					cooldownRemaining:  "22 hours",
@@ -1270,7 +1265,6 @@ func TestProgress_SetCooldownInfo(t *testing.T) {
 				delay:       "24 hours",
 				remaining:   "",
 				eligibleAt:  time.Time{},
-				passed:      true,
 			},
 			want: Progress{},
 		},
@@ -1280,7 +1274,6 @@ func TestProgress_SetCooldownInfo(t *testing.T) {
 				"cont1": &ContainerStatus{
 					containerID:       "cont1",
 					state:             ScannedState,
-					cooldownPassed:    false,
 					cooldownAge:       "old age",
 					cooldownDelay:     "old delay",
 					cooldownRemaining: "old remaining",
@@ -1292,13 +1285,11 @@ func TestProgress_SetCooldownInfo(t *testing.T) {
 				delay:       "new delay",
 				remaining:   "new remaining",
 				eligibleAt:  time.Date(2026, 5, 27, 12, 0, 0, 0, time.UTC),
-				passed:      true,
 			},
 			want: Progress{
 				"cont1": &ContainerStatus{
 					containerID:        "cont1",
 					state:              ScannedState,
-					cooldownPassed:     true,
 					cooldownAge:        "new age",
 					cooldownDelay:      "new delay",
 					cooldownRemaining:  "new remaining",
@@ -1317,13 +1308,11 @@ func TestProgress_SetCooldownInfo(t *testing.T) {
 				delay:       "",
 				remaining:   "",
 				eligibleAt:  time.Time{},
-				passed:      false,
 			},
 			want: Progress{
 				"cont1": &ContainerStatus{
 					containerID:       "cont1",
 					state:             ScannedState,
-					cooldownPassed:    false,
 					cooldownAge:       "",
 					cooldownDelay:     "",
 					cooldownRemaining: "",
@@ -1333,7 +1322,7 @@ func TestProgress_SetCooldownInfo(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.m.SetCooldownInfo(testLog(), tt.args.containerID, tt.args.age, tt.args.delay, tt.args.remaining, tt.args.eligibleAt, tt.args.passed)
+			tt.m.SetCooldownInfo(testLog(), tt.args.containerID, tt.args.age, tt.args.delay, tt.args.remaining, tt.args.eligibleAt)
 
 			if len(tt.m) != len(tt.want) {
 				t.Errorf(
@@ -1354,15 +1343,6 @@ func TestProgress_SetCooldownInfo(t *testing.T) {
 						id,
 						gotStatus,
 						wantStatus,
-					)
-				}
-
-				if gotStatus.CooldownPassed() != wantStatus.cooldownPassed {
-					t.Errorf(
-						"Progress.SetCooldownInfo(testLog(), ) CooldownPassed for %v = %v, want %v",
-						id,
-						gotStatus.CooldownPassed(),
-						wantStatus.cooldownPassed,
 					)
 				}
 
@@ -1418,105 +1398,23 @@ func TestProgress_SetCooldownInfo_Concurrent(t *testing.T) {
 	go func() {
 		defer wg.Done()
 
-		m.SetCooldownInfo(testLog(), "cont1", "1 day", "24 hours", "", time.Time{}, true)
+		m.SetCooldownInfo(testLog(), "cont1", "1 day", "24 hours", "", time.Time{})
 	}()
 
 	go func() {
 		defer wg.Done()
 
-		m.SetCooldownInfo(testLog(), "cont2", "2 hours", "24 hours", "22 hours", time.Date(2026, 5, 26, 0, 45, 0, 0, time.UTC), false)
+		m.SetCooldownInfo(testLog(), "cont2", "2 hours", "24 hours", "22 hours", time.Date(2026, 5, 26, 0, 45, 0, 0, time.UTC))
 	}()
 
 	wg.Wait()
-
-	if m["cont1"].CooldownPassed() != true {
-		t.Errorf("cont1 CooldownPassed = %v, want true", m["cont1"].CooldownPassed())
-	}
 
 	if m["cont1"].CooldownAge() != "1 day" {
 		t.Errorf("cont1 CooldownAge = %v, want '1 day'", m["cont1"].CooldownAge())
 	}
 
-	if m["cont2"].CooldownPassed() != false {
-		t.Errorf("cont2 CooldownPassed = %v, want false", m["cont2"].CooldownPassed())
-	}
-
 	if m["cont2"].CooldownRemaining() != "22 hours" {
 		t.Errorf("cont2 CooldownRemaining = %v, want '22 hours'", m["cont2"].CooldownRemaining())
-	}
-}
-
-func TestProgress_Restarted(t *testing.T) {
-	tests := []struct {
-		name string
-		m    Progress
-		want []types.ContainerReport
-	}{
-		{
-			name: "no restarted containers",
-			m: Progress{
-				"cont1": &ContainerStatus{containerID: "cont1", state: UpdatedState},
-				"cont2": &ContainerStatus{containerID: "cont2", state: ScannedState},
-			},
-			want: []types.ContainerReport{},
-		},
-		{
-			name: "single restarted container",
-			m: Progress{
-				"cont1": &ContainerStatus{containerID: "cont1", state: RestartedState},
-			},
-			want: []types.ContainerReport{
-				&ContainerStatus{containerID: "cont1", state: RestartedState},
-			},
-		},
-		{
-			name: "multiple restarted containers",
-			m: Progress{
-				"cont1": &ContainerStatus{containerID: "cont1", state: RestartedState},
-				"cont2": &ContainerStatus{containerID: "cont2", state: UpdatedState},
-				"cont3": &ContainerStatus{containerID: "cont3", state: RestartedState},
-			},
-			want: []types.ContainerReport{
-				&ContainerStatus{containerID: "cont1", state: RestartedState},
-				&ContainerStatus{containerID: "cont3", state: RestartedState},
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := tt.m.Restarted(testLog())
-
-			if len(got) != len(tt.want) {
-				t.Errorf("Progress.Restarted(testLog(), ) length = %d, want %d", len(got), len(tt.want))
-
-				return
-			}
-
-			// Create a map of expected containers by ID for easy lookup
-			expectedMap := make(map[types.ContainerID]types.ContainerReport)
-			for _, expected := range tt.want {
-				expectedMap[expected.ID()] = expected
-			}
-
-			// Check that all returned containers are expected
-			for _, actual := range got {
-				expected, found := expectedMap[actual.ID()]
-				if !found {
-					t.Errorf("Progress.Restarted(testLog(), ) returned unexpected container %v", actual.ID())
-
-					continue
-				}
-
-				if actual.Name() != expected.Name() {
-					t.Errorf(
-						"Progress.Restarted(testLog(), ) container %v name = %v, want %v",
-						actual.ID(),
-						actual.Name(),
-						expected.Name(),
-					)
-				}
-			}
-		})
 	}
 }
 

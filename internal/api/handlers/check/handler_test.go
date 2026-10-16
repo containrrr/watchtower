@@ -228,7 +228,7 @@ func TestHandler_Handle_EmitsEvents(t *testing.T) {
 
 	t.Run("success emits scan_started and scan_completed", func(t *testing.T) {
 		b := events.NewBroadcaster()
-		ch := b.Subscribe()
+		ch, _ := b.SubscribeWithDone()
 		require.NotNil(t, ch)
 
 		h := New(testLogger(),
@@ -280,7 +280,7 @@ func TestHandler_Handle_EmitsEvents(t *testing.T) {
 
 	t.Run("check error emits scan_started and scan_failed", func(t *testing.T) {
 		b := events.NewBroadcaster()
-		ch := b.Subscribe()
+		ch, _ := b.SubscribeWithDone()
 		require.NotNil(t, ch)
 
 		h := New(testLogger(),

@@ -675,17 +675,13 @@ func TestIntegration_APIAndScheduling_ConcurrentWithUnblockHTTPAPI(t *testing.T)
 	err := scheduling.RunUpgradesOnSchedule(schedCtx, scheduling.ScheduleDeps{
 		Logger:              testLogger(),
 		Filter:              func(_ types.FilterableContainer) bool { return true },
-		FilterDesc:          "test filter",
 		Lock:                lock,
 		ScheduleSpec:        "@every 1h",
 		WriteStartupMessage: logging.WriteStartupMessage,
 		RunUpdate: func(_ context.Context, _ types.Filter, _ types.UpdateParams) *metrics.Metric {
 			return &metrics.Metric{}
 		},
-		Client:                     nil,
-		Scope:                      "",
 		Notifier:                   nil,
-		MetaVersion:                "",
 		UpdateOnStart:              false,
 		SkipFirstRun:               false,
 		CurrentWatchtowerContainer: nil,

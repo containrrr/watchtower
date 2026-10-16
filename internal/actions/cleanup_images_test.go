@@ -280,7 +280,7 @@ func TestRunUpdatesWithNotifications_RemovesOldInstanceImageOnce(t *testing.T) {
 	notifier.EXPECT().ShouldSendNotification(mock.Anything).Return(false).Maybe()
 
 	broadcaster := events.NewBroadcaster()
-	published := broadcaster.Subscribe()
+	published, _ := broadcaster.SubscribeWithDone()
 
 	RunUpdatesWithNotifications(t.Context(), RunUpdatesWithNotificationsParams{
 		Logger:           testLogger(),

@@ -1160,7 +1160,7 @@ func TestClassifyHostsDetectsProviders(t *testing.T) {
 		got := client.ClassifyHosts(t.Context(), []url.URL{origin})
 		assert.Equal(t, types.GitHostGitLab, got["git.example.com"])
 		assert.Equal(t, "https://git.example.com/gitlab/api/v4/projects/group%2Fapp/repository/commits/main",
-			joinEscaped(client.gitlabAPI("git.example.com"), "projects", "group/app", "repository", "commits", "main").String())
+			joinEscaped(client.gitlabAPIAt(url.URL{}, "git.example.com"), "projects", "group/app", "repository", "commits", "main").String())
 	})
 
 	t.Run("unauthorized without fingerprint", func(t *testing.T) {
@@ -1213,8 +1213,8 @@ func TestGitHubAPIURL(t *testing.T) {
 	nop := zerolog.Nop()
 	client := New(&nop, Options{})
 
-	assert.Equal(t, "https://api.github.com/repos/org/app", client.githubAPI("github.com", "repos", "org", "app").String())
-	assert.Equal(t, "https://github.company.com/api/v3/repos/org/app", client.githubAPI("github.company.com", "repos", "org", "app").String())
+	assert.Equal(t, "https://api.github.com/repos/org/app", client.githubAPIAt(url.URL{}, "github.com", "repos", "org", "app").String())
+	assert.Equal(t, "https://github.company.com/api/v3/repos/org/app", client.githubAPIAt(url.URL{}, "github.company.com", "repos", "org", "app").String())
 }
 
 func httpsOrigin(host string) url.URL {

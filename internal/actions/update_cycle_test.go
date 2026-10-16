@@ -70,7 +70,7 @@ var _ = ginkgo.Describe("updating a stale container beside a dependency cycle", 
 		report, _, err := actions.Update(testLogger(),
 			context.Background(),
 			client,
-			types.UpdateParams{Cleanup: true, CPUCopyMode: "auto"},
+			types.UpdateParams{Cleanup: true},
 		)
 
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())

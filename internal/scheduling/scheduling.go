@@ -68,8 +68,6 @@ type ScheduleDeps struct {
 	Logger *zerolog.Logger
 	// Filter determines which containers are updated.
 	Filter types.Filter
-	// FilterDesc is a human-readable description of the filter for startup messaging.
-	FilterDesc string
 	// Lock ensures only one update runs at a time. Share it with every other
 	// caller that starts updates, such as the HTTP API. Nil gives the scheduler
 	// a lock of its own.
@@ -84,14 +82,8 @@ type ScheduleDeps struct {
 	WriteStartupMessage func(logging.StartupParams)
 	// RunUpdate performs container updates and sends notifications.
 	RunUpdate func(context.Context, types.Filter, types.UpdateParams) *metrics.Metric
-	// Client is retained for callers. Prefer Startup.Client for messaging.
-	Client container.Client
-	// Scope is retained for callers. Prefer Startup.Scope for messaging.
-	Scope string
 	// Notifier is closed on schedule shutdown. Prefer Startup.Notifier for messaging.
 	Notifier types.Notifier
-	// MetaVersion is retained for callers. Prefer Startup.Version for messaging.
-	MetaVersion string
 	// UpdateOnStart triggers an immediate update before the scheduler starts.
 	UpdateOnStart bool
 	// SkipFirstRun skips Watchtower self-update on the first scheduled run

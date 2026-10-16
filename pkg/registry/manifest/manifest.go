@@ -13,7 +13,6 @@ import (
 	"github.com/rs/zerolog"
 
 	"github.com/nicholas-fedor/watchtower/pkg/registry/auth"
-	"github.com/nicholas-fedor/watchtower/pkg/types"
 )
 
 // Errors for manifest operations.
@@ -162,7 +161,7 @@ func manifestURLPath(imagePath, specifier string) string {
 	return fmt.Sprintf("/v2/%s/manifests/%s", imagePath, specifier)
 }
 
-// BuildManifestURL constructs a URL for accessing a container's image manifest from its registry.
+// BuildManifestURLForImage constructs a manifest URL for an image reference.
 //
 // It accepts both tag-based references (for example "nginx:latest") and digest-only
 // references (for example "registry.example.com/org/image@sha256:abc..."). For tag-based
@@ -172,24 +171,6 @@ func manifestURLPath(imagePath, specifier string) string {
 //
 // The function does not support host overrides. Callers that need to target registry mirrors
 // apply overrides after obtaining the canonical URL (see digest.BuildManifestURL).
-//
-// Parameters:
-//   - container: Container with image info for URL construction.
-//   - scheme: The scheme to use for the URL (for example, "https" or "http").
-//
-// Returns:
-//   - string: Manifest URL using the canonical registry host from the image reference.
-//   - error: Non-nil if parsing or tagging fails, nil on success.
-func BuildManifestURL(log *zerolog.Logger, container types.Container, scheme string) (string, error) {
-	return BuildManifestURLForImage(log, container.ImageName(), container.Name(), scheme)
-}
-
-// BuildManifestURLForImage constructs a manifest URL for an image reference.
-//
-// It is the name-based form of BuildManifestURL, so a caller probing a
-// different tag of the same repository does not need a container to stand in
-// for one. Resolution scope is the repository, which is identical for every
-// tag of an image.
 //
 // Parameters:
 //   - log: Logger.

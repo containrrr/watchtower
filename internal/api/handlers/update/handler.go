@@ -35,30 +35,7 @@ const (
 	retryAfterSeconds = "30"
 )
 
-// New creates a new Handler.
-//
-// Parameters:
-//   - updateFn: Function that executes container updates, accepting a context,
-//     image names, container name patterns, and returning metrics.
-//   - updateLock: Update lock shared with every other caller that starts
-//     updates, such as the scheduler. Must be non-nil.
-//   - ctx: Optional application-lifetime context for background work.
-//     If nil, context.Background is used.
-func New(
-	log *zerolog.Logger,
-	updateFn func(ctx context.Context, images, containers []string) *metrics.Metric,
-	updateLock *scheduling.UpdateLock,
-	ctx ...context.Context,
-) *Handler {
-	if log == nil {
-		nop := zerolog.Nop()
-		log = &nop
-	}
-
-	return NewWithTimeout(log, updateFn, updateLock, 0, ctx...)
-}
-
-// NewWithTimeout creates a new Handler with a maximum per-request timeout.
+// New creates a new Handler with a maximum per-request timeout.
 //
 // Parameters:
 //   - updateFn: Function that executes container updates, accepting a context,
@@ -70,7 +47,7 @@ func New(
 //     no per-request timeout override is applied.
 //   - ctx: Optional application-lifetime context for background work.
 //     If nil, context.Background is used.
-func NewWithTimeout(
+func New(
 	log *zerolog.Logger,
 	updateFn func(ctx context.Context, images, containers []string) *metrics.Metric,
 	updateLock *scheduling.UpdateLock,
@@ -280,10 +257,11 @@ func (h *Handler) send429Response(c fiber.Ctx) {
 
 // applyTimeout returns a context derived from the request context, optionally
 // wrapped with a per-request timeout from the ?timeout= query parameter.
-// The timeout is clamped to h.maxTimeout.
+// The timeout is clamped to h.maxTimeout. A zero h.maxTimeout ignores the
+// parameter.
 func (h *Handler) applyTimeout(c fiber.Ctx) context.Context {
 	ctx := c.Context()
-	if timeoutStr := c.Query("timeout"); timeoutStr != "" {
+	if timeoutStr := c.Query("timeout"); timeoutStr != "" && h.maxTimeout > 0 {
 		parsed, err := time.ParseDuration(timeoutStr)
 		if err == nil && parsed > 0 {
 			if parsed > h.maxTimeout {

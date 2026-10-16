@@ -53,7 +53,6 @@ var _ = ginkgo.Describe("Watchtower container handling", func() {
 				types.UpdateParams{
 					Cleanup:          true,
 					Filter:           filters.WatchtowerContainersFilter,
-					CPUCopyMode:      "auto",
 					PullFailureDelay: 10 * time.Millisecond,
 				},
 			)
@@ -107,7 +106,6 @@ var _ = ginkgo.Describe("Watchtower container handling", func() {
 					Cleanup:             true,
 					EphemeralSelfUpdate: true,
 					Filter:              filters.WatchtowerContainersFilter,
-					CPUCopyMode:         "auto",
 					PullFailureDelay:    10 * time.Millisecond,
 				},
 			)
@@ -149,10 +147,9 @@ var _ = ginkgo.Describe("Watchtower container handling", func() {
 				false,
 			)
 			config := types.UpdateParams{
-				Cleanup:     true,
-				NoRestart:   true,
-				Filter:      filters.WatchtowerContainersFilter,
-				CPUCopyMode: "auto",
+				Cleanup:   true,
+				NoRestart: true,
+				Filter:    filters.WatchtowerContainersFilter,
 			}
 			report, cleanupImageInfos, err := actions.Update(testLogger(),
 				context.Background(),
@@ -197,10 +194,9 @@ var _ = ginkgo.Describe("Watchtower container handling", func() {
 				context.Background(),
 				client,
 				types.UpdateParams{
-					Cleanup:     true,
-					NoRestart:   true,
-					Filter:      filters.NoFilter,
-					CPUCopyMode: "auto",
+					Cleanup:   true,
+					NoRestart: true,
+					Filter:    filters.NoFilter,
 				},
 			)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
@@ -243,9 +239,8 @@ var _ = ginkgo.Describe("Watchtower container handling", func() {
 				context.Background(),
 				client,
 				types.UpdateParams{
-					Cleanup:     true,
-					Filter:      filters.NoFilter,
-					CPUCopyMode: "auto",
+					Cleanup: true,
+					Filter:  filters.NoFilter,
 				},
 			)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
@@ -290,7 +285,6 @@ var _ = ginkgo.Describe("Watchtower container handling", func() {
 				types.UpdateParams{
 					Cleanup:       true,
 					Filter:        filters.NoFilter,
-					CPUCopyMode:   "auto",
 					ReviveStopped: true,
 				},
 			)
@@ -333,10 +327,9 @@ var _ = ginkgo.Describe("Watchtower container handling", func() {
 				false,
 			)
 			config := types.UpdateParams{
-				Cleanup:     true,
-				RunOnce:     true,
-				Filter:      filters.WatchtowerContainersFilter,
-				CPUCopyMode: "auto",
+				Cleanup: true,
+				RunOnce: true,
+				Filter:  filters.WatchtowerContainersFilter,
 			}
 			report, cleanupImageInfos, err := actions.Update(testLogger(),
 				context.Background(),
@@ -494,7 +487,6 @@ var _ = ginkgo.Describe("Watchtower container handling", func() {
 				types.UpdateParams{
 					Cleanup:          true,
 					Filter:           filters.WatchtowerContainersFilter,
-					CPUCopyMode:      "auto",
 					PullFailureDelay: 10 * time.Millisecond,
 				},
 			)
@@ -545,7 +537,6 @@ var _ = ginkgo.Describe("Watchtower container handling", func() {
 				types.UpdateParams{
 					Cleanup:          true,
 					Filter:           filters.WatchtowerContainersFilter,
-					CPUCopyMode:      "auto",
 					PullFailureDelay: 10 * time.Millisecond,
 				},
 			)
@@ -596,7 +587,6 @@ var _ = ginkgo.Describe("Watchtower container handling", func() {
 					types.UpdateParams{
 						Cleanup:          true,
 						Filter:           filters.WatchtowerContainersFilter,
-						CPUCopyMode:      "auto",
 						PullFailureDelay: 10 * time.Millisecond,
 					},
 				)
@@ -654,7 +644,6 @@ var _ = ginkgo.Describe("Watchtower container handling", func() {
 					types.UpdateParams{
 						Cleanup:          true,
 						Filter:           scopedFilter,
-						CPUCopyMode:      "auto",
 						PullFailureDelay: 10 * time.Millisecond,
 					},
 				)
@@ -703,7 +692,6 @@ var _ = ginkgo.Describe("Watchtower container handling", func() {
 					types.UpdateParams{
 						Cleanup:          true,
 						Filter:           scopedFilter,
-						CPUCopyMode:      "auto",
 						PullFailureDelay: 10 * time.Millisecond,
 					},
 				)
@@ -751,7 +739,6 @@ var _ = ginkgo.Describe("Watchtower container handling", func() {
 				types.UpdateParams{
 					Cleanup:          true,
 					Filter:           scopedFilter,
-					CPUCopyMode:      "auto",
 					PullFailureDelay: 10 * time.Millisecond,
 				},
 			)
@@ -807,7 +794,6 @@ var _ = ginkgo.Describe("Watchtower container handling", func() {
 						types.UpdateParams{
 							Cleanup:          true,
 							Filter:           scopedFilter,
-							CPUCopyMode:      "auto",
 							PullFailureDelay: 10 * time.Millisecond,
 						},
 					)
@@ -874,7 +860,6 @@ var _ = ginkgo.Describe("Watchtower container handling", func() {
 						types.UpdateParams{
 							Cleanup:          true,
 							Filter:           scopedFilter,
-							CPUCopyMode:      "auto",
 							PullFailureDelay: 10 * time.Millisecond,
 						},
 					)
@@ -935,7 +920,6 @@ var _ = ginkgo.Describe("Watchtower container handling", func() {
 						types.UpdateParams{
 							Cleanup:          true,
 							Filter:           scopedFilter,
-							CPUCopyMode:      "auto",
 							PullFailureDelay: 10 * time.Millisecond,
 						},
 					)
@@ -988,7 +972,6 @@ var _ = ginkgo.Describe("Watchtower container handling", func() {
 					types.UpdateParams{
 						Cleanup:          true,
 						Filter:           scopedFilter,
-						CPUCopyMode:      "auto",
 						PullFailureDelay: 10 * time.Millisecond,
 					},
 				)
@@ -1055,7 +1038,6 @@ var _ = ginkgo.Describe("Watchtower container handling", func() {
 						Cleanup:          true,
 						SkipSelfUpdate:   true,
 						Filter:           filters.NoFilter,
-						CPUCopyMode:      "auto",
 						PullFailureDelay: 10 * time.Millisecond,
 					},
 				)
@@ -1102,7 +1084,6 @@ var _ = ginkgo.Describe("Watchtower container handling", func() {
 					Cleanup:          true,
 					SkipSelfUpdate:   true,
 					Filter:           filters.WatchtowerContainersFilter,
-					CPUCopyMode:      "auto",
 					PullFailureDelay: 10 * time.Millisecond,
 				},
 			)
@@ -1153,7 +1134,6 @@ var _ = ginkgo.Describe("Watchtower container handling", func() {
 						Cleanup:          true,
 						SkipSelfUpdate:   true,
 						Filter:           filters.WatchtowerContainersFilter,
-						CPUCopyMode:      "auto",
 						PullFailureDelay: 10 * time.Millisecond,
 					},
 				)
@@ -1217,7 +1197,6 @@ var _ = ginkgo.Describe("Watchtower container handling", func() {
 						Cleanup:          true,
 						SkipSelfUpdate:   true,
 						Filter:           filters.NoFilter,
-						CPUCopyMode:      "auto",
 						PullFailureDelay: 10 * time.Millisecond,
 					},
 				)
@@ -1274,7 +1253,6 @@ var _ = ginkgo.Describe("Watchtower container handling", func() {
 						Cleanup:          true,
 						SkipSelfUpdate:   false, // Explicitly set to false
 						Filter:           filters.WatchtowerContainersFilter,
-						CPUCopyMode:      "auto",
 						PullFailureDelay: 10 * time.Millisecond,
 					},
 				)
@@ -1351,7 +1329,6 @@ func TestSafeguardDelay(t *testing.T) {
 					types.UpdateParams{
 						Cleanup:          true,
 						Filter:           filters.WatchtowerContainersFilter,
-						CPUCopyMode:      "auto",
 						PullFailureDelay: delay,
 						RunOnce:          tt.runOnce,
 					},
@@ -1415,7 +1392,6 @@ func TestPullFailureDelayContextCancellation(t *testing.T) {
 				types.UpdateParams{
 					Cleanup:          true,
 					Filter:           filters.WatchtowerContainersFilter,
-					CPUCopyMode:      "auto",
 					PullFailureDelay: 100 * time.Millisecond, // Longer delay to ensure cancellation works
 					// Only a run-once update waits after a failed pull.
 					RunOnce: true,

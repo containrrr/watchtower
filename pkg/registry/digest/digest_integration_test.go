@@ -178,7 +178,7 @@ var _ = ginkgo.Describe("Digests", func() {
 
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-		url, err := manifest.BuildManifestURL(testLog(), container, getScheme())
+		url, err := manifest.BuildManifestURLForImage(testLog(), container.ImageName(), container.Name(), getScheme())
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 		req, err := http.NewRequestWithContext(ctx, http.MethodHead, url, nil)
@@ -313,7 +313,7 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			url, err := manifest.BuildManifestURL(testLog(), mockContainerWithServer, getScheme())
+			url, err := manifest.BuildManifestURLForImage(testLog(), mockContainerWithServer.ImageName(), mockContainerWithServer.Name(), getScheme())
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 			req, err := http.NewRequestWithContext(ctx, http.MethodHead, url, nil)
@@ -463,7 +463,7 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			url, err := manifest.BuildManifestURL(testLog(), mockContainerWithServer, getScheme())
+			url, err := manifest.BuildManifestURLForImage(testLog(), mockContainerWithServer.ImageName(), mockContainerWithServer.Name(), getScheme())
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 			req, err := http.NewRequestWithContext(ctx, http.MethodHead, url, nil)
@@ -528,7 +528,7 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			url, err := manifest.BuildManifestURL(testLog(), mockContainerWithServer, getScheme())
+			url, err := manifest.BuildManifestURLForImage(testLog(), mockContainerWithServer.ImageName(), mockContainerWithServer.Name(), getScheme())
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 			req, err := http.NewRequestWithContext(ctx, http.MethodHead, url, nil)
@@ -605,7 +605,7 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			url, err := manifest.BuildManifestURL(testLog(), mockContainerWithInvalidDigest, getScheme())
+			url, err := manifest.BuildManifestURLForImage(testLog(), mockContainerWithInvalidDigest.ImageName(), mockContainerWithInvalidDigest.Name(), getScheme())
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 			req, err := http.NewRequestWithContext(ctx, http.MethodHead, url, nil)
@@ -942,7 +942,7 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			url, err := manifest.BuildManifestURL(testLog(), mockContainerWithServer, getScheme())
+			url, err := manifest.BuildManifestURLForImage(testLog(), mockContainerWithServer.ImageName(), mockContainerWithServer.Name(), getScheme())
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 			req, err := http.NewRequestWithContext(ctx, http.MethodHead, url, nil)
@@ -1015,7 +1015,7 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			url, err := manifest.BuildManifestURL(testLog(), mockContainerWithServer, getScheme())
+			url, err := manifest.BuildManifestURLForImage(testLog(), mockContainerWithServer.ImageName(), mockContainerWithServer.Name(), getScheme())
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 			req, err := http.NewRequestWithContext(ctx, http.MethodHead, url, nil)
@@ -1087,7 +1087,7 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			url, err := manifest.BuildManifestURL(testLog(), mockContainerWithServer, getScheme())
+			url, err := manifest.BuildManifestURLForImage(testLog(), mockContainerWithServer.ImageName(), mockContainerWithServer.Name(), getScheme())
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 			req, err := http.NewRequestWithContext(ctx, http.MethodHead, url, nil)
@@ -1158,7 +1158,7 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			url, err := manifest.BuildManifestURL(testLog(), mockContainerWithServer, getScheme())
+			url, err := manifest.BuildManifestURLForImage(testLog(), mockContainerWithServer.ImageName(), mockContainerWithServer.Name(), getScheme())
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 			req, err := http.NewRequestWithContext(ctx, http.MethodHead, url, nil)
@@ -1633,7 +1633,7 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			url, err := manifest.BuildManifestURL(testLog(), mockContainerWithServer, getScheme())
+			url, err := manifest.BuildManifestURLForImage(testLog(), mockContainerWithServer.ImageName(), mockContainerWithServer.Name(), getScheme())
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 			req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -1705,7 +1705,7 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			url, err := manifest.BuildManifestURL(testLog(), mockContainerWithServer, getScheme())
+			url, err := manifest.BuildManifestURLForImage(testLog(), mockContainerWithServer.ImageName(), mockContainerWithServer.Name(), getScheme())
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 			req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -1774,7 +1774,7 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			url, err := manifest.BuildManifestURL(testLog(), mockContainerWithServer, getScheme())
+			url, err := manifest.BuildManifestURLForImage(testLog(), mockContainerWithServer.ImageName(), mockContainerWithServer.Name(), getScheme())
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 			req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -1843,7 +1843,7 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			url, err := manifest.BuildManifestURL(testLog(), mockContainerWithServer, getScheme())
+			url, err := manifest.BuildManifestURLForImage(testLog(), mockContainerWithServer.ImageName(), mockContainerWithServer.Name(), getScheme())
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 			req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -1913,7 +1913,7 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			url, err := manifest.BuildManifestURL(testLog(), mockContainerWithServer, getScheme())
+			url, err := manifest.BuildManifestURLForImage(testLog(), mockContainerWithServer.ImageName(), mockContainerWithServer.Name(), getScheme())
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 			req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -2042,7 +2042,7 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			url, err := manifest.BuildManifestURL(testLog(), mockContainerWithServer, getScheme())
+			url, err := manifest.BuildManifestURLForImage(testLog(), mockContainerWithServer.ImageName(), mockContainerWithServer.Name(), getScheme())
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 			req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -2113,7 +2113,7 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			url, err := manifest.BuildManifestURL(testLog(), mockContainerWithServer, getScheme())
+			url, err := manifest.BuildManifestURLForImage(testLog(), mockContainerWithServer.ImageName(), mockContainerWithServer.Name(), getScheme())
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 			req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -2185,7 +2185,7 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			url, err := manifest.BuildManifestURL(testLog(), mockContainerWithServer, getScheme())
+			url, err := manifest.BuildManifestURLForImage(testLog(), mockContainerWithServer.ImageName(), mockContainerWithServer.Name(), getScheme())
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 			req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -2255,7 +2255,7 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			url, err := manifest.BuildManifestURL(testLog(), mockContainerWithServer, getScheme())
+			url, err := manifest.BuildManifestURLForImage(testLog(), mockContainerWithServer.ImageName(), mockContainerWithServer.Name(), getScheme())
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 			req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -2325,7 +2325,7 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			url, err := manifest.BuildManifestURL(testLog(), mockContainerWithServer, getScheme())
+			url, err := manifest.BuildManifestURLForImage(testLog(), mockContainerWithServer.ImageName(), mockContainerWithServer.Name(), getScheme())
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 			req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -2630,7 +2630,7 @@ var _ = ginkgo.Describe("Digests", func() {
 			ginkgo.It("should handle invalid image reference", func() {
 				defer ginkgo.GinkgoRecover()
 				// Create a mock container with invalid image reference
-				// This should cause manifest.BuildManifestURL to fail
+				// This should cause manifest.BuildManifestURLForImage to fail
 				mockContainerInvalid := mockActions.CreateMockContainerWithDigest(
 					mockID,
 					mockName,
@@ -2771,7 +2771,7 @@ var _ = ginkgo.Describe("Digests", func() {
 
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-				url, err := manifest.BuildManifestURL(testLog(), mockContainerWithServer, getScheme())
+				url, err := manifest.BuildManifestURLForImage(testLog(), mockContainerWithServer.ImageName(), mockContainerWithServer.Name(), getScheme())
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 				req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -2853,7 +2853,7 @@ var _ = ginkgo.Describe("Digests", func() {
 
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-				url, err := manifest.BuildManifestURL(testLog(), mockContainerWithServer, getScheme())
+				url, err := manifest.BuildManifestURLForImage(testLog(), mockContainerWithServer.ImageName(), mockContainerWithServer.Name(), getScheme())
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 				req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -2932,7 +2932,7 @@ var _ = ginkgo.Describe("Digests", func() {
 
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-				url, err := manifest.BuildManifestURL(testLog(), mockContainerWithServer, getScheme())
+				url, err := manifest.BuildManifestURLForImage(testLog(), mockContainerWithServer.ImageName(), mockContainerWithServer.Name(), getScheme())
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 				req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)

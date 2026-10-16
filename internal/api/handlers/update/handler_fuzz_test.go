@@ -33,7 +33,7 @@ func FuzzExtractImagesHandler(f *testing.F) {
 	f.Fuzz(func(t *testing.T, raw string) {
 		h := New(testLogger(), func(_ context.Context, _, _ []string) *metrics.Metric {
 			return &metrics.Metric{}
-		}, nil)
+		}, nil, testMaxTimeout)
 
 		app := fiber.New(fiber.Config{})
 		app.Post("/test", func(c fiber.Ctx) error {
@@ -82,7 +82,7 @@ func FuzzExtractContainersHandler(f *testing.F) {
 	f.Fuzz(func(t *testing.T, raw string) {
 		h := New(testLogger(), func(_ context.Context, _, _ []string) *metrics.Metric {
 			return &metrics.Metric{}
-		}, nil)
+		}, nil, testMaxTimeout)
 
 		app := fiber.New(fiber.Config{})
 		app.Post("/test", func(c fiber.Ctx) error {
@@ -131,7 +131,7 @@ func FuzzHandlerNew(f *testing.F) {
 
 		h := New(testLogger(), func(_ context.Context, _, _ []string) *metrics.Metric {
 			return &metrics.Metric{}
-		}, lock)
+		}, lock, testMaxTimeout)
 
 		require.NotNil(t, h)
 		assert.Equal(t, "/v1/update", h.Path)

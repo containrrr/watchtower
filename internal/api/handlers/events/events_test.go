@@ -76,8 +76,8 @@ func TestBroadcaster_PublishDeliversToAllSubscribers(t *testing.T) {
 	t.Parallel()
 
 	broadcaster := NewBroadcaster()
-	ch1 := broadcaster.Subscribe()
-	ch2 := broadcaster.Subscribe()
+	ch1, _ := broadcaster.SubscribeWithDone()
+	ch2, _ := broadcaster.SubscribeWithDone()
 
 	require.NotNil(t, ch1)
 	require.NotNil(t, ch2)
@@ -95,7 +95,7 @@ func TestBroadcaster_UnsubscribeStopsDelivery(t *testing.T) {
 	t.Parallel()
 
 	broadcaster := NewBroadcaster()
-	ch := broadcaster.Subscribe()
+	ch, _ := broadcaster.SubscribeWithDone()
 	require.NotNil(t, ch)
 
 	require.True(t, broadcaster.Unsubscribe(ch))
@@ -126,11 +126,11 @@ func TestBroadcaster_SubscriberCount(t *testing.T) {
 
 	require.Equal(t, 0, broadcaster.SubscriberCount())
 
-	ch1 := broadcaster.Subscribe()
+	ch1, _ := broadcaster.SubscribeWithDone()
 	require.NotNil(t, ch1)
 	assert.Equal(t, 1, broadcaster.SubscriberCount())
 
-	ch2 := broadcaster.Subscribe()
+	ch2, _ := broadcaster.SubscribeWithDone()
 	require.NotNil(t, ch2)
 	assert.Equal(t, 2, broadcaster.SubscriberCount())
 
@@ -147,10 +147,12 @@ func TestBroadcaster_MaxSubscribers(t *testing.T) {
 	broadcaster := NewBroadcaster()
 
 	for i := range maxSubscribers {
-		require.NotNil(t, broadcaster.Subscribe(), "subscriber %d", i)
+		ch, _ := broadcaster.SubscribeWithDone()
+		require.NotNil(t, ch, "subscriber %d", i)
 	}
 
-	assert.Nil(t, broadcaster.Subscribe(), "subscriber over max")
+	overflow, _ := broadcaster.SubscribeWithDone()
+	assert.Nil(t, overflow, "subscriber over max")
 }
 
 func TestBroadcaster_SubscribeAndUnsubscribeRoundTrips(t *testing.T) {
@@ -158,7 +160,7 @@ func TestBroadcaster_SubscribeAndUnsubscribeRoundTrips(t *testing.T) {
 
 	broadcaster := NewBroadcaster()
 
-	ch := broadcaster.Subscribe()
+	ch, _ := broadcaster.SubscribeWithDone()
 	require.NotNil(t, ch)
 	assert.Equal(t, 1, broadcaster.SubscriberCount())
 

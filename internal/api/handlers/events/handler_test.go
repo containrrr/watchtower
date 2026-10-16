@@ -58,11 +58,11 @@ func TestHandler_Handle_MaxSubscribers(t *testing.T) {
 	b := NewBroadcaster()
 
 	for range maxSubscribers {
-		ch := b.Subscribe()
+		ch, _ := b.SubscribeWithDone()
 		assert.NotNil(t, ch, "subscriber channel should not be nil")
 	}
 
-	ch := b.Subscribe()
+	ch, _ := b.SubscribeWithDone()
 	assert.Nil(t, ch, "subscriber channel should be nil when max subscribers reached")
 }
 
@@ -302,7 +302,8 @@ func TestHandler_Handle_MaxSubscribersHTTP(t *testing.T) {
 	h := NewHandler(testLogger(), b, nil)
 
 	for range maxSubscribers {
-		require.NotNil(t, b.Subscribe(), "pre-fill subscriber")
+		ch, _ := b.SubscribeWithDone()
+		require.NotNil(t, ch, "pre-fill subscriber")
 	}
 
 	app := fiber.New(fiber.Config{})

@@ -36,7 +36,7 @@ var _ = ginkgo.Describe("CooldownError", func() {
 
 		ginkgo.When("the wrapped error is nil", func() {
 			ginkgo.It("returns the ErrImageCooldown message", func() {
-				e := &CooldownError{Age: "1h", Delay: "2h", Remaining: "1h", Passed: false, err: nil}
+				e := &CooldownError{Age: "1h", Delay: "2h", Remaining: "1h", err: nil}
 				gomega.Expect(e.Error()).To(gomega.Equal(ErrImageCooldown.Error()))
 			})
 		})
