@@ -35,6 +35,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Index identifiers for dependency link matching by @nicholas-fedor in [#2845](https://github.com/nicholas-fedor/watchtower/pull/2845)
 
+### Changed
+
+- Delete unused flag and environment helpers by @nicholas-fedor in [#2873](https://github.com/nicholas-fedor/watchtower/pull/2873)
+
 ### Documentation
 
 - Document the digest choice for container details by @nicholas-fedor in [#2807](https://github.com/nicholas-fedor/watchtower/pull/2807)
