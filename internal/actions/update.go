@@ -512,7 +512,7 @@ func Update(
 
 	// One resolver per session so sibling containers on the same upstream image
 	// share a single release tag lookup.
-	tagResolver := release.NewResolver(nil)
+	tagResolver := release.NewResolver(release.NewDigestFetcher(config.Registry))
 
 	for _, task := range checkTasks {
 		checkGroup.Go(func() error {

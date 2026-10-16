@@ -21,6 +21,7 @@ func (c Config) ClientOptions() container.ClientOptions {
 		// Prefer Compatibility, then Client — same order as UpdateParams.
 		CPUCopyMode:      firstNonEmpty(c.Compatibility.CPUCopyMode, c.Client.CPUCopyMode),
 		WarnOnHeadFailed: container.WarningStrategy(c.Client.WarnOnHeadFailure),
+		Registry:         c.Registry,
 	}
 }
 

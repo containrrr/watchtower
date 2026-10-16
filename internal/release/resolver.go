@@ -10,6 +10,7 @@ import (
 
 	"github.com/rs/zerolog"
 
+	registryConfig "github.com/nicholas-fedor/watchtower/internal/config/registry"
 	"github.com/nicholas-fedor/watchtower/pkg/registry/digest"
 	"github.com/nicholas-fedor/watchtower/pkg/registry/ratelimit"
 	"github.com/nicholas-fedor/watchtower/pkg/types"
@@ -84,8 +85,14 @@ type cachedAnswer struct {
 	expires time.Time
 }
 
-// digestFetcher calls the digest package. It satisfies Fetcher.
-type digestFetcher struct{}
+// DigestFetcher fetches tag digests through the digest package and satisfies
+// Fetcher.
+//
+// Construct one with NewDigestFetcher.
+type DigestFetcher struct {
+	// settings holds the settings for registry requests.
+	settings registryConfig.Registry
+}
 
 // probeOutcome is how a candidate sweep ended.
 type probeOutcome int
@@ -98,20 +105,29 @@ type probeResult struct {
 	outcome probeOutcome
 }
 
-// NewResolver returns a Resolver that reaches the registry through the digest
-// package.
+// NewResolver returns a Resolver that reaches the registry through fetcher.
+//
+// A Resolver with a nil fetcher makes no lookups, and ResolveTag returns empty.
 //
 // Parameters:
-//   - fetcher: Fetcher to use. A nil fetcher selects the digest package.
+//   - fetcher: Fetcher to use, such as a DigestFetcher.
 //
 // Returns:
 //   - *Resolver: Resolver ready for use.
 func NewResolver(fetcher Fetcher) *Resolver {
-	if fetcher == nil {
-		fetcher = digestFetcher{}
-	}
-
 	return &Resolver{fetcher: fetcher, now: time.Now}
+}
+
+// NewDigestFetcher returns a DigestFetcher that makes registry requests with
+// settings.
+//
+// Parameters:
+//   - settings: Registry request settings.
+//
+// Returns:
+//   - DigestFetcher: Fetcher ready for use.
+func NewDigestFetcher(settings registryConfig.Registry) DigestFetcher {
+	return DigestFetcher{settings: settings}
 }
 
 // ClearCache discards every cached result. It exists for tests.
@@ -151,7 +167,7 @@ func (r *Resolver) ResolveTag(
 	newDigest string,
 	endpoints ...string,
 ) string {
-	if r == nil || container == nil || version == "" || newDigest == "" {
+	if r == nil || r.fetcher == nil || container == nil || version == "" || newDigest == "" {
 		return ""
 	}
 
@@ -239,7 +255,19 @@ func TagCandidates(version string) []string {
 }
 
 // FetchDigestForTag returns the manifest digest of a specific tag.
-func (digestFetcher) FetchDigestForTag(
+//
+// Parameters:
+//   - log: Logger.
+//   - ctx: The context controlling the request's lifecycle.
+//   - container: Container whose image supplies the repository and registry host.
+//   - authToken: A base64-encoded authentication string for registry access.
+//   - tag: Exact tag to fetch the digest for.
+//   - endpoints: Optional registry mirror host overrides to try before the canonical host.
+//
+// Returns:
+//   - string: The normalized digest, or empty when the tag does not exist.
+//   - error: Non-nil if the request fails, nil on success.
+func (f DigestFetcher) FetchDigestForTag(
 	log *zerolog.Logger,
 	ctx context.Context,
 	container types.Container,
@@ -247,7 +275,7 @@ func (digestFetcher) FetchDigestForTag(
 	tag string,
 	endpoints ...string,
 ) (string, error) {
-	remote, err := digest.FetchDigestForTag(log, ctx, container, authToken, tag, endpoints...)
+	remote, err := digest.FetchDigestForTag(log, ctx, container, authToken, tag, f.settings, endpoints...)
 	if err != nil {
 		return "", fmt.Errorf("%w: %w", errFetchTagDigest, err)
 	}

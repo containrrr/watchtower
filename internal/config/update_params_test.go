@@ -15,6 +15,7 @@ import (
 	"github.com/nicholas-fedor/watchtower/internal/config/git"
 	"github.com/nicholas-fedor/watchtower/internal/config/lifecycle"
 	"github.com/nicholas-fedor/watchtower/internal/config/mode"
+	"github.com/nicholas-fedor/watchtower/internal/config/registry"
 	"github.com/nicholas-fedor/watchtower/internal/config/update"
 	"github.com/nicholas-fedor/watchtower/pkg/filters"
 	"github.com/nicholas-fedor/watchtower/pkg/types"
@@ -79,6 +80,11 @@ func TestUpdateParamsAssignsEveryField(t *testing.T) {
 				},
 			},
 		},
+		Registry: registry.Registry{
+			CooldownPlatform: registry.Platform{OS: "linux", Architecture: "arm", Variant: "v7"},
+			TLSMinVersion:    "TLS1.3",
+			TLSSkip:          true,
+		},
 	}
 
 	ov := config.RunOverrides{
@@ -123,6 +129,7 @@ func TestUpdateParamsAssignsEveryField(t *testing.T) {
 	}, params.GitImages["myapp:latest"])
 	assert.Equal(t, "build/docker/Dockerfile", params.GitDockerfile)
 	assert.Equal(t, ".", params.GitContext)
+	assert.Equal(t, cfg.Registry, params.Registry)
 	assert.True(t, params.GitComposeStash)
 	assert.Equal(t, "/compose/demo", params.ComposeProjects["demo"])
 
@@ -180,6 +187,7 @@ func TestClientOptionsMapsClientAndCompat(t *testing.T) {
 			DisableMemorySwappiness: true,
 			CPUCopyMode:             "auto",
 		},
+		Registry: registry.Registry{TLSMinVersion: "TLS1.3", TLSSkip: true},
 	}
 
 	opts := cfg.ClientOptions()
@@ -191,6 +199,7 @@ func TestClientOptionsMapsClientAndCompat(t *testing.T) {
 	// Compatibility wins over Client when both are non-empty (matches UpdateParams).
 	assert.Equal(t, "auto", opts.CPUCopyMode)
 	assert.Equal(t, "always", string(opts.WarnOnHeadFailed))
+	assert.Equal(t, cfg.Registry, opts.Registry)
 
 	// Client is used when Compatibility is empty.
 	cfg.Compatibility.CPUCopyMode = ""

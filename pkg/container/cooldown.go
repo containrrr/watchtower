@@ -8,6 +8,7 @@ import (
 
 	"github.com/rs/zerolog"
 
+	registryConfig "github.com/nicholas-fedor/watchtower/internal/config/registry"
 	"github.com/nicholas-fedor/watchtower/internal/util"
 	"github.com/nicholas-fedor/watchtower/pkg/registry"
 	"github.com/nicholas-fedor/watchtower/pkg/types"
@@ -72,7 +73,13 @@ func (c imageClient) isOutsideCooldown(
 		Logger()
 	clog := &clogVal
 
-	creationTime, cdErr := fetchImageCreationTime(ctx, sourceContainer, delay, clog)
+	creationTime, cdErr := fetchImageCreationTime(
+		ctx,
+		sourceContainer,
+		delay,
+		c.registrySettings,
+		clog,
+	)
 	if cdErr != nil {
 		return false, cdErr
 	}
@@ -106,6 +113,7 @@ func shouldCheckCooldown(sourceContainer types.Container, params types.UpdatePar
 //   - ctx: Context for cancellation and timeouts.
 //   - sourceContainer: Container whose image creation time to fetch.
 //   - delay: Cooldown delay for error formatting.
+//   - settings: Registry request settings.
 //   - clog: Logger entry with container/image fields.
 //
 // Returns:
@@ -115,6 +123,7 @@ func fetchImageCreationTime(
 	ctx context.Context,
 	sourceContainer types.Container,
 	delay time.Duration,
+	settings registryConfig.Registry,
 	clog *zerolog.Logger,
 ) (time.Time, error) {
 	pullOpts, err := registry.GetPullOptions(clog, sourceContainer.ImageName())
@@ -138,6 +147,7 @@ func fetchImageCreationTime(
 		ctx,
 		sourceContainer,
 		pullOpts.RegistryAuth,
+		settings,
 	)
 	if err != nil {
 		clog.Info().

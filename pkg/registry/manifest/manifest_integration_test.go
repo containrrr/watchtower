@@ -8,7 +8,6 @@ import (
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
-	"github.com/spf13/viper"
 
 	dockerImage "github.com/moby/moby/api/types/image"
 
@@ -21,9 +20,13 @@ func TestManifest(t *testing.T) {
 	ginkgo.RunSpecs(t, "Manifest Suite")
 }
 
+// testScheme is the URL scheme the suite passes to BuildManifestURL. Specs
+// change it to exercise plain HTTP manifest URLs.
+var testScheme string
+
 var _ = ginkgo.BeforeEach(func() {
-	// Ensure WATCHTOWER_REGISTRY_TLS_SKIP is disabled by default for HTTPS tests.
-	viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", false)
+	// Build HTTPS manifest URLs unless a spec asks for HTTP.
+	testScheme = "https"
 })
 
 var _ = ginkgo.Describe("the manifest module", func() {
@@ -102,9 +105,8 @@ var _ = ginkgo.Describe("the manifest module", func() {
 			gomega.Expect(URL).To(gomega.Equal(expected))
 		})
 
-		ginkgo.It("should use HTTP scheme when WATCHTOWER_REGISTRY_TLS_SKIP is enabled", func() {
-			viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", true)
-			defer viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", false)
+		ginkgo.It("should use the HTTP scheme when requested", func() {
+			testScheme = "http"
 
 			imageRef := "ghcr.io/nicholas-fedor/watchtower:mytag"
 			expected := "http://ghcr.io/v2/nicholas-fedor/watchtower/manifests/mytag"
@@ -187,11 +189,5 @@ func buildMockContainerManifestURL(imageRef string) (string, error) {
 		imageInfo,
 	)
 
-	// Determine scheme based on WATCHTOWER_REGISTRY_TLS_SKIP.
-	scheme := "https"
-	if viper.GetBool("WATCHTOWER_REGISTRY_TLS_SKIP") {
-		scheme = "http"
-	}
-
-	return manifest.BuildManifestURL(testLog(), mock, scheme)
+	return manifest.BuildManifestURL(testLog(), mock, testScheme)
 }

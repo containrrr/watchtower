@@ -17,11 +17,11 @@ import (
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
-	"github.com/spf13/viper"
 
 	dockerImage "github.com/moby/moby/api/types/image"
 
 	mockActions "github.com/nicholas-fedor/watchtower/internal/actions/mocks"
+	registryConfig "github.com/nicholas-fedor/watchtower/internal/config/registry"
 	"github.com/nicholas-fedor/watchtower/internal/meta"
 	"github.com/nicholas-fedor/watchtower/pkg/registry/auth"
 	"github.com/nicholas-fedor/watchtower/pkg/registry/digest"
@@ -59,15 +59,14 @@ func TestDigest(t *testing.T) {
 	ginkgo.RunSpecs(t, "Digest Suite")
 }
 
-var _ = ginkgo.BeforeSuite(func() {
-	// Ensure WATCHTOWER_REGISTRY_TLS_SKIP is false to use https scheme
-	viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", false)
-	// Set log level to debug to ensure debug logs are executed for coverage
-})
+// testRegistry holds the registry request settings the suite passes to the
+// digest functions. Specs set TLSSkip to reach plain HTTP test servers.
+var testRegistry registryConfig.Registry
 
-var _ = ginkgo.AfterSuite(func() {
-	// Reset Viper configuration
-	viper.Reset()
+var _ = ginkgo.BeforeSuite(func() {
+	// Start from the default settings so requests use the https scheme.
+	testRegistry = registryConfig.Registry{}
+	// Set log level to debug to ensure debug logs are executed for coverage
 })
 
 var _ = ginkgo.Describe("Digests", func() {
@@ -174,7 +173,7 @@ var _ = ginkgo.Describe("Digests", func() {
 		client := newTestAuthClient()
 		ctx := context.Background()
 		registryAuth := auth.TransformAuth(testLog(), "token")
-		result, err := auth.GetToken(testLog(), ctx, container, registryAuth, client, "")
+		result, err := auth.GetToken(testLog(), ctx, container, registryAuth, client, testRegistry, "")
 		token := result.Token
 
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
@@ -210,6 +209,7 @@ var _ = ginkgo.Describe("Digests", func() {
 				matches, err := digest.CompareDigest(testLog(), context.Background(),
 					mockContainer,
 					creds,
+					testRegistry,
 				)
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
 				gomega.Expect(matches).To(gomega.BeTrue())
@@ -230,6 +230,7 @@ var _ = ginkgo.Describe("Digests", func() {
 			matches, err := digest.CompareDigest(testLog(), context.Background(),
 				mockContainerLocal,
 				"",
+				testRegistry,
 			)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			// Local images should return true (treated as up-to-date) to avoid
@@ -307,7 +308,7 @@ var _ = ginkgo.Describe("Digests", func() {
 			client := newTestAuthClient()
 			ctx := context.Background()
 			registryAuth := auth.TransformAuth(testLog(), "token")
-			result, err := auth.GetToken(testLog(), ctx, mockContainerWithServer, registryAuth, client, "")
+			result, err := auth.GetToken(testLog(), ctx, mockContainerWithServer, registryAuth, client, testRegistry, "")
 			token := result.Token
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
@@ -353,7 +354,7 @@ var _ = ginkgo.Describe("Digests", func() {
 			client := newTestAuthClient()
 			ctx := context.Background()
 			registryAuth := auth.TransformAuth(testLog(), "token")
-			_, err := auth.GetToken(testLog(), ctx, mockContainerUnreachable, registryAuth, client, "")
+			_, err := auth.GetToken(testLog(), ctx, mockContainerUnreachable, registryAuth, client, testRegistry, "")
 			gomega.Expect(err).To(gomega.HaveOccurred())
 			gomega.Expect(err.Error()).
 				To(gomega.ContainSubstring("failed to execute challenge request"))
@@ -363,6 +364,7 @@ var _ = ginkgo.Describe("Digests", func() {
 			matches, err := digest.CompareDigest(testLog(), context.Background(),
 				mockContainerNoImage,
 				"user:pass",
+				testRegistry,
 			)
 			gomega.Expect(err).To(gomega.HaveOccurred())
 			gomega.Expect(matches).To(gomega.BeFalse())
@@ -383,7 +385,7 @@ var _ = ginkgo.Describe("Digests", func() {
 			client := newTestAuthClient()
 			ctx := context.Background()
 			registryAuth := auth.TransformAuth(testLog(), "token")
-			_, err := auth.GetToken(testLog(), ctx, mockContainerInvalidImage, registryAuth, client, "")
+			_, err := auth.GetToken(testLog(), ctx, mockContainerInvalidImage, registryAuth, client, testRegistry, "")
 			gomega.Expect(err).To(gomega.HaveOccurred())
 			gomega.Expect(err.Error()).To(gomega.ContainSubstring("failed to parse image name"))
 		})
@@ -403,7 +405,7 @@ var _ = ginkgo.Describe("Digests", func() {
 			client := newTestAuthClient()
 			ctx := context.Background()
 			registryAuth := auth.TransformAuth(testLog(), "token")
-			_, err := auth.GetToken(testLog(), ctx, mockContainerInvalidURL, registryAuth, client, "")
+			_, err := auth.GetToken(testLog(), ctx, mockContainerInvalidURL, registryAuth, client, testRegistry, "")
 			gomega.Expect(err).To(gomega.HaveOccurred())
 			gomega.Expect(err.Error()).To(gomega.ContainSubstring("failed to parse image name"))
 		})
@@ -456,7 +458,7 @@ var _ = ginkgo.Describe("Digests", func() {
 			client := newTestAuthClient()
 			ctx := context.Background()
 			registryAuth := auth.TransformAuth(testLog(), "token")
-			result, err := auth.GetToken(testLog(), ctx, mockContainerWithServer, registryAuth, client, "")
+			result, err := auth.GetToken(testLog(), ctx, mockContainerWithServer, registryAuth, client, testRegistry, "")
 			token := result.Token
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
@@ -521,7 +523,7 @@ var _ = ginkgo.Describe("Digests", func() {
 			client := newTestAuthClient()
 			ctx := context.Background()
 			registryAuth := auth.TransformAuth(testLog(), "token")
-			result, err := auth.GetToken(testLog(), ctx, mockContainerWithServer, registryAuth, client, "")
+			result, err := auth.GetToken(testLog(), ctx, mockContainerWithServer, registryAuth, client, testRegistry, "")
 			token := result.Token
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
@@ -596,6 +598,7 @@ var _ = ginkgo.Describe("Digests", func() {
 				mockContainerWithInvalidDigest,
 				registryAuth,
 				client,
+				testRegistry,
 				"",
 			)
 			token := result.Token
@@ -669,11 +672,11 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			ctx := context.Background()
 
-			viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", true)
-			defer viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", false)
+			testRegistry.TLSSkip = true
+			defer func() { testRegistry.TLSSkip = false }()
 
 			registryAuth := auth.TransformAuth(testLog(), "token")
-			_, err := auth.GetToken(testLog(), ctx, mockContainerWithServer, registryAuth, client, "")
+			_, err := auth.GetToken(testLog(), ctx, mockContainerWithServer, registryAuth, client, testRegistry, "")
 			gomega.Expect(err).To(gomega.HaveOccurred())
 			gomega.Expect(err.Error()).
 				To(gomega.ContainSubstring("challenge header did not include all values needed to construct an auth url"))
@@ -681,6 +684,7 @@ var _ = ginkgo.Describe("Digests", func() {
 			matches, err := digest.CompareDigest(testLog(), ctx,
 				mockContainerWithServer,
 				registryAuth,
+				testRegistry,
 			)
 			gomega.Expect(err).To(gomega.HaveOccurred())
 			gomega.Expect(err.Error()).
@@ -735,8 +739,8 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			ctx := context.Background()
 
-			viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", true)
-			defer viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", false)
+			testRegistry.TLSSkip = true
+			defer func() { testRegistry.TLSSkip = false }()
 
 			registryAuth := auth.TransformAuth(testLog(), "token")
 
@@ -744,6 +748,7 @@ var _ = ginkgo.Describe("Digests", func() {
 			matches, err := digest.CompareDigest(testLog(), ctx,
 				mockContainerWithServer,
 				registryAuth,
+				testRegistry,
 			)
 			gomega.Expect(err).To(gomega.HaveOccurred())
 			gomega.Expect(matches).To(gomega.BeFalse())
@@ -794,13 +799,13 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			ctx := context.Background()
 
-			viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", true)
-			defer viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", false)
+			testRegistry.TLSSkip = true
+			defer func() { testRegistry.TLSSkip = false }()
 
 			registryAuth := auth.TransformAuth(testLog(), "token")
 
 			// Test that CompareDigest fails when HEAD returns 500 (non-404 error)
-			_, err := digest.CompareDigest(testLog(), ctx, mockContainerWithServer, registryAuth)
+			_, err := digest.CompareDigest(testLog(), ctx, mockContainerWithServer, registryAuth, testRegistry)
 			gomega.Expect(err).To(gomega.HaveOccurred())
 			gomega.Expect(err.Error()).
 				To(gomega.ContainSubstring("registry responded with invalid HEAD request"))
@@ -848,11 +853,11 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			ctx := context.Background()
 
-			viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", true)
-			defer viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", false)
+			testRegistry.TLSSkip = true
+			defer func() { testRegistry.TLSSkip = false }()
 
 			registryAuth := auth.TransformAuth(testLog(), "token")
-			matches, err := digest.CompareDigest(testLog(), ctx, mockContainer, registryAuth)
+			matches, err := digest.CompareDigest(testLog(), ctx, mockContainer, registryAuth, testRegistry)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			gomega.Expect(matches).To(gomega.BeTrue())
 		})
@@ -932,7 +937,7 @@ var _ = ginkgo.Describe("Digests", func() {
 			client := newTestAuthClient()
 			ctx := context.Background()
 			registryAuth := auth.TransformAuth(testLog(), "token")
-			result, err := auth.GetToken(testLog(), ctx, mockContainerWithServer, registryAuth, client, "")
+			result, err := auth.GetToken(testLog(), ctx, mockContainerWithServer, registryAuth, client, testRegistry, "")
 			token := result.Token
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
@@ -1005,7 +1010,7 @@ var _ = ginkgo.Describe("Digests", func() {
 			client := newTestAuthClient()
 			ctx := context.Background()
 			registryAuth := auth.TransformAuth(testLog(), "token")
-			result, err := auth.GetToken(testLog(), ctx, mockContainerWithServer, registryAuth, client, "")
+			result, err := auth.GetToken(testLog(), ctx, mockContainerWithServer, registryAuth, client, testRegistry, "")
 			token := result.Token
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
@@ -1077,7 +1082,7 @@ var _ = ginkgo.Describe("Digests", func() {
 			client := newTestAuthClient()
 			ctx := context.Background()
 			registryAuth := auth.TransformAuth(testLog(), "token")
-			result, err := auth.GetToken(testLog(), ctx, mockContainerWithServer, registryAuth, client, "")
+			result, err := auth.GetToken(testLog(), ctx, mockContainerWithServer, registryAuth, client, testRegistry, "")
 			token := result.Token
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
@@ -1148,7 +1153,7 @@ var _ = ginkgo.Describe("Digests", func() {
 			client := newTestAuthClient()
 			ctx := context.Background()
 			registryAuth := auth.TransformAuth(testLog(), "token")
-			result, err := auth.GetToken(testLog(), ctx, mockContainerWithServer, registryAuth, client, "")
+			result, err := auth.GetToken(testLog(), ctx, mockContainerWithServer, registryAuth, client, testRegistry, "")
 			token := result.Token
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
@@ -1304,6 +1309,7 @@ var _ = ginkgo.Describe("Digests", func() {
 			result, err := digest.FetchDigest(testLog(), context.Background(),
 				mockContainerLocalhost,
 				"",
+				testRegistry,
 			)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			gomega.Expect(result).To(gomega.Equal(""))
@@ -1319,6 +1325,7 @@ var _ = ginkgo.Describe("Digests", func() {
 			result, err = digest.FetchDigest(testLog(), context.Background(),
 				mockContainerLocal,
 				"",
+				testRegistry,
 			)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			gomega.Expect(result).To(gomega.Equal(""))
@@ -1334,6 +1341,7 @@ var _ = ginkgo.Describe("Digests", func() {
 			result, err = digest.FetchDigest(testLog(), context.Background(),
 				mockContainerLoopback,
 				"",
+				testRegistry,
 			)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			gomega.Expect(result).To(gomega.Equal(""))
@@ -1385,7 +1393,7 @@ var _ = ginkgo.Describe("Digests", func() {
 		ginkgo.BeforeEach(func() {
 			defer ginkgo.GinkgoRecover()
 
-			viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", true)
+			testRegistry.TLSSkip = true
 
 			server = ghttp.NewServer()
 		})
@@ -1393,18 +1401,19 @@ var _ = ginkgo.Describe("Digests", func() {
 		ginkgo.AfterEach(func() {
 			defer ginkgo.GinkgoRecover()
 
-			viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", false)
+			testRegistry.TLSSkip = false
+
 			server.Close()
 		})
 
 		ginkgo.It("should fetch a digest successfully", func() {
 			defer ginkgo.GinkgoRecover()
 
-			viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", true)
-			defer viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", false)
+			testRegistry.TLSSkip = true
+			defer func() { testRegistry.TLSSkip = false }()
 
 			scheme := "https"
-			if viper.GetBool("WATCHTOWER_REGISTRY_TLS_SKIP") {
+			if testRegistry.TLSSkip {
 				scheme = "http"
 			}
 
@@ -1445,7 +1454,7 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			ctx := context.Background()
 			registryAuth := auth.TransformAuth(testLog(), "token")
-			result, err := digest.FetchDigest(testLog(), ctx, mockContainerWithServer, registryAuth)
+			result, err := digest.FetchDigest(testLog(), ctx, mockContainerWithServer, registryAuth, testRegistry)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			gomega.Expect(result).To(gomega.Equal(digest.NormalizeDigest(testLog(), mockDigestHash)))
 		})
@@ -1453,8 +1462,8 @@ var _ = ginkgo.Describe("Digests", func() {
 		ginkgo.It("should return an error if GET request fails after token", func() {
 			defer ginkgo.GinkgoRecover()
 
-			viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", true)
-			defer viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", false)
+			testRegistry.TLSSkip = true
+			defer func() { testRegistry.TLSSkip = false }()
 
 			server := ghttp.NewServer()
 			defer server.Close()
@@ -1493,7 +1502,7 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			ctx := context.Background()
 			registryAuth := auth.TransformAuth(testLog(), "token")
-			_, err := digest.FetchDigest(testLog(), ctx, mockContainerWithServer, registryAuth)
+			_, err := digest.FetchDigest(testLog(), ctx, mockContainerWithServer, registryAuth, testRegistry)
 			gomega.Expect(err).To(gomega.HaveOccurred())
 			gomega.Expect(err.Error()).
 				To(gomega.ContainSubstring("registry responded with invalid HEAD request"))
@@ -1515,7 +1524,7 @@ var _ = ginkgo.Describe("Digests", func() {
 			client := newTestAuthClient()
 			ctx := context.Background()
 			registryAuth := auth.TransformAuth(testLog(), "token")
-			_, err := auth.GetToken(testLog(), ctx, mockContainerUnreachable, registryAuth, client, "")
+			_, err := auth.GetToken(testLog(), ctx, mockContainerUnreachable, registryAuth, client, testRegistry, "")
 			gomega.Expect(err).To(gomega.HaveOccurred())
 			gomega.Expect(err.Error()).To(gomega.MatchRegexp("Temporary failure in name resolution|no such host|server misbehaving"))
 		})
@@ -1534,7 +1543,7 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			ctx := context.Background()
 			registryAuth := auth.TransformAuth(testLog(), "token")
-			_, err := digest.FetchDigest(testLog(), ctx, mockContainerInvalidImage, registryAuth)
+			_, err := digest.FetchDigest(testLog(), ctx, mockContainerInvalidImage, registryAuth, testRegistry)
 			gomega.Expect(err).To(gomega.HaveOccurred())
 			gomega.Expect(err.Error()).To(gomega.ContainSubstring("failed to parse image name"))
 		})
@@ -1573,7 +1582,7 @@ var _ = ginkgo.Describe("Digests", func() {
 			client := newTestAuthClient()
 			ctx := context.Background()
 			registryAuth := auth.TransformAuth(testLog(), "token")
-			_, err := auth.GetToken(testLog(), ctx, mockContainerInvalidURL, registryAuth, client, "")
+			_, err := auth.GetToken(testLog(), ctx, mockContainerInvalidURL, registryAuth, client, testRegistry, "")
 			gomega.Expect(err).To(gomega.HaveOccurred())
 			gomega.Expect(err.Error()).To(gomega.ContainSubstring("failed to parse image name"))
 		})
@@ -1581,8 +1590,8 @@ var _ = ginkgo.Describe("Digests", func() {
 		ginkgo.It("should return an error if response decoding fails", func() {
 			defer ginkgo.GinkgoRecover()
 
-			viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", true)
-			defer viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", false)
+			testRegistry.TLSSkip = true
+			defer func() { testRegistry.TLSSkip = false }()
 
 			serverAddr := server.Addr()
 			mockImageRef := serverAddr + "/test/image:latest"
@@ -1619,7 +1628,7 @@ var _ = ginkgo.Describe("Digests", func() {
 			client := newTestAuthClient()
 			ctx := context.Background()
 			registryAuth := auth.TransformAuth(testLog(), "token")
-			result, err := auth.GetToken(testLog(), ctx, mockContainerWithServer, registryAuth, client, "")
+			result, err := auth.GetToken(testLog(), ctx, mockContainerWithServer, registryAuth, client, testRegistry, "")
 			token := result.Token
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
@@ -1651,8 +1660,8 @@ var _ = ginkgo.Describe("Digests", func() {
 		ginkgo.It("should fall back to header when JSON decoding fails", func() {
 			defer ginkgo.GinkgoRecover()
 
-			viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", true)
-			defer viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", false)
+			testRegistry.TLSSkip = true
+			defer func() { testRegistry.TLSSkip = false }()
 
 			serverAddr := server.Addr()
 			mockImageRef := serverAddr + "/test/image:latest"
@@ -1691,7 +1700,7 @@ var _ = ginkgo.Describe("Digests", func() {
 			client := newTestAuthClient()
 			ctx := context.Background()
 			registryAuth := auth.TransformAuth(testLog(), "token")
-			result, err := auth.GetToken(testLog(), ctx, mockContainerWithServer, registryAuth, client, "")
+			result, err := auth.GetToken(testLog(), ctx, mockContainerWithServer, registryAuth, client, testRegistry, "")
 			token := result.Token
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
@@ -1722,8 +1731,8 @@ var _ = ginkgo.Describe("Digests", func() {
 		ginkgo.It("should parse JSON manifest for digest extraction", func() {
 			defer ginkgo.GinkgoRecover()
 
-			viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", true)
-			defer viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", false)
+			testRegistry.TLSSkip = true
+			defer func() { testRegistry.TLSSkip = false }()
 
 			serverAddr := server.Addr()
 			mockImageRef := serverAddr + "/test/image:latest"
@@ -1760,7 +1769,7 @@ var _ = ginkgo.Describe("Digests", func() {
 			client := newTestAuthClient()
 			ctx := context.Background()
 			registryAuth := auth.TransformAuth(testLog(), "token")
-			result, err := auth.GetToken(testLog(), ctx, mockContainerWithServer, registryAuth, client, "")
+			result, err := auth.GetToken(testLog(), ctx, mockContainerWithServer, registryAuth, client, testRegistry, "")
 			token := result.Token
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
@@ -1791,8 +1800,8 @@ var _ = ginkgo.Describe("Digests", func() {
 		ginkgo.It("should handle empty body error", func() {
 			defer ginkgo.GinkgoRecover()
 
-			viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", true)
-			defer viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", false)
+			testRegistry.TLSSkip = true
+			defer func() { testRegistry.TLSSkip = false }()
 
 			serverAddr := server.Addr()
 			mockImageRef := serverAddr + "/test/image:latest"
@@ -1829,7 +1838,7 @@ var _ = ginkgo.Describe("Digests", func() {
 			client := newTestAuthClient()
 			ctx := context.Background()
 			registryAuth := auth.TransformAuth(testLog(), "token")
-			result, err := auth.GetToken(testLog(), ctx, mockContainerWithServer, registryAuth, client, "")
+			result, err := auth.GetToken(testLog(), ctx, mockContainerWithServer, registryAuth, client, testRegistry, "")
 			token := result.Token
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
@@ -1861,8 +1870,8 @@ var _ = ginkgo.Describe("Digests", func() {
 		ginkgo.It("should handle malformed JSON manifest", func() {
 			defer ginkgo.GinkgoRecover()
 
-			viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", true)
-			defer viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", false)
+			testRegistry.TLSSkip = true
+			defer func() { testRegistry.TLSSkip = false }()
 
 			serverAddr := server.Addr()
 			mockImageRef := serverAddr + "/test/image:latest"
@@ -1899,7 +1908,7 @@ var _ = ginkgo.Describe("Digests", func() {
 			client := newTestAuthClient()
 			ctx := context.Background()
 			registryAuth := auth.TransformAuth(testLog(), "token")
-			result, err := auth.GetToken(testLog(), ctx, mockContainerWithServer, registryAuth, client, "")
+			result, err := auth.GetToken(testLog(), ctx, mockContainerWithServer, registryAuth, client, testRegistry, "")
 			token := result.Token
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
@@ -1967,13 +1976,14 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			ctx := context.Background()
 
-			viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", true)
-			defer viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", false)
+			testRegistry.TLSSkip = true
+			defer func() { testRegistry.TLSSkip = false }()
 
 			registryAuth := auth.TransformAuth(testLog(), "token")
 			result, err := digest.CompareDigest(testLog(), ctx,
 				mockContainerWithServer,
 				registryAuth,
+				testRegistry,
 			)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			gomega.Expect(result).To(gomega.BeTrue())
@@ -1983,8 +1993,8 @@ var _ = ginkgo.Describe("Digests", func() {
 		ginkgo.It("should parse valid JSON manifest with digest field", func() {
 			defer ginkgo.GinkgoRecover()
 
-			viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", true)
-			defer viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", false)
+			testRegistry.TLSSkip = true
+			defer func() { testRegistry.TLSSkip = false }()
 
 			serverAddr := server.Addr()
 			mockImageRef := serverAddr + "/test/image:latest"
@@ -2027,7 +2037,7 @@ var _ = ginkgo.Describe("Digests", func() {
 			client := newTestAuthClient()
 			ctx := context.Background()
 			registryAuth := auth.TransformAuth(testLog(), "token")
-			result, err := auth.GetToken(testLog(), ctx, mockContainerWithServer, registryAuth, client, "")
+			result, err := auth.GetToken(testLog(), ctx, mockContainerWithServer, registryAuth, client, testRegistry, "")
 			token := result.Token
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
@@ -2058,8 +2068,8 @@ var _ = ginkgo.Describe("Digests", func() {
 		ginkgo.It("should handle JSON manifest with empty digest field", func() {
 			defer ginkgo.GinkgoRecover()
 
-			viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", true)
-			defer viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", false)
+			testRegistry.TLSSkip = true
+			defer func() { testRegistry.TLSSkip = false }()
 
 			serverAddr := server.Addr()
 			mockImageRef := serverAddr + "/test/image:latest"
@@ -2098,7 +2108,7 @@ var _ = ginkgo.Describe("Digests", func() {
 			client := newTestAuthClient()
 			ctx := context.Background()
 			registryAuth := auth.TransformAuth(testLog(), "token")
-			result, err := auth.GetToken(testLog(), ctx, mockContainerWithServer, registryAuth, client, "")
+			result, err := auth.GetToken(testLog(), ctx, mockContainerWithServer, registryAuth, client, testRegistry, "")
 			token := result.Token
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
@@ -2130,8 +2140,8 @@ var _ = ginkgo.Describe("Digests", func() {
 		ginkgo.It("should handle JSON manifest without digest field", func() {
 			defer ginkgo.GinkgoRecover()
 
-			viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", true)
-			defer viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", false)
+			testRegistry.TLSSkip = true
+			defer func() { testRegistry.TLSSkip = false }()
 
 			serverAddr := server.Addr()
 			mockImageRef := serverAddr + "/test/image:latest"
@@ -2170,7 +2180,7 @@ var _ = ginkgo.Describe("Digests", func() {
 			client := newTestAuthClient()
 			ctx := context.Background()
 			registryAuth := auth.TransformAuth(testLog(), "token")
-			result, err := auth.GetToken(testLog(), ctx, mockContainerWithServer, registryAuth, client, "")
+			result, err := auth.GetToken(testLog(), ctx, mockContainerWithServer, registryAuth, client, testRegistry, "")
 			token := result.Token
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
@@ -2202,8 +2212,8 @@ var _ = ginkgo.Describe("Digests", func() {
 		ginkgo.It("should handle invalid plain text digest format", func() {
 			defer ginkgo.GinkgoRecover()
 
-			viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", true)
-			defer viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", false)
+			testRegistry.TLSSkip = true
+			defer func() { testRegistry.TLSSkip = false }()
 
 			serverAddr := server.Addr()
 			mockImageRef := serverAddr + "/test/image:latest"
@@ -2240,7 +2250,7 @@ var _ = ginkgo.Describe("Digests", func() {
 			client := newTestAuthClient()
 			ctx := context.Background()
 			registryAuth := auth.TransformAuth(testLog(), "token")
-			result, err := auth.GetToken(testLog(), ctx, mockContainerWithServer, registryAuth, client, "")
+			result, err := auth.GetToken(testLog(), ctx, mockContainerWithServer, registryAuth, client, testRegistry, "")
 			token := result.Token
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
@@ -2272,8 +2282,8 @@ var _ = ginkgo.Describe("Digests", func() {
 		ginkgo.It("should handle short plain text digest", func() {
 			defer ginkgo.GinkgoRecover()
 
-			viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", true)
-			defer viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", false)
+			testRegistry.TLSSkip = true
+			defer func() { testRegistry.TLSSkip = false }()
 
 			serverAddr := server.Addr()
 			mockImageRef := serverAddr + "/test/image:latest"
@@ -2310,7 +2320,7 @@ var _ = ginkgo.Describe("Digests", func() {
 			client := newTestAuthClient()
 			ctx := context.Background()
 			registryAuth := auth.TransformAuth(testLog(), "token")
-			result, err := auth.GetToken(testLog(), ctx, mockContainerWithServer, registryAuth, client, "")
+			result, err := auth.GetToken(testLog(), ctx, mockContainerWithServer, registryAuth, client, testRegistry, "")
 			token := result.Token
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
@@ -2363,8 +2373,8 @@ var _ = ginkgo.Describe("Digests", func() {
 		ginkgo.It("should update the manifest URL host based on challenge response", func() {
 			defer ginkgo.GinkgoRecover()
 
-			viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", true)
-			defer viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", false)
+			testRegistry.TLSSkip = true
+			defer func() { testRegistry.TLSSkip = false }()
 
 			server := ghttp.NewServer()
 			defer server.Close()
@@ -2428,7 +2438,7 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			ctx := context.Background()
 			registryAuth := auth.TransformAuth(testLog(), "token")
-			result, err := digest.FetchDigest(testLog(), ctx, mockContainerWithServer, registryAuth)
+			result, err := digest.FetchDigest(testLog(), ctx, mockContainerWithServer, registryAuth, testRegistry)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			gomega.Expect(result).
 				To(gomega.Equal("d68e1e532088964195ad3a0a71526bc2f11a78de0def85629beb75e2265f0547"))
@@ -2436,8 +2446,8 @@ var _ = ginkgo.Describe("Digests", func() {
 		ginkgo.It("should conditionally update manifest URL host only when redirected", func() {
 			defer ginkgo.GinkgoRecover()
 
-			viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", true)
-			defer viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", false)
+			testRegistry.TLSSkip = true
+			defer func() { testRegistry.TLSSkip = false }()
 
 			server := ghttp.NewServer()
 			defer server.Close()
@@ -2501,7 +2511,7 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			ctx := context.Background()
 			registryAuth := auth.TransformAuth(testLog(), "token")
-			result, err := digest.FetchDigest(testLog(), ctx, mockContainerWithServer, registryAuth)
+			result, err := digest.FetchDigest(testLog(), ctx, mockContainerWithServer, registryAuth, testRegistry)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			gomega.Expect(result).
 				To(gomega.Equal("d68e1e532088964195ad3a0a71526bc2f11a78de0def85629beb75e2265f0547"))
@@ -2510,8 +2520,8 @@ var _ = ginkgo.Describe("Digests", func() {
 		ginkgo.It("should not update manifest URL host when not redirected", func() {
 			defer ginkgo.GinkgoRecover()
 
-			viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", true)
-			defer viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", false)
+			testRegistry.TLSSkip = true
+			defer func() { testRegistry.TLSSkip = false }()
 
 			server := ghttp.NewServer()
 			defer server.Close()
@@ -2553,7 +2563,7 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			ctx := context.Background()
 			registryAuth := auth.TransformAuth(testLog(), "token")
-			result, err := digest.FetchDigest(testLog(), ctx, mockContainerWithServer, registryAuth)
+			result, err := digest.FetchDigest(testLog(), ctx, mockContainerWithServer, registryAuth, testRegistry)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			gomega.Expect(result).To(gomega.Equal(digest.NormalizeDigest(testLog(), mockDigestHash)))
 		})
@@ -2578,8 +2588,8 @@ var _ = ginkgo.Describe("Digests", func() {
 
 				ctx := context.Background()
 
-				viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", true)
-				defer viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", false)
+				testRegistry.TLSSkip = true
+				defer func() { testRegistry.TLSSkip = false }()
 
 				httpServer := ghttp.NewServer()
 				defer httpServer.Close()
@@ -2611,6 +2621,7 @@ var _ = ginkgo.Describe("Digests", func() {
 				result, err := digest.FetchDigest(testLog(), ctx,
 					mockContainerWithServer,
 					registryAuth,
+					testRegistry,
 				)
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
 				gomega.Expect(result).To(gomega.Equal(digest.NormalizeDigest(testLog(), mockDigestHash)))
@@ -2631,7 +2642,7 @@ var _ = ginkgo.Describe("Digests", func() {
 				client := newTestAuthClient()
 				ctx := context.Background()
 				registryAuth := auth.TransformAuth(testLog(), "token")
-				_, err := auth.GetToken(testLog(), ctx, mockContainerInvalid, registryAuth, client, "")
+				_, err := auth.GetToken(testLog(), ctx, mockContainerInvalid, registryAuth, client, testRegistry, "")
 				gomega.Expect(err).To(gomega.HaveOccurred())
 				gomega.Expect(err.Error()).
 					To(gomega.ContainSubstring("failed to parse image name"))
@@ -2650,7 +2661,7 @@ var _ = ginkgo.Describe("Digests", func() {
 
 				ctx := context.Background()
 				registryAuth := auth.TransformAuth(testLog(), "token")
-				_, err := digest.FetchDigest(testLog(), ctx, mockContainerInvalidURL, registryAuth)
+				_, err := digest.FetchDigest(testLog(), ctx, mockContainerInvalidURL, registryAuth, testRegistry)
 				gomega.Expect(err).To(gomega.HaveOccurred())
 				gomega.Expect(err.Error()).
 					To(gomega.ContainSubstring("failed to build manifest URL"))
@@ -2659,8 +2670,8 @@ var _ = ginkgo.Describe("Digests", func() {
 			ginkgo.It("should handle plain text 404 responses (non-JSON body)", func() {
 				defer ginkgo.GinkgoRecover()
 
-				viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", true)
-				defer viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", false)
+				testRegistry.TLSSkip = true
+				defer func() { testRegistry.TLSSkip = false }()
 
 				serverAddr := server.Addr()
 				mockImageRef := serverAddr + "/test/image:latest"
@@ -2696,7 +2707,7 @@ var _ = ginkgo.Describe("Digests", func() {
 
 				ctx := context.Background()
 				registryAuth := auth.TransformAuth(testLog(), "token")
-				_, err := digest.FetchDigest(testLog(), ctx, mockContainerWithServer, registryAuth)
+				_, err := digest.FetchDigest(testLog(), ctx, mockContainerWithServer, registryAuth, testRegistry)
 				gomega.Expect(err).To(gomega.HaveOccurred())
 				gomega.Expect(err.Error()).
 					To(gomega.ContainSubstring("invalid digest format in body"))
@@ -2705,8 +2716,8 @@ var _ = ginkgo.Describe("Digests", func() {
 			ginkgo.It("should handle OCI image index responses with proper Content-Type", func() {
 				defer ginkgo.GinkgoRecover()
 
-				viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", true)
-				defer viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", false)
+				testRegistry.TLSSkip = true
+				defer func() { testRegistry.TLSSkip = false }()
 
 				serverAddr := server.Addr()
 				mockImageRef := serverAddr + "/test/image:latest"
@@ -2753,6 +2764,7 @@ var _ = ginkgo.Describe("Digests", func() {
 					mockContainerWithServer,
 					registryAuth,
 					client,
+					testRegistry,
 					"",
 				)
 				token := result.Token
@@ -2786,8 +2798,8 @@ var _ = ginkgo.Describe("Digests", func() {
 			ginkgo.It("should handle invalid Content-Type headers", func() {
 				defer ginkgo.GinkgoRecover()
 
-				viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", true)
-				defer viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", false)
+				testRegistry.TLSSkip = true
+				defer func() { testRegistry.TLSSkip = false }()
 
 				serverAddr := server.Addr()
 				mockImageRef := serverAddr + "/test/image:latest"
@@ -2834,6 +2846,7 @@ var _ = ginkgo.Describe("Digests", func() {
 					mockContainerWithServer,
 					registryAuth,
 					client,
+					testRegistry,
 					"",
 				)
 				token := result.Token
@@ -2867,8 +2880,8 @@ var _ = ginkgo.Describe("Digests", func() {
 			ginkgo.It("should handle missing or malformed Content-Type headers", func() {
 				defer ginkgo.GinkgoRecover()
 
-				viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", true)
-				defer viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", false)
+				testRegistry.TLSSkip = true
+				defer func() { testRegistry.TLSSkip = false }()
 
 				serverAddr := server.Addr()
 				mockImageRef := serverAddr + "/test/image:latest"
@@ -2912,6 +2925,7 @@ var _ = ginkgo.Describe("Digests", func() {
 					mockContainerWithServer,
 					registryAuth,
 					client,
+					testRegistry,
 					"",
 				)
 				token := result.Token
@@ -2949,8 +2963,8 @@ var _ = ginkgo.Describe("Digests", func() {
 
 					ctx := context.Background()
 
-					viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", true)
-					defer viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", false)
+					testRegistry.TLSSkip = true
+					defer func() { testRegistry.TLSSkip = false }()
 
 					server := ghttp.NewServer()
 					defer server.Close()
@@ -3013,6 +3027,7 @@ var _ = ginkgo.Describe("Digests", func() {
 					result, err := digest.CompareDigest(testLog(), ctx,
 						mockContainerWithServer,
 						registryAuth,
+						testRegistry,
 					)
 					gomega.Expect(err).NotTo(gomega.HaveOccurred())
 					gomega.Expect(result).To(gomega.BeTrue())
@@ -3044,8 +3059,8 @@ func (f *failingReader) Read(_ []byte) (int, error) {
 }
 
 func TestDigestClient_GetManifest_SlowResponse(t *testing.T) {
-	viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", true)
-	defer viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", false)
+	testRegistry.TLSSkip = true
+	defer func() { testRegistry.TLSSkip = false }()
 
 	mockID := "mock-id"
 	mockName := "mock-container"
@@ -3109,7 +3124,7 @@ func TestDigestClient_GetManifest_SlowResponse(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 25*time.Millisecond)
 	defer cancel()
 
-	_, err := digest.FetchDigest(testLog(), ctx, mockContainerWithServer, registryAuth)
+	_, err := digest.FetchDigest(testLog(), ctx, mockContainerWithServer, registryAuth, testRegistry)
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -3124,7 +3139,7 @@ func TestDigestClient_GetManifest_SlowResponse(t *testing.T) {
 }
 
 func getScheme() string {
-	if viper.GetBool("WATCHTOWER_REGISTRY_TLS_SKIP") {
+	if testRegistry.TLSSkip {
 		return httpScheme
 	}
 

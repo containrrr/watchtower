@@ -10,8 +10,8 @@ import (
 
 	"github.com/distribution/reference"
 	"github.com/rs/zerolog"
-	"github.com/spf13/viper"
 
+	registryConfig "github.com/nicholas-fedor/watchtower/internal/config/registry"
 	"github.com/nicholas-fedor/watchtower/internal/meta"
 	"github.com/nicholas-fedor/watchtower/pkg/registry/ratelimit"
 	"github.com/nicholas-fedor/watchtower/pkg/types"
@@ -56,14 +56,13 @@ type challengeResponse struct {
 // Parameters:
 //   - log: Logger for scheme selection diagnostics.
 //   - host: The registry host.
+//   - settings: Registry request settings.
 //
 // Returns:
 //   - string: The resolved scheme ("http" or "https").
-func resolveChallengeScheme(log *zerolog.Logger, host string) string {
-	scheme := "https"
-	if viper.GetBool("WATCHTOWER_REGISTRY_TLS_SKIP") {
-		scheme = "http"
-
+func resolveChallengeScheme(log *zerolog.Logger, host string, settings registryConfig.Registry) string {
+	scheme := Scheme(settings)
+	if settings.TLSSkip {
 		log.Debug().
 			Str("host", host).
 			Msg("Using HTTP scheme due to WATCHTOWER_REGISTRY_TLS_SKIP")
@@ -112,14 +111,20 @@ func resolveEndpointHost(endpoint, canonical, scheme string) (string, string) {
 // Parameters:
 //   - log: Logger for diagnostics.
 //   - imageRef: Normalized image reference.
+//   - settings: Registry request settings.
 //   - endpoint: Optional registry host override (for example a mirror address). Empty uses the canonical host.
 //
 // Returns:
 //   - url.URL: Generated challenge URL.
-func GetChallengeURL(log *zerolog.Logger, imageRef reference.Named, endpoint string) url.URL {
+func GetChallengeURL(
+	log *zerolog.Logger,
+	imageRef reference.Named,
+	settings registryConfig.Registry,
+	endpoint string,
+) url.URL {
 	host, _ := GetRegistryAddress(log, imageRef.Name())
 
-	scheme := resolveChallengeScheme(log, host)
+	scheme := resolveChallengeScheme(log, host, settings)
 
 	endpointHost, endpointScheme := resolveEndpointHost(endpoint, host, scheme)
 	if endpoint != "" {
@@ -290,6 +295,7 @@ func handleUnsupportedChallenge(log *zerolog.Logger, challenge string) (TokenRes
 //   - container: Container with image info.
 //   - registryAuth: Base64-encoded auth string.
 //   - client: Client for HTTP requests.
+//   - settings: Registry request settings.
 //   - redirected: Whether the challenge request was redirected.
 //   - redirectHost: The final host after redirects.
 //   - originalHost: The original registry host the challenge request was sent to.
@@ -306,6 +312,7 @@ func processChallengeResponse(
 	container types.Container,
 	registryAuth string,
 	client Client,
+	settings registryConfig.Registry,
 	redirected bool,
 	redirectHost string,
 	originalHost string,
@@ -363,6 +370,7 @@ func processChallengeResponse(
 			container,
 			registryAuth,
 			client,
+			settings,
 			redirected,
 			redirectHost,
 		)
@@ -380,6 +388,7 @@ func processChallengeResponse(
 //   - container: Container with image info.
 //   - registryAuth: Base64-encoded auth string.
 //   - client: Client for HTTP requests.
+//   - settings: Registry request settings.
 //   - redirected: Whether the challenge request was redirected.
 //   - redirectHost: The final host after redirects.
 //
@@ -393,6 +402,7 @@ func handleBearerAuth(
 	container types.Container,
 	registryAuth string,
 	client Client,
+	settings registryConfig.Registry,
 	redirected bool,
 	redirectHost string,
 ) (TokenResult, error) {
@@ -412,6 +422,7 @@ func handleBearerAuth(
 		strings.ToLower(wwwAuthHeader),
 		normalizedRef,
 		registryAuth,
+		settings,
 	)
 	if err != nil {
 		log.Debug().
@@ -435,6 +446,7 @@ func handleBearerAuth(
 		normalizedRef,
 		registryAuth,
 		client,
+		settings,
 	)
 	if err != nil {
 		log.Debug().
@@ -481,6 +493,7 @@ func handleBearerAuth(
 //   - container: Container with image info.
 //   - registryAuth: Base64-encoded auth string.
 //   - client: Client for HTTP requests.
+//   - settings: Registry request settings.
 //   - endpoint: Optional registry host override (for example a mirror address). Empty uses the canonical host.
 //
 // Returns:
@@ -492,6 +505,7 @@ func GetToken(
 	container types.Container,
 	registryAuth string,
 	client Client,
+	settings registryConfig.Registry,
 	endpoint string,
 ) (TokenResult, error) {
 	// Scope all subsequent logs in this call with the image name.
@@ -522,7 +536,7 @@ func GetToken(
 	}
 
 	// Generate the challenge URL, using the endpoint override if provided.
-	challengeURL := GetChallengeURL(&clog, normalizedRef, endpoint)
+	challengeURL := GetChallengeURL(&clog, normalizedRef, settings, endpoint)
 	clog.Debug().
 		Str("url", challengeURL.String()).
 		Msg("Constructed challenge URL")
@@ -605,6 +619,7 @@ func GetToken(
 		container,
 		registryAuth,
 		client,
+		settings,
 		redirected,
 		redirectHost,
 		challengeURL.Host,

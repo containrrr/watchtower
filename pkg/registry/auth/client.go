@@ -10,7 +10,8 @@ import (
 	"time"
 
 	"github.com/rs/zerolog"
-	"github.com/spf13/viper"
+
+	registryConfig "github.com/nicholas-fedor/watchtower/internal/config/registry"
 )
 
 // Constants for HTTP client configuration.
@@ -35,10 +36,13 @@ var TLSVersionMap = map[string]uint16{
 	"TLS1.3": tls.VersionTLS13,
 }
 
-// Cached client variables for HTTP client reuse.
+// Cached clients, one per TLS configuration, so registry requests made with
+// the same settings share one connection pool.
 var (
-	cachedClient   Client    // Cached HTTP client for registry authentication requests.
-	clientInitOnce sync.Once // Ensures the cached client is initialized only once.
+	// clientsMu guards clients.
+	clientsMu sync.Mutex
+	// clients maps a TLS configuration to the Client built for it.
+	clients = map[clientKey]Client{}
 )
 
 // Client defines the interface for executing HTTP requests to container registries.
@@ -55,6 +59,14 @@ type Client interface {
 	//   - *http.Response: The HTTP response from the registry, if successful.
 	//   - error: Non-nil if the request fails, nil otherwise.
 	Do(req *http.Request) (*http.Response, error)
+}
+
+// clientKey identifies the TLS configuration a cached Client was built with.
+type clientKey struct {
+	// minVersion is the resolved minimum TLS version.
+	minVersion uint16
+	// skipVerify reports whether certificate verification is disabled.
+	skipVerify bool
 }
 
 // registryClient is a concrete implementation of the Client interface.
@@ -85,15 +97,16 @@ func (r *registryClient) Do(request *http.Request) (*http.Response, error) {
 	return response, nil
 }
 
-// ConfigureTLS builds a TLS configuration from Viper settings.
+// ConfigureTLS applies the registry TLS settings to a TLS configuration.
 //
 // Parameters:
 //   - log: Logger for TLS diagnostics. May be nil (events are skipped).
 //   - tlsConfig: The base TLS configuration to modify.
-func ConfigureTLS(log *zerolog.Logger, tlsConfig *tls.Config) {
-	// Configure TLS verification based on WATCHTOWER_REGISTRY_TLS_SKIP.
-	// InsecureSkipVerify is intentional when WATCHTOWER_REGISTRY_TLS_SKIP is set.
-	if viper.GetBool("WATCHTOWER_REGISTRY_TLS_SKIP") {
+//   - settings: Registry request settings.
+func ConfigureTLS(log *zerolog.Logger, tlsConfig *tls.Config, settings registryConfig.Registry) {
+	// InsecureSkipVerify is intentional when the registry-tls-skip
+	// configuration option is set.
+	if settings.TLSSkip {
 		tlsConfig.InsecureSkipVerify = true
 
 		if log != nil {
@@ -102,23 +115,42 @@ func ConfigureTLS(log *zerolog.Logger, tlsConfig *tls.Config) {
 		}
 	}
 
-	// Configure minimum TLS version based on WATCHTOWER_REGISTRY_TLS_MIN_VERSION.
-	minVersion := viper.GetString("WATCHTOWER_REGISTRY_TLS_MIN_VERSION")
+	minVersion := settings.TLSMinVersion
 	if minVersion != "" {
-		version, ok := TLSVersionMap[strings.ToUpper(minVersion)]
-		if ok {
-			tlsConfig.MinVersion = version
-		} else {
-			if log != nil {
-				log.Warn().
-					Str("configured_version", minVersion).
-					Str("fallback_version", "TLS1.2").
-					Msg("Invalid WATCHTOWER_REGISTRY_TLS_MIN_VERSION. Falling back to TLS 1.2")
-			}
-
-			tlsConfig.MinVersion = tls.VersionTLS12
+		version, ok := minTLSVersion(minVersion)
+		if !ok && log != nil {
+			log.Warn().
+				Str("configured_version", minVersion).
+				Str("fallback_version", "TLS1.2").
+				Msg("Invalid WATCHTOWER_REGISTRY_TLS_MIN_VERSION. Falling back to TLS 1.2")
 		}
+
+		tlsConfig.MinVersion = version
 	}
+}
+
+// minTLSVersion resolves a configured minimum TLS version name.
+//
+// Names are matched case-insensitively. An empty name means TLS 1.2, and a
+// name that TLSVersionMap does not accept falls back to TLS 1.2.
+//
+// Parameters:
+//   - name: Configured minimum TLS version, such as "TLS1.3".
+//
+// Returns:
+//   - uint16: The resolved TLS version.
+//   - bool: False when a non-empty name was not accepted.
+func minTLSVersion(name string) (uint16, bool) {
+	if name == "" {
+		return tls.VersionTLS12, true
+	}
+
+	version, ok := TLSVersionMap[strings.ToUpper(name)]
+	if !ok {
+		return tls.VersionTLS12, false
+	}
+
+	return version, true
 }
 
 // buildRegistryTransport creates an HTTP transport with the given TLS configuration.
@@ -164,30 +196,59 @@ func buildRegistryClient(tlsConfig *tls.Config) *http.Client {
 	}
 }
 
-// NewAuthClient returns a cached Client for registry authentication requests.
+// NewAuthClient returns the Client for registry requests made with settings.
 //
-// The client is initialized once on the first call using Viper configuration
-// values WATCHTOWER_REGISTRY_TLS_SKIP and WATCHTOWER_REGISTRY_TLS_MIN_VERSION.
-// Subsequent calls return the same cached client instance. The client is configured
-// with default timeouts and connection limits for registry access.
+// Clients are cached by their resolved TLS configuration, so calls whose
+// settings resolve to the same configuration share one client and its
+// connection pool, and calls with different settings get clients configured
+// for them. The client is configured with default
+// timeouts and connection limits for registry access.
 //
 // Parameters:
-//   - log: Logger for TLS configuration diagnostics on first initialization.
+//   - log: Logger for TLS configuration diagnostics when a client is built.
 //     May be nil (invalid-version warning is skipped).
+//   - settings: Registry request settings.
 //
 // Returns:
 //   - Client: Ready for registry authentication requests.
-func NewAuthClient(log *zerolog.Logger) Client {
-	clientInitOnce.Do(func() {
-		tlsConfig := &tls.Config{
-			MinVersion: tls.VersionTLS12, // Default to TLS 1.2 for secure communication.
-		}
+func NewAuthClient(log *zerolog.Logger, settings registryConfig.Registry) Client {
+	minVersion, _ := minTLSVersion(settings.TLSMinVersion)
+	key := clientKey{minVersion: minVersion, skipVerify: settings.TLSSkip}
 
-		ConfigureTLS(log, tlsConfig)
-		cachedClient = &registryClient{
-			client: buildRegistryClient(tlsConfig),
-		}
-	})
+	clientsMu.Lock()
+	defer clientsMu.Unlock()
 
-	return cachedClient
+	cached, ok := clients[key]
+	if ok {
+		return cached
+	}
+
+	tlsConfig := &tls.Config{
+		MinVersion: tls.VersionTLS12, // Default to TLS 1.2 for secure communication.
+	}
+
+	ConfigureTLS(log, tlsConfig, settings)
+
+	client := &registryClient{
+		client: buildRegistryClient(tlsConfig),
+	}
+	clients[key] = client
+
+	return client
+}
+
+// Scheme returns the URL scheme for registry requests made with settings.
+//
+// Parameters:
+//   - settings: Registry request settings.
+//
+// Returns:
+//   - string: "http" when the registry-tls-skip configuration option is set,
+//     otherwise "https".
+func Scheme(settings registryConfig.Registry) string {
+	if settings.TLSSkip {
+		return "http"
+	}
+
+	return "https"
 }

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	mockActions "github.com/nicholas-fedor/watchtower/internal/actions/mocks"
+	registryConfig "github.com/nicholas-fedor/watchtower/internal/config/registry"
 	"github.com/nicholas-fedor/watchtower/pkg/registry/digest"
 )
 
@@ -140,11 +141,8 @@ func FuzzBuildManifestURL(f *testing.F) {
 			time.Now(),
 		)
 
-		// Ensure WATCHTOWER_REGISTRY_TLS_SKIP is set to false for https scheme
-		t.Setenv("WATCHTOWER_REGISTRY_TLS_SKIP", "false")
-
 		// Call buildManifestURL because we don't care about the result, only that it doesn't panic
-		_, _, _, _ = digest.BuildManifestURL(testLog(), mockContainer, hostOverride)
+		_, _, _, _ = digest.BuildManifestURL(testLog(), mockContainer, registryConfig.Registry{}, hostOverride)
 	})
 }
 

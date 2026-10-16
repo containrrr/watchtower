@@ -15,6 +15,7 @@ import (
 	dockerspec "github.com/moby/docker-image-spec/specs-go/v1"
 	dockerClient "github.com/moby/moby/client"
 
+	registryConfig "github.com/nicholas-fedor/watchtower/internal/config/registry"
 	"github.com/nicholas-fedor/watchtower/pkg/container/oci"
 )
 
@@ -112,7 +113,7 @@ func TestImageClientImageAnnotations(t *testing.T) {
 			},
 		})
 
-		got := newImageClient(newInspectClient(t, srv), testLog()).
+		got := newImageClient(newInspectClient(t, srv), testLog(), registryConfig.Registry{}).
 			GetImageAnnotations(t.Context(), "app:latest")
 
 		assert.Equal(t, "https://github.com/org/app.git", got.Source)
@@ -129,7 +130,7 @@ func TestImageClientImageAnnotations(t *testing.T) {
 			Labels: map[string]string{"com.centurylinklabs.watchtower": "true"},
 		})
 
-		got := newImageClient(newInspectClient(t, srv), testLog()).
+		got := newImageClient(newInspectClient(t, srv), testLog(), registryConfig.Registry{}).
 			GetImageAnnotations(t.Context(), "app:latest")
 
 		assert.Equal(t, oci.Annotations{}, got)
@@ -140,7 +141,7 @@ func TestImageClientImageAnnotations(t *testing.T) {
 
 		srv := newInspectServer(t, nil)
 
-		got := newImageClient(newInspectClient(t, srv), testLog()).
+		got := newImageClient(newInspectClient(t, srv), testLog(), registryConfig.Registry{}).
 			GetImageAnnotations(t.Context(), "app:latest")
 
 		assert.Equal(t, oci.Annotations{}, got)
@@ -153,7 +154,7 @@ func TestImageClientImageAnnotations(t *testing.T) {
 			Labels: map[string]string{oci.VersionLabel: "1.2.3"},
 		})
 
-		got := newImageClient(newInspectClient(t, srv), testLog()).
+		got := newImageClient(newInspectClient(t, srv), testLog(), registryConfig.Registry{}).
 			GetImageAnnotations(t.Context(), "")
 
 		assert.Equal(t, oci.Annotations{}, got)
@@ -165,7 +166,7 @@ func TestImageClientImageAnnotations(t *testing.T) {
 
 		srv := newNotFoundInspectServer(t)
 
-		got := newImageClient(newInspectClient(t, srv), testLog()).
+		got := newImageClient(newInspectClient(t, srv), testLog(), registryConfig.Registry{}).
 			GetImageAnnotations(t.Context(), "missing:latest")
 
 		assert.Equal(t, oci.Annotations{}, got)

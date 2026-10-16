@@ -15,8 +15,8 @@ import (
 	"github.com/maypok86/otter/v2"
 	"github.com/maypok86/otter/v2/stats"
 	"github.com/rs/zerolog"
-	"github.com/spf13/viper"
 
+	registryConfig "github.com/nicholas-fedor/watchtower/internal/config/registry"
 	"github.com/nicholas-fedor/watchtower/pkg/registry/hosts"
 	"github.com/nicholas-fedor/watchtower/pkg/registry/ratelimit"
 	"github.com/nicholas-fedor/watchtower/pkg/types"
@@ -108,6 +108,7 @@ func initTokenCache(log *zerolog.Logger) {
 //   - imageRef: Normalized image reference for scoping the token request.
 //   - registryAuth: Base64-encoded auth string (e.g., "username:password").
 //   - client: Client instance for executing HTTP requests.
+//   - settings: Registry request settings.
 //
 // Returns:
 //   - string: Bearer token header (e.g., "Bearer ...") if successful.
@@ -118,6 +119,7 @@ func GetBearerToken(log *zerolog.Logger,
 	imageRef reference.Named,
 	registryAuth string,
 	client Client,
+	settings registryConfig.Registry,
 ) (string, error) {
 	clog := log.With().Str("image", imageRef.Name()).Logger()
 	clog.Debug().Msg("Fetching bearer token from challenge")
@@ -127,6 +129,7 @@ func GetBearerToken(log *zerolog.Logger,
 		challenge,
 		imageRef,
 		registryAuth,
+		settings,
 	)
 	if err != nil {
 		return "", fmt.Errorf("%w: %w", errFailedConstructBearerAuthURL, err)
@@ -138,6 +141,7 @@ func GetBearerToken(log *zerolog.Logger,
 		imageRef.Name(),
 		registryAuth,
 		client,
+		settings,
 	)
 	if err != nil {
 		return "", err
@@ -162,6 +166,7 @@ func GetBearerToken(log *zerolog.Logger,
 //   - imageName: Image name for logging context.
 //   - registryAuth: Base64-encoded auth string.
 //   - client: Client for HTTP requests.
+//   - settings: Registry request settings.
 //
 // Returns:
 //   - string: Bearer token header (e.g., "Bearer ...").
@@ -172,6 +177,7 @@ func executeBearerTokenRequest(log *zerolog.Logger,
 	imageName string,
 	registryAuth string,
 	client Client,
+	settings registryConfig.Registry,
 ) (string, error) {
 	initTokenCache(log)
 
@@ -208,6 +214,7 @@ func executeBearerTokenRequest(log *zerolog.Logger,
 		imageName,
 		registryAuth,
 		client,
+		settings,
 	)
 	if err != nil {
 		return "", err
@@ -355,6 +362,7 @@ func cachedAnonymousGHCRToken(
 //   - imageName: Image name for logging context.
 //   - registryAuth: Base64-encoded auth string.
 //   - client: Client for HTTP requests.
+//   - settings: Registry request settings.
 //
 // Returns:
 //   - string: Bearer token value (without "Bearer " prefix).
@@ -366,13 +374,14 @@ func performBearerTokenFetch(log *zerolog.Logger,
 	imageName string,
 	registryAuth string,
 	client Client,
+	settings registryConfig.Registry,
 ) (string, time.Time, error) {
 	r, err := newBearerRequest(log, ctx, authURL, imageName)
 	if err != nil {
 		return "", time.Time{}, err
 	}
 
-	addBasicAuth(log, r, imageName, registryAuth)
+	addBasicAuth(log, r, imageName, registryAuth, settings)
 	log.Debug().
 		Str("url", r.URL.String()).
 		Msg("Sending bearer token request")
@@ -463,7 +472,13 @@ func newBearerRequest(log *zerolog.Logger, ctx context.Context, authURL *url.URL
 //   - request: HTTP request to modify.
 //   - imageName: Image name for logging context.
 //   - registryAuth: Base64-encoded auth string.
-func addBasicAuth(log *zerolog.Logger, request *http.Request, imageName, registryAuth string) {
+//   - settings: Registry request settings.
+func addBasicAuth(
+	log *zerolog.Logger,
+	request *http.Request,
+	imageName, registryAuth string,
+	settings registryConfig.Registry,
+) {
 	if registryAuth == "" {
 		log.Debug().
 			Str("image", imageName).
@@ -472,7 +487,7 @@ func addBasicAuth(log *zerolog.Logger, request *http.Request, imageName, registr
 		return
 	}
 
-	if request.URL.Scheme != "https" && !viper.GetBool("WATCHTOWER_REGISTRY_TLS_SKIP") {
+	if request.URL.Scheme != "https" && !settings.TLSSkip {
 		log.Debug().
 			Str("image", imageName).
 			Str("scheme", request.URL.Scheme).
@@ -684,11 +699,18 @@ func buildAuthQuery(log *zerolog.Logger, authURL *url.URL, values challengeValue
 //   - challenge: Challenge string from the registry.
 //   - imageRef: Normalized image reference.
 //   - registryAuth: Base64-encoded auth string, empty if not provided.
+//   - settings: Registry request settings.
 //
 // Returns:
 //   - *url.URL: Constructed auth URL if successful.
 //   - error: Non-nil if parsing fails, nil on success.
-func GetAuthURL(log *zerolog.Logger, challenge string, imageRef reference.Named, registryAuth string) (*url.URL, error) {
+func GetAuthURL(
+	log *zerolog.Logger,
+	challenge string,
+	imageRef reference.Named,
+	registryAuth string,
+	settings registryConfig.Registry,
+) (*url.URL, error) {
 	values := parseChallenge(challenge)
 
 	values.service = resolveService(log, values, imageRef.Name())
@@ -742,7 +764,7 @@ func GetAuthURL(log *zerolog.Logger, challenge string, imageRef reference.Named,
 
 	// Reject HTTP realms when Basic authentication is attached unless the
 	// insecure-registry opt-in explicitly allows plaintext token endpoints.
-	if authURL.Scheme == "http" && registryAuth != "" && !viper.GetBool("WATCHTOWER_REGISTRY_TLS_SKIP") {
+	if authURL.Scheme == "http" && registryAuth != "" && !settings.TLSSkip {
 		log.Debug().
 			Str("image", imageRef.Name()).
 			Str("realm", values.realm).

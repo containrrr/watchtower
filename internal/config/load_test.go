@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/nicholas-fedor/watchtower/internal/config/git"
+	"github.com/nicholas-fedor/watchtower/internal/config/registry"
 	"github.com/nicholas-fedor/watchtower/internal/config/update"
 	"github.com/nicholas-fedor/watchtower/internal/flags"
 	"github.com/nicholas-fedor/watchtower/pkg/types"
@@ -348,12 +349,39 @@ func TestLoadFilter(t *testing.T) {
 	})
 }
 
+// TestLoadRegistry verifies that loadRegistry reads the TLS settings from
+// their flags and the cooldown platform from its environment variables, and
+// leaves an unset platform empty so the registry client uses the runtime
+// platform.
 func TestLoadRegistry(t *testing.T) {
-	vCfg, _, _ := bindLoad(t, "--registry-tls-skip", "--registry-tls-min-version", "1.3")
+	t.Run("set", func(t *testing.T) {
+		t.Setenv("WATCHTOWER_COOLDOWN_PLATFORM_OS", "windows")
+		t.Setenv("WATCHTOWER_COOLDOWN_PLATFORM_ARCH", "arm")
+		t.Setenv("WATCHTOWER_COOLDOWN_PLATFORM_VARIANT", "v7")
 
-	got := loadRegistry(vCfg)
-	assert.True(t, got.TLSSkip)
-	assert.Equal(t, "1.3", got.TLSMinVersion)
+		vCfg, _, _ := bindLoad(t, "--registry-tls-skip", "--registry-tls-min-version", "1.3")
+
+		assert.Equal(t, registry.Registry{
+			CooldownPlatform: registry.Platform{OS: "windows", Architecture: "arm", Variant: "v7"},
+			TLSMinVersion:    "1.3",
+			TLSSkip:          true,
+		}, loadRegistry(vCfg))
+	})
+
+	t.Run("unset", func(t *testing.T) {
+		for _, key := range []string{
+			"WATCHTOWER_COOLDOWN_PLATFORM_OS",
+			"WATCHTOWER_COOLDOWN_PLATFORM_ARCH",
+			"WATCHTOWER_COOLDOWN_PLATFORM_VARIANT",
+		} {
+			t.Setenv(key, "")
+			require.NoError(t, os.Unsetenv(key))
+		}
+
+		vCfg, _, _ := bindLoad(t)
+
+		assert.Equal(t, registry.Registry{TLSMinVersion: "TLS1.2"}, loadRegistry(vCfg))
+	})
 }
 
 func TestLoadAPI(t *testing.T) {

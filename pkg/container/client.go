@@ -20,6 +20,7 @@ import (
 	dockerContainer "github.com/moby/moby/api/types/container"
 	dockerClient "github.com/moby/moby/client"
 
+	registryConfig "github.com/nicholas-fedor/watchtower/internal/config/registry"
 	"github.com/nicholas-fedor/watchtower/internal/flags"
 	"github.com/nicholas-fedor/watchtower/pkg/container/oci"
 	"github.com/nicholas-fedor/watchtower/pkg/registry"
@@ -457,6 +458,8 @@ type ClientOptions struct {
 	CPUCopyMode             string
 	WarnOnHeadFailed        WarningStrategy
 	Fs                      afero.Fs
+	// Registry holds the settings for registry digest and image age requests.
+	Registry registryConfig.Registry
 }
 
 // NewClient initializes a new Client instance for Docker API interactions.
@@ -1179,7 +1182,7 @@ func (c *client) IsContainerStale(
 	params types.UpdateParams,
 ) (bool, types.ImageID, string, error) {
 	// Use image client to perform staleness check.
-	imgClient := newImageClient(c.api, c.logger())
+	imgClient := newImageClient(c.api, c.logger(), c.Registry)
 
 	stale, newestImage, latestDigest, err := imgClient.IsContainerStale(
 		ctx,
@@ -1222,7 +1225,7 @@ func (c *client) CheckContainerUpdate(
 	container types.Container,
 	params types.UpdateParams,
 ) (bool, types.ImageID, string, error) {
-	imgClient := newImageClient(c.api, c.logger())
+	imgClient := newImageClient(c.api, c.logger(), c.Registry)
 
 	available, newestImage, latestDigest, err := imgClient.CheckContainerUpdate(
 		ctx,
@@ -1257,7 +1260,7 @@ func (c *client) CheckContainerUpdate(
 // Returns:
 //   - oci.Annotations: Annotations from the image config labels, or empty.
 func (c *client) GetImageAnnotations(ctx context.Context, imageRef string) oci.Annotations {
-	imgClient := newImageClient(c.api, c.logger())
+	imgClient := newImageClient(c.api, c.logger(), c.Registry)
 
 	return imgClient.GetImageAnnotations(ctx, imageRef)
 }
@@ -1450,7 +1453,7 @@ func (c *client) RemoveImageByID(
 	imageName string,
 ) error {
 	// Use image client to remove the image.
-	imgClient := newImageClient(c.api, c.logger())
+	imgClient := newImageClient(c.api, c.logger(), c.Registry)
 
 	err := imgClient.RemoveImageByID(ctx, imageID, imageName)
 	if err != nil {

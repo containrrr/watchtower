@@ -59,5 +59,6 @@ func (c Config) UpdateParams(overrides RunOverrides) types.UpdateParams {
 		GitContext:          c.Git.Context,
 		GitComposeStash:     c.Git.ComposeStash,
 		ComposeProjects:     c.Git.ComposeProjects,
+		Registry:            c.Registry,
 	}
 }

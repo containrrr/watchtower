@@ -19,6 +19,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	registryConfig "github.com/nicholas-fedor/watchtower/internal/config/registry"
 	"github.com/nicholas-fedor/watchtower/internal/logging"
 	"github.com/nicholas-fedor/watchtower/pkg/registry/ratelimit"
 	mockTypes "github.com/nicholas-fedor/watchtower/pkg/types/mocks"
@@ -610,7 +611,7 @@ func TestBuildManifestURLForAge(t *testing.T) {
 
 		container := newMockContainer(t, "alpine:3.19")
 
-		gotURL, gotHost, gotParsed, err := buildManifestURLForAge(testLog(), container, "")
+		gotURL, gotHost, gotParsed, err := buildManifestURLForAge(testLog(), container, registryConfig.Registry{}, "")
 		require.NoError(t, err)
 
 		assert.Contains(t, gotURL, "/v2/library/alpine/manifests/3.19")
@@ -618,12 +619,27 @@ func TestBuildManifestURLForAge(t *testing.T) {
 		assert.NotNil(t, gotParsed)
 	})
 
+	t.Run("scheme follows the TLS skip setting", func(t *testing.T) {
+		t.Parallel()
+
+		container := newMockContainer(t, "alpine:3.19")
+
+		secureURL, _, _, err := buildManifestURLForAge(testLog(), container, registryConfig.Registry{}, "")
+		require.NoError(t, err)
+
+		plainURL, _, _, err := buildManifestURLForAge(testLog(), container, registryConfig.Registry{TLSSkip: true}, "")
+		require.NoError(t, err)
+
+		assert.True(t, strings.HasPrefix(secureURL, "https://"), "got %s", secureURL)
+		assert.True(t, strings.HasPrefix(plainURL, "http://"), "got %s", plainURL)
+	})
+
 	t.Run("host override replaces host", func(t *testing.T) {
 		t.Parallel()
 
 		container := newMockContainer(t, "alpine:3.19")
 
-		gotURL, _, _, err := buildManifestURLForAge(testLog(), container, "custom.registry.io")
+		gotURL, _, _, err := buildManifestURLForAge(testLog(), container, registryConfig.Registry{}, "custom.registry.io")
 		require.NoError(t, err)
 
 		assert.Contains(t, gotURL, "custom.registry.io")
@@ -635,7 +651,7 @@ func TestBuildManifestURLForAge(t *testing.T) {
 
 		container := newMockContainer(t, "lscr.io/owner/image:tag")
 
-		gotURL, gotHost, _, err := buildManifestURLForAge(testLog(), container, "")
+		gotURL, gotHost, _, err := buildManifestURLForAge(testLog(), container, registryConfig.Registry{}, "")
 		require.NoError(t, err)
 
 		assert.Equal(t, "ghcr.io", gotHost)

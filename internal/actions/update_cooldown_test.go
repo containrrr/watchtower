@@ -11,7 +11,6 @@ import (
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
-	"github.com/spf13/viper"
 
 	"github.com/nicholas-fedor/watchtower/internal/actions"
 	mockActions "github.com/nicholas-fedor/watchtower/internal/actions/mocks"
@@ -127,24 +126,12 @@ func cooldownConfig(cooldownDelay time.Duration) types.UpdateParams {
 }
 
 var _ = ginkgo.Describe("the update action cooldown", func() {
-	var (
-		registryServer *ghttp.Server
-		origTLSSkip    bool
-	)
-
-	ginkgo.BeforeEach(func() {
-		// Save and set WATCHTOWER_REGISTRY_TLS_SKIP so registry code uses http://.
-		origTLSSkip = viper.GetBool("WATCHTOWER_REGISTRY_TLS_SKIP")
-
-		viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", true)
-	})
+	var registryServer *ghttp.Server
 
 	ginkgo.AfterEach(func() {
 		if registryServer != nil {
 			registryServer.Close()
 		}
-
-		viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", origTLSSkip)
 	})
 
 	ginkgo.When("CooldownDelay is set and image is newer than cooldown", func() {

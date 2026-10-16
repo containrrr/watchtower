@@ -426,11 +426,25 @@ func loadFilter(log *zerolog.Logger, vCfg *viper.Viper, flagSet *pflag.FlagSet, 
 	}, nil
 }
 
-// loadRegistry reads registry TLS settings from Viper.
+// loadRegistry reads the registry request settings.
+//
+// The TLS settings come from Viper. The cooldown platform has no flags and
+// comes from the environment only.
+//
+// Parameters:
+//   - vCfg: Bound Viper instance.
+//
+// Returns:
+//   - registry.Registry: Registry request settings.
 func loadRegistry(vCfg *viper.Viper) registry.Registry {
 	return registry.Registry{
-		TLSSkip:       vCfg.GetBool("registry-tls-skip"),
+		CooldownPlatform: registry.Platform{
+			OS:           os.Getenv("WATCHTOWER_COOLDOWN_PLATFORM_OS"),
+			Architecture: os.Getenv("WATCHTOWER_COOLDOWN_PLATFORM_ARCH"),
+			Variant:      os.Getenv("WATCHTOWER_COOLDOWN_PLATFORM_VARIANT"),
+		},
 		TLSMinVersion: vCfg.GetString("registry-tls-min-version"),
+		TLSSkip:       vCfg.GetBool("registry-tls-skip"),
 	}
 }
 

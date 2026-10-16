@@ -4,6 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -12,6 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	registryConfig "github.com/nicholas-fedor/watchtower/internal/config/registry"
 	"github.com/nicholas-fedor/watchtower/pkg/registry/ratelimit"
 	"github.com/nicholas-fedor/watchtower/pkg/types"
 )
@@ -365,6 +369,18 @@ func TestResolveTagClearCache(t *testing.T) {
 	assert.Len(t, fetcher.calls, 2)
 }
 
+// TestResolveTagNilFetcher verifies that a Resolver built without a fetcher
+// makes no lookups and returns empty instead of panicking.
+func TestResolveTagNilFetcher(t *testing.T) {
+	t.Parallel()
+
+	r := NewResolver(nil)
+
+	assert.NotPanics(t, func() {
+		assert.Empty(t, r.ResolveTag(testLog(), context.Background(), testContainer(), "", "1.2.3", testDigest))
+	})
+}
+
 func TestResolveTagNilResolver(t *testing.T) {
 	t.Parallel()
 
@@ -424,4 +440,35 @@ func TestResolveTagConcurrentDistinctDigests(t *testing.T) {
 	}
 
 	wg.Wait()
+}
+
+// TestDigestFetcherUsesItsSettings verifies that a DigestFetcher makes its
+// registry requests with the settings it was built with, so a registry served
+// over plain HTTP is reachable only when the settings skip TLS.
+func TestDigestFetcherUsesItsSettings(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.URL.Path == "/v2/":
+			w.WriteHeader(http.StatusOK)
+		case r.Method == http.MethodHead && r.URL.Path == "/v2/org/app/manifests/v1.2.3":
+			w.Header().Set("Docker-Content-Digest", testDigest)
+			w.WriteHeader(http.StatusOK)
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	t.Cleanup(server.Close)
+
+	container := stubContainer{imageName: strings.TrimPrefix(server.URL, "http://") + "/org/app:1.2.3"}
+
+	got, err := NewDigestFetcher(registryConfig.Registry{TLSSkip: true}).
+		FetchDigestForTag(testLog(), t.Context(), container, "", "v1.2.3")
+	require.NoError(t, err)
+	assert.Equal(t, strings.TrimPrefix(testDigest, "sha256:"), got)
+
+	_, err = NewDigestFetcher(registryConfig.Registry{}).
+		FetchDigestForTag(testLog(), t.Context(), container, "", "v1.2.3")
+	require.Error(t, err, "an HTTPS request reached the plain HTTP registry")
 }

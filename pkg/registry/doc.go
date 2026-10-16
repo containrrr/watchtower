@@ -17,7 +17,7 @@
 //	if err != nil {
 //	    log.Error().Err(err).Msg("Failed to get pull options")
 //	}
-//	digest, err := digest.FetchDigest(log, ctx, container, opts.RegistryAuth)
+//	digest, err := digest.FetchDigest(log, ctx, container, opts.RegistryAuth, settings)
 //
 // The package integrates with Docker's registry API, supports credential fetching from config files
 // or environment variables, and uses zerolog for logging operations.

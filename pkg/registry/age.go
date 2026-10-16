@@ -14,8 +14,8 @@ import (
 
 	"github.com/distribution/reference"
 	"github.com/rs/zerolog"
-	"github.com/spf13/viper"
 
+	registryConfig "github.com/nicholas-fedor/watchtower/internal/config/registry"
 	"github.com/nicholas-fedor/watchtower/internal/meta"
 	"github.com/nicholas-fedor/watchtower/pkg/registry/auth"
 	"github.com/nicholas-fedor/watchtower/pkg/registry/hosts"
@@ -97,10 +97,10 @@ type imageConfig struct {
 // It handles multi-platform images by selecting the correct platform manifest
 // and follows redirects for blob requests.
 //
-// For cross-platform monitoring, set WATCHTOWER_COOLDOWN_PLATFORM_OS and
-// WATCHTOWER_COOLDOWN_PLATFORM_ARCH to override the runtime defaults.
-// Set WATCHTOWER_COOLDOWN_PLATFORM_VARIANT to specify a platform variant
-// (e.g., "v7", "v8") for ARM images with multiple variants.
+// The cooldown platform in settings selects the platform manifest. Its OS and
+// architecture default to the runtime platform, which allows cross-platform
+// monitoring, and its variant (e.g., "v7", "v8") disambiguates ARM images with
+// multiple variants.
 //
 // This function does NOT download the image layers — only the manifest and config
 // blob (typically <15KB total) are fetched.
@@ -109,6 +109,7 @@ type imageConfig struct {
 //   - ctx: Context for cancellation and timeout control.
 //   - container: Container whose image creation time to fetch.
 //   - registryAuth: Base64-encoded registry credentials.
+//   - settings: Registry request settings.
 //
 // Returns:
 //   - time.Time: The image creation timestamp from the registry config.
@@ -117,6 +118,7 @@ func FetchImageCreationTime(log *zerolog.Logger,
 	ctx context.Context,
 	container types.Container,
 	registryAuth string,
+	settings registryConfig.Registry,
 ) (time.Time, error) {
 	fields := map[string]any{
 		"container": container.Name(),
@@ -124,15 +126,15 @@ func FetchImageCreationTime(log *zerolog.Logger,
 	}
 
 	// Determine target platform (supports cross-platform monitoring overrides).
-	targetOS := viper.GetString("WATCHTOWER_COOLDOWN_PLATFORM_OS")
-	targetArch := viper.GetString("WATCHTOWER_COOLDOWN_PLATFORM_ARCH")
-	targetVariant := viper.GetString("WATCHTOWER_COOLDOWN_PLATFORM_VARIANT")
+	targetOS := settings.CooldownPlatform.OS
+	targetArch := settings.CooldownPlatform.Architecture
+	targetVariant := settings.CooldownPlatform.Variant
 
 	// Transform auth credentials into usable format.
 	registryAuth = auth.TransformAuth(log, registryAuth)
 
 	// Use the cached HTTP client for registry requests.
-	client := auth.NewAuthClient(log)
+	client := auth.NewAuthClient(log, settings)
 
 	limitHost, hostErr := auth.GetRegistryAddress(log, container.ImageName())
 	if hostErr != nil || limitHost == "" {
@@ -155,6 +157,7 @@ func FetchImageCreationTime(log *zerolog.Logger,
 			container,
 			registryAuth,
 			client,
+			settings,
 			"",
 		)
 	})
@@ -176,6 +179,7 @@ func FetchImageCreationTime(log *zerolog.Logger,
 	// Build the initial manifest URL to get the original host.
 	manifestURL, originalHost, parsedURL, err := buildManifestURLForAge(log,
 		container,
+		settings,
 		"",
 	)
 	if err != nil {
@@ -192,6 +196,7 @@ func FetchImageCreationTime(log *zerolog.Logger,
 	if redirectHost != "" && redirectHost != originalHost && redirected {
 		manifestURL, _, parsedURL, err = buildManifestURLForAge(log,
 			container,
+			settings,
 			redirectHost,
 		)
 		if err != nil {
@@ -285,6 +290,7 @@ func FetchImageCreationTime(log *zerolog.Logger,
 //
 // Parameters:
 //   - container: Container whose image manifest URL to build.
+//   - settings: Registry request settings.
 //   - hostOverride: Optional host override (empty string to use original).
 //
 // Returns:
@@ -294,13 +300,10 @@ func FetchImageCreationTime(log *zerolog.Logger,
 //   - error: Non-nil if URL construction fails.
 func buildManifestURLForAge(log *zerolog.Logger,
 	container types.Container,
+	settings registryConfig.Registry,
 	hostOverride string,
 ) (string, string, *url.URL, error) {
-	// Determine scheme based on TLS skip configuration.
-	scheme := "https"
-	if viper.GetBool("WATCHTOWER_REGISTRY_TLS_SKIP") {
-		scheme = "http"
-	}
+	scheme := auth.Scheme(settings)
 
 	// Build manifest URL.
 	manifestURLStr, err := buildManifestURLForContainer(log, container, scheme)

@@ -15,7 +15,6 @@ import (
 	"testing"
 
 	"github.com/rs/zerolog"
-	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -23,6 +22,7 @@ import (
 	dockerContainer "github.com/moby/moby/api/types/container"
 	dockerImage "github.com/moby/moby/api/types/image"
 
+	registryConfig "github.com/nicholas-fedor/watchtower/internal/config/registry"
 	"github.com/nicholas-fedor/watchtower/internal/logging"
 	mockAuth "github.com/nicholas-fedor/watchtower/pkg/registry/auth/mocks"
 	"github.com/nicholas-fedor/watchtower/pkg/registry/ratelimit"
@@ -210,7 +210,7 @@ func TestCompareDigestWithRemote(t *testing.T) {
 	host := parts[len(parts)-1]
 	mc.On("ImageName").Return(host + "/myapp:latest")
 
-	match, remoteDigest, err := CompareDigestWithRemote(testLog(), context.Background(), mc, "", server.URL)
+	match, remoteDigest, err := CompareDigestWithRemote(testLog(), context.Background(), mc, "", registryConfig.Registry{}, server.URL)
 	require.NoError(t, err)
 	assert.False(t, match)
 	assert.Equal(t, "sha256:"+remoteHash, remoteDigest)
@@ -220,10 +220,7 @@ func TestCompareDigestWithRemote_Head429DoesNotFallBackToGET(t *testing.T) {
 	ratelimit.ResetForTest()
 	t.Cleanup(ratelimit.ResetForTest)
 
-	viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", true)
-	t.Cleanup(func() {
-		viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", false)
-	})
+	settings := registryConfig.Registry{TLSSkip: true}
 
 	mc := mockTypes.NewMockContainer(t)
 	mc.On("Name").Return("radarr")
@@ -268,7 +265,7 @@ func TestCompareDigestWithRemote_Head429DoesNotFallBackToGET(t *testing.T) {
 	host := parts[len(parts)-1]
 	mc.On("ImageName").Return(host + "/linuxserver/radarr:latest")
 
-	match, _, err := CompareDigestWithRemote(testLog(), context.Background(), mc, "", server.URL)
+	match, _, err := CompareDigestWithRemote(testLog(), context.Background(), mc, "", settings, server.URL)
 	require.Error(t, err)
 	require.ErrorIs(t, err, ratelimit.ErrRateLimited)
 	assert.False(t, match)
@@ -282,10 +279,7 @@ func TestCompareDigestWithRemote_Retry429DoesNotContinueToNextEndpoint(t *testin
 	ratelimit.ResetForTest()
 	t.Cleanup(ratelimit.ResetForTest)
 
-	viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", true)
-	t.Cleanup(func() {
-		viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", false)
-	})
+	settings := registryConfig.Registry{TLSSkip: true}
 
 	mc := mockTypes.NewMockContainer(t)
 	mc.On("Name").Return("radarr")
@@ -366,6 +360,7 @@ func TestCompareDigestWithRemote_Retry429DoesNotContinueToNextEndpoint(t *testin
 		context.Background(),
 		mc,
 		"",
+		settings,
 		primary.URL,
 		mirror.URL,
 	)
@@ -384,10 +379,7 @@ func TestCompareDigestWithRemote_UnauthorizedOnBothHostsIsError(t *testing.T) {
 	ratelimit.ResetForTest()
 	t.Cleanup(ratelimit.ResetForTest)
 
-	viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", true)
-	t.Cleanup(func() {
-		viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", false)
-	})
+	settings := registryConfig.Registry{TLSSkip: true}
 
 	// The token host issues tokens but rejects manifest requests.
 	tokenHost := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -427,7 +419,7 @@ func TestCompareDigestWithRemote_UnauthorizedOnBothHostsIsError(t *testing.T) {
 		},
 	})
 
-	match, remoteDigest, err := CompareDigestWithRemote(testLog(), context.Background(), mc, "")
+	match, remoteDigest, err := CompareDigestWithRemote(testLog(), context.Background(), mc, "", settings)
 	require.ErrorIs(t, err, errUnresolvedManifestRetry)
 	assert.False(t, match)
 	assert.Empty(t, remoteDigest)
@@ -440,10 +432,7 @@ func TestCompareDigestWithRemote_HeadRejectedFallsBackToGet(t *testing.T) {
 	ratelimit.ResetForTest()
 	t.Cleanup(ratelimit.ResetForTest)
 
-	viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", true)
-	t.Cleanup(func() {
-		viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", false)
-	})
+	settings := registryConfig.Registry{TLSSkip: true}
 
 	const remote = "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
 
@@ -480,7 +469,7 @@ func TestCompareDigestWithRemote_HeadRejectedFallsBackToGet(t *testing.T) {
 		},
 	})
 
-	match, remoteDigest, err := CompareDigestWithRemote(testLog(), context.Background(), mc, "")
+	match, remoteDigest, err := CompareDigestWithRemote(testLog(), context.Background(), mc, "", settings)
 	require.NoError(t, err)
 	assert.False(t, match)
 	assert.Equal(t, remote, remoteDigest)
@@ -494,10 +483,7 @@ func TestCompareDigestWithRemote_LocalOnly404(t *testing.T) {
 	ClearLocalOnlyImageCache()
 	t.Cleanup(ClearLocalOnlyImageCache)
 
-	viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", true)
-	t.Cleanup(func() {
-		viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", false)
-	})
+	settings := registryConfig.Registry{TLSSkip: true}
 
 	mc := mockTypes.NewMockContainer(t)
 	mc.On("Name").Return("atlas-badgerdb-1")
@@ -550,6 +536,7 @@ func TestCompareDigestWithRemote_LocalOnly404(t *testing.T) {
 	match, remoteDigest, err := CompareDigestWithRemote(testLog(), context.Background(),
 		mc,
 		"",
+		settings,
 		host,
 	)
 	require.NoError(t, err)
@@ -636,10 +623,7 @@ func TestLocalOnlyImageCache(t *testing.T) {
 	ClearLocalOnlyImageCache()
 	t.Cleanup(ClearLocalOnlyImageCache)
 
-	viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", true)
-	t.Cleanup(func() {
-		viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", false)
-	})
+	settings := registryConfig.Registry{TLSSkip: true}
 
 	const imageID = "sha256:80f07677bee57274a48929d0688bf0cfabe5e83f06f2f152dab4076445d6ab35"
 
@@ -682,13 +666,13 @@ func TestLocalOnlyImageCache(t *testing.T) {
 	host := parts[len(parts)-1]
 
 	// First call: probe registry, cache local-only.
-	match, _, err := CompareDigestWithRemote(testLog(), context.Background(), mc, "", host)
+	match, _, err := CompareDigestWithRemote(testLog(), context.Background(), mc, "", settings, host)
 	require.NoError(t, err)
 	assert.True(t, match)
 	assert.Equal(t, 1, headManifestCalls)
 
 	// Second call: cache hit, no additional HEAD.
-	match, _, err = CompareDigestWithRemote(testLog(), context.Background(), mc, "", host)
+	match, _, err = CompareDigestWithRemote(testLog(), context.Background(), mc, "", settings, host)
 	require.NoError(t, err)
 	assert.True(t, match)
 	assert.Equal(t, 1, headManifestCalls, "cached local-only image must not re-probe registry")
@@ -837,7 +821,7 @@ func TestCompareDigest(t *testing.T) {
 
 			container.On("ImageName").Return(host + "/myapp:latest").Maybe()
 
-			got, err := CompareDigest(testLog(), context.Background(), container, "", serverURL)
+			got, err := CompareDigest(testLog(), context.Background(), container, "", registryConfig.Registry{}, serverURL)
 			if tt.wantErr {
 				require.Error(t, err)
 				assert.Equal(t, tt.expected, got)
@@ -981,7 +965,7 @@ func TestFetchDigest(t *testing.T) {
 			host := parts[len(parts)-1]
 			container.On("ImageName").Return(host + "/myapp:latest").Maybe()
 
-			got, err := FetchDigest(testLog(), context.Background(), container, "", server.URL)
+			got, err := FetchDigest(testLog(), context.Background(), container, "", registryConfig.Registry{}, server.URL)
 			if tt.wantErr {
 				require.Error(t, err)
 				assert.Empty(t, got)
@@ -998,7 +982,7 @@ func TestFetchDigest(t *testing.T) {
 func TestBuildManifestURL(t *testing.T) {
 	tests := []struct {
 		name         string
-		setupViper   func()
+		tlsSkip      bool
 		container    func(t *testing.T) *mockTypes.MockContainer
 		hostOverride string
 		expectedURL  string
@@ -1007,9 +991,6 @@ func TestBuildManifestURL(t *testing.T) {
 	}{
 		{
 			name: "builds HTTPS manifest URL with empty override",
-			setupViper: func() {
-				viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", false)
-			},
 			container: func(t *testing.T) *mockTypes.MockContainer {
 				t.Helper()
 				mc := mockTypes.NewMockContainer(t)
@@ -1024,10 +1005,8 @@ func TestBuildManifestURL(t *testing.T) {
 			wantErr:      false,
 		},
 		{
-			name: "builds HTTP manifest URL when TLS is skipped",
-			setupViper: func() {
-				viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", true)
-			},
+			name:    "builds HTTP manifest URL when TLS is skipped",
+			tlsSkip: true,
 			container: func(t *testing.T) *mockTypes.MockContainer {
 				t.Helper()
 				mc := mockTypes.NewMockContainer(t)
@@ -1043,9 +1022,6 @@ func TestBuildManifestURL(t *testing.T) {
 		},
 		{
 			name: "overrides host with bare host string",
-			setupViper: func() {
-				viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", false)
-			},
 			container: func(t *testing.T) *mockTypes.MockContainer {
 				t.Helper()
 				mc := mockTypes.NewMockContainer(t)
@@ -1061,9 +1037,6 @@ func TestBuildManifestURL(t *testing.T) {
 		},
 		{
 			name: "overrides host and scheme from full URL",
-			setupViper: func() {
-				viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", false)
-			},
 			container: func(t *testing.T) *mockTypes.MockContainer {
 				t.Helper()
 				mc := mockTypes.NewMockContainer(t)
@@ -1079,9 +1052,6 @@ func TestBuildManifestURL(t *testing.T) {
 		},
 		{
 			name: "redirects lscr.io to ghcr.io",
-			setupViper: func() {
-				viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", false)
-			},
 			container: func(t *testing.T) *mockTypes.MockContainer {
 				t.Helper()
 				mc := mockTypes.NewMockContainer(t)
@@ -1099,9 +1069,9 @@ func TestBuildManifestURL(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.setupViper()
+			settings := registryConfig.Registry{TLSSkip: tt.tlsSkip}
 
-			gotURL, gotHost, _, err := BuildManifestURL(testLog(), tt.container(t), tt.hostOverride)
+			gotURL, gotHost, _, err := BuildManifestURL(testLog(), tt.container(t), settings, tt.hostOverride)
 			if tt.wantErr {
 				require.Error(t, err)
 

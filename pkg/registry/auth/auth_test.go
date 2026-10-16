@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
+	registryConfig "github.com/nicholas-fedor/watchtower/internal/config/registry"
 	mockAuth "github.com/nicholas-fedor/watchtower/pkg/registry/auth/mocks"
 	"github.com/nicholas-fedor/watchtower/pkg/registry/ratelimit"
 	"github.com/nicholas-fedor/watchtower/pkg/types"
@@ -46,7 +47,7 @@ func Test_resolveChallengeScheme(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := resolveChallengeScheme(testLog(), tt.host)
+			got := resolveChallengeScheme(testLog(), tt.host, registryConfig.Registry{})
 			assert.Equal(t, tt.want, got)
 		})
 	}
@@ -180,7 +181,7 @@ func TestGetChallengeURL(t *testing.T) {
 				return
 			}
 
-			got := GetChallengeURL(testLog(), ref, tt.endpoint)
+			got := GetChallengeURL(testLog(), ref, registryConfig.Registry{}, tt.endpoint)
 			if tt.wantErr {
 				assert.Empty(t, got.Host)
 
@@ -312,6 +313,7 @@ func Test_handleEmptyAuthHeader(t *testing.T) {
 				mockContainer,
 				tt.registryAuth,
 				mockClient,
+				registryConfig.Registry{},
 				tt.response.redirected,
 				tt.response.redirectHost,
 				"",
@@ -573,6 +575,7 @@ func Test_processChallengeResponse(t *testing.T) {
 				mockContainer,
 				tt.registryAuth,
 				mockClient,
+				registryConfig.Registry{},
 				tt.response.redirected,
 				tt.response.redirectHost,
 				tt.originalHost,
@@ -665,7 +668,7 @@ func Test_handleBearerAuth(t *testing.T) {
 
 			ctx := context.Background()
 
-			got, err := handleBearerAuth(testLog(), ctx, tt.wwwAuthHeader, mockContainer, tt.registryAuth, mockClient, false, "")
+			got, err := handleBearerAuth(testLog(), ctx, tt.wwwAuthHeader, mockContainer, tt.registryAuth, mockClient, registryConfig.Registry{}, false, "")
 			if tt.wantErr {
 				assert.Error(t, err)
 
@@ -805,7 +808,7 @@ func TestGetToken(t *testing.T) {
 
 			ctx := context.Background()
 
-			got, err := GetToken(testLog(), ctx, tt.container, tt.registryAuth, mockClient, tt.endpoint)
+			got, err := GetToken(testLog(), ctx, tt.container, tt.registryAuth, mockClient, registryConfig.Registry{}, tt.endpoint)
 			if tt.wantErr {
 				assert.Error(t, err)
 
@@ -830,7 +833,7 @@ func TestGetToken_anonymousGHCRSkipsChallengeOnCachedToken(t *testing.T) {
 	seedAnonymousGHCRToken(t)
 
 	mockClient := mockAuth.NewMockClient(t)
-	got, err := GetToken(testLog(), context.Background(), newGHCRContainer(t), "", mockClient, "")
+	got, err := GetToken(testLog(), context.Background(), newGHCRContainer(t), "", mockClient, registryConfig.Registry{}, "")
 	require.NoError(t, err)
 	assert.Equal(t, TokenResult{
 		Token:         testAnonymousGHCRToken,
@@ -842,7 +845,7 @@ func TestGetToken_anonymousLSCRSkipsChallengeOnCachedToken(t *testing.T) {
 	seedAnonymousGHCRToken(t)
 
 	mockClient := mockAuth.NewMockClient(t)
-	got, err := GetToken(testLog(), context.Background(), newLSCRContainer(t), "", mockClient, "")
+	got, err := GetToken(testLog(), context.Background(), newLSCRContainer(t), "", mockClient, registryConfig.Registry{}, "")
 	require.NoError(t, err)
 	assert.Equal(t, TokenResult{
 		Token:         testAnonymousGHCRToken,
@@ -870,7 +873,7 @@ func TestGetToken_anonymousGHCRChallengesWhenCacheEmpty(t *testing.T) {
 		Request:    &http.Request{URL: mustParseURL("https://ghcr.io/token")},
 	}, nil).Once()
 
-	got, err := GetToken(testLog(), context.Background(), newGHCRContainer(t), "", mockClient, "")
+	got, err := GetToken(testLog(), context.Background(), newGHCRContainer(t), "", mockClient, registryConfig.Registry{}, "")
 	require.NoError(t, err)
 	assert.Equal(t, TokenResult{
 		Token:         "Bearer fresh-ghcr-token",
@@ -912,7 +915,7 @@ func TestGetToken_anonymousGHCRDoesNotSkipMirrorOrCredentials(t *testing.T) {
 				Request:    &http.Request{URL: challengeURL},
 			}, nil).Once()
 
-			got, err := GetToken(testLog(), context.Background(), newGHCRContainer(t), tt.registryAuth, mockClient, tt.endpoint)
+			got, err := GetToken(testLog(), context.Background(), newGHCRContainer(t), tt.registryAuth, mockClient, registryConfig.Registry{}, tt.endpoint)
 			require.NoError(t, err)
 			assert.Equal(t, TokenResult{
 				Redirected:   false,

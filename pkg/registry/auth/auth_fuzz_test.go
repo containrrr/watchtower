@@ -10,6 +10,7 @@ import (
 
 	"github.com/distribution/reference"
 
+	registryConfig "github.com/nicholas-fedor/watchtower/internal/config/registry"
 	"github.com/nicholas-fedor/watchtower/pkg/types"
 )
 
@@ -79,7 +80,7 @@ func FuzzGetBearerToken(f *testing.F) {
 		challenge := `bearer realm="https://test.com/token",service="test.com"`
 		registryAuth := ""
 		client := &mockClient{body: jsonData}
-		_, _ = GetBearerToken(testLog(), ctx, challenge, imageRef, registryAuth, client)
+		_, _ = GetBearerToken(testLog(), ctx, challenge, imageRef, registryAuth, client, registryConfig.Registry{})
 	})
 }
 
@@ -175,7 +176,7 @@ func FuzzGetAuthURL(f *testing.F) {
 
 	f.Fuzz(func(_ *testing.T, challenge string) {
 		// Call GetAuthURL because we don't care about the result, only that it doesn't panic
-		_, _ = GetAuthURL(testLog(), challenge, imageRef, "")
+		_, _ = GetAuthURL(testLog(), challenge, imageRef, "", registryConfig.Registry{})
 	})
 }
 

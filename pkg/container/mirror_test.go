@@ -16,6 +16,8 @@ import (
 	dockerRegistry "github.com/moby/moby/api/types/registry"
 	dockerSystem "github.com/moby/moby/api/types/system"
 	dockerClient "github.com/moby/moby/client"
+
+	registryConfig "github.com/nicholas-fedor/watchtower/internal/config/registry"
 )
 
 func Test_imageClient_buildMirrorEndpoints(t *testing.T) {
@@ -201,7 +203,7 @@ func Test_newImageClient_nilLogger_noMirrors(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	c := newImageClient(api, nil)
+	c := newImageClient(api, nil, registryConfig.Registry{})
 
 	assert.NotPanics(t, func() {
 		got := c.resolveRegistryMirrorConfig(context.Background())
@@ -235,8 +237,8 @@ func TestResolveRegistryMirrorConfig_CachesInfo(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	first := newImageClient(api, testLog())
-	second := newImageClient(api, testLog())
+	first := newImageClient(api, testLog(), registryConfig.Registry{})
+	second := newImageClient(api, testLog(), registryConfig.Registry{})
 
 	gotFirst := first.resolveRegistryMirrorConfig(context.Background())
 	gotSecond := second.resolveRegistryMirrorConfig(context.Background())
@@ -269,7 +271,7 @@ func TestResolveRegistryMirrorConfig_InfoErrorNotCached(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	client := newImageClient(api, testLog())
+	client := newImageClient(api, testLog(), registryConfig.Registry{})
 
 	assert.Nil(t, client.resolveRegistryMirrorConfig(context.Background()))
 	assert.Nil(t, client.resolveRegistryMirrorConfig(context.Background()))
@@ -337,8 +339,8 @@ func TestResolveRegistryMirrorConfig_CoalescesConcurrentFetches(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	firstClient := newImageClient(api, testLog())
-	secondClient := newImageClient(api, testLog())
+	firstClient := newImageClient(api, testLog(), registryConfig.Registry{})
+	secondClient := newImageClient(api, testLog(), registryConfig.Registry{})
 
 	var (
 		wg          sync.WaitGroup

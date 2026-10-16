@@ -15,6 +15,7 @@ import (
 	dockerImage "github.com/moby/moby/api/types/image"
 	dockerClient "github.com/moby/moby/client"
 
+	registryConfig "github.com/nicholas-fedor/watchtower/internal/config/registry"
 	"github.com/nicholas-fedor/watchtower/pkg/container/oci"
 	"github.com/nicholas-fedor/watchtower/pkg/registry"
 	"github.com/nicholas-fedor/watchtower/pkg/registry/auth"
@@ -96,6 +97,8 @@ type imageClient struct {
 	log *zerolog.Logger
 	// daemonInfo shares Docker Info and mirrors across check and pull paths.
 	daemonInfo *daemonInfoCache
+	// registrySettings holds the settings for registry requests.
+	registrySettings registryConfig.Registry
 }
 
 // IsContainerStale determines if a container's image is outdated.
@@ -223,6 +226,7 @@ func (c imageClient) CheckContainerUpdate(
 		ctx,
 		sourceContainer,
 		opts.RegistryAuth,
+		c.registrySettings,
 		endpoints...,
 	)
 	if err != nil {
@@ -645,11 +649,21 @@ func (c imageClient) logger() *zerolog.Logger {
 // Parameters:
 //   - api: Docker API client.
 //   - log: Logger for debug output.
+//   - registrySettings: Settings for registry requests.
 //
 // Returns:
 //   - imageClient: Initialized client for image operations.
-func newImageClient(api dockerClient.APIClient, log *zerolog.Logger) imageClient {
-	return imageClient{api: api, log: log, daemonInfo: sharedDaemonInfoCache}
+func newImageClient(
+	api dockerClient.APIClient,
+	log *zerolog.Logger,
+	registrySettings registryConfig.Registry,
+) imageClient {
+	return imageClient{
+		api:              api,
+		log:              log,
+		daemonInfo:       sharedDaemonInfoCache,
+		registrySettings: registrySettings,
+	}
 }
 
 // shouldSkipPull determines if an image pull can be skipped.
@@ -689,7 +703,7 @@ func (c imageClient) shouldSkipPull(
 
 	// Compare current and remote digests, trying each endpoint.
 	// Local-only images are handled inside CompareDigest (match=true, err=nil).
-	match, err := digest.CompareDigest(c.logger(), ctx, sourceContainer, registryAuth, endpoints...)
+	match, err := digest.CompareDigest(c.logger(), ctx, sourceContainer, registryAuth, c.registrySettings, endpoints...)
 	if err != nil {
 		clog.Debug().
 			Bool("match", match).

@@ -11,11 +11,11 @@ import (
 
 	"github.com/distribution/reference"
 	"github.com/maypok86/otter/v2"
-	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
+	registryConfig "github.com/nicholas-fedor/watchtower/internal/config/registry"
 	mockAuth "github.com/nicholas-fedor/watchtower/pkg/registry/auth/mocks"
 	"github.com/nicholas-fedor/watchtower/pkg/registry/ratelimit"
 	"github.com/nicholas-fedor/watchtower/pkg/types"
@@ -234,12 +234,7 @@ func Test_addBasicAuth(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			originalTLSSkip := viper.GetBool("WATCHTOWER_REGISTRY_TLS_SKIP")
-
-			viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", tt.tlsSkip)
-			defer viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", originalTLSSkip)
-
-			addBasicAuth(testLog(), tt.request, tt.imageName, tt.registryAuth)
+			addBasicAuth(testLog(), tt.request, tt.imageName, tt.registryAuth, registryConfig.Registry{TLSSkip: tt.tlsSkip})
 			assert.Equal(t, tt.wantHeader, tt.request.Header.Get("Authorization"))
 		})
 	}
@@ -491,7 +486,7 @@ func TestGetAuthURL(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := GetAuthURL(testLog(), tt.challenge, tt.imageRef, tt.registryAuth)
+			got, err := GetAuthURL(testLog(), tt.challenge, tt.imageRef, tt.registryAuth, registryConfig.Registry{})
 			if tt.wantErr {
 				assert.Error(t, err)
 
@@ -548,7 +543,7 @@ func TestGetBearerToken(t *testing.T) {
 				mockClient.On("Do", mock.Anything).Return(tt.onDo, tt.doErr).Once()
 			}
 
-			got, err := GetBearerToken(testLog(), ctx, tt.challenge, tt.imageRef, tt.registryAuth, mockClient)
+			got, err := GetBearerToken(testLog(), ctx, tt.challenge, tt.imageRef, tt.registryAuth, mockClient, registryConfig.Registry{})
 			if tt.wantErr {
 				assert.Error(t, err)
 
@@ -572,7 +567,7 @@ func Test_executeBearerTokenRequest_cacheMiss(t *testing.T) {
 		Body:       io.NopCloser(strings.NewReader(`{"token":"cached-token","expires_in":3600}`)),
 	}, nil).Once()
 
-	got, err := executeBearerTokenRequest(testLog(), ctx, authURL, imageName, "", mockClient)
+	got, err := executeBearerTokenRequest(testLog(), ctx, authURL, imageName, "", mockClient, registryConfig.Registry{})
 	require.NoError(t, err)
 	assert.Equal(t, "Bearer cached-token", got)
 }
@@ -591,7 +586,7 @@ func Test_executeBearerTokenRequest_cacheHit(t *testing.T) {
 		expiresAt: time.Now().Add(time.Hour),
 	})
 
-	got, err := executeBearerTokenRequest(testLog(), ctx, authURL, imageName, "", mockClient)
+	got, err := executeBearerTokenRequest(testLog(), ctx, authURL, imageName, "", mockClient, registryConfig.Registry{})
 	require.NoError(t, err)
 	assert.Equal(t, "Bearer cached-token", got)
 }
@@ -679,11 +674,11 @@ func Test_executeBearerTokenRequest_anonymousGHCRSharesToken(t *testing.T) {
 		Body:       io.NopCloser(strings.NewReader(`{"token":"shared-anon-token","expires_in":3600}`)),
 	}, nil).Once()
 
-	first, err := executeBearerTokenRequest(testLog(), ctx, prowlarr, "ghcr.io/linuxserver/prowlarr", "", mockClient)
+	first, err := executeBearerTokenRequest(testLog(), ctx, prowlarr, "ghcr.io/linuxserver/prowlarr", "", mockClient, registryConfig.Registry{})
 	require.NoError(t, err)
 	assert.Equal(t, "Bearer shared-anon-token", first)
 
-	second, err := executeBearerTokenRequest(testLog(), ctx, sonarr, "ghcr.io/linuxserver/sonarr", "", mockClient)
+	second, err := executeBearerTokenRequest(testLog(), ctx, sonarr, "ghcr.io/linuxserver/sonarr", "", mockClient, registryConfig.Registry{})
 	require.NoError(t, err)
 	assert.Equal(t, "Bearer shared-anon-token", second)
 }
@@ -706,11 +701,11 @@ func Test_executeBearerTokenRequest_authenticatedGHCRDoesNotShare(t *testing.T) 
 		Body:       io.NopCloser(strings.NewReader(`{"token":"scoped-token","expires_in":3600}`)),
 	}, nil).Once()
 
-	first, err := executeBearerTokenRequest(testLog(), ctx, prowlarr, "ghcr.io/linuxserver/prowlarr", registryAuth, mockClient)
+	first, err := executeBearerTokenRequest(testLog(), ctx, prowlarr, "ghcr.io/linuxserver/prowlarr", registryAuth, mockClient, registryConfig.Registry{})
 	require.NoError(t, err)
 	assert.Equal(t, "Bearer scoped-token", first)
 
-	second, err := executeBearerTokenRequest(testLog(), ctx, sonarr, "ghcr.io/linuxserver/sonarr", registryAuth, mockClient)
+	second, err := executeBearerTokenRequest(testLog(), ctx, sonarr, "ghcr.io/linuxserver/sonarr", registryAuth, mockClient, registryConfig.Registry{})
 	require.NoError(t, err)
 	assert.Equal(t, "Bearer scoped-token", second)
 }
@@ -732,11 +727,11 @@ func Test_executeBearerTokenRequest_anonymousNonGHCRDoesNotShare(t *testing.T) {
 		Body:       io.NopCloser(strings.NewReader(`{"token":"hub-token","expires_in":3600}`)),
 	}, nil).Once()
 
-	first, err := executeBearerTokenRequest(testLog(), ctx, alpine, "library/alpine", "", mockClient)
+	first, err := executeBearerTokenRequest(testLog(), ctx, alpine, "library/alpine", "", mockClient, registryConfig.Registry{})
 	require.NoError(t, err)
 	assert.Equal(t, "Bearer hub-token", first)
 
-	second, err := executeBearerTokenRequest(testLog(), ctx, nginx, "library/nginx", "", mockClient)
+	second, err := executeBearerTokenRequest(testLog(), ctx, nginx, "library/nginx", "", mockClient, registryConfig.Registry{})
 	require.NoError(t, err)
 	assert.Equal(t, "Bearer hub-token", second)
 }
@@ -761,7 +756,7 @@ func TestGetBearerToken_anonymousGHCRSharesAcrossImages(t *testing.T) {
 	}, nil).Once()
 
 	for _, image := range []reference.Named{prowlarr, sonarr, watchtower} {
-		got, getErr := GetBearerToken(testLog(), ctx, challenge, image, "", mockClient)
+		got, getErr := GetBearerToken(testLog(), ctx, challenge, image, "", mockClient, registryConfig.Registry{})
 		require.NoError(t, getErr)
 		assert.Equal(t, "Bearer shared-anon-token", got)
 	}
@@ -789,6 +784,7 @@ func Test_performBearerTokenFetch_sendsBasicAuth(t *testing.T) {
 		"lscr.io/linuxserver/radarr:latest",
 		registryAuth,
 		mockClient,
+		registryConfig.Registry{},
 	)
 	require.NoError(t, err)
 	assert.Equal(t, "scoped-token", token)
@@ -874,7 +870,7 @@ func Test_performBearerTokenFetch(t *testing.T) {
 				mockClient.On("Do", mock.Anything).Return(tt.onDo, tt.doErr).Once()
 			}
 
-			got, _, err := performBearerTokenFetch(testLog(), ctx, tt.authURL, tt.imageName, tt.auth, mockClient)
+			got, _, err := performBearerTokenFetch(testLog(), ctx, tt.authURL, tt.imageName, tt.auth, mockClient, registryConfig.Registry{})
 			if tt.wantErr {
 				assert.Error(t, err)
 

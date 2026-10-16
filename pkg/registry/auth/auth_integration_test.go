@@ -21,8 +21,8 @@ import (
 	"github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
 	"github.com/rs/zerolog"
-	"github.com/spf13/viper"
 
+	registryConfig "github.com/nicholas-fedor/watchtower/internal/config/registry"
 	"github.com/nicholas-fedor/watchtower/internal/logging"
 	"github.com/nicholas-fedor/watchtower/internal/meta"
 	"github.com/nicholas-fedor/watchtower/pkg/registry/auth"
@@ -100,10 +100,13 @@ var GHCRCredentials = &types.RegistryCredentials{
 	Password: os.Getenv("CI_INTEGRATION_TEST_REGISTRY_GH_PASSWORD"),
 }
 
+// testRegistry holds the registry request settings the suite passes to the
+// auth functions. Specs change it to exercise TLS skip and TLS versions.
+var testRegistry registryConfig.Registry
+
 var _ = ginkgo.BeforeSuite(func() {
-	// Reset Viper configuration to ensure a clean state for tests.
-	viper.Reset()
-	viper.AutomaticEnv()
+	// Start every suite run from the default registry settings.
+	testRegistry = registryConfig.Registry{}
 	// Suite setup (logger is constructed per-test where needed).
 })
 
@@ -148,10 +151,10 @@ var _ = ginkgo.Describe("the auth module", func() {
 		}
 
 		// Temporarily disable WATCHTOWER_REGISTRY_TLS_SKIP to ensure HTTPS scheme.
-		originalTLSSkip := viper.GetBool("WATCHTOWER_REGISTRY_TLS_SKIP")
+		originalTLSSkip := testRegistry.TLSSkip
 
-		viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", false)
-		defer viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", originalTLSSkip)
+		testRegistry.TLSSkip = false
+		defer func() { testRegistry.TLSSkip = originalTLSSkip }()
 
 		// Transform credentials to base64-encoded format as production code does.
 		registryAuth := auth.TransformAuth(testLog(), creds)
@@ -161,6 +164,7 @@ var _ = ginkgo.Describe("the auth module", func() {
 			containerInstance,
 			registryAuth,
 			client,
+			testRegistry,
 			"",
 		)
 		token := result.Token
@@ -227,7 +231,7 @@ var _ = ginkgo.Describe("the auth module", func() {
 		ref, _ := reference.ParseNormalizedNamed("test/image")
 
 		// Execute GetBearerToken and verify the result.
-		token, err := auth.GetBearerToken(testLog(), context.Background(), challenge, ref, registryAuth, client)
+		token, err := auth.GetBearerToken(testLog(), context.Background(), challenge, ref, registryAuth, client, testRegistry)
 
 		gomega.Expect(server.ReceivedRequests()).To(gomega.HaveLen(1))
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
@@ -244,11 +248,12 @@ var _ = ginkgo.Describe("the auth module", func() {
 				mockContainerInstance := mockTypes.NewMockContainer(ginkgo.GinkgoT())
 				mockContainerInstance.On("ImageName").Return(mockImage).Maybe()
 
-				client := auth.NewAuthClient(nil)
+				client := auth.NewAuthClient(nil, testRegistry)
 				result, err := auth.GetToken(testLog(), context.Background(),
 					mockContainerInstance,
 					auth.TransformAuth(testLog(), base64.StdEncoding.EncodeToString([]byte(creds))),
 					client,
+					testRegistry,
 					"",
 				)
 				token := result.Token
@@ -261,8 +266,8 @@ var _ = ginkgo.Describe("the auth module", func() {
 		// Test case: Ensures GetToken returns a basic auth token when the registry
 		// responds with a "Basic" challenge.
 		ginkgo.It("should return basic auth token when challenged with basic", func() {
-			viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", true)
-			defer viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", false)
+			testRegistry.TLSSkip = true
+			defer func() { testRegistry.TLSSkip = false }()
 
 			runBasicAuthTest("Basic realm=\"test\"", "eyJ1c2VybmFtZSI6InVzZXIiLCJwYXNzd29yZCI6InBhc3MifQ==", "Basic dXNlcjpwYXNz", "")
 		})
@@ -270,8 +275,8 @@ var _ = ginkgo.Describe("the auth module", func() {
 		// Test case: Verifies that GetToken fails when no credentials are provided for
 		// a basic auth challenge.
 		ginkgo.It("should fail with no credentials for basic auth", func() {
-			viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", true)
-			defer viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", false)
+			testRegistry.TLSSkip = true
+			defer func() { testRegistry.TLSSkip = false }()
 
 			runBasicAuthTest("Basic realm=\"test\"", "", "", "no credentials available")
 		})
@@ -279,8 +284,8 @@ var _ = ginkgo.Describe("the auth module", func() {
 		// Test case: Ensures GetToken returns an error for an unsupported challenge type
 		// (e.g., "Digest").
 		ginkgo.It("should fail with unsupported challenge type", func() {
-			viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", true)
-			defer viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", false)
+			testRegistry.TLSSkip = true
+			defer func() { testRegistry.TLSSkip = false }()
 
 			runBasicAuthTest(
 				"Digest realm=\"test\"",
@@ -298,11 +303,12 @@ var _ = ginkgo.Describe("the auth module", func() {
 			containerInstance := mockTypes.NewMockContainer(ginkgo.GinkgoT())
 			containerInstance.On("ImageName").Return("nonexistent.local/test/image").Maybe()
 
-			client := auth.NewAuthClient(nil)
+			client := auth.NewAuthClient(nil, testRegistry)
 			result, err := auth.GetToken(testLog(), context.Background(),
 				containerInstance,
 				"user:pass",
 				client,
+				testRegistry,
 				"",
 			)
 			token := result.Token
@@ -334,8 +340,8 @@ var _ = ginkgo.Describe("the auth module", func() {
 				containerInstance.On("ImageName").Return(serverURL.Host + "/test/image:latest").Maybe()
 
 				// Simulate WATCHTOWER_REGISTRY_TLS_SKIP=true to disable TLS verification.
-				viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", true)
-				defer viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", false)
+				testRegistry.TLSSkip = true
+				defer func() { testRegistry.TLSSkip = false }()
 
 				// Create a custom authentication client with HTTP-only transport.
 				client := &testAuthClient{
@@ -351,6 +357,7 @@ var _ = ginkgo.Describe("the auth module", func() {
 					containerInstance,
 					"",
 					client,
+					testRegistry,
 					"",
 				)
 				token := result.Token
@@ -381,17 +388,18 @@ var _ = ginkgo.Describe("the auth module", func() {
 			containerInstance.On("ImageName").Return(serverURL.Host + "/test/image:latest").Maybe()
 
 			// Ensure TLS verification is enabled.
-			viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", false)
-			defer viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", false)
+			testRegistry.TLSSkip = false
+			defer func() { testRegistry.TLSSkip = false }()
 
 			// Create a new authentication client with default TLS settings.
-			client := auth.NewAuthClient(nil)
+			client := auth.NewAuthClient(nil, testRegistry)
 
 			// Execute GetToken and verify the expected failure.
 			result, err := auth.GetToken(testLog(), context.Background(),
 				containerInstance,
 				"",
 				client,
+				testRegistry,
 				"",
 			)
 			token := result.Token
@@ -434,14 +442,15 @@ var _ = ginkgo.Describe("the auth module", func() {
 			}
 
 			// Simulate WATCHTOWER_REGISTRY_TLS_SKIP=true to allow HTTP scheme.
-			viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", true)
-			defer viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", false)
+			testRegistry.TLSSkip = true
+			defer func() { testRegistry.TLSSkip = false }()
 
 			// Execute GetToken and verify the result.
 			_, err := auth.GetToken(testLog(), context.Background(),
 				containerInstance,
 				"",
 				client,
+				testRegistry,
 				"",
 			)
 
@@ -480,10 +489,10 @@ var _ = ginkgo.Describe("the auth module", func() {
 			}
 
 			// Ensure TLS verification is enabled.
-			viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", false)
+			testRegistry.TLSSkip = false
 
 			// Execute GetToken and verify the result.
-			result, err := auth.GetToken(testLog(), context.Background(), containerInstance, "", client, "")
+			result, err := auth.GetToken(testLog(), context.Background(), containerInstance, "", client, testRegistry, "")
 			token := result.Token
 
 			gomega.Expect(server.ReceivedRequests()).To(gomega.HaveLen(1))
@@ -494,11 +503,11 @@ var _ = ginkgo.Describe("the auth module", func() {
 		// Test case: Verifies that ConfigureTLS handles an invalid TLS minimum version by
 		// defaulting to TLS 1.2.
 		ginkgo.It("should handle invalid TLS min version", func() {
-			viper.Set("WATCHTOWER_REGISTRY_TLS_MIN_VERSION", "TLS9.9")
-			defer viper.Set("WATCHTOWER_REGISTRY_TLS_MIN_VERSION", "")
+			testRegistry.TLSMinVersion = "TLS9.9"
+			defer func() { testRegistry.TLSMinVersion = "" }()
 
 			tlsConfig := &tls.Config{MinVersion: tls.VersionTLS13}
-			auth.ConfigureTLS(nil, tlsConfig)
+			auth.ConfigureTLS(nil, tlsConfig, testRegistry)
 			gomega.Expect(tlsConfig.MinVersion).To(gomega.Equal(uint16(tls.VersionTLS12)))
 		})
 
@@ -538,6 +547,7 @@ var _ = ginkgo.Describe("the auth module", func() {
 				containerInstance,
 				"",
 				client,
+				testRegistry,
 				"",
 			)
 			token := result.Token
@@ -595,13 +605,14 @@ var _ = ginkgo.Describe("the auth module", func() {
 				},
 			}
 
-			viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", false)
-			defer viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", false)
+			testRegistry.TLSSkip = false
+			defer func() { testRegistry.TLSSkip = false }()
 
 			result, err := auth.GetToken(testLog(), context.Background(),
 				containerInstance,
 				"",
 				client,
+				testRegistry,
 				"",
 			)
 			token := result.Token
@@ -656,13 +667,14 @@ var _ = ginkgo.Describe("the auth module", func() {
 				},
 			}
 
-			viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", false)
-			defer viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", false)
+			testRegistry.TLSSkip = false
+			defer func() { testRegistry.TLSSkip = false }()
 
 			result, err := auth.GetToken(testLog(), context.Background(),
 				containerInstance,
 				"",
 				client,
+				testRegistry,
 				"",
 			)
 			token := result.Token
@@ -712,13 +724,14 @@ var _ = ginkgo.Describe("the auth module", func() {
 				},
 			}
 
-			viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", false)
-			defer viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", false)
+			testRegistry.TLSSkip = false
+			defer func() { testRegistry.TLSSkip = false }()
 
 			result, err := auth.GetToken(testLog(), context.Background(),
 				containerInstance,
 				"",
 				client,
+				testRegistry,
 				"",
 			)
 			token := result.Token
@@ -791,13 +804,14 @@ var _ = ginkgo.Describe("the auth module", func() {
 				},
 			}
 
-			viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", false)
-			defer viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", false)
+			testRegistry.TLSSkip = false
+			defer func() { testRegistry.TLSSkip = false }()
 
 			result, err := auth.GetToken(testLog(), context.Background(),
 				containerInstance,
 				"",
 				client,
+				testRegistry,
 				"",
 			)
 			token := result.Token
@@ -877,14 +891,15 @@ var _ = ginkgo.Describe("the auth module", func() {
 			}
 
 			// Use HTTP scheme to match non-TLS servers
-			viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", true)
-			defer viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", false)
+			testRegistry.TLSSkip = true
+			defer func() { testRegistry.TLSSkip = false }()
 
 			// Execute GetToken and verify failure due to too many redirects
 			result, err := auth.GetToken(testLog(), context.Background(),
 				containerInstance,
 				"",
 				client,
+				testRegistry,
 				"",
 			)
 			token := result.Token
@@ -937,8 +952,8 @@ var _ = ginkgo.Describe("the auth module", func() {
 		// Test case: Verifies that GetBearerToken fetches a bearer token successfully from
 		// a mock registry response without credentials.
 		ginkgo.It("should fetch a bearer token successfully", func() {
-			viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", true)
-			defer viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", false)
+			testRegistry.TLSSkip = true
+			defer func() { testRegistry.TLSSkip = false }()
 
 			runBearerHeaderTest("", "test-token", false)
 		})
@@ -946,8 +961,8 @@ var _ = ginkgo.Describe("the auth module", func() {
 		// Test case: Ensures GetBearerToken fetches a bearer token when credentials are
 		// provided, validating the Authorization header.
 		ginkgo.It("should fetch a bearer token with credentials", func() {
-			viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", true)
-			defer viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", false)
+			testRegistry.TLSSkip = true
+			defer func() { testRegistry.TLSSkip = false }()
 
 			runBearerHeaderTest("eyJ1c2VybmFtZSI6InVzZXIiLCJwYXNzd29yZCI6InBhc3MifQ==", "auth-token", true)
 		})
@@ -962,7 +977,7 @@ var _ = ginkgo.Describe("the auth module", func() {
 			}
 			challenge := `bearer realm="http://nonexistent.local/token",service="test-service",scope="repository:test/image:pull"`
 			ref, _ := reference.ParseNormalizedNamed("test/image")
-			token, err := auth.GetBearerToken(testLog(), context.Background(), challenge, ref, "", client)
+			token, err := auth.GetBearerToken(testLog(), context.Background(), challenge, ref, "", client, testRegistry)
 			gomega.Expect(err).To(gomega.HaveOccurred())
 			gomega.Expect(token).To(gomega.Equal(""))
 		})
@@ -1000,7 +1015,7 @@ var _ = ginkgo.Describe("the auth module", func() {
 			ref, _ := reference.ParseNormalizedNamed("test/image")
 
 			// Execute GetBearerToken and verify the failure.
-			token, err := auth.GetBearerToken(testLog(), context.Background(), challenge, ref, "", client)
+			token, err := auth.GetBearerToken(testLog(), context.Background(), challenge, ref, "", client, testRegistry)
 
 			gomega.Expect(server.ReceivedRequests()).To(gomega.HaveLen(1))
 			gomega.Expect(err).To(gomega.HaveOccurred())
@@ -1051,8 +1066,8 @@ var _ = ginkgo.Describe("the auth module", func() {
 			}
 
 			// Set TLS skip
-			viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", true)
-			defer viper.Set("WATCHTOWER_REGISTRY_TLS_SKIP", false)
+			testRegistry.TLSSkip = true
+			defer func() { testRegistry.TLSSkip = false }()
 
 			// Construct the challenge header
 			challenge := fmt.Sprintf(
@@ -1061,7 +1076,7 @@ var _ = ginkgo.Describe("the auth module", func() {
 			)
 
 			// Call GetBearerToken directly to test processChallenge
-			token, err := auth.GetBearerToken(testLog(), context.Background(), challenge, ref, "", client)
+			token, err := auth.GetBearerToken(testLog(), context.Background(), challenge, ref, "", client, testRegistry)
 
 			gomega.Expect(server.ReceivedRequests()).To(gomega.HaveLen(1))
 			gomega.Expect(err).
@@ -1088,7 +1103,7 @@ var _ = ginkgo.Describe("the auth module", func() {
 					RawQuery: "scope=repository%3Anicholas-fedor%2Fwatchtower%3Apull&service=ghcr.io",
 				}
 
-				URL, err := auth.GetAuthURL(testLog(), challenge, imageRef, "")
+				URL, err := auth.GetAuthURL(testLog(), challenge, imageRef, "", testRegistry)
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
 				gomega.Expect(URL).To(gomega.Equal(expected))
 			},
@@ -1099,7 +1114,7 @@ var _ = ginkgo.Describe("the auth module", func() {
 				challenge := `bearer service="ghcr.io"`
 				imageRef, err := reference.ParseNormalizedNamed("nicholas-fedor/watchtower")
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
-				URL, err := auth.GetAuthURL(testLog(), challenge, imageRef, "")
+				URL, err := auth.GetAuthURL(testLog(), challenge, imageRef, "", testRegistry)
 				gomega.Expect(err).To(gomega.HaveOccurred())
 				gomega.Expect(URL).To(gomega.BeNil())
 			})
@@ -1110,7 +1125,7 @@ var _ = ginkgo.Describe("the auth module", func() {
 			imageRef, err := reference.ParseNormalizedNamed("registry.example.com/test/image:latest")
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			URL, err := auth.GetAuthURL(testLog(), challenge, imageRef, "")
+			URL, err := auth.GetAuthURL(testLog(), challenge, imageRef, "", testRegistry)
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			gomega.Expect(URL.String()).
@@ -1122,7 +1137,7 @@ var _ = ginkgo.Describe("the auth module", func() {
 			imageRef, err := reference.ParseNormalizedNamed("registry.example.com/test/image:latest")
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			URL, err := auth.GetAuthURL(testLog(), challenge, imageRef, "")
+			URL, err := auth.GetAuthURL(testLog(), challenge, imageRef, "", testRegistry)
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			gomega.Expect(URL.String()).
@@ -1134,7 +1149,7 @@ var _ = ginkgo.Describe("the auth module", func() {
 			imageRef, err := reference.ParseNormalizedNamed("localhost:5000/test/image:latest")
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			URL, err := auth.GetAuthURL(testLog(), challenge, imageRef, "")
+			URL, err := auth.GetAuthURL(testLog(), challenge, imageRef, "", testRegistry)
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			gomega.Expect(URL.String()).
@@ -1146,7 +1161,7 @@ var _ = ginkgo.Describe("the auth module", func() {
 			imageRef, err := reference.ParseNormalizedNamed("registry.example.com/test/image:latest")
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			URL, err := auth.GetAuthURL(testLog(), challenge, imageRef, "")
+			URL, err := auth.GetAuthURL(testLog(), challenge, imageRef, "", testRegistry)
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			gomega.Expect(URL.String()).
@@ -1158,7 +1173,7 @@ var _ = ginkgo.Describe("the auth module", func() {
 			imageRef, err := reference.ParseNormalizedNamed("registry.example.com/test/image:latest")
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			URL, err := auth.GetAuthURL(testLog(), challenge, imageRef, "")
+			URL, err := auth.GetAuthURL(testLog(), challenge, imageRef, "", testRegistry)
 
 			gomega.Expect(err).To(gomega.HaveOccurred())
 			gomega.Expect(URL).To(gomega.BeNil())
@@ -1199,7 +1214,7 @@ var _ = ginkgo.Describe("the auth module", func() {
 			input := `bearer realm="https://ghcr.io/token",service="ghcr.io",scope="repository:user/image:pull",`
 			imageRef, err := reference.ParseNormalizedNamed("nicholas-fedor/watchtower")
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-			res, err := auth.GetAuthURL(testLog(), input, imageRef, "")
+			res, err := auth.GetAuthURL(testLog(), input, imageRef, "", testRegistry)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			gomega.Expect(res).NotTo(gomega.BeNil())
 		})
@@ -1210,7 +1225,7 @@ var _ = ginkgo.Describe("the auth module", func() {
 			input := `bearer realm="https://ghcr.io/token",service="ghcr.io",scope="repository:user/image:pull",valuelesskey`
 			imageRef, err := reference.ParseNormalizedNamed("nicholas-fedor/watchtower")
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-			res, err := auth.GetAuthURL(testLog(), input, imageRef, "")
+			res, err := auth.GetAuthURL(testLog(), input, imageRef, "", testRegistry)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			gomega.Expect(res).NotTo(gomega.BeNil())
 		})
@@ -1226,7 +1241,7 @@ var _ = ginkgo.Describe("the auth module", func() {
 				imageRef, _ := reference.ParseNormalizedNamed(
 					"ghcr.io/nicholas-fedor/watchtower:latest",
 				)
-				gomega.Expect(auth.GetChallengeURL(testLog(), imageRef, "")).To(gomega.Equal(expected))
+				gomega.Expect(auth.GetChallengeURL(testLog(), imageRef, testRegistry, "")).To(gomega.Equal(expected))
 			},
 		)
 
@@ -1235,7 +1250,7 @@ var _ = ginkgo.Describe("the auth module", func() {
 		ginkgo.It("should assume Docker Hub for image refs with no explicit registry", func() {
 			expected := url.URL{Host: "index.docker.io", Scheme: "https", Path: "/v2/"}
 			imageRef, _ := reference.ParseNormalizedNamed("nickfedor/watchtower:latest")
-			gomega.Expect(auth.GetChallengeURL(testLog(), imageRef, "")).To(gomega.Equal(expected))
+			gomega.Expect(auth.GetChallengeURL(testLog(), imageRef, testRegistry, "")).To(gomega.Equal(expected))
 		})
 
 		// Test case: Confirms GetChallengeURL uses "index.docker.io" for "docker.io" registry
@@ -1243,49 +1258,49 @@ var _ = ginkgo.Describe("the auth module", func() {
 		ginkgo.It("should use index.docker.io if the image ref specifies docker.io", func() {
 			expected := url.URL{Host: "index.docker.io", Scheme: "https", Path: "/v2/"}
 			imageRef, _ := reference.ParseNormalizedNamed("docker.io/nickfedor/watchtower:latest")
-			gomega.Expect(auth.GetChallengeURL(testLog(), imageRef, "")).To(gomega.Equal(expected))
+			gomega.Expect(auth.GetChallengeURL(testLog(), imageRef, testRegistry, "")).To(gomega.Equal(expected))
 		})
 
 		// Test case: Verifies GetChallengeURL uses the endpoint host when provided.
 		ginkgo.It("should use endpoint host and scheme when provided", func() {
 			expected := url.URL{Host: "mirror.example.com", Scheme: "https", Path: "/v2/"}
 			imageRef, _ := reference.ParseNormalizedNamed("docker.io/library/nginx:latest")
-			gomega.Expect(auth.GetChallengeURL(testLog(), imageRef, "https://mirror.example.com")).To(gomega.Equal(expected))
+			gomega.Expect(auth.GetChallengeURL(testLog(), imageRef, testRegistry, "https://mirror.example.com")).To(gomega.Equal(expected))
 		})
 
 		// Test case: Verifies GetChallengeURL uses default https scheme for a bare endpoint.
 		ginkgo.It("should use default https scheme for bare endpoint", func() {
 			expected := url.URL{Host: "mirror.example.com", Scheme: "https", Path: "/v2/"}
 			imageRef, _ := reference.ParseNormalizedNamed("docker.io/library/nginx:latest")
-			gomega.Expect(auth.GetChallengeURL(testLog(), imageRef, "mirror.example.com")).To(gomega.Equal(expected))
+			gomega.Expect(auth.GetChallengeURL(testLog(), imageRef, testRegistry, "mirror.example.com")).To(gomega.Equal(expected))
 		})
 
 		// Test case: Verifies GetChallengeURL preserves http scheme when endpoint specifies it.
 		ginkgo.It("should use http scheme when endpoint specifies http", func() {
 			expected := url.URL{Host: "mirror.example.com", Scheme: "http", Path: "/v2/"}
 			imageRef, _ := reference.ParseNormalizedNamed("docker.io/library/nginx:latest")
-			gomega.Expect(auth.GetChallengeURL(testLog(), imageRef, "http://mirror.example.com")).To(gomega.Equal(expected))
+			gomega.Expect(auth.GetChallengeURL(testLog(), imageRef, testRegistry, "http://mirror.example.com")).To(gomega.Equal(expected))
 		})
 
 		// Test case: Verifies GetChallengeURL preserves port from endpoint.
 		ginkgo.It("should preserve port from endpoint", func() {
 			expected := url.URL{Host: "mirror.example.com:5000", Scheme: "https", Path: "/v2/"}
 			imageRef, _ := reference.ParseNormalizedNamed("docker.io/library/nginx:latest")
-			gomega.Expect(auth.GetChallengeURL(testLog(), imageRef, "https://mirror.example.com:5000")).To(gomega.Equal(expected))
+			gomega.Expect(auth.GetChallengeURL(testLog(), imageRef, testRegistry, "https://mirror.example.com:5000")).To(gomega.Equal(expected))
 		})
 
 		// Test case: Verifies GetChallengeURL uses endpoint as bare host when URL parsing fails.
 		ginkgo.It("should use endpoint as bare host when URL parsing fails", func() {
 			expected := url.URL{Host: "invalid url with spaces", Scheme: "https", Path: "/v2/"}
 			imageRef, _ := reference.ParseNormalizedNamed("docker.io/library/nginx:latest")
-			gomega.Expect(auth.GetChallengeURL(testLog(), imageRef, "invalid url with spaces")).To(gomega.Equal(expected))
+			gomega.Expect(auth.GetChallengeURL(testLog(), imageRef, testRegistry, "invalid url with spaces")).To(gomega.Equal(expected))
 		})
 
 		// Test case: Verifies endpoint takes precedence over lscr.io special handling.
 		ginkgo.It("should use endpoint even for lscr.io images", func() {
 			expected := url.URL{Host: "mirror.example.com", Scheme: "https", Path: "/v2/"}
 			imageRef, _ := reference.ParseNormalizedNamed("lscr.io/library/nginx:latest")
-			gomega.Expect(auth.GetChallengeURL(testLog(), imageRef, "https://mirror.example.com")).To(gomega.Equal(expected))
+			gomega.Expect(auth.GetChallengeURL(testLog(), imageRef, testRegistry, "https://mirror.example.com")).To(gomega.Equal(expected))
 		})
 	})
 
@@ -1399,9 +1414,9 @@ var _ = ginkgo.Describe("the auth module", func() {
 		// Test case: Verifies that multiple calls to NewAuthClient return the same
 		// client instance, ensuring proper caching behavior.
 		ginkgo.It("should return the same client instance on multiple calls", func() {
-			client1 := auth.NewAuthClient(nil)
-			client2 := auth.NewAuthClient(nil)
-			client3 := auth.NewAuthClient(nil)
+			client1 := auth.NewAuthClient(nil, testRegistry)
+			client2 := auth.NewAuthClient(nil, testRegistry)
+			client3 := auth.NewAuthClient(nil, testRegistry)
 
 			// All calls should return the exact same client instance
 			gomega.Expect(client1).To(gomega.BeIdenticalTo(client2))
@@ -1423,7 +1438,7 @@ var _ = ginkgo.Describe("the auth module", func() {
 				go func(idx int) {
 					defer wg.Done()
 
-					clients[idx] = auth.NewAuthClient(nil)
+					clients[idx] = auth.NewAuthClient(nil, testRegistry)
 				}(i)
 			}
 
@@ -1449,7 +1464,7 @@ var _ = ginkgo.Describe("the auth module", func() {
 			)
 			defer server.Close()
 
-			client := auth.NewAuthClient(nil)
+			client := auth.NewAuthClient(nil, testRegistry)
 
 			// Create a simple HTTP request to the mock server.
 			req, err := http.NewRequestWithContext(
@@ -1478,7 +1493,7 @@ func getScopeFromImageAuthURL(imageName string) string {
 
 	challenge := `bearer realm="https://dummy.host/token",service="dummy.host"`
 
-	URL, err := auth.GetAuthURL(testLog(), challenge, normalizedRef, "")
+	URL, err := auth.GetAuthURL(testLog(), challenge, normalizedRef, "", testRegistry)
 	if err != nil {
 		return "" // Return empty string on auth URL failure
 	}

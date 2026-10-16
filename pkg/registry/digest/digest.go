@@ -18,8 +18,8 @@ import (
 
 	"github.com/distribution/reference"
 	"github.com/rs/zerolog"
-	"github.com/spf13/viper"
 
+	registryConfig "github.com/nicholas-fedor/watchtower/internal/config/registry"
 	"github.com/nicholas-fedor/watchtower/internal/meta"
 	"github.com/nicholas-fedor/watchtower/pkg/registry/auth"
 	"github.com/nicholas-fedor/watchtower/pkg/registry/hosts"
@@ -141,6 +141,7 @@ func NormalizeDigest(log *zerolog.Logger, digest string) string {
 //   - ctx: Context for request lifecycle control.
 //   - container: Container whose digest is being compared.
 //   - registryAuth: Base64-encoded auth string.
+//   - settings: Registry request settings.
 //   - endpoints: Optional list of registry mirror host overrides to try before the canonical host.
 //
 // Returns:
@@ -151,12 +152,14 @@ func CompareDigest(
 	ctx context.Context,
 	container types.Container,
 	registryAuth string,
+	settings registryConfig.Registry,
 	endpoints ...string,
 ) (bool, error) {
 	match, _, err := CompareDigestWithRemote(log,
 		ctx,
 		container,
 		registryAuth,
+		settings,
 		endpoints...,
 	)
 
@@ -253,6 +256,7 @@ func repoPartHasRegistryHost(repoPart string) bool {
 //   - ctx: Context for request lifecycle control.
 //   - container: Container whose digest is being compared.
 //   - registryAuth: Base64-encoded auth string.
+//   - settings: Registry request settings.
 //   - endpoints: Optional list of registry mirror host overrides to try before the canonical host.
 //
 // Returns:
@@ -263,6 +267,7 @@ func CompareDigestWithRemote(log *zerolog.Logger,
 	ctx context.Context,
 	container types.Container,
 	registryAuth string,
+	settings registryConfig.Registry,
 	endpoints ...string,
 ) (bool, string, error) {
 	fields := map[string]any{
@@ -313,6 +318,7 @@ func CompareDigestWithRemote(log *zerolog.Logger,
 		ctx,
 		container,
 		registryAuth,
+		settings,
 		http.MethodHead,
 		"",
 		endpoints...,
@@ -343,6 +349,7 @@ func CompareDigestWithRemote(log *zerolog.Logger,
 			ctx,
 			container,
 			registryAuth,
+			settings,
 			endpoints...,
 		)
 		if err != nil {
@@ -393,6 +400,7 @@ func FormatDigest(digest string) string {
 //   - ctx: The context controlling the request's lifecycle, enabling cancellation or timeouts.
 //   - container: The container whose image digest is being fetched, providing the image name and reference.
 //   - authToken: A base64-encoded authentication string for registry access.
+//   - settings: Registry request settings.
 //   - endpoints: Optional list of registry mirror host overrides to try before the canonical host.
 //
 // Returns:
@@ -403,9 +411,10 @@ func FetchDigest(
 	ctx context.Context,
 	container types.Container,
 	authToken string,
+	settings registryConfig.Registry,
 	endpoints ...string,
 ) (string, error) {
-	return fetchDigest(log, ctx, container, authToken, http.MethodGet, "", endpoints...)
+	return fetchDigest(log, ctx, container, authToken, settings, http.MethodGet, "", endpoints...)
 }
 
 // FetchDigestForTag retrieves the manifest digest of a specific tag.
@@ -424,6 +433,7 @@ func FetchDigest(
 //   - container: Container whose image supplies the repository and registry host.
 //   - authToken: A base64-encoded authentication string for registry access.
 //   - tag: Exact tag to fetch the digest for.
+//   - settings: Registry request settings.
 //   - endpoints: Optional list of registry mirror host overrides to try before the canonical host.
 //
 // Returns:
@@ -435,24 +445,26 @@ func FetchDigestForTag(
 	container types.Container,
 	authToken string,
 	tag string,
+	settings registryConfig.Registry,
 	endpoints ...string,
 ) (string, error) {
-	return fetchDigest(log, ctx, container, authToken, http.MethodHead, tag, endpoints...)
+	return fetchDigest(log, ctx, container, authToken, settings, http.MethodHead, tag, endpoints...)
 }
 
 // BuildManifestURL constructs and validates a manifest URL for a container.
 //
-// It determines the scheme from WATCHTOWER_REGISTRY_TLS_SKIP, builds the initial URL via
+// It determines the scheme from the registry settings, builds the initial URL via
 // manifest.BuildManifestURL (which always uses the canonical host from the image reference),
 // then overrides the host and scheme if hostOverride is a non-empty bare host or full endpoint
 // URL (e.g. "https://mirror.example.com"). It returns the final URL, the original host before
 // override, and the parsed URL object.
 //
 // The hostOverride parameter accepts either a bare host or a full URL. When a full URL is
-// supplied, its scheme (if present) takes precedence over the global TLS setting.
+// supplied, its scheme (if present) takes precedence over the registry settings.
 //
 // Parameters:
 //   - container: Container whose manifest URL is being built.
+//   - settings: Registry request settings.
 //   - hostOverride: Optional host or endpoint URL to use instead of the canonical host.
 //     An empty string uses the canonical host.
 //
@@ -463,9 +475,10 @@ func FetchDigestForTag(
 //   - error: Non-nil if construction or validation fails.
 func BuildManifestURL(log *zerolog.Logger,
 	container types.Container,
+	settings registryConfig.Registry,
 	hostOverride string,
 ) (string, string, *url.URL, error) {
-	return buildManifestURLForImage(log, container.ImageName(), container.Name(), hostOverride)
+	return buildManifestURLForImage(log, container.ImageName(), container.Name(), settings, hostOverride)
 }
 
 // BuildManifestURLForTag constructs a manifest URL for a specific tag of an
@@ -479,6 +492,7 @@ func BuildManifestURL(log *zerolog.Logger,
 // Parameters:
 //   - log: Logger.
 //   - container: Container whose image supplies the repository and registry host.
+//   - settings: Registry request settings.
 //   - hostOverride: Optional host or endpoint URL to use instead of the canonical host.
 //   - tag: Exact tag to target. An empty tag yields the container's own reference.
 //
@@ -489,6 +503,7 @@ func BuildManifestURL(log *zerolog.Logger,
 //   - error: Non-nil if construction or validation fails.
 func BuildManifestURLForTag(log *zerolog.Logger,
 	container types.Container,
+	settings registryConfig.Registry,
 	hostOverride string,
 	tag string,
 ) (string, string, *url.URL, error) {
@@ -503,7 +518,7 @@ func BuildManifestURLForTag(log *zerolog.Logger,
 		return "", "", nil, fmt.Errorf("%w: %w", errFailedBuildManifestURL, err)
 	}
 
-	return buildManifestURLForImage(log, imageName, container.Name(), hostOverride)
+	return buildManifestURLForImage(log, imageName, container.Name(), settings, hostOverride)
 }
 
 // imageNameForTag returns the image reference with its tag replaced by tag.
@@ -543,6 +558,7 @@ func imageNameForTag(imageName, tag string) (string, error) {
 //   - log: Logger.
 //   - imageName: Image reference supplying the registry host and repository.
 //   - containerName: Container name used only for log context.
+//   - settings: Registry request settings.
 //   - hostOverride: Optional host or endpoint URL to use instead of the canonical host.
 //
 // Returns:
@@ -552,7 +568,8 @@ func imageNameForTag(imageName, tag string) (string, error) {
 //   - error: Non-nil if construction or validation fails.
 func buildManifestURLForImage(log *zerolog.Logger,
 	imageName,
-	containerName,
+	containerName string,
+	settings registryConfig.Registry,
 	hostOverride string,
 ) (string, string, *url.URL, error) {
 	fields := map[string]any{
@@ -560,11 +577,7 @@ func buildManifestURLForImage(log *zerolog.Logger,
 		"image":     imageName,
 	}
 
-	// Determine scheme based on WATCHTOWER_REGISTRY_TLS_SKIP.
-	scheme := "https"
-	if viper.GetBool("WATCHTOWER_REGISTRY_TLS_SKIP") {
-		scheme = "http"
-	}
+	scheme := auth.Scheme(settings)
 
 	// Capture the original registry host from the image reference before any
 	// canonicalization or host remapping. For lscr.io images, preserve the
@@ -668,6 +681,7 @@ func buildManifestURLForImage(log *zerolog.Logger,
 //   - ctx: Context for request lifecycle control.
 //   - container: Container whose digest is being retrieved.
 //   - registryAuth: Base64-encoded auth string.
+//   - settings: Registry request settings.
 //   - method: HTTP method ("HEAD" or "GET").
 //   - tag: Optional tag override for the manifest specifier.
 //   - endpoints: Optional list of registry mirror host overrides to try before the canonical host.
@@ -679,6 +693,7 @@ func fetchDigest(log *zerolog.Logger,
 	ctx context.Context,
 	container types.Container,
 	registryAuth string,
+	settings registryConfig.Registry,
 	method string,
 	tag string,
 	endpoints ...string,
@@ -701,10 +716,10 @@ func fetchDigest(log *zerolog.Logger,
 	registryAuth = auth.TransformAuth(log, registryAuth)
 
 	// Create an authentication client for registry requests.
-	client := auth.NewAuthClient(log)
+	client := auth.NewAuthClient(log, settings)
 
 	// Build the canonical manifest URL and apply lscr.io/host-override handling.
-	manifestURL, originalHost, _, err := BuildManifestURL(log, container, "")
+	manifestURL, originalHost, _, err := BuildManifestURL(log, container, settings, "")
 	if err != nil {
 		log.Debug().
 			Err(err).
@@ -763,6 +778,7 @@ func fetchDigest(log *zerolog.Logger,
 				container,
 				registryAuth,
 				client,
+				settings,
 				endpoint,
 			)
 		})
@@ -821,6 +837,7 @@ func fetchDigest(log *zerolog.Logger,
 
 		manifestURL, _, parsedURL, err = BuildManifestURLForTag(log,
 			container,
+			settings,
 			hostForManifest,
 			tag,
 		)

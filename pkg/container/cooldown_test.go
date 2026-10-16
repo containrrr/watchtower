@@ -3,7 +3,10 @@ package container
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 	"testing/synctest"
 	"time"
@@ -17,6 +20,7 @@ import (
 
 	dockerClient "github.com/moby/moby/client"
 
+	registryConfig "github.com/nicholas-fedor/watchtower/internal/config/registry"
 	"github.com/nicholas-fedor/watchtower/pkg/types"
 )
 
@@ -122,7 +126,7 @@ var _ = ginkgo.Describe("isOutsideCooldown", func() {
 
 	ginkgo.When("no cooldown delay is configured", func() {
 		ginkgo.It("returns true with no registry calls", func() {
-			i := newImageClient(mockClient, testLog())
+			i := newImageClient(mockClient, testLog(), registryConfig.Registry{})
 			c := MockContainer(WithImageName("test:latest"))
 
 			outside, err := i.isOutsideCooldown(
@@ -135,7 +139,7 @@ var _ = ginkgo.Describe("isOutsideCooldown", func() {
 
 	ginkgo.When("cooldown delay is zero", func() {
 		ginkgo.It("returns true immediately", func() {
-			i := newImageClient(mockClient, testLog())
+			i := newImageClient(mockClient, testLog(), registryConfig.Registry{})
 			c := MockContainer(WithImageName("test:latest"))
 
 			outside, err := i.isOutsideCooldown(
@@ -150,7 +154,7 @@ var _ = ginkgo.Describe("isOutsideCooldown", func() {
 
 	ginkgo.When("container is monitor-only", func() {
 		ginkgo.It("returns true and bypasses the cooldown check", func() {
-			i := newImageClient(mockClient, testLog())
+			i := newImageClient(mockClient, testLog(), registryConfig.Registry{})
 			c := MockContainer(WithImageName("test:latest"))
 
 			outside, err := i.isOutsideCooldown(
@@ -166,7 +170,7 @@ var _ = ginkgo.Describe("isOutsideCooldown", func() {
 
 	ginkgo.When("container has no-pull enabled", func() {
 		ginkgo.It("returns true and bypasses the cooldown check", func() {
-			i := newImageClient(mockClient, testLog())
+			i := newImageClient(mockClient, testLog(), registryConfig.Registry{})
 			c := MockContainer(WithImageName("test:latest"))
 
 			outside, err := i.isOutsideCooldown(
@@ -184,7 +188,7 @@ var _ = ginkgo.Describe("isOutsideCooldown", func() {
 		ginkgo.It("returns false with a CooldownError wrapping the pull options error", func() {
 			log, _ := captureLog(zerolog.DebugLevel)
 
-			i := newImageClient(mockClient, log)
+			i := newImageClient(mockClient, log, registryConfig.Registry{})
 
 			imageName := "localhost/unsupported-image-format:latest"
 			c := MockContainer(WithImageName(imageName))
@@ -214,7 +218,7 @@ var _ = ginkgo.Describe("isOutsideCooldown", func() {
 				),
 			)
 
-			i := newImageClient(mockClient, log)
+			i := newImageClient(mockClient, log, registryConfig.Registry{})
 			c := MockContainer(WithImageName("test:latest"))
 
 			outside, err := i.isOutsideCooldown(
@@ -271,7 +275,7 @@ var _ = ginkgo.Describe("PullImage cooldown gate", func() {
 				),
 			)
 
-			i := newImageClient(mockClient, log)
+			i := newImageClient(mockClient, log, registryConfig.Registry{})
 			// Use an explicit registry host so local-only 404 handling does not apply.
 			// Digest failure must fall through to the cooldown gate.
 			c := MockContainer(
@@ -307,6 +311,52 @@ var _ = ginkgo.Describe("CheckLocalImageCooldown", func() {
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 	})
 })
+
+// TestIsOutsideCooldown_RegistrySettings verifies that the cooldown check
+// fetches the image creation time with the image client's registry settings,
+// so a registry served over plain HTTP is reachable only when the settings
+// skip TLS.
+func TestIsOutsideCooldown_RegistrySettings(t *testing.T) {
+	t.Parallel()
+
+	const configDigest = "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+
+	created := time.Now().Add(-48 * time.Hour).UTC().Format(time.RFC3339)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/v2/":
+			w.WriteHeader(http.StatusOK)
+		case "/v2/org/app/manifests/1.0":
+			w.Header().Set("Content-Type", "application/vnd.docker.distribution.manifest.v2+json")
+			fmt.Fprintf(w, `{
+				"schemaVersion": 2,
+				"mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+				"config": {"mediaType": "application/vnd.docker.container.image.v1+json", "digest": %q, "size": 2}
+			}`, configDigest)
+		case "/v2/org/app/blobs/" + configDigest:
+			fmt.Fprintf(w, `{"created": %q}`, created)
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	t.Cleanup(server.Close)
+
+	container := MockContainer(WithImageName(strings.TrimPrefix(server.URL, "http://") + "/org/app:1.0"))
+	params := types.UpdateParams{CooldownDelay: time.Hour}
+
+	plain := newImageClient(nil, testLog(), registryConfig.Registry{TLSSkip: true})
+
+	outside, err := plain.isOutsideCooldown(t.Context(), container, params)
+	require.NoError(t, err)
+	assert.True(t, outside, "an image older than the cooldown was deferred")
+
+	secure := newImageClient(nil, testLog(), registryConfig.Registry{})
+
+	outside, err = secure.isOutsideCooldown(t.Context(), container, params)
+	require.Error(t, err, "an HTTPS request reached the plain HTTP registry")
+	assert.False(t, outside)
+}
 
 // TestEvalImageAge verifies when an image is eligible for an update under a
 // cooldown, including a creation time in the future, which counts as a new
