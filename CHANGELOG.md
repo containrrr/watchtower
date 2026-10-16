@@ -39,6 +39,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Document the digest choice for container details by @nicholas-fedor in [#2807](https://github.com/nicholas-fedor/watchtower/pull/2807)
 
+### Build
+
+- Verify the version ldflags targets by @nicholas-fedor in [#2871](https://github.com/nicholas-fedor/watchtower/pull/2871)
+
 ### Chores
 
 - Update module github.com/gofiber/contrib/v3/swaggo to v1.0.13 by @renovate[bot] in [#2855](https://github.com/nicholas-fedor/watchtower/pull/2855)
