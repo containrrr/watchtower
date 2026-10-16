@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Replace the update lock channel with a lock type by @nicholas-fedor in [#2869](https://github.com/nicholas-fedor/watchtower/pull/2869)
 - Pass registry settings explicitly by @nicholas-fedor in [#2867](https://github.com/nicholas-fedor/watchtower/pull/2867)
 - Bind the http api on ipv6 hosts by @nicholas-fedor in [#2865](https://github.com/nicholas-fedor/watchtower/pull/2865)
 - Stop the api server when canceled during startup by @nicholas-fedor in [#2863](https://github.com/nicholas-fedor/watchtower/pull/2863)
