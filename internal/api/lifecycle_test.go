@@ -28,6 +28,7 @@ import (
 	"github.com/nicholas-fedor/watchtower/internal/api/handlers/events"
 	"github.com/nicholas-fedor/watchtower/internal/logging"
 	"github.com/nicholas-fedor/watchtower/internal/metrics"
+	"github.com/nicholas-fedor/watchtower/internal/scheduling"
 	mockContainer "github.com/nicholas-fedor/watchtower/pkg/container/mocks"
 	"github.com/nicholas-fedor/watchtower/pkg/types"
 )
@@ -129,6 +130,7 @@ func TestSetupAndStartAPI(t *testing.T) {
 			opts: config.Options{
 				Token:                       "test-token",
 				EnableUpdateAPI:             true,
+				UpdateLock:                  scheduling.NewUpdateLock(),
 				RunUpdatesWithNotifications: nil,
 				FilterByImage:               func(_ []string, f types.Filter) types.Filter { return f },
 				DefaultMetrics:              func() *metrics.Metrics { return testMetrics },
@@ -141,6 +143,7 @@ func TestSetupAndStartAPI(t *testing.T) {
 			opts: config.Options{
 				Token:           "test-token",
 				EnableUpdateAPI: true,
+				UpdateLock:      scheduling.NewUpdateLock(),
 				RunUpdatesWithNotifications: func(_ context.Context, _ types.Filter, _ types.UpdateParams) *metrics.Metric {
 					return &metrics.Metric{}
 				},
@@ -155,6 +158,7 @@ func TestSetupAndStartAPI(t *testing.T) {
 			opts: config.Options{
 				Token:           "test-token",
 				EnableUpdateAPI: true,
+				UpdateLock:      scheduling.NewUpdateLock(),
 				RunUpdatesWithNotifications: func(_ context.Context, _ types.Filter, _ types.UpdateParams) *metrics.Metric {
 					return &metrics.Metric{}
 				},
@@ -207,6 +211,7 @@ func TestSetupAndStartAPI_FullAPILifecycle(t *testing.T) {
 		EventBroadcaster:    events.NewBroadcaster(),
 		UnblockHTTPAPI:      true,
 		EnableUpdateAPI:     true,
+		UpdateLock:          scheduling.NewUpdateLock(),
 		EnableMetricsAPI:    true,
 		EnableContainersAPI: true,
 		EnableCheckAPI:      true,
@@ -294,6 +299,7 @@ func TestSetupAndStartAPI_AllAPIs(t *testing.T) {
 		Token:               "test-token",
 		EventsToken:         "events-token",
 		EnableUpdateAPI:     true,
+		UpdateLock:          scheduling.NewUpdateLock(),
 		EnableMetricsAPI:    true,
 		EnableContainersAPI: true,
 		EnableCheckAPI:      true,
@@ -350,6 +356,7 @@ func TestRegisterUpdateRoute_UnblockHTTPAPI(t *testing.T) {
 	opts := withTestListenAddr(config.Options{
 		Token:           "test-token",
 		EnableUpdateAPI: true,
+		UpdateLock:      scheduling.NewUpdateLock(),
 		UnblockHTTPAPI:  false,
 		RateLimit:       60,
 		RunUpdatesWithNotifications: func(_ context.Context, _ types.Filter, _ types.UpdateParams) *metrics.Metric {
@@ -402,6 +409,7 @@ func TestSetupAndStartAPI_MissingUpdateDependencies(t *testing.T) {
 			opts: config.Options{
 				Token:                       "test-token",
 				EnableUpdateAPI:             true,
+				UpdateLock:                  scheduling.NewUpdateLock(),
 				RunUpdatesWithNotifications: nil,
 				FilterByImage:               func(_ []string, f types.Filter) types.Filter { return f },
 				DefaultMetrics:              func() *metrics.Metrics { return testMetrics },
@@ -413,6 +421,7 @@ func TestSetupAndStartAPI_MissingUpdateDependencies(t *testing.T) {
 			opts: config.Options{
 				Token:           "test-token",
 				EnableUpdateAPI: true,
+				UpdateLock:      scheduling.NewUpdateLock(),
 				RunUpdatesWithNotifications: func(_ context.Context, _ types.Filter, _ types.UpdateParams) *metrics.Metric {
 					return &metrics.Metric{}
 				},
@@ -426,6 +435,7 @@ func TestSetupAndStartAPI_MissingUpdateDependencies(t *testing.T) {
 			opts: config.Options{
 				Token:           "test-token",
 				EnableUpdateAPI: true,
+				UpdateLock:      scheduling.NewUpdateLock(),
 				RunUpdatesWithNotifications: func(_ context.Context, _ types.Filter, _ types.UpdateParams) *metrics.Metric {
 					return &metrics.Metric{}
 				},
@@ -502,6 +512,7 @@ func TestSetupAndStartAPI_AllEndpointsEnableAll(t *testing.T) {
 		},
 		UnblockHTTPAPI:      true,
 		EnableUpdateAPI:     true,
+		UpdateLock:          scheduling.NewUpdateLock(),
 		EnableMetricsAPI:    true,
 		EnableContainersAPI: true,
 		EnableCheckAPI:      true,
@@ -580,6 +591,7 @@ func TestRunServer_BlockingUntilCancel(t *testing.T) {
 	opts := withTestListenAddr(config.Options{
 		Token:           "test-token",
 		EnableUpdateAPI: true,
+		UpdateLock:      scheduling.NewUpdateLock(),
 		UnblockHTTPAPI:  false,
 		RateLimit:       60,
 		RunUpdatesWithNotifications: func(_ context.Context, _ types.Filter, _ types.UpdateParams) *metrics.Metric {
@@ -623,6 +635,7 @@ func TestRunServer_UnblockWithUpdateAPI_NonBlocking(t *testing.T) {
 	opts := withTestListenAddr(config.Options{
 		Token:           "test-token",
 		EnableUpdateAPI: true,
+		UpdateLock:      scheduling.NewUpdateLock(),
 		UnblockHTTPAPI:  true,
 		RateLimit:       60,
 		RunUpdatesWithNotifications: func(_ context.Context, _ types.Filter, _ types.UpdateParams) *metrics.Metric {
@@ -1039,6 +1052,7 @@ func TestSetupAndStartAPI_StartupMessageAfterBind(t *testing.T) {
 			Port:            port,
 			Token:           "test-token",
 			EnableUpdateAPI: true,
+			UpdateLock:      scheduling.NewUpdateLock(),
 			RateLimit:       60,
 			RunUpdatesWithNotifications: func(context.Context, types.Filter, types.UpdateParams) *metrics.Metric {
 				return &metrics.Metric{}

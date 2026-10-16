@@ -11,6 +11,7 @@ import (
 	"github.com/nicholas-fedor/watchtower/internal/api/handlers/events"
 	"github.com/nicholas-fedor/watchtower/internal/logging"
 	"github.com/nicholas-fedor/watchtower/internal/metrics"
+	"github.com/nicholas-fedor/watchtower/internal/scheduling"
 	mockContainer "github.com/nicholas-fedor/watchtower/pkg/container/mocks"
 	"github.com/nicholas-fedor/watchtower/pkg/types"
 )
@@ -96,6 +97,7 @@ func TestRegisterUpdateRoute_WriteStartupMessage(t *testing.T) {
 
 	opts := config.Options{
 		EnableUpdateAPI: true,
+		UpdateLock:      scheduling.NewUpdateLock(),
 		UnblockHTTPAPI:  false,
 		RunUpdatesWithNotifications: func(_ context.Context, _ types.Filter, _ types.UpdateParams) *metrics.Metric {
 			return &metrics.Metric{}

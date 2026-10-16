@@ -649,9 +649,9 @@ func (p *process) runMain(cfg types.RunConfig) int {
 		}
 	}
 
-	// Initialize a lock channel to prevent concurrent updates.
-	updateLock := make(chan bool, 1)
-	updateLock <- true
+	// Share one update lock between the scheduler and the HTTP API, so their
+	// updates never run at the same time.
+	updateLock := scheduling.NewUpdateLock()
 
 	baseParams := appCfg.UpdateParams(appConfig.RunOverrides{
 		Filter:             cfg.Filter,

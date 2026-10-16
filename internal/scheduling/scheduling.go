@@ -5,6 +5,7 @@ package scheduling
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"sync/atomic"
@@ -22,29 +23,35 @@ import (
 // updateWaitTimeout bounds how long shutdown waits for an in-flight update.
 const updateWaitTimeout = 60 * time.Second
 
-// WaitForRunningUpdate waits for any currently running update to complete before proceeding with shutdown.
-// It checks the lock channel status and blocks with a timeout if an update is in progress.
+// WaitForRunningUpdate waits for a running update to finish before shutdown
+// and then keeps the update lock, so no further update starts during shutdown.
+//
+// The wait ends after updateWaitTimeout, or when ctx is done, whichever comes
+// first. The running update then keeps the lock.
 //
 // Parameters:
 //   - log: Process logger. Required and must be non-nil. A nil logger panics on the first log call.
 //   - ctx: The context for cancellation, allowing early shutdown on context timeout.
-//   - lock: The channel used to synchronize updates, ensuring only one runs at a time.
-func WaitForRunningUpdate(log *zerolog.Logger, ctx context.Context, lock chan bool) {
+//   - lock: The update lock shared by every caller that starts updates.
+func WaitForRunningUpdate(log *zerolog.Logger, ctx context.Context, lock *UpdateLock) {
 	log.Debug().Msg("Checking lock status before shutdown.")
 
-	if len(lock) == 0 {
-		select {
-		case v := <-lock:
-			log.Debug().Msg("Lock acquired, update finished.")
+	if lock.TryLock() {
+		log.Debug().Msg("No update running, lock available.")
+	} else {
+		waitCtx, cancel := context.WithTimeout(ctx, updateWaitTimeout)
+		defer cancel()
 
-			lock <- v
-		case <-time.After(updateWaitTimeout):
+		err := lock.Lock(waitCtx)
+
+		switch {
+		case err == nil:
+			log.Debug().Msg("Lock acquired, update finished.")
+		case errors.Is(err, context.DeadlineExceeded):
 			log.Warn().Msg("Timeout waiting for running update to finish, proceeding with shutdown.")
-		case <-ctx.Done():
+		default:
 			log.Warn().Msg("Context canceled while waiting for running update.")
 		}
-	} else {
-		log.Debug().Msg("No update running, lock available.")
 	}
 
 	log.Debug().Msg("Lock check completed.")
@@ -63,8 +70,10 @@ type ScheduleDeps struct {
 	Filter types.Filter
 	// FilterDesc is a human-readable description of the filter for startup messaging.
 	FilterDesc string
-	// Lock ensures only one update runs at a time, or nil to create a new one.
-	Lock chan bool
+	// Lock ensures only one update runs at a time. Share it with every other
+	// caller that starts updates, such as the HTTP API. Nil gives the scheduler
+	// a lock of its own.
+	Lock *UpdateLock
 	// ScheduleSpec is the cron-formatted schedule string for periodic updates.
 	ScheduleSpec string
 	// Startup holds resolved values for startup messaging (no flag reads).
@@ -102,7 +111,7 @@ type ScheduleDeps struct {
 // RunUpgradesOnSchedule schedules and executes periodic container updates according to the cron specification.
 //
 // It sets up a cron scheduler, runs updates at specified intervals, and shuts down gracefully when ctx is
-// canceled, handling concurrency with a lock channel. The caller cancels ctx on shutdown signals.
+// canceled, handling concurrency with an update lock. The caller cancels ctx on shutdown signals.
 // If update-on-start is enabled, it triggers the first update immediately before starting the scheduler.
 // If SkipFirstRun is true, it skips Watchtower self-update on the first scheduled run (useful after self-update cleanup).
 //
@@ -119,8 +128,7 @@ func RunUpgradesOnSchedule(ctx context.Context, deps ScheduleDeps) error {
 	// Initialize lock if not provided, ensuring single-update concurrency.
 	lock := deps.Lock
 	if lock == nil {
-		lock = make(chan bool, 1)
-		lock <- true
+		lock = NewUpdateLock()
 	}
 
 	// Create a new cron scheduler for managing periodic updates.
@@ -176,22 +184,28 @@ func RunUpgradesOnSchedule(ctx context.Context, deps ScheduleDeps) error {
 			}
 		}
 
-		// Acquire the update lock: blocking waits indefinitely, non-blocking returns if unavailable
+		// Acquire the update lock: blocking waits until shutdown, non-blocking returns if unavailable
 		if blocking {
-			// Blocking acquisition: wait for the lock to become available
-			v := <-lock
-
-			defer func() { lock <- v }()
-		} else {
-			// Non-blocking acquisition: try to get lock without waiting, skip update if busy
-			select {
-			case v := <-lock:
-				defer func() { lock <- v }()
-			default:
-				log.Debug().Msg("Update skipped: another update is currently running")
+			err := lock.Lock(ctx)
+			if err != nil {
+				log.Debug().Err(err).Msg("Update skipped: shutting down while waiting for the update lock")
 
 				return
 			}
+		} else if !lock.TryLock() {
+			log.Debug().Msg("Update skipped: another update is currently running")
+
+			return
+		}
+
+		defer lock.Unlock()
+
+		// Shutdown can begin just after the lock is taken. A run started then
+		// would only be canceled and reported as a failed scan.
+		if ctx.Err() != nil {
+			log.Debug().Err(ctx.Err()).Msg("Update skipped: shutting down")
+
+			return
 		}
 
 		params := deps.BaseParams

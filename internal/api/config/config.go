@@ -16,6 +16,7 @@ import (
 	"github.com/nicholas-fedor/watchtower/internal/git"
 	"github.com/nicholas-fedor/watchtower/internal/logging"
 	mt "github.com/nicholas-fedor/watchtower/internal/metrics"
+	"github.com/nicholas-fedor/watchtower/internal/scheduling"
 	"github.com/nicholas-fedor/watchtower/pkg/container"
 	"github.com/nicholas-fedor/watchtower/pkg/types"
 )
@@ -35,6 +36,9 @@ var (
 	ErrMissingEventsAPIToken = errors.New("events API token is required when events API is enabled")
 	// ErrMissingEventBroadcaster indicates EventBroadcaster was not provided when events API is enabled.
 	ErrMissingEventBroadcaster = errors.New("EventBroadcaster must be provided when events API is enabled")
+	// ErrMissingUpdateLock indicates UpdateLock was not provided when the
+	// update API is enabled.
+	ErrMissingUpdateLock = errors.New("UpdateLock must be provided when EnableUpdateAPI is set")
 	// ErrMissingTLSConfig indicates only one of TLS cert/key was provided.
 	ErrMissingTLSConfig = errors.New("TLS requires both TLS Cert Path and TLS Key Path to be set")
 	// ErrMissingLogger indicates Options.Logger was nil when an API endpoint is enabled.
@@ -111,8 +115,9 @@ type Options struct {
 	Filter types.Filter
 	// FilterDesc is a human-readable description of the filter for startup messaging.
 	FilterDesc string
-	// UpdateLock serializes concurrent update sessions.
-	UpdateLock chan bool
+	// UpdateLock serializes update sessions. It must be the lock the scheduler
+	// uses, so API and scheduled updates never run at the same time.
+	UpdateLock *scheduling.UpdateLock
 	// BaseParams is the complete update policy snapshot from config.UpdateParams.
 	BaseParams types.UpdateParams
 	// IncludeStopped is exposed on the config API (client list option).
@@ -204,6 +209,12 @@ func ValidateUpdateOptions(opts Options) error {
 	// records scan results after each run.
 	if opts.DefaultMetrics == nil {
 		return ErrMissingDefaultMetrics
+	}
+
+	// UpdateLock keeps API updates from running alongside scheduled updates.
+	// A lock of the endpoint's own would not exclude them.
+	if opts.UpdateLock == nil {
+		return ErrMissingUpdateLock
 	}
 
 	return nil

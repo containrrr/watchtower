@@ -31,6 +31,7 @@ import (
 	"github.com/nicholas-fedor/watchtower/internal/api/handlers/events"
 	"github.com/nicholas-fedor/watchtower/internal/api/routes"
 	"github.com/nicholas-fedor/watchtower/internal/metrics"
+	"github.com/nicholas-fedor/watchtower/internal/scheduling"
 	"github.com/nicholas-fedor/watchtower/internal/testutil/golden"
 	"github.com/nicholas-fedor/watchtower/pkg/container"
 	mockContainer "github.com/nicholas-fedor/watchtower/pkg/container/mocks"
@@ -214,7 +215,7 @@ func fixtureOptions(client container.Client, store *metrics.Metrics) config.Opti
 		Filter:              func(types.FilterableContainer) bool { return true },
 		FilterDesc:          "Checking all containers (except explicitly disabled with label)",
 		IncludeStopped:      true,
-		UpdateLock:          newUpdateLock(),
+		UpdateLock:          scheduling.NewUpdateLock(),
 		BaseParams: types.UpdateParams{
 			Cleanup:        true,
 			LifecycleHooks: true,
@@ -226,14 +227,6 @@ func fixtureOptions(client container.Client, store *metrics.Metrics) config.Opti
 		DefaultMetrics:   func() *metrics.Metrics { return store },
 		EventBroadcaster: events.NewBroadcaster(),
 	})
-}
-
-// newUpdateLock returns an update lock holding its token, so an update can start.
-func newUpdateLock() chan bool {
-	lock := make(chan bool, 1)
-	lock <- true
-
-	return lock
 }
 
 // newFixtureApp builds the HTTP API from opts the same way SetupAndStartAPI
@@ -449,7 +442,15 @@ func TestHTTPAPIResponses(t *testing.T) {
 	)
 
 	// The asynchronous update returns its lock when it finishes.
-	require.Eventually(t, func() bool { return len(opts.UpdateLock) == 1 }, probeTimeout, 10*time.Millisecond)
+	require.Eventually(t, func() bool {
+		if !opts.UpdateLock.TryLock() {
+			return false
+		}
+
+		opts.UpdateLock.Unlock()
+
+		return true
+	}, probeTimeout, 10*time.Millisecond)
 
 	// A scan that ends in an error is reported as failed, with the counts it
 	// reached, by the update, the status, and the history.
@@ -496,7 +497,8 @@ func TestHTTPAPIErrorResponses(t *testing.T) {
 	)
 
 	busyOpts := fixtureOptions(newFixtureClient(t), newFixtureMetrics(t))
-	busyOpts.UpdateLock = make(chan bool, 1)
+	busyOpts.UpdateLock = scheduling.NewUpdateLock()
+	require.True(t, busyOpts.UpdateLock.TryLock())
 
 	recorder.app = newFixtureApp(t, busyOpts)
 	recorder.record(t, responseRequest{method: http.MethodPost, target: "/v1/update", token: fixtureAPIToken})

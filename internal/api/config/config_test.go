@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/nicholas-fedor/watchtower/internal/metrics"
+	"github.com/nicholas-fedor/watchtower/internal/scheduling"
 	"github.com/nicholas-fedor/watchtower/pkg/types"
 )
 
@@ -27,6 +28,7 @@ func TestValidateUpdateOptions(t *testing.T) {
 				},
 				FilterByImage:  func(_ []string, f types.Filter) types.Filter { return f },
 				DefaultMetrics: func() *metrics.Metrics { return testMetrics },
+				UpdateLock:     scheduling.NewUpdateLock(),
 			},
 			wantErr: false,
 		},
@@ -58,6 +60,17 @@ func TestValidateUpdateOptions(t *testing.T) {
 				},
 				FilterByImage:  func(_ []string, f types.Filter) types.Filter { return f },
 				DefaultMetrics: nil,
+			},
+			wantErr: true,
+		},
+		{
+			name: "missing UpdateLock",
+			opts: Options{
+				RunUpdatesWithNotifications: func(_ context.Context, _ types.Filter, _ types.UpdateParams) *metrics.Metric {
+					return &metrics.Metric{}
+				},
+				FilterByImage:  func(_ []string, f types.Filter) types.Filter { return f },
+				DefaultMetrics: func() *metrics.Metrics { return testMetrics },
 			},
 			wantErr: true,
 		},
@@ -125,6 +138,7 @@ func TestErrSentinelValues(t *testing.T) {
 		{name: "ErrMissingRunUpdatesWithNotifications", err: ErrMissingRunUpdatesWithNotifications, msg: "RunUpdatesWithNotifications must be provided"},
 		{name: "ErrMissingFilterByImage", err: ErrMissingFilterByImage, msg: "FilterByImage must be provided"},
 		{name: "ErrMissingDefaultMetrics", err: ErrMissingDefaultMetrics, msg: "DefaultMetrics must be provided"},
+		{name: "ErrMissingUpdateLock", err: ErrMissingUpdateLock, msg: "UpdateLock must be provided"},
 		{name: "ErrMissingAPIToken", err: ErrMissingAPIToken, msg: "API token is empty or unset"},
 		{name: "ErrMissingEventsAPIToken", err: ErrMissingEventsAPIToken, msg: "events API token is required"},
 		{name: "ErrMissingEventBroadcaster", err: ErrMissingEventBroadcaster, msg: "EventBroadcaster must be provided"},

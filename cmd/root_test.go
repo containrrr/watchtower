@@ -270,9 +270,7 @@ func TestGetAPIAddr(t *testing.T) {
 // of updateOnStart and scheduled updates in the main application.
 func TestUpdateLockSerialization(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
-		// Initialize the update lock channel with the same pattern as in runMain
-		updateLock := make(chan bool, 1)
-		updateLock <- true
+		updateLock := scheduling.NewUpdateLock()
 
 		// Atomic counters to track concurrent execution and completion
 		var (
@@ -286,33 +284,32 @@ func TestUpdateLockSerialization(t *testing.T) {
 
 		// Simulate the update function used in runMain and runUpgradesOnSchedule
 		updateFunc := func(id int) {
-			select {
-			case v := <-updateLock:
-				// Acquired lock, perform update
-				defer func() { updateLock <- v }()
-
-				// Track that only one update is running at a time
-				current := atomic.AddInt32(&running, 1)
-				require.Equal(
-					t,
-					int32(1),
-					current,
-					"Only one update should be running at a time, but %d are running",
-					current,
-				)
-
-				atomic.AddInt32(&started, 1)
-
-				// Simulate update work with a delay
-				synctest.Wait()
-
-				atomic.AddInt32(&running, -1)
-				atomic.AddInt32(&completed, 1)
-
-			default:
+			if !updateLock.TryLock() {
 				// Lock not available, skip update (same as in the actual code)
 				t.Logf("Update %d skipped due to concurrent update in progress", id)
+
+				return
 			}
+
+			defer updateLock.Unlock()
+
+			// Track that only one update is running at a time
+			current := atomic.AddInt32(&running, 1)
+			require.Equal(
+				t,
+				int32(1),
+				current,
+				"Only one update should be running at a time, but %d are running",
+				current,
+			)
+
+			atomic.AddInt32(&started, 1)
+
+			// Simulate update work with a delay
+			synctest.Wait()
+
+			atomic.AddInt32(&running, -1)
+			atomic.AddInt32(&completed, 1)
 		}
 
 		// Simulate concurrent updateOnStart and scheduled updates
@@ -340,8 +337,7 @@ func TestUpdateLockSerialization(t *testing.T) {
 // TestConcurrentScheduledAndFullAPIUpdate verifies that a full API-triggered update (no image params)
 // returns 429 immediately when a scheduled update is in progress, rather than blocking indefinitely.
 func TestConcurrentScheduledAndFullAPIUpdate(t *testing.T) {
-	updateLock := make(chan bool, 1)
-	updateLock <- true
+	updateLock := scheduling.NewUpdateLock()
 
 	scheduledStarted := make(chan struct{})
 	scheduledDone := make(chan struct{})
@@ -354,15 +350,16 @@ func TestConcurrentScheduledAndFullAPIUpdate(t *testing.T) {
 
 	handler := update.New(testLogger(), updateFn, updateLock)
 
-	go func() {
-		v := <-updateLock
+	// The scheduled update holds the lock until the API request has been
+	// asserted.
+	require.True(t, updateLock.TryLock())
 
+	go func() {
 		close(scheduledStarted)
 
-		// Hold the lock until the API request has been asserted, then release.
 		<-scheduledDone
 
-		updateLock <- v
+		updateLock.Unlock()
 	}()
 
 	<-scheduledStarted
@@ -393,8 +390,7 @@ func TestHandleAsync(t *testing.T) {
 	apiStarted := make(chan struct{})
 	apiCompleted := make(chan struct{})
 
-	updateLock := make(chan bool, 1)
-	updateLock <- true
+	updateLock := scheduling.NewUpdateLock()
 
 	scheduledStarted := make(chan struct{})
 	scheduledCompleted := make(chan struct{})
@@ -409,9 +405,9 @@ func TestHandleAsync(t *testing.T) {
 
 	handler := update.New(testLogger(), updateFn, updateLock)
 
-	go func() {
-		v := <-updateLock
+	require.True(t, updateLock.TryLock())
 
+	go func() {
 		t.Log("Scheduled: acquired lock")
 		close(scheduledStarted)
 
@@ -422,7 +418,7 @@ func TestHandleAsync(t *testing.T) {
 		case <-apiStarted:
 			t.Error("Targeted API update should not have started while scheduled update is running")
 
-			updateLock <- v
+			updateLock.Unlock()
 
 			return
 		case <-time.After(50 * time.Millisecond):
@@ -431,7 +427,7 @@ func TestHandleAsync(t *testing.T) {
 		close(scheduledCompleted)
 		t.Log("Scheduled: releasing lock")
 
-		updateLock <- v
+		updateLock.Unlock()
 	}()
 
 	<-scheduledStarted
@@ -481,7 +477,7 @@ func TestHandleAsync(t *testing.T) {
 func testScheduleDeps(
 	filter types.Filter,
 	filterDesc string,
-	lock chan bool,
+	lock *scheduling.UpdateLock,
 	updateOnStart bool,
 ) scheduling.ScheduleDeps {
 	return scheduling.ScheduleDeps{
@@ -535,8 +531,7 @@ func TestUpdateOnStartTriggersImmediateUpdate(t *testing.T) {
 	defer cancel()
 
 	// Create update lock
-	updateLock := make(chan bool, 1)
-	updateLock <- true
+	updateLock := scheduling.NewUpdateLock()
 
 	// Call runUpgradesOnSchedule with a filter that matches no containers
 	filter := types.Filter(func(_ types.FilterableContainer) bool { return false })
@@ -599,8 +594,7 @@ func TestUpdateOnStartIntegratesWithCronScheduling(t *testing.T) {
 		defer cancel()
 
 		// Create update lock
-		updateLock := make(chan bool, 1)
-		updateLock <- true
+		updateLock := scheduling.NewUpdateLock()
 
 		// Call runUpgradesOnSchedule
 		filter := types.Filter(func(_ types.FilterableContainer) bool { return false })
@@ -655,8 +649,8 @@ func TestUpdateOnStartLockingBehavior(t *testing.T) {
 		require.NoError(t, err)
 
 		// Create update lock that's initially unavailable (simulating another update in progress)
-		updateLock := make(chan bool, 1)
-		// Don't put anything in the lock initially
+		updateLock := scheduling.NewUpdateLock()
+		require.True(t, updateLock.TryLock())
 
 		// Track if update function was called
 		updateCalled := make(chan bool, 1)
@@ -731,8 +725,7 @@ func TestUpdateOnStartSelfUpdateScenario(t *testing.T) {
 		defer cancel()
 
 		// Create update lock
-		updateLock := make(chan bool, 1)
-		updateLock <- true
+		updateLock := scheduling.NewUpdateLock()
 
 		// Call runUpgradesOnSchedule with a filter that includes containers
 		filter := types.Filter(func(_ types.FilterableContainer) bool { return true })
@@ -777,8 +770,7 @@ func TestUpdateOnStartMultiInstanceScenario(t *testing.T) {
 		updateOnStart2, _ := cmd2.Flags().GetBool("update-on-start")
 
 		// Shared update lock (simulating shared resource)
-		updateLock := make(chan bool, 1)
-		updateLock <- true
+		updateLock := scheduling.NewUpdateLock()
 
 		// Track update calls from both instances
 		updateCallCount := int32(0)
@@ -848,78 +840,8 @@ func TestUpdateOnStartMultiInstanceScenario(t *testing.T) {
 			callCount,
 			"Only one update should occur due to lock serialization",
 		)
-		// Verify the lock is properly released after the test
-		lockAvailable := false
-
-		select {
-		case v := <-updateLock:
-			lockAvailable = true
-			// Lock was available, put it back for cleanup
-			updateLock <- v
-		default:
-			// Lock not available
-		}
-
-		assert.True(t, lockAvailable, "Lock should be available after test completion")
-	})
-}
-
-// TestWaitForRunningUpdate_NoUpdateRunning verifies that waitForRunningUpdate returns immediately
-// when no update is currently running (lock channel has a value).
-func TestWaitForRunningUpdate_NoUpdateRunning(t *testing.T) {
-	lock := make(chan bool, 1)
-	lock <- true // Lock is available, no update running
-
-	ctx := context.Background()
-	start := time.Now()
-
-	scheduling.WaitForRunningUpdate(testLogger(), ctx, lock)
-
-	elapsed := time.Since(start)
-
-	// Should return immediately without blocking
-	assert.Less(t, elapsed, 10*time.Millisecond, "Should not block when no update is running")
-}
-
-// TestWaitForRunningUpdate_UpdateRunning verifies that waitForRunningUpdate blocks
-// and waits for an update to complete when one is running (lock channel is empty).
-func TestWaitForRunningUpdate_UpdateRunning(t *testing.T) {
-	synctest.Test(t, func(t *testing.T) {
-		lock := make(chan bool, 1)
-		// Don't put anything in lock initially - simulating update in progress
-
-		ctx := context.Background()
-		waitCompleted := make(chan bool, 1)
-
-		go func() {
-			scheduling.WaitForRunningUpdate(testLogger(), ctx, lock)
-
-			waitCompleted <- true
-		}()
-
-		// Wait a bit to ensure waitForRunningUpdate is blocking
-		synctest.Wait()
-
-		// Verify it's still waiting
-		select {
-		case <-waitCompleted:
-			t.Error("waitForRunningUpdate should still be waiting")
-		default:
-			// Expected: still waiting
-		}
-
-		// Now complete the "update" by putting value back in lock
-		lock <- true
-
-		// Wait for waitForRunningUpdate to complete
-		synctest.Wait()
-
-		select {
-		case <-waitCompleted:
-			// Expected: completed after lock was released
-		default:
-			t.Error("waitForRunningUpdate should have completed after lock was released")
-		}
+		// Verify that shutdown keeps the lock, so no update starts afterwards
+		assert.False(t, updateLock.TryLock(), "An update could start after shutdown")
 	})
 }
 
@@ -972,8 +894,7 @@ func TestRunUpgradesOnSchedule_ShutdownWaitsForRunningUpdate(t *testing.T) {
 		require.NoError(t, err)
 
 		// Create update lock
-		updateLock := make(chan bool, 1)
-		updateLock <- true
+		updateLock := scheduling.NewUpdateLock()
 
 		// Track when shutdown completes
 		shutdownCompleted := make(chan bool, 1)
@@ -1011,21 +932,21 @@ func TestRunUpgradesOnSchedule_ShutdownWaitsForRunningUpdate(t *testing.T) {
 
 		// Start an update manually to simulate one running
 		go func() {
-			select {
-			case v := <-updateLock:
-				updateStarted <- true
-
-				defer func() {
-					updateLock <- v
-
-					updateFinished <- true
-				}()
-
-				// Simulate longer update work
-				synctest.Wait()
-			default:
+			if !updateLock.TryLock() {
 				// Lock not available
+				return
 			}
+
+			updateStarted <- true
+
+			defer func() {
+				updateLock.Unlock()
+
+				updateFinished <- true
+			}()
+
+			// Simulate longer update work
+			synctest.Wait()
 		}()
 
 		// Wait for the update to start
@@ -1137,8 +1058,7 @@ func TestEphemeralSelfUpdateExercisesTruePath(t *testing.T) {
 	defer func() { runUpdatesWithNotifications = originalRunUpdatesWithNotifications }()
 
 	// Create update lock
-	updateLock := make(chan bool, 1)
-	updateLock <- true
+	updateLock := scheduling.NewUpdateLock()
 
 	// Create a context that shuts down quickly
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)

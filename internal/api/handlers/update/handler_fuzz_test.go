@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/nicholas-fedor/watchtower/internal/metrics"
+	"github.com/nicholas-fedor/watchtower/internal/scheduling"
 )
 
 // FuzzExtractImagesHandler fuzzes the image-name parsing logic through the
@@ -116,16 +117,16 @@ func FuzzExtractContainersHandler(f *testing.F) {
 	})
 }
 
-// FuzzHandlerNew fuzzes the Handler constructor to ensure it never panics
-// with various lock channel configurations.
+// FuzzHandlerNew fuzzes the Handler constructor to ensure it never panics,
+// with or without an update lock.
 func FuzzHandlerNew(f *testing.F) {
 	f.Add(true)
 	f.Add(false)
 
 	f.Fuzz(func(t *testing.T, withLock bool) {
-		var lock chan bool
+		var lock *scheduling.UpdateLock
 		if withLock {
-			lock = make(chan bool, 1)
+			lock = scheduling.NewUpdateLock()
 		}
 
 		h := New(testLogger(), func(_ context.Context, _, _ []string) *metrics.Metric {
