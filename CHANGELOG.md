@@ -50,6 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Chores
 
+- Update github.com/google/pprof digest to 1facf8f by @renovate[bot] in [#2878](https://github.com/nicholas-fedor/watchtower/pull/2878)
 - Update module github.com/gofiber/contrib/v3/swaggo to v1.0.13 by @renovate[bot] in [#2855](https://github.com/nicholas-fedor/watchtower/pull/2855)
 - Update module github.com/gofiber/contrib/v3/zerolog to v1.1.7 by @renovate[bot] in [#2856](https://github.com/nicholas-fedor/watchtower/pull/2856)
 - Update github/codeql-action action to v4.39.0 by @renovate[bot] in [#2851](https://github.com/nicholas-fedor/watchtower/pull/2851)
