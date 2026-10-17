@@ -104,6 +104,9 @@ To generate new mock implementations of Watchtower's interfaces, run the followi
 task mocks
 ```
 
+It removes the generated mocks before regenerating them, so the mock of a removed or renamed interface is deleted with it.
+Hand-written fakes in the `mocks` directories are kept.
+
 `task mocks:check` regenerates the mocks and fails if they differ from the committed ones.
 It leaves the regenerated files in place so you can review and commit them.
 
