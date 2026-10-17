@@ -37,6 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Inject the registry rate limiter by @nicholas-fedor in [#2903](https://github.com/nicholas-fedor/watchtower/pull/2903)
 - Read self-ID files through the injected filesystem by @nicholas-fedor in [#2901](https://github.com/nicholas-fedor/watchtower/pull/2901)
 - Move test hooks into test files by @nicholas-fedor in [#2897](https://github.com/nicholas-fedor/watchtower/pull/2897)
 - Unexport package-internal identifiers by @nicholas-fedor in [#2893](https://github.com/nicholas-fedor/watchtower/pull/2893)
