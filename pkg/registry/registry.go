@@ -37,7 +37,7 @@ func GetPullOptions(log *zerolog.Logger, imageName string) (dockerClient.ImagePu
 
 	clog.Debug().Msg("Retrieving pull options")
 
-	registryCredentials, err := EncodedAuth(log, imageName)
+	registryCredentials, err := encodedAuth(log, imageName)
 	if err != nil {
 		clog.Debug().
 			Err(err).
@@ -61,7 +61,7 @@ func GetPullOptions(log *zerolog.Logger, imageName string) (dockerClient.ImagePu
 	pullOptions := dockerClient.ImagePullOptions{
 		RegistryAuth: registryCredentials,
 		PrivilegeFunc: func(ctx context.Context) (string, error) {
-			return DefaultAuthHandler(log, ctx)
+			return defaultAuthHandler(log, ctx)
 		},
 	}
 
@@ -70,7 +70,7 @@ func GetPullOptions(log *zerolog.Logger, imageName string) (dockerClient.ImagePu
 	return pullOptions, nil
 }
 
-// DefaultAuthHandler is a privilege function called when initial authentication fails.
+// defaultAuthHandler is a privilege function called when initial authentication fails.
 //
 // It retries the request without credentials, as reusing the same auth is unlikely to succeed.
 //
@@ -80,7 +80,7 @@ func GetPullOptions(log *zerolog.Logger, imageName string) (dockerClient.ImagePu
 // Returns:
 //   - string: Empty string to indicate no new credentials.
 //   - error: Always nil, as no further action is taken.
-func DefaultAuthHandler(log *zerolog.Logger, _ context.Context) (string, error) {
+func defaultAuthHandler(log *zerolog.Logger, _ context.Context) (string, error) {
 	// Log the auth rejection and proceed without credentials.
 	log.Debug().Msg("Authentication rejected, retrying without credentials")
 

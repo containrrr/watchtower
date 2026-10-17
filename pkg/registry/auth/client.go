@@ -17,21 +17,21 @@ import (
 // Constants for HTTP client configuration.
 // These values define timeouts and connection limits for registry requests.
 const (
-	DefaultTimeoutSeconds             = 30  // Default timeout for HTTP requests in seconds
-	DefaultMaxIdleConns               = 100 // Maximum number of idle connections in the pool
-	DefaultIdleConnTimeoutSeconds     = 90  // Timeout for idle connections in seconds
-	DefaultTLSHandshakeTimeoutSeconds = 10  // Timeout for TLS handshake in seconds
-	DefaultExpectContinueTimeout      = 1   // Timeout for expecting continue response in seconds
-	DefaultDialTimeoutSeconds         = 30  // Timeout for establishing TCP connections in seconds
-	DefaultDialKeepAliveSeconds       = 30  // Keep-alive probes for persistent connections in seconds
-	DefaultMaxRedirects               = 3   // Maximum number of redirects to follow (reduced from Go's default of 10)
+	defaultTimeoutSeconds             = 30  // Default timeout for HTTP requests in seconds
+	defaultMaxIdleConns               = 100 // Maximum number of idle connections in the pool
+	defaultIdleConnTimeoutSeconds     = 90  // Timeout for idle connections in seconds
+	defaultTLSHandshakeTimeoutSeconds = 10  // Timeout for TLS handshake in seconds
+	defaultExpectContinueTimeout      = 1   // Timeout for expecting continue response in seconds
+	defaultDialTimeoutSeconds         = 30  // Timeout for establishing TCP connections in seconds
+	defaultDialKeepAliveSeconds       = 30  // Keep-alive probes for persistent connections in seconds
+	defaultMaxRedirects               = 3   // Maximum number of redirects to follow (reduced from Go's default of 10)
 )
 
-// TLSVersionMap maps string names to TLS version constants.
+// tlsVersionMap maps string names to TLS version constants.
 // It provides a lookup for configuring the minimum TLS version based on user settings.
 // Only TLS 1.2 and TLS 1.3 are accepted as valid minimum versions.
 // Older versions are rejected by the lookup and fall back to the default.
-var TLSVersionMap = map[string]uint16{
+var tlsVersionMap = map[string]uint16{
 	"TLS1.2": tls.VersionTLS12,
 	"TLS1.3": tls.VersionTLS13,
 }
@@ -97,13 +97,13 @@ func (r *registryClient) Do(request *http.Request) (*http.Response, error) {
 	return response, nil
 }
 
-// ConfigureTLS applies the registry TLS settings to a TLS configuration.
+// configureTLS applies the registry TLS settings to a TLS configuration.
 //
 // Parameters:
 //   - log: Logger for TLS diagnostics. May be nil (events are skipped).
 //   - tlsConfig: The base TLS configuration to modify.
 //   - settings: Registry request settings.
-func ConfigureTLS(log *zerolog.Logger, tlsConfig *tls.Config, settings registryConfig.Registry) {
+func configureTLS(log *zerolog.Logger, tlsConfig *tls.Config, settings registryConfig.Registry) {
 	// InsecureSkipVerify is intentional when the registry-tls-skip
 	// configuration option is set.
 	if settings.TLSSkip {
@@ -132,7 +132,7 @@ func ConfigureTLS(log *zerolog.Logger, tlsConfig *tls.Config, settings registryC
 // minTLSVersion resolves a configured minimum TLS version name.
 //
 // Names are matched case-insensitively. An empty name means TLS 1.2, and a
-// name that TLSVersionMap does not accept falls back to TLS 1.2.
+// name that tlsVersionMap does not accept falls back to TLS 1.2.
 //
 // Parameters:
 //   - name: Configured minimum TLS version, such as "TLS1.3".
@@ -145,7 +145,7 @@ func minTLSVersion(name string) (uint16, bool) {
 		return tls.VersionTLS12, true
 	}
 
-	version, ok := TLSVersionMap[strings.ToUpper(name)]
+	version, ok := tlsVersionMap[strings.ToUpper(name)]
 	if !ok {
 		return tls.VersionTLS12, false
 	}
@@ -164,13 +164,13 @@ func buildRegistryTransport(tlsConfig *tls.Config) *http.Transport {
 	return &http.Transport{
 		TLSClientConfig:       tlsConfig,                                       // TLS configuration for secure registry connections.
 		Proxy:                 http.ProxyFromEnvironment,                       // Respect proxy environment variables (e.g., HTTP_PROXY, HTTPS_PROXY).
-		MaxIdleConns:          DefaultMaxIdleConns,                             // Maximum number of idle connections to keep open.
-		IdleConnTimeout:       DefaultIdleConnTimeoutSeconds * time.Second,     // Timeout for closing idle connections.
-		TLSHandshakeTimeout:   DefaultTLSHandshakeTimeoutSeconds * time.Second, // Timeout for completing TLS handshakes.
-		ExpectContinueTimeout: DefaultExpectContinueTimeout * time.Second,      // Timeout for receiving HTTP 100-Continue responses.
+		MaxIdleConns:          defaultMaxIdleConns,                             // Maximum number of idle connections to keep open.
+		IdleConnTimeout:       defaultIdleConnTimeoutSeconds * time.Second,     // Timeout for closing idle connections.
+		TLSHandshakeTimeout:   defaultTLSHandshakeTimeoutSeconds * time.Second, // Timeout for completing TLS handshakes.
+		ExpectContinueTimeout: defaultExpectContinueTimeout * time.Second,      // Timeout for receiving HTTP 100-Continue responses.
 		DialContext: (&net.Dialer{
-			Timeout:   DefaultDialTimeoutSeconds * time.Second,   // Timeout for establishing TCP connections.
-			KeepAlive: DefaultDialKeepAliveSeconds * time.Second, // Keep-alive probes for persistent connections.
+			Timeout:   defaultDialTimeoutSeconds * time.Second,   // Timeout for establishing TCP connections.
+			KeepAlive: defaultDialKeepAliveSeconds * time.Second, // Keep-alive probes for persistent connections.
 		}).DialContext,
 	}
 }
@@ -185,9 +185,9 @@ func buildRegistryTransport(tlsConfig *tls.Config) *http.Transport {
 func buildRegistryClient(tlsConfig *tls.Config) *http.Client {
 	return &http.Client{
 		Transport: buildRegistryTransport(tlsConfig),
-		Timeout:   DefaultTimeoutSeconds * time.Second, // Overall timeout for HTTP requests.
+		Timeout:   defaultTimeoutSeconds * time.Second, // Overall timeout for HTTP requests.
 		CheckRedirect: func(_ *http.Request, via []*http.Request) error {
-			if len(via) >= DefaultMaxRedirects { // Limit redirects to prevent excessive loops or attacks.
+			if len(via) >= defaultMaxRedirects { // Limit redirects to prevent excessive loops or attacks.
 				return http.ErrUseLastResponse
 			}
 
@@ -227,7 +227,7 @@ func NewAuthClient(log *zerolog.Logger, settings registryConfig.Registry) Client
 		MinVersion: tls.VersionTLS12, // Default to TLS 1.2 for secure communication.
 	}
 
-	ConfigureTLS(log, tlsConfig, settings)
+	configureTLS(log, tlsConfig, settings)
 
 	client := &registryClient{
 		client: buildRegistryClient(tlsConfig),

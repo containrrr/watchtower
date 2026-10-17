@@ -105,7 +105,7 @@ func Is(err error) bool {
 	return errors.Is(err, ErrRateLimited)
 }
 
-// Decision converts a parsed 429 into a sleep or a give-up.
+// decision converts a parsed 429 into a sleep or a give-up.
 //
 // Tiny Retry-After values are raised to minHonorWait so a 331µs GHCR token
 // does not cause an immediate retry. Waits longer than maxHonorWait are not
@@ -117,7 +117,7 @@ func Is(err error) bool {
 // Returns:
 //   - time.Duration: How long to wait before the next attempt.
 //   - bool: True when the caller should stop retrying this cycle.
-func Decision(info *Error) (time.Duration, bool) {
+func decision(info *Error) (time.Duration, bool) {
 	wait := minHonorWait
 	if info != nil && info.RetryAfter > 0 {
 		wait = info.RetryAfter

@@ -23,7 +23,7 @@ var (
 	)
 )
 
-// ParseRetryAfterHeader parses an HTTP Retry-After header.
+// parseRetryAfterHeader parses an HTTP Retry-After header.
 //
 // It accepts a delta-seconds integer or an HTTP-date.
 // Dates in the past and a value of 0 are treated as absent.
@@ -35,7 +35,7 @@ var (
 // Returns:
 //   - time.Duration: How long to wait.
 //   - bool: True when the header contained a usable wait.
-func ParseRetryAfterHeader(header string) (time.Duration, bool) {
+func parseRetryAfterHeader(header string) (time.Duration, bool) {
 	header = strings.TrimSpace(header)
 	if header == "" {
 		return 0, false
@@ -80,7 +80,7 @@ func ParseRetryAfterHeader(header string) (time.Duration, bool) {
 	return wait, true
 }
 
-// ParseQuotaMessage extracts retry-after and allowed-quota fields from a registry body.
+// parseQuotaMessage extracts retry-after and allowed-quota fields from a registry body.
 //
 // It understands GHCR-style text such as
 // "toomanyrequests: retry-after: 331.163µs, allowed: 44000/minute".
@@ -92,7 +92,7 @@ func ParseRetryAfterHeader(header string) (time.Duration, bool) {
 //   - time.Duration: Parsed retry-after. Zero when absent.
 //   - int: Advertised request budget. Zero when absent.
 //   - time.Duration: Window for the budget. Zero when absent.
-func ParseQuotaMessage(message string) (time.Duration, int, time.Duration) {
+func parseQuotaMessage(message string) (time.Duration, int, time.Duration) {
 	var (
 		retryAfter time.Duration
 		allowed    int
@@ -141,7 +141,7 @@ func FromResponse(resp *http.Response, body []byte) *Error {
 			info.Host = resp.Request.URL.Host
 		}
 
-		if wait, ok := ParseRetryAfterHeader(resp.Header.Get("Retry-After")); ok {
+		if wait, ok := parseRetryAfterHeader(resp.Header.Get("Retry-After")); ok {
 			info.RetryAfter = wait
 		}
 
@@ -158,7 +158,7 @@ func FromResponse(resp *http.Response, body []byte) *Error {
 		}
 	}
 
-	retryAfter, allowed, window := ParseQuotaMessage(info.Message)
+	retryAfter, allowed, window := parseQuotaMessage(info.Message)
 	if info.RetryAfter == 0 {
 		info.RetryAfter = retryAfter
 	}
@@ -183,7 +183,7 @@ func FromResponse(resp *http.Response, body []byte) *Error {
 // Returns:
 //   - *Error: Parsed rate-limit error, or nil when the message is not a 429.
 func FromErrorMessage(message string) *Error {
-	retryAfter, allowed, window := ParseQuotaMessage(message)
+	retryAfter, allowed, window := parseQuotaMessage(message)
 	if retryAfter == 0 && !looksRateLimited(message) {
 		return nil
 	}

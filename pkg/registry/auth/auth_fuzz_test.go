@@ -26,7 +26,7 @@ func (m *mockClient) Do(_ *http.Request) (*http.Response, error) {
 	}, nil
 }
 
-// FuzzGetBearerToken fuzzes the JSON unmarshaling in GetBearerToken to ensure robust parsing
+// FuzzGetBearerToken fuzzes the JSON unmarshaling in getBearerToken to ensure robust parsing
 // of token responses from registries. It tests various JSON inputs including valid responses,
 // malformed JSON, missing fields, and edge cases to prevent crashes or unexpected behavior.
 func FuzzGetBearerToken(f *testing.F) {
@@ -68,7 +68,7 @@ func FuzzGetBearerToken(f *testing.F) {
 
 		_ = json.Unmarshal(jsonData, &tokenResponse)
 
-		// Call GetBearerToken with a mock client that returns the fuzzed JSON data as the response body
+		// Call getBearerToken with a mock client that returns the fuzzed JSON data as the response body
 		// to exercise the auth package logic
 		ctx := context.Background()
 
@@ -80,7 +80,7 @@ func FuzzGetBearerToken(f *testing.F) {
 		challenge := `bearer realm="https://test.com/token",service="test.com"`
 		registryAuth := ""
 		client := &mockClient{body: jsonData}
-		_, _ = GetBearerToken(testLog(), ctx, challenge, imageRef, registryAuth, client, registryConfig.Registry{})
+		_, _ = getBearerToken(testLog(), ctx, challenge, imageRef, registryAuth, client, registryConfig.Registry{})
 	})
 }
 
@@ -116,7 +116,7 @@ func FuzzTransformAuth(f *testing.F) {
 	})
 }
 
-// FuzzGetAuthURL fuzzes the GetAuthURL function to test for crashes or unexpected behavior
+// FuzzGetAuthURL fuzzes the getAuthURL function to test for crashes or unexpected behavior
 // with malformed authentication challenge strings. It ensures robust URL construction from
 // challenge headers, covering valid challenges, malformed headers, missing fields, and edge cases.
 func FuzzGetAuthURL(f *testing.F) {
@@ -175,8 +175,8 @@ func FuzzGetAuthURL(f *testing.F) {
 	) // Local registry
 
 	f.Fuzz(func(_ *testing.T, challenge string) {
-		// Call GetAuthURL because we don't care about the result, only that it doesn't panic
-		_, _ = GetAuthURL(testLog(), challenge, imageRef, "", registryConfig.Registry{})
+		// Call getAuthURL because we don't care about the result, only that it doesn't panic
+		_, _ = getAuthURL(testLog(), challenge, imageRef, "", registryConfig.Registry{})
 	})
 }
 

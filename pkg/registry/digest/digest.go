@@ -42,8 +42,8 @@ var (
 	errMissingImageInfo = errors.New("container image info missing")
 	// errInvalidRegistryResponse indicates the registry's HEAD response lacks a digest or is malformed.
 	errInvalidRegistryResponse = errors.New("registry responded with invalid HEAD request")
-	// ErrManifestNotFound indicates the registry returned 404 for the manifest request.
-	ErrManifestNotFound = errors.New("manifest not found")
+	// errManifestNotFound indicates the registry returned 404 for the manifest request.
+	errManifestNotFound = errors.New("manifest not found")
 	// errFailedGetToken indicates a failure to obtain an authentication token from the registry.
 	errFailedGetToken = errors.New("failed to get token")
 	// errFailedBuildManifestURL indicates a failure to construct the manifest URL for the registry.
@@ -91,9 +91,9 @@ func isCachedLocalOnlyImage(container types.Container) bool {
 	return ok
 }
 
-// ClearLocalOnlyImageCache removes all cached local-only image entries.
+// clearLocalOnlyImageCache removes all cached local-only image entries.
 // Intended for tests.
-func ClearLocalOnlyImageCache() {
+func clearLocalOnlyImageCache() {
 	localOnlyImageCache.Range(func(key, _ any) bool {
 		localOnlyImageCache.Delete(key)
 
@@ -181,7 +181,7 @@ func CompareDigest(
 // Returns:
 //   - bool: True if the image should be treated as local-only, false otherwise.
 func isLocalImageNotFound(container types.Container, err error) bool {
-	if !errors.Is(err, ErrManifestNotFound) {
+	if !errors.Is(err, errManifestNotFound) {
 		return false
 	}
 
@@ -367,10 +367,10 @@ func CompareDigestWithRemote(log *zerolog.Logger,
 		Bool("matches", matches).
 		Msg("Completed digest comparison")
 
-	return matches, FormatDigest(remoteDigest), nil
+	return matches, formatDigest(remoteDigest), nil
 }
 
-// FormatDigest ensures a digest string uses the "sha256:..." form.
+// formatDigest ensures a digest string uses the "sha256:..." form.
 //
 // Empty input is returned unchanged. Digests that already include a known
 // algorithm prefix are returned as-is, otherwise "sha256:" is prepended.
@@ -380,7 +380,7 @@ func CompareDigestWithRemote(log *zerolog.Logger,
 //
 // Returns:
 //   - string: Digest with algorithm prefix when non-empty.
-func FormatDigest(digest string) string {
+func formatDigest(digest string) string {
 	if digest == "" {
 		return ""
 	}
@@ -481,7 +481,7 @@ func BuildManifestURL(log *zerolog.Logger,
 	return buildManifestURLForImage(log, container.ImageName(), container.Name(), settings, hostOverride)
 }
 
-// BuildManifestURLForTag constructs a manifest URL for a specific tag of an
+// buildManifestURLForTag constructs a manifest URL for a specific tag of an
 // image, leaving the repository and registry host unchanged.
 //
 // This is how a release tag is confirmed without pulling it: the manifest for
@@ -501,7 +501,7 @@ func BuildManifestURL(log *zerolog.Logger,
 //   - string: The original host before applying hostOverride.
 //   - *url.URL: The parsed URL object.
 //   - error: Non-nil if construction or validation fails.
-func BuildManifestURLForTag(log *zerolog.Logger,
+func buildManifestURLForTag(log *zerolog.Logger,
 	container types.Container,
 	settings registryConfig.Registry,
 	hostOverride string,
@@ -649,7 +649,7 @@ func buildManifestURLForImage(log *zerolog.Logger,
 
 	if hostOverride != "" {
 		// Parse hostOverride to support full endpoint URLs (with scheme) in addition to bare hosts.
-		// Mirrors from daemon.json may include schemes and mirrors the logic in GetChallengeURL.
+		// Mirrors from daemon.json may include schemes and mirrors the logic in auth.getChallengeURL.
 		overrideURL, parseErr := url.Parse(hostOverride)
 		if parseErr == nil && overrideURL.Host != "" {
 			parsedURL.Host = overrideURL.Host
@@ -835,7 +835,7 @@ func fetchDigest(log *zerolog.Logger,
 			parsedURL   *url.URL
 		)
 
-		manifestURL, _, parsedURL, err = BuildManifestURLForTag(log,
+		manifestURL, _, parsedURL, err = buildManifestURLForTag(log,
 			container,
 			settings,
 			hostForManifest,
@@ -1095,7 +1095,7 @@ func HandleManifestResponse(log *zerolog.Logger,
 
 			return "", "", false, fmt.Errorf(
 				"%w: %w: status %s",
-				ErrManifestNotFound,
+				errManifestNotFound,
 				errInvalidRegistryResponse,
 				resp.Status,
 			)

@@ -108,7 +108,7 @@ func TestParseRetryAfterHeader(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, ok := ParseRetryAfterHeader(tt.header)
+			got, ok := parseRetryAfterHeader(tt.header)
 			assert.Equal(t, tt.wantOK, ok)
 
 			if !tt.wantOK {
@@ -229,7 +229,7 @@ func TestParseQuotaMessage(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			retryAfter, allowed, window := ParseQuotaMessage(tt.message)
+			retryAfter, allowed, window := parseQuotaMessage(tt.message)
 			assert.InDelta(t, float64(tt.retryAfter), float64(retryAfter), float64(time.Microsecond))
 			assert.Equal(t, tt.allowed, allowed)
 			assert.Equal(t, tt.window, window)
@@ -279,7 +279,7 @@ func TestFromResponseHugeRetryAfterExceedsHonorWindow(t *testing.T) {
 			require.NotNil(t, got)
 			assert.True(t, ExceedsHonorWindow(got))
 
-			wait, giveUp := Decision(got)
+			wait, giveUp := decision(got)
 			assert.True(t, giveUp)
 			assert.Equal(t, time.Duration(0), wait)
 		})
@@ -501,19 +501,19 @@ func TestFromErrorMessageIgnoresUnrelatedErrors(t *testing.T) {
 func TestDecisionCapsTinyAndHugeRetryAfter(t *testing.T) {
 	t.Parallel()
 
-	wait, giveUp := Decision(&Error{RetryAfter: 331 * time.Microsecond})
+	wait, giveUp := decision(&Error{RetryAfter: 331 * time.Microsecond})
 	assert.False(t, giveUp)
 	assert.Equal(t, minHonorWait, wait)
 
-	wait, giveUp = Decision(&Error{RetryAfter: 2 * time.Hour})
+	wait, giveUp = decision(&Error{RetryAfter: 2 * time.Hour})
 	assert.True(t, giveUp)
 	assert.Equal(t, time.Duration(0), wait)
 
-	wait, giveUp = Decision(&Error{RetryAfter: 5 * time.Second})
+	wait, giveUp = decision(&Error{RetryAfter: 5 * time.Second})
 	assert.False(t, giveUp)
 	assert.Equal(t, 5*time.Second, wait)
 
-	wait, giveUp = Decision(nil)
+	wait, giveUp = decision(nil)
 	assert.False(t, giveUp)
 	assert.Equal(t, minHonorWait, wait)
 }

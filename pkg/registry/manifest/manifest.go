@@ -17,8 +17,8 @@ import (
 
 // Errors for manifest operations.
 var (
-	// ErrMissingTag indicates the parsed image reference lacks both a tag and a digest.
-	ErrMissingTag = errors.New("parsed container image reference has no tag")
+	// errMissingTag indicates the parsed image reference lacks both a tag and a digest.
+	errMissingTag = errors.New("parsed container image reference has no tag")
 	// errFailedParseImageName indicates a failure to parse the container's image name.
 	errFailedParseImageName = errors.New("failed to parse image name")
 )
@@ -219,7 +219,7 @@ func BuildManifestURLForImage(
 		Str("ref", normalizedRef.String()).
 		Msg("Missing tag/digest in image reference")
 
-	return "", fmt.Errorf("%w: %s", ErrMissingTag, normalizedRef.String())
+	return "", fmt.Errorf("%w: %s", errMissingTag, normalizedRef.String())
 }
 
 // buildTaggedManifestURL constructs a manifest URL for a tag-based image reference.

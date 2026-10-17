@@ -91,7 +91,7 @@ func BenchmarkGetRegistryAddress(b *testing.B) {
 	}
 }
 
-// BenchmarkGetChallengeURL benchmarks GetChallengeURL which constructs
+// BenchmarkGetChallengeURL benchmarks getChallengeURL which constructs
 // the challenge URL for registry authentication.
 func BenchmarkGetChallengeURL(b *testing.B) {
 	refs := make([]reference.Named, 0, 2)
@@ -106,18 +106,18 @@ func BenchmarkGetChallengeURL(b *testing.B) {
 
 	for b.Loop() {
 		for _, ref := range refs {
-			_ = GetChallengeURL(testLog(), ref, registryConfig.Registry{}, "")
+			_ = getChallengeURL(testLog(), ref, registryConfig.Registry{}, "")
 		}
 	}
 }
 
-// BenchmarkGetAuthURL benchmarks GetAuthURL which constructs the authentication URL.
+// BenchmarkGetAuthURL benchmarks getAuthURL which constructs the authentication URL.
 func BenchmarkGetAuthURL(b *testing.B) {
 	challenge := "bearer realm=\"https://ghcr.io/token\",service=\"ghcr.io\",scope=\"repository:user/repo:pull\""
 	ref, _ := reference.ParseNormalizedNamed("ghcr.io/user/repo:latest")
 
 	for b.Loop() {
-		_, _ = GetAuthURL(testLog(), challenge, ref, "", registryConfig.Registry{})
+		_, _ = getAuthURL(testLog(), challenge, ref, "", registryConfig.Registry{})
 	}
 }
 

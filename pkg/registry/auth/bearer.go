@@ -95,7 +95,7 @@ func initTokenCache(log *zerolog.Logger) {
 	})
 }
 
-// GetBearerToken fetches a bearer token based on challenge instructions.
+// getBearerToken fetches a bearer token based on challenge instructions.
 //
 // It parses the challenge header, constructs the auth URL, and retrieves a bearer token.
 // The token is cached to avoid redundant HTTP requests for the same challenge.
@@ -113,7 +113,7 @@ func initTokenCache(log *zerolog.Logger) {
 // Returns:
 //   - string: Bearer token header (e.g., "Bearer ...") if successful.
 //   - error: Non-nil if the operation fails, nil on success.
-func GetBearerToken(log *zerolog.Logger,
+func getBearerToken(log *zerolog.Logger,
 	ctx context.Context,
 	challenge string,
 	imageRef reference.Named,
@@ -125,7 +125,7 @@ func GetBearerToken(log *zerolog.Logger,
 	clog.Debug().Msg("Fetching bearer token from challenge")
 
 	// Construct the auth URL from the challenge details.
-	authURL, err := GetAuthURL(&clog,
+	authURL, err := getAuthURL(&clog,
 		challenge,
 		imageRef,
 		registryAuth,
@@ -693,7 +693,7 @@ func buildAuthQuery(log *zerolog.Logger, authURL *url.URL, values challengeValue
 	return authURL
 }
 
-// GetAuthURL constructs an authentication URL from challenge instructions.
+// getAuthURL constructs an authentication URL from challenge instructions.
 //
 // Parameters:
 //   - challenge: Challenge string from the registry.
@@ -704,7 +704,7 @@ func buildAuthQuery(log *zerolog.Logger, authURL *url.URL, values challengeValue
 // Returns:
 //   - *url.URL: Constructed auth URL if successful.
 //   - error: Non-nil if parsing fails, nil on success.
-func GetAuthURL(
+func getAuthURL(
 	log *zerolog.Logger,
 	challenge string,
 	imageRef reference.Named,

@@ -486,7 +486,7 @@ func TestGetAuthURL(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := GetAuthURL(testLog(), tt.challenge, tt.imageRef, tt.registryAuth, registryConfig.Registry{})
+			got, err := getAuthURL(testLog(), tt.challenge, tt.imageRef, tt.registryAuth, registryConfig.Registry{})
 			if tt.wantErr {
 				assert.Error(t, err)
 
@@ -543,7 +543,7 @@ func TestGetBearerToken(t *testing.T) {
 				mockClient.On("Do", mock.Anything).Return(tt.onDo, tt.doErr).Once()
 			}
 
-			got, err := GetBearerToken(testLog(), ctx, tt.challenge, tt.imageRef, tt.registryAuth, mockClient, registryConfig.Registry{})
+			got, err := getBearerToken(testLog(), ctx, tt.challenge, tt.imageRef, tt.registryAuth, mockClient, registryConfig.Registry{})
 			if tt.wantErr {
 				assert.Error(t, err)
 
@@ -756,7 +756,7 @@ func TestGetBearerToken_anonymousGHCRSharesAcrossImages(t *testing.T) {
 	}, nil).Once()
 
 	for _, image := range []reference.Named{prowlarr, sonarr, watchtower} {
-		got, getErr := GetBearerToken(testLog(), ctx, challenge, image, "", mockClient, registryConfig.Registry{})
+		got, getErr := getBearerToken(testLog(), ctx, challenge, image, "", mockClient, registryConfig.Registry{})
 		require.NoError(t, getErr)
 		assert.Equal(t, "Bearer shared-anon-token", got)
 	}

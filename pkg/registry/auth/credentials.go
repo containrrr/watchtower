@@ -27,8 +27,8 @@ func TransformAuth(log *zerolog.Logger, registryAuth string) string {
 		return ""
 	}
 
-	// EncodeCredentials uses URLEncoding and accepts StdEncoding as well for
-	// compatibility with credentials produced outside Watchtower.
+	// registry.encodeCredentials produces URLEncoding. StdEncoding is tried
+	// first for credentials produced outside Watchtower, then URLEncoding.
 	b, err := base64.StdEncoding.DecodeString(registryAuth)
 	if err != nil {
 		b, err = base64.URLEncoding.DecodeString(registryAuth)

@@ -19,7 +19,7 @@ import (
 	"github.com/nicholas-fedor/watchtower/pkg/registry/auth"
 )
 
-// TestEncodedEnvAuth_ReturnsCredentialsWhenSet verifies that EncodedEnvAuth
+// TestEncodedEnvAuth_ReturnsCredentialsWhenSet verifies that encodedEnvAuth
 // returns base64-encoded credentials when REPO_USER and REPO_PASS are set.
 func TestEncodedEnvAuth_ReturnsCredentialsWhenSet(t *testing.T) {
 	expected := "eyJ1c2VybmFtZSI6IndhdGNodG93ZXItdXNlciIsInBhc3N3b3JkIjoid2F0Y2h0b3dlci1wYXNzIn0="
@@ -27,22 +27,22 @@ func TestEncodedEnvAuth_ReturnsCredentialsWhenSet(t *testing.T) {
 	t.Setenv("REPO_USER", "watchtower-user")
 	t.Setenv("REPO_PASS", "watchtower-pass")
 
-	config, err := EncodedEnvAuth(testLog())
+	config, err := encodedEnvAuth(testLog())
 	require.NoError(t, err)
 	assert.Equal(t, expected, config)
 }
 
-// TestEncodedEnvAuth_ReturnsErrorWhenUnset verifies that EncodedEnvAuth
+// TestEncodedEnvAuth_ReturnsErrorWhenUnset verifies that encodedEnvAuth
 // returns an error when REPO_USER and REPO_PASS are not set.
 func TestEncodedEnvAuth_ReturnsErrorWhenUnset(t *testing.T) {
 	t.Setenv("REPO_USER", "")
 	t.Setenv("REPO_PASS", "")
 
-	_, err := EncodedEnvAuth(testLog())
+	_, err := encodedEnvAuth(testLog())
 	require.Error(t, err)
 }
 
-// TestEncodedEnvAuth_PartialCredentials verifies that EncodedEnvAuth returns
+// TestEncodedEnvAuth_PartialCredentials verifies that encodedEnvAuth returns
 // an error when only one of REPO_USER or REPO_PASS is set.
 func TestEncodedEnvAuth_PartialCredentials(t *testing.T) {
 	tests := []struct {
@@ -67,7 +67,7 @@ func TestEncodedEnvAuth_PartialCredentials(t *testing.T) {
 			t.Setenv("REPO_USER", tt.repoUser)
 			t.Setenv("REPO_PASS", tt.repoPass)
 
-			credentials, err := EncodedEnvAuth(testLog())
+			credentials, err := encodedEnvAuth(testLog())
 			require.Error(t, err)
 			assert.Empty(t, credentials)
 		})
@@ -75,17 +75,17 @@ func TestEncodedEnvAuth_PartialCredentials(t *testing.T) {
 }
 
 // TestEncodedConfigAuth_ReturnsEmptyCredentialsWhenFileNotPresent verifies that
-// EncodedConfigCredentials returns empty credentials when the Docker config directory
+// encodedConfigCredentials returns empty credentials when the Docker config directory
 // does not contain a valid config file.
 func TestEncodedConfigAuth_ReturnsEmptyCredentialsWhenFileNotPresent(t *testing.T) {
 	t.Setenv("DOCKER_CONFIG", "/nonexistent/watchtower-test-path")
 
-	credentials, err := EncodedConfigCredentials(testLog(), "docker.io/library/nginx:latest")
+	credentials, err := encodedConfigCredentials(testLog(), "docker.io/library/nginx:latest")
 	require.NoError(t, err)
 	assert.Empty(t, credentials)
 }
 
-// TestEncodedConfigCredentials_FileStoreNoUsername tests that EncodedConfigCredentials
+// TestEncodedConfigCredentials_FileStoreNoUsername tests that encodedConfigCredentials
 // returns empty string and nil error when the Docker config file's auth entry has
 // no username (covers the empty-username guard added for native store compatibility).
 func TestEncodedConfigCredentials_FileStoreNoUsername(t *testing.T) {
@@ -114,12 +114,12 @@ func TestEncodedConfigCredentials_FileStoreNoUsername(t *testing.T) {
 	normalizedRef, parseErr := reference.ParseNormalizedNamed("ghcr.io/test/image:latest")
 	require.NoError(t, parseErr)
 
-	credentials, err := EncodedConfigCredentials(testLog(), normalizedRef.String())
+	credentials, err := encodedConfigCredentials(testLog(), normalizedRef.String())
 	require.NoError(t, err)
 	assert.Empty(t, credentials)
 }
 
-// TestEncodedConfigCredentials_FileStoreUsernameOnly tests that EncodedConfigCredentials
+// TestEncodedConfigCredentials_FileStoreUsernameOnly tests that encodedConfigCredentials
 // returns empty string when the Docker config auth entry has a username but no
 // password or identity token (not usable for registry auth).
 func TestEncodedConfigCredentials_FileStoreUsernameOnly(t *testing.T) {
@@ -149,7 +149,7 @@ func TestEncodedConfigCredentials_FileStoreUsernameOnly(t *testing.T) {
 	normalizedRef, parseErr := reference.ParseNormalizedNamed("ghcr.io/test/image:latest")
 	require.NoError(t, parseErr)
 
-	credentials, err := EncodedConfigCredentials(testLog(), normalizedRef.String())
+	credentials, err := encodedConfigCredentials(testLog(), normalizedRef.String())
 	require.NoError(t, err)
 	assert.Empty(t, credentials)
 }
@@ -180,7 +180,7 @@ func TestEncodedConfigCredentials_IdentityToken(t *testing.T) {
 	t.Setenv("HOME", tempDir)
 	dockerCliConfig.SetDir(tempDir)
 
-	credentials, err := EncodedConfigCredentials(testLog(), "123456789012.dkr.ecr.us-east-1.amazonaws.com/app:latest")
+	credentials, err := encodedConfigCredentials(testLog(), "123456789012.dkr.ecr.us-east-1.amazonaws.com/app:latest")
 	require.NoError(t, err)
 	assert.NotEmpty(t, credentials)
 
@@ -223,7 +223,7 @@ func TestEncodedConfigCredentials_RegistryTokenOnlyRejected(t *testing.T) {
 	t.Setenv("HOME", tempDir)
 	dockerCliConfig.SetDir(tempDir)
 
-	credentials, err := EncodedConfigCredentials(testLog(), "ghcr.io/org/app:latest")
+	credentials, err := encodedConfigCredentials(testLog(), "ghcr.io/org/app:latest")
 	require.NoError(t, err)
 	assert.Empty(t, credentials)
 }
@@ -252,7 +252,7 @@ func TestEncodedConfigCredentials_PasswordOnly(t *testing.T) {
 	t.Setenv("HOME", tempDir)
 	dockerCliConfig.SetDir(tempDir)
 
-	credentials, err := EncodedConfigCredentials(testLog(), "ghcr.io/org/app:latest")
+	credentials, err := encodedConfigCredentials(testLog(), "ghcr.io/org/app:latest")
 	require.NoError(t, err)
 	assert.NotEmpty(t, credentials)
 
@@ -289,7 +289,7 @@ func TestEncodedConfigCredentials_FileStoreValidCredentials(t *testing.T) {
 	normalizedRef, parseErr := reference.ParseNormalizedNamed("ghcr.io/test/image:latest")
 	require.NoError(t, parseErr)
 
-	credentials, err := EncodedConfigCredentials(testLog(), normalizedRef.String())
+	credentials, err := encodedConfigCredentials(testLog(), normalizedRef.String())
 	require.NoError(t, err)
 	assert.NotEmpty(t, credentials)
 
@@ -298,20 +298,20 @@ func TestEncodedConfigCredentials_FileStoreValidCredentials(t *testing.T) {
 	assert.Equal(t, "testpass", authConfig["password"])
 }
 
-// TestEncodedConfigCredentials_NoConfigFile tests that EncodedConfigCredentials
+// TestEncodedConfigCredentials_NoConfigFile tests that encodedConfigCredentials
 // returns empty credentials and nil error when the Docker config directory
 // does not exist, since the file store gracefully handles missing config files.
 func TestEncodedConfigCredentials_NoConfigFile(t *testing.T) {
 	t.Setenv("DOCKER_CONFIG", "/nonexistent/watchtower-test-path")
 	dockerCliConfig.SetDir("/nonexistent/watchtower-test-path")
 
-	credentials, err := EncodedConfigCredentials(testLog(), "ghcr.io/test/image:latest")
+	credentials, err := encodedConfigCredentials(testLog(), "ghcr.io/test/image:latest")
 	require.NoError(t, err)
 	assert.Empty(t, credentials)
 }
 
-// TestEncodedAuth_UsesConfigWhenEnvUnset verifies that EncodedAuth falls
-// through to EncodedConfigCredentials when REPO_USER/REPO_PASS are unset
+// TestEncodedAuth_UsesConfigWhenEnvUnset verifies that encodedAuth falls
+// through to encodedConfigCredentials when REPO_USER/REPO_PASS are unset
 // and a config file is present.
 func TestEncodedAuth_UsesConfigWhenEnvUnset(t *testing.T) {
 	writeTestDockerConfig(t, map[string]map[string]string{
@@ -326,7 +326,7 @@ func TestEncodedAuth_UsesConfigWhenEnvUnset(t *testing.T) {
 	t.Setenv("REPO_USER", "")
 	t.Setenv("REPO_PASS", "")
 
-	credentials, err := EncodedAuth(testLog(), "ghcr.io/test/image:latest")
+	credentials, err := encodedAuth(testLog(), "ghcr.io/test/image:latest")
 	require.NoError(t, err)
 	assert.NotEmpty(t, credentials)
 
@@ -380,7 +380,7 @@ func TestEncodedConfigCredentials_MultipleRegistries(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			credentials, err := EncodedConfigCredentials(testLog(), tt.imageRef)
+			credentials, err := encodedConfigCredentials(testLog(), tt.imageRef)
 			require.NoError(t, err)
 
 			if tt.wantEmpty {
@@ -398,7 +398,7 @@ func TestEncodedConfigCredentials_MultipleRegistries(t *testing.T) {
 	}
 }
 
-// TestEncodedAuth_ConfigPreferredOverEnv verifies that EncodedAuth returns
+// TestEncodedAuth_ConfigPreferredOverEnv verifies that encodedAuth returns
 // Docker config credentials for a registry when both config and REPO_USER/REPO_PASS
 // are set, so env credentials are not sent to every registry.
 func TestEncodedAuth_ConfigPreferredOverEnv(t *testing.T) {
@@ -414,7 +414,7 @@ func TestEncodedAuth_ConfigPreferredOverEnv(t *testing.T) {
 	t.Setenv("REPO_USER", "env-user")
 	t.Setenv("REPO_PASS", "env-pass")
 
-	credentials, err := EncodedAuth(testLog(), "ghcr.io/test/image:latest")
+	credentials, err := encodedAuth(testLog(), "ghcr.io/test/image:latest")
 	require.NoError(t, err)
 	assert.NotEmpty(t, credentials)
 
@@ -438,7 +438,7 @@ func TestEncodedAuth_EnvUsedWhenConfigHasNoRegistryEntry(t *testing.T) {
 	t.Setenv("REPO_USER", "env-user")
 	t.Setenv("REPO_PASS", "env-pass")
 
-	credentials, err := EncodedAuth(testLog(), "quay.io/org/app:latest")
+	credentials, err := encodedAuth(testLog(), "quay.io/org/app:latest")
 	require.NoError(t, err)
 	assert.NotEmpty(t, credentials)
 
@@ -468,7 +468,7 @@ func TestEncodedConfigCredentials_MultipleImagesSameRegistry(t *testing.T) {
 	var firstCredentials string
 
 	for _, ref := range imageRefs {
-		credentials, err := EncodedConfigCredentials(testLog(), ref)
+		credentials, err := encodedConfigCredentials(testLog(), ref)
 		require.NoError(t, err)
 		assert.NotEmpty(t, credentials)
 
@@ -482,7 +482,7 @@ func TestEncodedConfigCredentials_MultipleImagesSameRegistry(t *testing.T) {
 }
 
 // TestEncodedConfigCredentials_RegistryMissingFromConfig verifies that
-// EncodedConfigCredentials returns empty credentials when the config file
+// encodedConfigCredentials returns empty credentials when the config file
 // contains entries for other registries but not the requested one.
 func TestEncodedConfigCredentials_RegistryMissingFromConfig(t *testing.T) {
 	writeTestDockerConfig(t, map[string]map[string]string{
@@ -494,7 +494,7 @@ func TestEncodedConfigCredentials_RegistryMissingFromConfig(t *testing.T) {
 
 	defer os.Unsetenv("DOCKER_CONFIG")
 
-	credentials, err := EncodedConfigCredentials(testLog(), "ghcr.io/test/image:latest")
+	credentials, err := encodedConfigCredentials(testLog(), "ghcr.io/test/image:latest")
 	require.NoError(t, err)
 	assert.Empty(t, credentials)
 }
@@ -506,12 +506,12 @@ func TestEncodedConfigCredentials_EmptyAuthsMap(t *testing.T) {
 
 	defer os.Unsetenv("DOCKER_CONFIG")
 
-	credentials, err := EncodedConfigCredentials(testLog(), "ghcr.io/test/image:latest")
+	credentials, err := encodedConfigCredentials(testLog(), "ghcr.io/test/image:latest")
 	require.NoError(t, err)
 	assert.Empty(t, credentials)
 }
 
-// TestEncodedConfigCredentials_MalformedConfigJSON verifies that EncodedConfigCredentials
+// TestEncodedConfigCredentials_MalformedConfigJSON verifies that encodedConfigCredentials
 // returns an error when the config file contains malformed JSON.
 func TestEncodedConfigCredentials_MalformedConfigJSON(t *testing.T) {
 	tempDir, err := os.MkdirTemp("", "watchtower-test-docker-config")
@@ -527,13 +527,13 @@ func TestEncodedConfigCredentials_MalformedConfigJSON(t *testing.T) {
 	t.Setenv("HOME", tempDir)
 	dockerCliConfig.SetDir(tempDir)
 
-	credentials, err := EncodedConfigCredentials(testLog(), "ghcr.io/test/image:latest")
+	credentials, err := encodedConfigCredentials(testLog(), "ghcr.io/test/image:latest")
 	require.Error(t, err)
 	assert.Empty(t, credentials)
 }
 
 // TestEncodedAuth_FallsThroughToConfigWhenEnvPartiallySet verifies that
-// EncodedAuth falls through to EncodedConfigCredentials when env vars are
+// encodedAuth falls through to encodedConfigCredentials when env vars are
 // partially set (one present, one missing) and a valid config file exists.
 func TestEncodedAuth_FallsThroughToConfigWhenEnvPartiallySet(t *testing.T) {
 	writeTestDockerConfig(t, map[string]map[string]string{
@@ -548,7 +548,7 @@ func TestEncodedAuth_FallsThroughToConfigWhenEnvPartiallySet(t *testing.T) {
 	t.Setenv("REPO_USER", "env-only-user")
 	t.Setenv("REPO_PASS", "")
 
-	credentials, err := EncodedAuth(testLog(), "ghcr.io/test/image:latest")
+	credentials, err := encodedAuth(testLog(), "ghcr.io/test/image:latest")
 	require.NoError(t, err)
 	assert.NotEmpty(t, credentials)
 
@@ -558,7 +558,7 @@ func TestEncodedAuth_FallsThroughToConfigWhenEnvPartiallySet(t *testing.T) {
 }
 
 // TestEncodedAuth_EnvPartiallySetWithUnconfiguredRegistry verifies that
-// EncodedAuth returns empty credentials without error when env vars are
+// encodedAuth returns empty credentials without error when env vars are
 // partially set and the config file has no entry for the requested registry.
 func TestEncodedAuth_EnvPartiallySetWithUnconfiguredRegistry(t *testing.T) {
 	writeTestDockerConfig(t, map[string]map[string]string{
@@ -573,7 +573,7 @@ func TestEncodedAuth_EnvPartiallySetWithUnconfiguredRegistry(t *testing.T) {
 	t.Setenv("REPO_USER", "env-only-user")
 	t.Setenv("REPO_PASS", "")
 
-	credentials, err := EncodedAuth(testLog(), "ghcr.io/test/image:latest")
+	credentials, err := encodedAuth(testLog(), "ghcr.io/test/image:latest")
 	require.NoError(t, err)
 	assert.Empty(t, credentials)
 }
@@ -585,7 +585,7 @@ func TestGetPullOptions_TraceLogsOmitCredentials(t *testing.T) {
 
 	log, logBuf := logging.NewTestLogger(logging.TraceLevel)
 
-	// Empty Docker config so EncodedAuth falls through to environment credentials.
+	// Empty Docker config so encodedAuth falls through to environment credentials.
 	tempDir := t.TempDir()
 	t.Setenv("DOCKER_CONFIG", tempDir)
 	t.Setenv("HOME", tempDir)
@@ -622,7 +622,7 @@ func TestEncodedAuth_TraceLogsOmitSecrets(t *testing.T) {
 		t.Setenv("REPO_USER", "env-user")
 		t.Setenv("REPO_PASS", secretPass)
 
-		_, err := EncodedEnvAuth(log)
+		_, err := encodedEnvAuth(log)
 		require.NoError(t, err)
 
 		out := logBuf.String()
@@ -647,7 +647,7 @@ func TestEncodedAuth_TraceLogsOmitSecrets(t *testing.T) {
 		t.Setenv("REPO_USER", "")
 		t.Setenv("REPO_PASS", "")
 
-		_, err := EncodedConfigCredentials(log, "ghcr.io/org/app:latest")
+		_, err := encodedConfigCredentials(log, "ghcr.io/org/app:latest")
 		require.NoError(t, err)
 
 		out := logBuf.String()
@@ -680,7 +680,7 @@ func TestEncodedAuth_TraceLogsOmitSecrets(t *testing.T) {
 		t.Setenv("HOME", tempDir)
 		dockerCliConfig.SetDir(tempDir)
 
-		_, err = EncodedConfigCredentials(log, "ghcr.io/org/app:latest")
+		_, err = encodedConfigCredentials(log, "ghcr.io/org/app:latest")
 		require.NoError(t, err)
 
 		out := logBuf.String()
@@ -690,7 +690,7 @@ func TestEncodedAuth_TraceLogsOmitSecrets(t *testing.T) {
 	})
 }
 
-// TestEncodedConfigCredentials_InvalidImageRef verifies that EncodedConfigCredentials
+// TestEncodedConfigCredentials_InvalidImageRef verifies that encodedConfigCredentials
 // returns an error when the image reference is invalid and cannot be parsed.
 func TestEncodedConfigCredentials_InvalidImageRef(t *testing.T) {
 	tempDir, err := os.MkdirTemp("", "watchtower-test-docker-config")
@@ -702,7 +702,7 @@ func TestEncodedConfigCredentials_InvalidImageRef(t *testing.T) {
 	t.Setenv("HOME", tempDir)
 	dockerCliConfig.SetDir(tempDir)
 
-	credentials, err := EncodedConfigCredentials(testLog(), "")
+	credentials, err := encodedConfigCredentials(testLog(), "")
 	require.Error(t, err)
 	assert.Empty(t, credentials)
 }
@@ -719,11 +719,11 @@ func TestEncodedConfigCredentials_CacheHitAndMtimeInvalidation(t *testing.T) {
 	})
 	t.Cleanup(func() { _ = os.RemoveAll(tempDir) })
 
-	first, err := EncodedConfigCredentials(testLog(), "ghcr.io/org/app:latest")
+	first, err := encodedConfigCredentials(testLog(), "ghcr.io/org/app:latest")
 	require.NoError(t, err)
 	require.NotEmpty(t, first)
 
-	second, err := EncodedConfigCredentials(testLog(), "ghcr.io/org/app:latest")
+	second, err := encodedConfigCredentials(testLog(), "ghcr.io/org/app:latest")
 	require.NoError(t, err)
 	assert.Equal(t, first, second)
 
@@ -746,7 +746,7 @@ func TestEncodedConfigCredentials_CacheHitAndMtimeInvalidation(t *testing.T) {
 	future := time.Now().Add(2 * time.Second)
 	require.NoError(t, os.Chtimes(configPath, future, future))
 
-	third, err := EncodedConfigCredentials(testLog(), "ghcr.io/org/app:latest")
+	third, err := encodedConfigCredentials(testLog(), "ghcr.io/org/app:latest")
 	require.NoError(t, err)
 	require.NotEmpty(t, third)
 	assert.NotEqual(t, first, third)
@@ -766,7 +766,7 @@ func TestEncodedConfigCredentials_FailedLookupNotCached(t *testing.T) {
 
 	mtime := configFileModTime(tempDir)
 
-	empty, err := EncodedConfigCredentials(testLog(), "ghcr.io/org/app:latest")
+	empty, err := encodedConfigCredentials(testLog(), "ghcr.io/org/app:latest")
 	require.Error(t, err)
 	require.ErrorIs(t, err, errFailedLoadDockerConfig)
 	assert.Empty(t, empty)
@@ -783,7 +783,7 @@ func TestEncodedConfigCredentials_FailedLookupNotCached(t *testing.T) {
 	require.NoError(t, os.WriteFile(configPath, valid, 0o600))
 	require.NoError(t, os.Chtimes(configPath, time.Unix(0, mtime), time.Unix(0, mtime)))
 
-	got, err := EncodedConfigCredentials(testLog(), "ghcr.io/org/app:latest")
+	got, err := encodedConfigCredentials(testLog(), "ghcr.io/org/app:latest")
 	require.NoError(t, err)
 	require.NotEmpty(t, got)
 }

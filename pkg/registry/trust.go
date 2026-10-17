@@ -138,7 +138,7 @@ func configFileModTime(configDir string) int64 {
 	return info.ModTime().UnixNano()
 }
 
-// EncodedAuth attempts to retrieve encoded authentication credentials for a given image name.
+// encodedAuth attempts to retrieve encoded authentication credentials for a given image name.
 //
 // Per-image Docker config credentials are preferred when present so REPO_USER/REPO_PASS
 // are not sent to every registry. Environment credentials are used when the config has
@@ -151,7 +151,7 @@ func configFileModTime(configDir string) int64 {
 // Returns:
 //   - string: Base64-encoded credentials string if successful, empty if none found.
 //   - error: Non-nil if both methods fail, nil on success or if no credentials are available.
-func EncodedAuth(log *zerolog.Logger, imageName string) (string, error) {
+func encodedAuth(log *zerolog.Logger, imageName string) (string, error) {
 	// Set up logging fields for tracking.
 	fields := map[string]any{
 		"image_ref": imageName,
@@ -161,7 +161,7 @@ func EncodedAuth(log *zerolog.Logger, imageName string) (string, error) {
 		Fields(fields).
 		Msg("Attempting to retrieve auth credentials")
 
-	configCredentials, configErr := EncodedConfigCredentials(log, imageName)
+	configCredentials, configErr := encodedConfigCredentials(log, imageName)
 	if configErr == nil && configCredentials != "" {
 		log.Debug().
 			Fields(fields).
@@ -181,7 +181,7 @@ func EncodedAuth(log *zerolog.Logger, imageName string) (string, error) {
 			Msg("No config credentials for registry, trying environment")
 	}
 
-	credentials, err := EncodedEnvAuth(log)
+	credentials, err := encodedEnvAuth(log)
 	if err != nil {
 		// Prefer surfacing a config load/address error when env is also unset.
 		if configErr != nil {
@@ -201,14 +201,14 @@ func EncodedAuth(log *zerolog.Logger, imageName string) (string, error) {
 	return credentials, nil
 }
 
-// EncodedEnvAuth checks for REPO_USER and REPO_PASS environment variables and encodes them.
+// encodedEnvAuth checks for REPO_USER and REPO_PASS environment variables and encodes them.
 //
 // It returns an error if these variables are not set.
 //
 // Returns:
 //   - string: Base64-encoded auth string if credentials are found.
 //   - error: Non-nil if env vars are missing, nil on success.
-func EncodedEnvAuth(log *zerolog.Logger) (string, error) {
+func encodedEnvAuth(log *zerolog.Logger) (string, error) {
 	// Retrieve username and password from environment.
 	username := os.Getenv("REPO_USER")
 	password := os.Getenv("REPO_PASS")
@@ -233,7 +233,7 @@ func EncodedEnvAuth(log *zerolog.Logger) (string, error) {
 		}
 
 		// Encode and return the auth config.
-		return EncodeCredentials(log, credentials)
+		return encodeCredentials(log, credentials)
 	}
 
 	// Return error if variables are missing.
@@ -242,7 +242,7 @@ func EncodedEnvAuth(log *zerolog.Logger) (string, error) {
 	return "", errUnsetRegAuthVars
 }
 
-// EncodedConfigCredentials retrieves authentication credentials from the Docker config file.
+// encodedConfigCredentials retrieves authentication credentials from the Docker config file.
 //
 // Successful and empty lookups are cached by registry host and config directory.
 // The cache is invalidated when config.json mtime changes or the TTL expires.
@@ -255,7 +255,7 @@ func EncodedEnvAuth(log *zerolog.Logger) (string, error) {
 // Returns:
 //   - string: Base64-encoded credentials string if found, empty if none.
 //   - error: Non-nil if config loading or address retrieval fails, nil on success or if no auth is found.
-func EncodedConfigCredentials(log *zerolog.Logger, imageRef string) (string, error) {
+func encodedConfigCredentials(log *zerolog.Logger, imageRef string) (string, error) {
 	// Get the registry server address from the image reference.
 	server, err := auth.GetRegistryAddress(log, imageRef)
 	if err != nil {
@@ -305,7 +305,7 @@ func EncodedConfigCredentials(log *zerolog.Logger, imageRef string) (string, err
 	}
 
 	// Retrieve credentials from the config store.
-	credStore := CredentialsStore(*configFile)
+	credStore := credentialsStore(*configFile)
 
 	credentials, err := credStore.Get(server)
 	if err != nil {
@@ -352,7 +352,7 @@ func EncodedConfigCredentials(log *zerolog.Logger, imageRef string) (string, err
 	}
 
 	// Encode the auth config, including IdentityToken when set.
-	encoded, err := EncodeCredentials(log, credentials)
+	encoded, err := encodeCredentials(log, credentials)
 	if err != nil {
 		return "", err
 	}
@@ -365,7 +365,7 @@ func EncodedConfigCredentials(log *zerolog.Logger, imageRef string) (string, err
 // hasUsableRegistryCredentials reports whether AuthConfig carries material the
 // Docker daemon or registry HTTP clients can authenticate with.
 //
-// IdentityToken and Password are supported end to end via EncodeCredentials and
+// IdentityToken and Password are supported end to end via encodeCredentials and
 // TransformAuth (Basic auth). RegistryToken-only entries are not accepted until
 // a Bearer-auth path is implemented for them.
 func hasUsableRegistryCredentials(credentials dockerConfig.AuthConfig) bool {
@@ -385,7 +385,7 @@ func hasUsableRegistryCredentials(credentials dockerConfig.AuthConfig) bool {
 	return false
 }
 
-// CredentialsStore returns a new credentials store based on the configuration file settings.
+// credentialsStore returns a new credentials store based on the configuration file settings.
 //
 // It selects a native or file-based store depending on the config.
 //
@@ -394,7 +394,7 @@ func hasUsableRegistryCredentials(credentials dockerConfig.AuthConfig) bool {
 //
 // Returns:
 //   - dockerConfigCredentials.Store: Configured credentials store.
-func CredentialsStore(configFile dockerConfigConfigfile.ConfigFile) dockerConfigCredentials.Store {
+func credentialsStore(configFile dockerConfigConfigfile.ConfigFile) dockerConfigCredentials.Store {
 	// Use native store if a credentials store is specified.
 	if configFile.CredentialsStore != "" {
 		return dockerConfigCredentials.NewNativeStore(&configFile, configFile.CredentialsStore)
@@ -404,7 +404,7 @@ func CredentialsStore(configFile dockerConfigConfigfile.ConfigFile) dockerConfig
 	return dockerConfigCredentials.NewFileStore(&configFile)
 }
 
-// EncodeCredentials Base64 encodes an AuthConfig struct for HTTP transmission.
+// encodeCredentials Base64 encodes an AuthConfig struct for HTTP transmission.
 //
 // It marshals the struct to JSON and applies URL-safe base64 encoding.
 //
@@ -414,7 +414,7 @@ func CredentialsStore(configFile dockerConfigConfigfile.ConfigFile) dockerConfig
 // Returns:
 //   - string: Base64-encoded auth string if successful.
 //   - error: Non-nil if marshaling fails, nil on success.
-func EncodeCredentials(log *zerolog.Logger, authConfig dockerConfig.AuthConfig) (string, error) {
+func encodeCredentials(log *zerolog.Logger, authConfig dockerConfig.AuthConfig) (string, error) {
 	// Set up logging fields with non-sensitive username presence indicator.
 	fields := map[string]any{
 		"has_username": authConfig.Username != "",

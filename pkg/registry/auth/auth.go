@@ -102,7 +102,7 @@ func resolveEndpointHost(endpoint, canonical, scheme string) (string, string) {
 	return endpoint, scheme
 }
 
-// GetChallengeURL generates a challenge URL for accessing an image's registry.
+// getChallengeURL generates a challenge URL for accessing an image's registry.
 //
 // When endpoint is non-empty, it is used as the registry host for the challenge URL instead
 // of the canonical registry host. The endpoint may include a scheme (for example
@@ -116,7 +116,7 @@ func resolveEndpointHost(endpoint, canonical, scheme string) (string, string) {
 //
 // Returns:
 //   - url.URL: Generated challenge URL.
-func GetChallengeURL(
+func getChallengeURL(
 	log *zerolog.Logger,
 	imageRef reference.Named,
 	settings registryConfig.Registry,
@@ -145,7 +145,7 @@ func GetChallengeURL(
 	return challengeURL
 }
 
-// GetChallengeRequest creates a request for retrieving challenge instructions.
+// getChallengeRequest creates a request for retrieving challenge instructions.
 //
 // Parameters:
 //   - log: Logger for diagnostics.
@@ -155,7 +155,7 @@ func GetChallengeURL(
 // Returns:
 //   - *http.Request: Constructed request if successful.
 //   - error: Non-nil if creation fails, nil on success.
-func GetChallengeRequest(log *zerolog.Logger, ctx context.Context, challengeURL url.URL) (*http.Request, error) {
+func getChallengeRequest(log *zerolog.Logger, ctx context.Context, challengeURL url.URL) (*http.Request, error) {
 	// Create a GET request with context for cancellation and timeout.
 	request, err := http.NewRequestWithContext(
 		ctx,
@@ -417,7 +417,7 @@ func handleBearerAuth(
 		return TokenResult{}, fmt.Errorf("%w: %w", errFailedParseImageName, err)
 	}
 
-	authURL, err := GetAuthURL(
+	authURL, err := getAuthURL(
 		log,
 		strings.ToLower(wwwAuthHeader),
 		normalizedRef,
@@ -439,7 +439,7 @@ func handleBearerAuth(
 			Msg("Extracted challenge host")
 	}
 
-	token, err := GetBearerToken(
+	token, err := getBearerToken(
 		log,
 		ctx,
 		wwwAuthHeader,
@@ -536,13 +536,13 @@ func GetToken(
 	}
 
 	// Generate the challenge URL, using the endpoint override if provided.
-	challengeURL := GetChallengeURL(&clog, normalizedRef, settings, endpoint)
+	challengeURL := getChallengeURL(&clog, normalizedRef, settings, endpoint)
 	clog.Debug().
 		Str("url", challengeURL.String()).
 		Msg("Constructed challenge URL")
 
 	// Build and execute the challenge request.
-	request, err := GetChallengeRequest(&clog, ctx, challengeURL)
+	request, err := getChallengeRequest(&clog, ctx, challengeURL)
 	if err != nil {
 		clog.Debug().
 			Err(err).
@@ -587,7 +587,7 @@ func GetToken(
 	}
 
 	// Extract the challenge header.
-	wwwAuthHeader := response.Header.Get(ChallengeHeader)
+	wwwAuthHeader := response.Header.Get(challengeHeaderName)
 	// Log endpoint in sanitized form (host only) to avoid leaking credentials.
 	sanitizedEndpoint := endpoint
 	if endpoint != "" {

@@ -183,7 +183,7 @@ func TestFormatDigest(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, FormatDigest(tt.input))
+			assert.Equal(t, tt.want, formatDigest(tt.input))
 		})
 	}
 }
@@ -480,8 +480,8 @@ func TestCompareDigestWithRemote_HeadRejectedFallsBackToGet(t *testing.T) {
 // A HEAD 404 must be treated as up-to-date with no error so callers skip the pull
 // without logging "Digest retrieval failed, falling back to full pull".
 func TestCompareDigestWithRemote_LocalOnly404(t *testing.T) {
-	ClearLocalOnlyImageCache()
-	t.Cleanup(ClearLocalOnlyImageCache)
+	clearLocalOnlyImageCache()
+	t.Cleanup(clearLocalOnlyImageCache)
 
 	settings := registryConfig.Registry{TLSSkip: true}
 
@@ -545,10 +545,10 @@ func TestCompareDigestWithRemote_LocalOnly404(t *testing.T) {
 	assert.GreaterOrEqual(t, headManifestCalls, 1)
 }
 
-// TestIsLocalImageNotFound verifies domain-less Config.Image + ErrManifestNotFound
+// TestIsLocalImageNotFound verifies domain-less Config.Image + errManifestNotFound
 // identity matching (a prior dual-sentinel bug broke errors.Is).
 func TestIsLocalImageNotFound(t *testing.T) {
-	t.Run("true for domain-less Config.Image with wrapped ErrManifestNotFound", func(t *testing.T) {
+	t.Run("true for domain-less Config.Image with wrapped errManifestNotFound", func(t *testing.T) {
 		mc := mockTypes.NewMockContainer(t)
 		mc.On("HasImageInfo").Return(true)
 		mc.On("ImageInfo").Return(&dockerImage.InspectResponse{
@@ -560,7 +560,7 @@ func TestIsLocalImageNotFound(t *testing.T) {
 			Config: &dockerContainer.Config{Image: "atlas-badgerdb"},
 		})
 
-		err := fmt.Errorf("%w: %w: status 404 Not Found", ErrManifestNotFound, errInvalidRegistryResponse)
+		err := fmt.Errorf("%w: %w: status 404 Not Found", errManifestNotFound, errInvalidRegistryResponse)
 		assert.True(t, isLocalImageNotFound(mc, err))
 	})
 
@@ -576,7 +576,7 @@ func TestIsLocalImageNotFound(t *testing.T) {
 			Config: &dockerContainer.Config{Image: "my-app:1.0"},
 		})
 
-		err := fmt.Errorf("%w: status 404 Not Found", ErrManifestNotFound)
+		err := fmt.Errorf("%w: status 404 Not Found", errManifestNotFound)
 		assert.True(t, isLocalImageNotFound(mc, err))
 	})
 
@@ -587,7 +587,7 @@ func TestIsLocalImageNotFound(t *testing.T) {
 			Config: &dockerContainer.Config{Image: "registry.example.com/app:latest"},
 		})
 
-		err := fmt.Errorf("%w: status 404 Not Found", ErrManifestNotFound)
+		err := fmt.Errorf("%w: status 404 Not Found", errManifestNotFound)
 		assert.False(t, isLocalImageNotFound(mc, err))
 	})
 
@@ -606,7 +606,7 @@ func TestIsLocalImageNotFound(t *testing.T) {
 			Config: &dockerContainer.Config{Image: "nginx:latest"},
 		})
 
-		err := fmt.Errorf("%w: status 404 Not Found", ErrManifestNotFound)
+		err := fmt.Errorf("%w: status 404 Not Found", errManifestNotFound)
 		assert.False(t, isLocalImageNotFound(mc, err))
 	})
 
@@ -620,8 +620,8 @@ func TestIsLocalImageNotFound(t *testing.T) {
 // TestLocalOnlyImageCache ensures a confirmed local-only image skips subsequent
 // registry probes for the same image name+ID.
 func TestLocalOnlyImageCache(t *testing.T) {
-	ClearLocalOnlyImageCache()
-	t.Cleanup(ClearLocalOnlyImageCache)
+	clearLocalOnlyImageCache()
+	t.Cleanup(clearLocalOnlyImageCache)
 
 	settings := registryConfig.Registry{TLSSkip: true}
 

@@ -181,7 +181,7 @@ func TestGetChallengeURL(t *testing.T) {
 				return
 			}
 
-			got := GetChallengeURL(testLog(), ref, registryConfig.Registry{}, tt.endpoint)
+			got := getChallengeURL(testLog(), ref, registryConfig.Registry{}, tt.endpoint)
 			if tt.wantErr {
 				assert.Empty(t, got.Host)
 
@@ -220,7 +220,7 @@ func TestGetChallengeRequest(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := GetChallengeRequest(testLog(), context.Background(), tt.url)
+			got, err := getChallengeRequest(testLog(), context.Background(), tt.url)
 			if tt.wantErr {
 				assert.Error(t, err)
 

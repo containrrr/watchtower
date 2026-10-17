@@ -12,8 +12,8 @@ import (
 	"github.com/nicholas-fedor/watchtower/pkg/registry/hosts"
 )
 
-// ChallengeHeader is the HTTP Header containing challenge instructions.
-const ChallengeHeader = "WWW-Authenticate"
+// challengeHeaderName is the HTTP Header containing challenge instructions.
+const challengeHeaderName = "WWW-Authenticate"
 
 // Errors for registry operations.
 var (
@@ -199,7 +199,7 @@ func GetRegistryAddress(log *zerolog.Logger, imageRef string) (string, error) {
 	}
 
 	// lscr.io images are hosted on GitHub Container Registry (ghcr.io).
-	// Map here so all callers benefit, including GetChallengeURL and GetAuthURL.
+	// Map here so all callers benefit, including getChallengeURL and getAuthURL.
 	if domain == hosts.LSCRRegistryDomain {
 		domain = hosts.GitHubRegistryDomain
 

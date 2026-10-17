@@ -83,19 +83,19 @@ func Scope(host string, authenticated bool) string {
 	return host
 }
 
-// IsAnonymousScope reports whether key is the unauthenticated GHCR limiter key.
+// isAnonymousScope reports whether key is the unauthenticated GHCR limiter key.
 //
 // Parameters:
 //   - key: Limiter key from [Scope].
 //
 // Returns:
 //   - bool: True when key is the anonymous GHCR scope.
-func IsAnonymousScope(key string) bool {
+func isAnonymousScope(key string) bool {
 	return strings.HasSuffix(key, anonSuffix)
 }
 
 // HoldAnonymous returns the limiter key for host and, for unauthenticated GHCR,
-// acquires the one-at-a-time serial slot with [AcquireSerial].
+// acquires the one-at-a-time serial slot with [acquireSerial].
 //
 // The release function is always non-nil. Callers should defer it. Authenticated
 // GHCR and other registries do not take the serial slot.
@@ -113,21 +113,21 @@ func HoldAnonymous(ctx context.Context, host string, authenticated bool) (string
 	key := Scope(host, authenticated)
 	release := func() {}
 
-	if !IsAnonymousScope(key) {
+	if !isAnonymousScope(key) {
 		return key, release, nil
 	}
 
-	err := AcquireSerial(ctx, key)
+	err := acquireSerial(ctx, key)
 	if err != nil {
 		return key, release, err
 	}
 
-	return key, func() { ReleaseSerial(key) }, nil
+	return key, func() { releaseSerial(key) }, nil
 }
 
-// AcquireSerial blocks until this process may run one operation on key.
+// acquireSerial blocks until this process may run one operation on key.
 //
-// Empty keys return immediately. [ReleaseSerial] must be called for the same key.
+// Empty keys return immediately. [releaseSerial] must be called for the same key.
 //
 // Parameters:
 //   - ctx: Context that can cancel the wait.
@@ -135,7 +135,7 @@ func HoldAnonymous(ctx context.Context, host string, authenticated bool) (string
 //
 // Returns:
 //   - error: [context.Context.Err] when canceled. Nil when the caller may proceed.
-func AcquireSerial(ctx context.Context, key string) error {
+func acquireSerial(ctx context.Context, key string) error {
 	if key == "" {
 		return nil
 	}
@@ -153,13 +153,13 @@ func AcquireSerial(ctx context.Context, key string) error {
 	}
 }
 
-// ReleaseSerial returns a serial slot acquired with [AcquireSerial].
+// releaseSerial returns a serial slot acquired with [acquireSerial].
 //
 // Empty keys and slots that are not held are ignored.
 //
 // Parameters:
-//   - key: Serial slot key passed to [AcquireSerial].
-func ReleaseSerial(key string) {
+//   - key: Serial slot key passed to [acquireSerial].
+func releaseSerial(key string) {
 	if key == "" {
 		return
 	}
@@ -247,14 +247,14 @@ func Observe(host string, info *Error) {
 	}
 }
 
-// ObserveSuccess refreshes host's fill-rate tokens after a successful request.
+// observeSuccess refreshes host's fill-rate tokens after a successful request.
 //
 // Token reservation happens in Wait. This only refills up to the burst cap so
 // a success does not spend a second token or restore a pre-throttle dump.
 //
 // Parameters:
 //   - host: Registry host. Empty values are ignored.
-func ObserveSuccess(host string) {
+func observeSuccess(host string) {
 	if host == "" {
 		return
 	}

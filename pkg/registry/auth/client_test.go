@@ -68,7 +68,7 @@ func Test_registryClient_Do(t *testing.T) {
 	}
 }
 
-// Test_configureTLS verifies that ConfigureTLS applies the minimum TLS version
+// Test_configureTLS verifies that configureTLS applies the minimum TLS version
 // from the settings, and falls back to TLS 1.2 with a warning for a version it
 // does not accept.
 func Test_configureTLS(t *testing.T) {
@@ -112,7 +112,7 @@ func Test_configureTLS(t *testing.T) {
 
 			log := zerolog.New(&logBuf).Level(zerolog.WarnLevel)
 
-			ConfigureTLS(&log, tt.tlsConfig, registryConfig.Registry{TLSMinVersion: tt.minVersion})
+			configureTLS(&log, tt.tlsConfig, registryConfig.Registry{TLSMinVersion: tt.minVersion})
 
 			if tt.tlsConfig != nil {
 				assert.Equal(t, tt.wantMin, tt.tlsConfig.MinVersion)
@@ -127,7 +127,7 @@ func Test_configureTLS(t *testing.T) {
 	}
 }
 
-// Test_configureTLS_TLSSkip verifies that ConfigureTLS disables certificate
+// Test_configureTLS_TLSSkip verifies that configureTLS disables certificate
 // verification only when the settings skip TLS verification.
 func Test_configureTLS_TLSSkip(t *testing.T) {
 	t.Run("enabled with non-nil logger emits debug", func(t *testing.T) {
@@ -136,7 +136,7 @@ func Test_configureTLS_TLSSkip(t *testing.T) {
 		log := zerolog.New(&logBuf).Level(zerolog.DebugLevel)
 		tlsConfig := &tls.Config{MinVersion: tls.VersionTLS12}
 
-		ConfigureTLS(&log, tlsConfig, registryConfig.Registry{TLSSkip: true})
+		configureTLS(&log, tlsConfig, registryConfig.Registry{TLSSkip: true})
 
 		assert.True(t, tlsConfig.InsecureSkipVerify)
 		assert.Contains(t, logBuf.String(), "TLS certificate verification disabled via WATCHTOWER_REGISTRY_TLS_SKIP")
@@ -146,7 +146,7 @@ func Test_configureTLS_TLSSkip(t *testing.T) {
 		tlsConfig := &tls.Config{MinVersion: tls.VersionTLS12}
 
 		assert.NotPanics(t, func() {
-			ConfigureTLS(nil, tlsConfig, registryConfig.Registry{TLSSkip: true})
+			configureTLS(nil, tlsConfig, registryConfig.Registry{TLSSkip: true})
 		})
 		assert.True(t, tlsConfig.InsecureSkipVerify)
 	})
@@ -157,7 +157,7 @@ func Test_configureTLS_TLSSkip(t *testing.T) {
 		log := zerolog.New(&logBuf).Level(zerolog.DebugLevel)
 		tlsConfig := &tls.Config{MinVersion: tls.VersionTLS12}
 
-		ConfigureTLS(&log, tlsConfig, registryConfig.Registry{})
+		configureTLS(&log, tlsConfig, registryConfig.Registry{})
 
 		assert.False(t, tlsConfig.InsecureSkipVerify)
 		assert.NotContains(t, logBuf.String(), "TLS certificate verification disabled")

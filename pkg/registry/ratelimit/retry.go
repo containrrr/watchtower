@@ -77,7 +77,7 @@ func DoValue[T any](
 
 		value, opErr := operation()
 		if opErr == nil {
-			ObserveSuccess(host)
+			observeSuccess(host)
 
 			return value, nil
 		}
@@ -101,7 +101,7 @@ func DoValue[T any](
 			firstLimitedAt = now
 		}
 
-		wait, giveUp := Decision(info)
+		wait, giveUp := decision(info)
 		bucket := isTokenBucket(info)
 		budget := retryElapsed
 
@@ -236,12 +236,12 @@ func lastOperationError(err error) error {
 
 // jitterWait adds nonnegative jitter so concurrent retries do not wake together.
 //
-// The Decision wait is the minimum. Extra delay is in
+// The decision wait is the minimum. Extra delay is in
 // [0, wait/equalJitterDivisor], capped so the result does not exceed
 // maxHonorWait. Zero and negative waits are unchanged.
 //
 // Parameters:
-//   - wait: Decision wait before the next attempt.
+//   - wait: decision wait before the next attempt.
 //
 // Returns:
 //   - time.Duration: Jittered wait, never shorter than wait when wait > 0.

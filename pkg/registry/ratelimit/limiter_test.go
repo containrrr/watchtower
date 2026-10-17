@@ -139,8 +139,8 @@ func TestObserveDoesNotShrinkExistingCooldown(t *testing.T) {
 func TestObserveSuccessIgnoresUnknownHost(t *testing.T) {
 	ResetForTest()
 
-	ObserveSuccess("")
-	ObserveSuccess("ghcr.io")
+	observeSuccess("")
+	observeSuccess("ghcr.io")
 
 	require.NoError(t, Wait(t.Context(), "ghcr.io"))
 }
@@ -154,7 +154,7 @@ func TestObserveSuccessDoesNotGiftExtraToken(t *testing.T) {
 	})
 
 	require.NoError(t, Wait(t.Context(), "ghcr.io"))
-	ObserveSuccess("ghcr.io")
+	observeSuccess("ghcr.io")
 
 	started := time.Now()
 
@@ -352,10 +352,10 @@ func TestScopeSeparatesAnonymousGHCR(t *testing.T) {
 	assert.Equal(t, "ghcr.io", Scope("lscr.io", true))
 	assert.Equal(t, "index.docker.io", Scope("index.docker.io", false))
 	assert.Empty(t, Scope("", false))
-	assert.True(t, IsAnonymousScope(Scope("ghcr.io", false)))
-	assert.True(t, IsAnonymousScope(Scope("lscr.io", false)))
-	assert.False(t, IsAnonymousScope(Scope("ghcr.io", true)))
-	assert.False(t, IsAnonymousScope(Scope("lscr.io", true)))
+	assert.True(t, isAnonymousScope(Scope("ghcr.io", false)))
+	assert.True(t, isAnonymousScope(Scope("lscr.io", false)))
+	assert.False(t, isAnonymousScope(Scope("ghcr.io", true)))
+	assert.False(t, isAnonymousScope(Scope("lscr.io", true)))
 }
 
 func TestAnonymousGHCRSerializes(t *testing.T) {
@@ -372,8 +372,8 @@ func TestAnonymousGHCRSerializes(t *testing.T) {
 
 	for range 8 {
 		wg.Go(func() {
-			require.NoError(t, AcquireSerial(t.Context(), key))
-			defer ReleaseSerial(key)
+			require.NoError(t, acquireSerial(t.Context(), key))
+			defer releaseSerial(key)
 
 			n := inFlight.Add(1)
 
@@ -398,8 +398,8 @@ func TestAuthenticatedGHCRDoesNotTakeAnonLock(t *testing.T) {
 
 	anonKey := Scope("ghcr.io", false)
 
-	require.NoError(t, AcquireSerial(t.Context(), anonKey))
-	defer ReleaseSerial(anonKey)
+	require.NoError(t, acquireSerial(t.Context(), anonKey))
+	defer releaseSerial(anonKey)
 
 	started := time.Now()
 	authKey := Scope("ghcr.io", true)
