@@ -64,25 +64,29 @@ func setPreRunState(t *testing.T, client container.Client, detection selfDetecti
 	setRunState(t, runTestState{})
 
 	savedNewClient := newClient
-	savedMountinfo := container.ReadMountinfoFunc
-	savedCgroup := container.ReadCgroupFunc
-	savedProcessFs := processFs
 
-	t.Cleanup(func() {
-		newClient = savedNewClient
-		container.ReadMountinfoFunc = savedMountinfo
-		container.ReadCgroupFunc = savedCgroup
-		processFs = savedProcessFs
-	})
+	t.Cleanup(func() { newClient = savedNewClient })
 
-	processFs = afero.NewMemMapFs()
-	if detection.marker {
-		require.NoError(t, afero.WriteFile(processFs, "/.dockerenv", nil, 0o600))
+	fsys := afero.NewMemMapFs()
+	writeFile := func(path, content string) {
+		require.NoError(t, afero.WriteFile(fsys, path, []byte(content), 0o600))
 	}
 
+	if detection.marker {
+		writeFile("/.dockerenv", "")
+	}
+
+	if detection.mountinfo != "" {
+		writeFile("/proc/self/mountinfo", detection.mountinfo)
+	}
+
+	if detection.cgroup != "" {
+		writeFile(fmt.Sprintf("/proc/%d/cgroup", os.Getpid()), detection.cgroup)
+	}
+
+	setProcessFs(t, fsys)
+
 	newClient = func(*zerolog.Logger, container.ClientOptions) container.Client { return client }
-	container.ReadMountinfoFunc = readFixture(detection.mountinfo)
-	container.ReadCgroupFunc = readFixture(detection.cgroup)
 
 	for _, key := range []string{"HOSTNAME", "DOCKER_HOST", "DOCKER_TLS_VERIFY", "DOCKER_API_VERSION", "DOCKER_CERT_PATH"} {
 		t.Setenv(key, "")
@@ -97,16 +101,16 @@ func setPreRunState(t *testing.T, client container.Client, detection selfDetecti
 	t.Cleanup(func() { notifier.Close() })
 }
 
-// readFixture returns a file reader that returns content, or a not-found
-// error when content is empty.
-func readFixture(content string) func(string) ([]byte, error) {
-	return func(string) ([]byte, error) {
-		if content == "" {
-			return nil, os.ErrNotExist
-		}
+// setProcessFs replaces the filesystem that holds the container marker files
+// and the /proc files read by self container ID detection, and restores it
+// when the test ends.
+func setProcessFs(t *testing.T, fsys afero.Fs) {
+	t.Helper()
 
-		return []byte(content), nil
-	}
+	saved := processFs
+	processFs = fsys
+
+	t.Cleanup(func() { processFs = saved })
 }
 
 // selfContainer returns the Watchtower container preRun detects, with the

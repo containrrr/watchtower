@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/fs"
 	"os"
 	"strings"
@@ -27,30 +28,25 @@ import (
 
 const testHostname = "test-hostname"
 
-// Static error for test.
-var (
-	ErrMockedFileRead          = errors.New("mocked file read error")
-	ErrMockedMountinfoFileRead = errors.New("mocked mountinfo file read error")
-)
+// writeProcFile writes content to path in fsys, failing the spec on error.
+func writeProcFile(fsys afero.Fs, path, content string) {
+	gomega.Expect(afero.WriteFile(fsys, path, []byte(content), 0o600)).To(gomega.Succeed())
+}
+
+// cgroupFile is the cgroup file self container ID detection reads for this process.
+func cgroupFile() string {
+	return fmt.Sprintf("/proc/%d/cgroup", os.Getpid())
+}
 
 var _ = ginkgo.Describe("GetContainerIDFromCgroupFile", func() {
-	var originalReadFileFunc func(string) ([]byte, error)
-
-	ginkgo.BeforeEach(func() {
-		originalReadFileFunc = ReadCgroupFunc
-	})
-
-	ginkgo.AfterEach(func() {
-		ReadCgroupFunc = originalReadFileFunc
-	})
-
 	ginkgo.DescribeTable("should return the correct container ID",
-		func(setup func(), want types.ContainerID, wantErr error) {
+		func(setup func(afero.Fs), want types.ContainerID, wantErr error) {
+			fsys := afero.NewMemMapFs()
 			if setup != nil {
-				setup()
+				setup(fsys)
 			}
 
-			got, err := GetContainerIDFromCgroupFile(testLog())
+			got, err := GetContainerIDFromCgroupFile(testLog(), fsys)
 			if wantErr == nil {
 				gomega.Expect(err).ToNot(gomega.HaveOccurred())
 			} else {
@@ -60,29 +56,19 @@ var _ = ginkgo.Describe("GetContainerIDFromCgroupFile", func() {
 
 			gomega.Expect(got).To(gomega.Equal(want))
 		},
-		ginkgo.Entry("SuccessWithValidID", func() {
-			ReadCgroupFunc = func(string) ([]byte, error) {
-				return []byte(
-					"11:perf_event:/docker/1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
-				), nil
-			}
+		ginkgo.Entry("SuccessWithValidID", func(fsys afero.Fs) {
+			writeProcFile(fsys, cgroupFile(),
+				"11:perf_event:/docker/1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+			)
 		}, types.ContainerID(
 			"1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
 		), nil),
-		ginkgo.Entry("FileNotReadable", func() {
-			ReadCgroupFunc = func(string) ([]byte, error) {
-				return nil, ErrMockedFileRead
-			}
-		}, types.ContainerID(""), errReadCgroupFile),
-		ginkgo.Entry("NoValidID", func() {
-			ReadCgroupFunc = func(string) ([]byte, error) {
-				return []byte("11:perf_event:/user.slice\n10:cpu:/system.slice"), nil
-			}
+		ginkgo.Entry("FileNotReadable", nil, types.ContainerID(""), errReadCgroupFile),
+		ginkgo.Entry("NoValidID", func(fsys afero.Fs) {
+			writeProcFile(fsys, cgroupFile(), "11:perf_event:/user.slice\n10:cpu:/system.slice")
 		}, types.ContainerID(""), errExtractContainerID),
-		ginkgo.Entry("EmptyFileContent", func() {
-			ReadCgroupFunc = func(string) ([]byte, error) {
-				return []byte(""), nil
-			}
+		ginkgo.Entry("EmptyFileContent", func(fsys afero.Fs) {
+			writeProcFile(fsys, cgroupFile(), "")
 		}, types.ContainerID(""), errExtractContainerID),
 	)
 })
@@ -154,23 +140,14 @@ var _ = ginkgo.Describe("parseContainerIDFromCgroupString", func() {
 })
 
 var _ = ginkgo.Describe("GetContainerIDFromMountinfo", func() {
-	var originalReadMountinfoFunc func(string) ([]byte, error)
-
-	ginkgo.BeforeEach(func() {
-		originalReadMountinfoFunc = ReadMountinfoFunc
-	})
-
-	ginkgo.AfterEach(func() {
-		ReadMountinfoFunc = originalReadMountinfoFunc
-	})
-
 	ginkgo.DescribeTable("should return the correct container ID",
-		func(setup func(), want types.ContainerID, wantErr error) {
+		func(setup func(afero.Fs), want types.ContainerID, wantErr error) {
+			fsys := afero.NewMemMapFs()
 			if setup != nil {
-				setup()
+				setup(fsys)
 			}
 
-			got, err := GetContainerIDFromMountinfo(testLog())
+			got, err := GetContainerIDFromMountinfo(testLog(), fsys)
 			if wantErr == nil {
 				gomega.Expect(err).ToNot(gomega.HaveOccurred())
 			} else {
@@ -180,38 +157,26 @@ var _ = ginkgo.Describe("GetContainerIDFromMountinfo", func() {
 
 			gomega.Expect(got).To(gomega.Equal(want))
 		},
-		ginkgo.Entry("SuccessWithValidIDInRoot", func() {
-			ReadMountinfoFunc = func(string) ([]byte, error) {
-				return []byte(
-					"36 35 98:0 /var/lib/docker/containers/1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef/resolv.conf /etc/resolv.conf rw,noatime - btrfs /dev/sda1 rw",
-				), nil
-			}
+		ginkgo.Entry("SuccessWithValidIDInRoot", func(fsys afero.Fs) {
+			writeProcFile(fsys, "/proc/self/mountinfo",
+				"36 35 98:0 /var/lib/docker/containers/1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef/resolv.conf /etc/resolv.conf rw,noatime - btrfs /dev/sda1 rw",
+			)
 		}, types.ContainerID(
 			"1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
 		), nil),
-		ginkgo.Entry("SuccessWithValidIDInMountPoint", func() {
-			ReadMountinfoFunc = func(string) ([]byte, error) {
-				return []byte(
-					"36 35 98:0 /var/lib/docker/containers/abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567800/hostname /etc/hostname rw,noatime - btrfs /dev/sda1 rw",
-				), nil
-			}
+		ginkgo.Entry("SuccessWithValidIDInMountPoint", func(fsys afero.Fs) {
+			writeProcFile(fsys, "/proc/self/mountinfo",
+				"36 35 98:0 /var/lib/docker/containers/abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567800/hostname /etc/hostname rw,noatime - btrfs /dev/sda1 rw",
+			)
 		}, types.ContainerID(
 			"abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567800",
 		), nil),
-		ginkgo.Entry("MountinfoFileNotReadable", func() {
-			ReadMountinfoFunc = func(string) ([]byte, error) {
-				return nil, ErrMockedMountinfoFileRead
-			}
-		}, types.ContainerID(""), errReadMountinfoFile),
-		ginkgo.Entry("NoValidIDInMountinfo", func() {
-			ReadMountinfoFunc = func(string) ([]byte, error) {
-				return []byte("36 35 98:0 / rw,relatime shared:1 - overlay "), nil
-			}
+		ginkgo.Entry("MountinfoFileNotReadable", nil, types.ContainerID(""), errReadMountinfoFile),
+		ginkgo.Entry("NoValidIDInMountinfo", func(fsys afero.Fs) {
+			writeProcFile(fsys, "/proc/self/mountinfo", "36 35 98:0 / rw,relatime shared:1 - overlay ")
 		}, types.ContainerID(""), errExtractContainerIDFromMountinfo),
-		ginkgo.Entry("EmptyMountinfoFileContent", func() {
-			ReadMountinfoFunc = func(string) ([]byte, error) {
-				return []byte(""), nil
-			}
+		ginkgo.Entry("EmptyMountinfoFileContent", func(fsys afero.Fs) {
+			writeProcFile(fsys, "/proc/self/mountinfo", "")
 		}, types.ContainerID(""), errExtractContainerIDFromMountinfo),
 	)
 })
@@ -538,22 +503,19 @@ var _ = ginkgo.Describe("GetCurrentContainerID", func() {
 	})
 
 	ginkgo.AfterEach(func() {
-		// Reset ReadCgroupFunc to original
-		ReadCgroupFunc = os.ReadFile
-		// Reset ReadMountinfoFunc to original
-		ReadMountinfoFunc = os.ReadFile
 		// Reset HOSTNAME env var
 		os.Unsetenv("HOSTNAME")
 	})
 
 	ginkgo.DescribeTable(
 		"should return the correct container ID or error",
-		func(setup func(), expectedID types.ContainerID, expectError bool, errorSubstring string) {
+		func(setup func(afero.Fs), expectedID types.ContainerID, expectError bool, errorSubstring string) {
+			fsys := afero.NewMemMapFs()
 			if setup != nil {
-				setup()
+				setup(fsys)
 			}
 
-			id, err := GetCurrentContainerID(testLog(), context.Background(), mockClient)
+			id, err := GetCurrentContainerID(testLog(), context.Background(), fsys, mockClient)
 			if expectError {
 				gomega.Expect(err).To(gomega.HaveOccurred())
 				gomega.Expect(id).To(gomega.BeEmpty())
@@ -566,55 +528,38 @@ var _ = ginkgo.Describe("GetCurrentContainerID", func() {
 				gomega.Expect(id).To(gomega.Equal(expectedID))
 			}
 		},
-		ginkgo.Entry("when cgroup v2 detection succeeds", func() {
+		ginkgo.Entry("when cgroup v2 detection succeeds", func(fsys afero.Fs) {
 			expectedID := types.ContainerID(
 				"1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
 			)
 
-			// Mock cgroup v2 detection to succeed
-			ReadMountinfoFunc = func(string) ([]byte, error) {
-				return []byte(
-					"36 35 98:0 /var/lib/docker/containers/" + string(
-						expectedID,
-					) + "/resolv.conf /etc/resolv.conf rw,relatime shared:1 - overlay rw,lowerdir=/var/lib/docker/overlay2/l/...,upperdir=/var/lib/docker/overlay2/...,workdir=/var/lib/docker/overlay2/...,\n",
-				), nil
-			}
+			// cgroup v2 detection succeeds.
+			writeProcFile(fsys, "/proc/self/mountinfo",
+				"36 35 98:0 /var/lib/docker/containers/"+string(
+					expectedID,
+				)+"/resolv.conf /etc/resolv.conf rw,relatime shared:1 - overlay rw,lowerdir=/var/lib/docker/overlay2/l/...,upperdir=/var/lib/docker/overlay2/...,workdir=/var/lib/docker/overlay2/...,\n",
+			)
 		}, types.ContainerID("1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"), false, ""),
-		ginkgo.Entry("when cgroup v2 detection fails but cgroup v1 detection succeeds", func() {
+		ginkgo.Entry("when cgroup v2 detection fails but cgroup v1 detection succeeds", func(fsys afero.Fs) {
 			expectedID := types.ContainerID(
 				"abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
 			)
 
-			// Mock cgroup v2 detection to fail
-			ReadMountinfoFunc = func(string) ([]byte, error) {
-				return nil, errors.New("mountinfo read failed")
-			}
-
-			// Mock cgroup v1 detection to succeed
-			ReadCgroupFunc = func(string) ([]byte, error) {
-				return []byte("11:perf_event:/docker/" + string(expectedID) + "\n"), nil
-			}
+			// No mountinfo file, so cgroup v2 detection fails and cgroup v1 detection succeeds.
+			writeProcFile(fsys, cgroupFile(), "11:perf_event:/docker/"+string(expectedID)+"\n")
 		}, types.ContainerID(
 			"abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
 		), false, ""),
 		ginkgo.Entry(
 			"when both cgroup v2 and cgroup v1 detection fail but hostname detection succeeds",
-			func() {
+			func(afero.Fs) {
 				expectedID := types.ContainerID("hostname-container-id")
 				hostname := testHostname
 
 				// Set HOSTNAME environment variable
 				os.Setenv("HOSTNAME", hostname)
 
-				// Mock cgroup v2 detection to fail
-				ReadMountinfoFunc = func(string) ([]byte, error) {
-					return nil, errors.New("mountinfo read failed")
-				}
-
-				// Mock cgroup v1 detection to fail
-				ReadCgroupFunc = func(string) ([]byte, error) {
-					return nil, errors.New("cgroup file not found")
-				}
+				// No mountinfo or cgroup file, so both cgroup detections fail.
 
 				// Create a mock container with matching hostname
 				mockContainer := MockContainer(
@@ -633,18 +578,9 @@ var _ = ginkgo.Describe("GetCurrentContainerID", func() {
 			false,
 			"",
 		),
-		ginkgo.Entry("when all detection methods fail", func() {
-			// Mock cgroup v2 detection to fail
-			ReadMountinfoFunc = func(string) ([]byte, error) {
-				return nil, errors.New("mountinfo read failed")
-			}
-
-			// Mock cgroup v1 detection to fail
-			ReadCgroupFunc = func(string) ([]byte, error) {
-				return nil, errors.New("cgroup file not found")
-			}
-
-			// HOSTNAME not set, so hostname detection will fail without calling client
+		ginkgo.Entry("when all detection methods fail", func(afero.Fs) {
+			// No mountinfo or cgroup file, and HOSTNAME is not set, so hostname
+			// detection fails without calling the client.
 		}, types.ContainerID(""), true, "failed to detect current container ID"),
 	)
 })
@@ -713,23 +649,16 @@ func TestInContainer_WrappedNotExist(t *testing.T) {
 
 // TestGetCurrentContainerID_FailureLogsAtDebug verifies that failing to find
 // the container ID is not logged as an error. A Watchtower binary on the host
-// has no container ID, and callers report a missing ID themselves. It replaces
-// the file readers and sets environment variables, so it runs sequentially.
+// has no container ID, and callers report a missing ID themselves. It sets
+// environment variables, so it runs sequentially.
 func TestGetCurrentContainerID_FailureLogsAtDebug(t *testing.T) {
 	t.Setenv("HOSTNAME", "")
-
-	savedMountinfo, savedCgroup := ReadMountinfoFunc, ReadCgroupFunc
-
-	t.Cleanup(func() { ReadMountinfoFunc, ReadCgroupFunc = savedMountinfo, savedCgroup })
-
-	notFound := func(string) ([]byte, error) { return nil, os.ErrNotExist }
-	ReadMountinfoFunc, ReadCgroupFunc = notFound, notFound
 
 	var out bytes.Buffer
 
 	log := zerolog.New(&out).Level(zerolog.TraceLevel)
 
-	id, err := GetCurrentContainerID(&log, t.Context(), nil)
+	id, err := GetCurrentContainerID(&log, t.Context(), afero.NewMemMapFs(), nil)
 	require.Error(t, err)
 	assert.Empty(t, id)
 	assert.NotContains(t, out.String(), `"level":"error"`)

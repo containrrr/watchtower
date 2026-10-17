@@ -39,12 +39,6 @@ var (
 	containerIDPattern = regexp.MustCompile(`/(?:overlay-)?containers/([a-f0-9]{64})(?:/|$)`)
 )
 
-// File reading functions for testing mocks.
-var (
-	ReadMountinfoFunc = os.ReadFile
-	ReadCgroupFunc    = os.ReadFile
-)
-
 // containerMarkers are files that container runtimes create inside a container.
 var containerMarkers = []string{
 	"/run/.containerenv", // Podman
@@ -82,19 +76,27 @@ func IsOldContainer(name string) bool {
 // 3. Hostname matching - fallback using Docker API
 //
 // Parameters:
+//   - log: Process logger.
+//   - ctx: Context for the hostname lookup.
+//   - fsys: Filesystem holding /proc, read by the mountinfo and cgroup methods.
 //   - client: Docker client interface for container operations
 //
 // Returns:
 //   - types.ContainerID: The detected container ID if successful
 //   - error: Non-nil if all detection methods fail, containing the last error encountered
-func GetCurrentContainerID(log *zerolog.Logger, ctx context.Context, client Client) (types.ContainerID, error) {
+func GetCurrentContainerID(
+	log *zerolog.Logger,
+	ctx context.Context,
+	fsys afero.Fs,
+	client Client,
+) (types.ContainerID, error) {
 	// Collect errors from failed detection attempts for final error reporting
 	var errs []error
 
 	// First attempt: Mountinfo-based detection - most reliable when available
 	log.Debug().Msg("Attempting to get current container ID using mountinfo detection")
 
-	containerID, err := GetContainerIDFromMountinfo(log)
+	containerID, err := GetContainerIDFromMountinfo(log, fsys)
 	if err == nil {
 		log.Debug().
 			Str("container_id", string(containerID)).
@@ -111,7 +113,7 @@ func GetCurrentContainerID(log *zerolog.Logger, ctx context.Context, client Clie
 	// Second attempt: Cgroup file parsing - works in most containerized environments
 	log.Debug().Msg("Attempting to get current container ID using cgroup file parsing")
 
-	containerID, err = GetContainerIDFromCgroupFile(log)
+	containerID, err = GetContainerIDFromCgroupFile(log, fsys)
 	if err == nil {
 		log.Debug().
 			Str("container_id", string(containerID)).
@@ -176,8 +178,16 @@ func InContainer(fsys afero.Fs) bool {
 
 // GetContainerIDFromMountinfo retrieves the container ID from /proc/self/mountinfo.
 // Uses the mountinfo file to find container paths containing /containers/<id>.
-func GetContainerIDFromMountinfo(log *zerolog.Logger) (types.ContainerID, error) {
-	file, err := ReadMountinfoFunc("/proc/self/mountinfo")
+//
+// Parameters:
+//   - log: Process logger.
+//   - fsys: Filesystem holding /proc.
+//
+// Returns:
+//   - types.ContainerID: The detected container ID.
+//   - error: Non-nil when the file cannot be read or holds no container ID.
+func GetContainerIDFromMountinfo(log *zerolog.Logger, fsys afero.Fs) (types.ContainerID, error) {
+	file, err := afero.ReadFile(fsys, "/proc/self/mountinfo")
 	if err != nil {
 		log.Debug().
 			Err(err).
@@ -254,10 +264,18 @@ func extractContainerIDFromPath(path string) types.ContainerID {
 
 // GetContainerIDFromCgroupFile retrieves the container ID from /proc/<pid>/cgroup.
 // Uses the cgroup file to find Docker and Podman container paths.
-func GetContainerIDFromCgroupFile(log *zerolog.Logger) (types.ContainerID, error) {
+//
+// Parameters:
+//   - log: Process logger.
+//   - fsys: Filesystem holding /proc.
+//
+// Returns:
+//   - types.ContainerID: The detected container ID.
+//   - error: Non-nil when the file cannot be read or holds no container ID.
+func GetContainerIDFromCgroupFile(log *zerolog.Logger, fsys afero.Fs) (types.ContainerID, error) {
 	filePath := fmt.Sprintf("/proc/%d/cgroup", os.Getpid())
 
-	file, err := ReadCgroupFunc(filePath)
+	file, err := afero.ReadFile(fsys, filePath)
 	if err != nil {
 		log.Debug().
 			Err(err).

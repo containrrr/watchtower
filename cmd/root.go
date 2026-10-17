@@ -105,9 +105,11 @@ var (
 	// so tests can substitute a mock client without a Docker daemon.
 	newClient = container.NewClient
 
-	// processFs is the filesystem preRun checks for container marker files.
+	// processFs is the filesystem holding the container marker files and the
+	// /proc files that self container ID detection reads.
 	//
-	// Tests replace it to control whether Watchtower appears to run in a container.
+	// Tests replace it to control whether Watchtower appears to run in a
+	// container and which container ID it detects.
 	processFs afero.Fs = afero.NewOsFs()
 
 	// runUpdatesWithNotifications is a function variable for performing container updates and sending notifications.
@@ -282,7 +284,7 @@ func (p *process) preRun(cmd *cobra.Command, _ []string) {
 	defer cancel()
 
 	// Retrieve and store the current container ID for use throughout the application.
-	currentWatchtowerContainerID, err = container.GetCurrentContainerID(p.log, ctx, client)
+	currentWatchtowerContainerID, err = container.GetCurrentContainerID(p.log, ctx, processFs, client)
 	if err != nil {
 		p.log.Debug().Err(err).Msg("Failed to get current container ID")
 
@@ -939,7 +941,7 @@ func resolveCurrentWatchtowerContainerForFallback(log *zerolog.Logger, ctx conte
 	lookupCtx, cancel := context.WithTimeout(ctx, containerLookupTimeout)
 	defer cancel()
 
-	containerID, err := container.GetCurrentContainerID(log, lookupCtx, c)
+	containerID, err := container.GetCurrentContainerID(log, lookupCtx, processFs, c)
 	if err == nil && containerID != "" {
 		resolvedContainer, _ := c.GetCurrentWatchtowerContainer(lookupCtx, containerID)
 

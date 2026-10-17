@@ -142,11 +142,11 @@ func runNotifyUpgradeE(cmd *cobra.Command, _ []string, log *zerolog.Logger) (*ze
 
 	var cid types.ContainerID
 
-	cid, err = container.GetContainerIDFromMountinfo(log)
+	cid, err = container.GetContainerIDFromMountinfo(log, processFs)
 	if err == nil && cid != "" {
 		containerID = cid.ShortID()
 	} else {
-		cid, err = container.GetContainerIDFromCgroupFile(log)
+		cid, err = container.GetContainerIDFromCgroupFile(log, processFs)
 		if err == nil && cid != "" {
 			containerID = cid.ShortID()
 		}

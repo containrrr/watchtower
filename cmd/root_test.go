@@ -18,6 +18,7 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/rs/zerolog"
+	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -1303,7 +1304,7 @@ func TestContainerLookupWithTimeoutContext(t *testing.T) {
 
 			// Call GetCurrentContainerID which internally uses the client
 			// The function will eventually call ListContainers with our expired context
-			_, err := container.GetCurrentContainerID(testLogger(), ctx, mockClient)
+			_, err := container.GetCurrentContainerID(testLogger(), ctx, afero.NewMemMapFs(), mockClient)
 
 			// Verify error is propagated
 			require.Error(t, err)
@@ -1334,7 +1335,7 @@ func TestContainerLookupWithTimeoutContext(t *testing.T) {
 			mockClient.EXPECT().ListContainers(ctx).Return(nil, context.Canceled).Once()
 
 			// Call GetCurrentContainerID
-			_, err := container.GetCurrentContainerID(testLogger(), ctx, mockClient)
+			_, err := container.GetCurrentContainerID(testLogger(), ctx, afero.NewMemMapFs(), mockClient)
 
 			// Verify error is propagated
 			require.Error(t, err)
@@ -1612,19 +1613,8 @@ func TestRootCommand_ReviveStoppedFlagParsing(t *testing.T) {
 
 func TestResolveCurrentWatchtowerContainerForFallback(t *testing.T) {
 	t.Run("successful resolution", func(t *testing.T) {
-		originalReadMountinfoFunc := container.ReadMountinfoFunc
-		originalReadCgroupFunc := container.ReadCgroupFunc
-		container.ReadMountinfoFunc = func(string) ([]byte, error) {
-			return nil, errors.New("mock mountinfo error")
-		}
-		container.ReadCgroupFunc = func(string) ([]byte, error) {
-			return nil, errors.New("mock cgroup error")
-		}
-
-		defer func() {
-			container.ReadMountinfoFunc = originalReadMountinfoFunc
-			container.ReadCgroupFunc = originalReadCgroupFunc
-		}()
+		// No /proc files, so detection falls back to the hostname.
+		setProcessFs(t, afero.NewMemMapFs())
 
 		t.Setenv("HOSTNAME", "test-hostname")
 
@@ -1645,19 +1635,8 @@ func TestResolveCurrentWatchtowerContainerForFallback(t *testing.T) {
 	})
 
 	t.Run("GetCurrentContainerID returns error", func(t *testing.T) {
-		originalReadMountinfoFunc := container.ReadMountinfoFunc
-		originalReadCgroupFunc := container.ReadCgroupFunc
-		container.ReadMountinfoFunc = func(string) ([]byte, error) {
-			return nil, errors.New("mock mountinfo error")
-		}
-		container.ReadCgroupFunc = func(string) ([]byte, error) {
-			return nil, errors.New("mock cgroup error")
-		}
-
-		defer func() {
-			container.ReadMountinfoFunc = originalReadMountinfoFunc
-			container.ReadCgroupFunc = originalReadCgroupFunc
-		}()
+		// No /proc files, so detection falls back to the hostname.
+		setProcessFs(t, afero.NewMemMapFs())
 
 		t.Setenv("HOSTNAME", "test-hostname")
 
@@ -1671,19 +1650,8 @@ func TestResolveCurrentWatchtowerContainerForFallback(t *testing.T) {
 	})
 
 	t.Run("GetCurrentContainerID returns empty string", func(t *testing.T) {
-		originalReadMountinfoFunc := container.ReadMountinfoFunc
-		originalReadCgroupFunc := container.ReadCgroupFunc
-		container.ReadMountinfoFunc = func(string) ([]byte, error) {
-			return nil, errors.New("mock mountinfo error")
-		}
-		container.ReadCgroupFunc = func(string) ([]byte, error) {
-			return nil, errors.New("mock cgroup error")
-		}
-
-		defer func() {
-			container.ReadMountinfoFunc = originalReadMountinfoFunc
-			container.ReadCgroupFunc = originalReadCgroupFunc
-		}()
+		// No /proc files, so detection falls back to the hostname.
+		setProcessFs(t, afero.NewMemMapFs())
 
 		t.Setenv("HOSTNAME", "test-hostname")
 
@@ -1697,19 +1665,8 @@ func TestResolveCurrentWatchtowerContainerForFallback(t *testing.T) {
 	})
 
 	t.Run("GetCurrentWatchtowerContainer returns nil", func(t *testing.T) {
-		originalReadMountinfoFunc := container.ReadMountinfoFunc
-		originalReadCgroupFunc := container.ReadCgroupFunc
-		container.ReadMountinfoFunc = func(string) ([]byte, error) {
-			return nil, errors.New("mock mountinfo error")
-		}
-		container.ReadCgroupFunc = func(string) ([]byte, error) {
-			return nil, errors.New("mock cgroup error")
-		}
-
-		defer func() {
-			container.ReadMountinfoFunc = originalReadMountinfoFunc
-			container.ReadCgroupFunc = originalReadCgroupFunc
-		}()
+		// No /proc files, so detection falls back to the hostname.
+		setProcessFs(t, afero.NewMemMapFs())
 
 		t.Setenv("HOSTNAME", "test-hostname")
 
