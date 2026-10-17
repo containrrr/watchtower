@@ -10,7 +10,7 @@ const (
 	testDigest = "d68e1e532088964195ad3a0a71526bc2f11a78de0def85629beb75e2265f0547"
 )
 
-// BenchmarkDigestsMatch benchmarks the DigestsMatch function which compares local digests
+// BenchmarkDigestsMatch benchmarks the digestsMatch function which compares local digests
 // with a remote digest to check for matches.
 // This measures the CPU overhead of digest comparison without network operations.
 func BenchmarkDigestsMatch(b *testing.B) {
@@ -23,11 +23,11 @@ func BenchmarkDigestsMatch(b *testing.B) {
 	log := testLog()
 
 	for b.Loop() {
-		_ = DigestsMatch(log, localDigests, remoteDigest)
+		_ = digestsMatch(log, localDigests, remoteDigest)
 	}
 }
 
-// BenchmarkDigestsMatchNoMatch benchmarks DigestsMatch when there are no matches.
+// BenchmarkDigestsMatchNoMatch benchmarks digestsMatch when there are no matches.
 // This represents the worst case where the loop must iterate through all digests.
 func BenchmarkDigestsMatchNoMatch(b *testing.B) {
 	localDigests := []string{
@@ -41,11 +41,11 @@ func BenchmarkDigestsMatchNoMatch(b *testing.B) {
 	log := testLog()
 
 	for b.Loop() {
-		_ = DigestsMatch(log, localDigests, remoteDigest)
+		_ = digestsMatch(log, localDigests, remoteDigest)
 	}
 }
 
-// BenchmarkDigestsMatchManyDigests benchmarks DigestsMatch with a large number of local digests.
+// BenchmarkDigestsMatchManyDigests benchmarks digestsMatch with a large number of local digests.
 // This simulates containers with multiple image tags or mirrored registries.
 func BenchmarkDigestsMatchManyDigests(b *testing.B) {
 	// Generate 20 local digests with match at the end to simulate worst-case iteration
@@ -61,7 +61,7 @@ func BenchmarkDigestsMatchManyDigests(b *testing.B) {
 	log := testLog()
 
 	for b.Loop() {
-		_ = DigestsMatch(log, localDigests, remoteDigest)
+		_ = digestsMatch(log, localDigests, remoteDigest)
 	}
 }
 
@@ -83,7 +83,7 @@ func BenchmarkNormalizeDigest(b *testing.B) {
 	}
 }
 
-// BenchmarkDigestsMatchEarlyMatch benchmarks the DigestsMatch function when the first digest matches.
+// BenchmarkDigestsMatchEarlyMatch benchmarks the digestsMatch function when the first digest matches.
 // This is the best case scenario where the loop exits early.
 func BenchmarkDigestsMatchEarlyMatch(b *testing.B) {
 	localDigests := []string{
@@ -95,11 +95,11 @@ func BenchmarkDigestsMatchEarlyMatch(b *testing.B) {
 	log := testLog()
 
 	for b.Loop() {
-		_ = DigestsMatch(log, localDigests, remoteDigest)
+		_ = digestsMatch(log, localDigests, remoteDigest)
 	}
 }
 
-// BenchmarkDigestsMatchLateMatch benchmarks DigestsMatch when the last digest matches.
+// BenchmarkDigestsMatchLateMatch benchmarks digestsMatch when the last digest matches.
 // This is the worst case for early exit optimization.
 func BenchmarkDigestsMatchLateMatch(b *testing.B) {
 	localDigests := []string{
@@ -112,6 +112,6 @@ func BenchmarkDigestsMatchLateMatch(b *testing.B) {
 	log := testLog()
 
 	for b.Loop() {
-		_ = DigestsMatch(log, localDigests, remoteDigest)
+		_ = digestsMatch(log, localDigests, remoteDigest)
 	}
 }

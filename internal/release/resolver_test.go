@@ -353,22 +353,6 @@ func TestResolveTagCacheKeysOnDigest(t *testing.T) {
 	)
 }
 
-func TestResolveTagClearCache(t *testing.T) {
-	t.Parallel()
-
-	fetcher := &spyFetcher{digests: map[string]string{"v1.2.3": testDigest}}
-
-	r := NewResolver(fetcher)
-	ctx := context.Background()
-
-	require.Equal(t, "v1.2.3", r.ResolveTag(testLog(), ctx, testContainer(), "", "1.2.3", testDigest))
-
-	r.ClearCache()
-
-	require.Equal(t, "v1.2.3", r.ResolveTag(testLog(), ctx, testContainer(), "", "1.2.3", testDigest))
-	assert.Len(t, fetcher.calls, 2)
-}
-
 // TestResolveTagNilFetcher verifies that a Resolver built without a fetcher
 // makes no lookups and returns empty instead of panicking.
 func TestResolveTagNilFetcher(t *testing.T) {

@@ -318,7 +318,7 @@ func TestUpdate_WarnsOnUnresolvedDependsOn(t *testing.T) {
 
 	log := zerolog.New(zerolog.SyncWriter(&output))
 
-	_, _, err := Update(&log, t.Context(), client, types.UpdateParams{})
+	_, _, err := update(&log, t.Context(), client, types.UpdateParams{})
 	require.NoError(t, err)
 
 	assert.Contains(t, output.String(),

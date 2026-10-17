@@ -14,13 +14,13 @@ import (
 	"github.com/nicholas-fedor/watchtower/pkg/types"
 )
 
-// ColorHex is the default notification color used for services that support it
+// colorHex is the default notification color used for services that support it
 // (formatted as a CSS hex string).
-const ColorHex = "#406170"
+const colorHex = "#406170"
 
-// ColorInt is the default notification color used for services that support it
+// colorInt is the default notification color used for services that support it
 // (as an int value).
-const ColorInt = 0x406170
+const colorInt = 0x406170
 
 // errUnknownNotificationType indicates an unsupported legacy notification type name.
 var errUnknownNotificationType = errors.New("unknown notification type")
@@ -75,7 +75,7 @@ func NewNotifier(log *zerolog.Logger, cfg notifyConfig.Notify) types.Notifier {
 	// Start from configured Shoutrrr URLs, then append any legacy type URLs.
 	urls := append([]string(nil), cfg.URLs...)
 	urls, legacyDelay := appendLegacyURLs(log, urls, cfg.LegacyTypes, cfg.Legacy)
-	delay := GetDelay(log, cfg.DelaySeconds, legacyDelay)
+	delay := getDelay(log, cfg.DelaySeconds, legacyDelay)
 
 	// Use report template when enabled, otherwise use legacy template.
 	legacyTemplate := !cfg.Report
@@ -198,7 +198,7 @@ func templateData(log *zerolog.Logger, hostname, titleTag, emailSubjectTag strin
 			}
 		}
 
-		title = GetTitle(log, hostname, tag)
+		title = getTitle(log, hostname, tag)
 	}
 
 	clog.Debug().
@@ -310,7 +310,7 @@ func appendLegacyURLs(
 	return urls, legacyDelay
 }
 
-// GetDelay selects the notification delay from a legacy value or configured seconds.
+// getDelay selects the notification delay from a legacy value or configured seconds.
 //
 // Parameters:
 //   - log: Logger for diagnostics.
@@ -322,10 +322,10 @@ func appendLegacyURLs(
 //
 // Deprecated: Prefer NewNotifier with Config.Notify from config.Load.
 //
-// TODO: Simplify GetDelay to only use configured delay seconds when legacy types are removed.
+// TODO: Simplify getDelay to only use configured delay seconds when legacy types are removed.
 //
 //nolint:godox
-func GetDelay(log *zerolog.Logger, delaySeconds int, legacyDelay time.Duration) time.Duration {
+func getDelay(log *zerolog.Logger, delaySeconds int, legacyDelay time.Duration) time.Duration {
 	clog := log.With().Dur("legacy_delay", legacyDelay).Logger()
 	clog.Debug().Msg("Determining notification delay")
 
@@ -351,7 +351,7 @@ func GetDelay(log *zerolog.Logger, delaySeconds int, legacyDelay time.Duration) 
 	return 0
 }
 
-// GetTitle formats the notification title with hostname and tag.
+// getTitle formats the notification title with hostname and tag.
 //
 // Parameters:
 //   - log: Logger for diagnostics.
@@ -360,7 +360,7 @@ func GetDelay(log *zerolog.Logger, delaySeconds int, legacyDelay time.Duration) 
 //
 // Returns:
 //   - string: Formatted title.
-func GetTitle(log *zerolog.Logger, hostname, tag string) string {
+func getTitle(log *zerolog.Logger, hostname, tag string) string {
 	clog := log.With().
 		Str("hostname", hostname).
 		Str("tag", tag).

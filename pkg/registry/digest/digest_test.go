@@ -163,8 +163,8 @@ func TestDigestsMatch(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := DigestsMatch(testLog(), tt.localDigests, tt.remoteDigest)
-			assert.Equal(t, tt.expected, result, "DigestsMatch(%v, %q)", tt.localDigests, tt.remoteDigest)
+			result := digestsMatch(testLog(), tt.localDigests, tt.remoteDigest)
+			assert.Equal(t, tt.expected, result, "digestsMatch(%v, %q)", tt.localDigests, tt.remoteDigest)
 		})
 	}
 }
@@ -473,6 +473,16 @@ func TestCompareDigestWithRemote_HeadRejectedFallsBackToGet(t *testing.T) {
 	require.NoError(t, err)
 	assert.False(t, match)
 	assert.Equal(t, remote, remoteDigest)
+}
+
+// clearLocalOnlyImageCache removes all cached local-only image entries, so
+// each test starts without remembered local-only images.
+func clearLocalOnlyImageCache() {
+	localOnlyImageCache.Range(func(key, _ any) bool {
+		localOnlyImageCache.Delete(key)
+
+		return true
+	})
 }
 
 // TestCompareDigestWithRemote_LocalOnly404 is a regression test for locally built
@@ -835,7 +845,7 @@ func TestCompareDigest(t *testing.T) {
 	}
 }
 
-func TestFetchDigest(t *testing.T) {
+func TestFetchDigestWithGet(t *testing.T) {
 	tests := []struct {
 		name           string
 		setupContainer func(t *testing.T) *mockTypes.MockContainer
@@ -965,7 +975,7 @@ func TestFetchDigest(t *testing.T) {
 			host := parts[len(parts)-1]
 			container.On("ImageName").Return(host + "/myapp:latest").Maybe()
 
-			got, err := FetchDigest(testLog(), context.Background(), container, "", registryConfig.Registry{}, server.URL)
+			got, err := fetchDigestWithGet(testLog(), context.Background(), container, "", registryConfig.Registry{}, server.URL)
 			if tt.wantErr {
 				require.Error(t, err)
 				assert.Empty(t, got)
@@ -1071,7 +1081,7 @@ func TestBuildManifestURL(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			settings := registryConfig.Registry{TLSSkip: tt.tlsSkip}
 
-			gotURL, gotHost, _, err := BuildManifestURL(testLog(), tt.container(t), settings, tt.hostOverride)
+			gotURL, gotHost, _, err := buildManifestURL(testLog(), tt.container(t), settings, tt.hostOverride)
 			if tt.wantErr {
 				require.Error(t, err)
 
@@ -1293,7 +1303,7 @@ func TestHandleManifestResponse(t *testing.T) {
 				defer resp.Body.Close()
 			}
 
-			gotDigest, gotURL, gotRetry, err := HandleManifestResponse(testLog(), resp,
+			gotDigest, gotURL, gotRetry, err := handleManifestResponse(testLog(), resp,
 				tt.method,
 				tt.originalHost,
 				tt.challengeHost,
@@ -1387,7 +1397,7 @@ func TestExtractHeadDigest(t *testing.T) {
 				defer resp.Body.Close()
 			}
 
-			got, err := ExtractHeadDigest(testLog(), resp)
+			got, err := extractHeadDigest(testLog(), resp)
 			if tt.wantErr {
 				require.Error(t, err)
 				assert.Empty(t, got)
@@ -1562,7 +1572,7 @@ func TestExtractGetDigest(t *testing.T) {
 				defer resp.Body.Close()
 			}
 
-			got, err := ExtractGetDigest(testLog(), resp)
+			got, err := extractGetDigest(testLog(), resp)
 			if tt.wantErr {
 				require.Error(t, err)
 				assert.Empty(t, got)
@@ -1618,7 +1628,7 @@ func TestExtractGetDigest_ManifestSizeLimits(t *testing.T) {
 
 			t.Cleanup(func() { _ = resp.Body.Close() })
 
-			got, err := ExtractGetDigest(testLog(), resp)
+			got, err := extractGetDigest(testLog(), resp)
 			if tc.wantErr != nil {
 				require.ErrorIs(t, err, tc.wantErr)
 				assert.Empty(t, got)

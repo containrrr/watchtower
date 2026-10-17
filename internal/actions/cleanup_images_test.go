@@ -85,7 +85,7 @@ func TestRemoveExcessContainers_CallerListCollectsImages(t *testing.T) {
 // TestRemoveExcessContainers_PartialFailureKeepsCallerList verifies that when
 // an instance cannot be stopped, no image of this cleanup is collected, and
 // the caller's earlier entries stay on the list. It runs sequentially because
-// the retries read the RemovalRetryDelay package variable, which the Ginkgo
+// the retries read the removalRetryDelay package variable, which the Ginkgo
 // suite sets. The retry delays pass on the synctest clock.
 func TestRemoveExcessContainers_PartialFailureKeepsCallerList(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
@@ -116,7 +116,7 @@ func TestRemoveExcessContainers_PartialFailureKeepsCallerList(t *testing.T) {
 // when the cleanup is canceled while retrying an instance, the images of the
 // instances already removed stay on the caller's list, except images that an
 // instance left in place still uses. It runs sequentially because the retries
-// read the RemovalRetryDelay package variable, which the Ginkgo suite sets.
+// read the removalRetryDelay package variable, which the Ginkgo suite sets.
 func TestRemoveExcessContainers_CancelKeepsRemovedInstanceImages(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		current := cleanupTestWatchtower("c000000000000000000000000000000000000000000000000000000000000000",
@@ -205,7 +205,7 @@ func TestUpdate_OldInstanceImageJoinsSessionCleanup(t *testing.T) {
 			return false, c.ImageID(), "", nil
 		}).Maybe()
 
-	_, cleanup, err := Update(testLogger(), t.Context(), client,
+	_, cleanup, err := update(testLogger(), t.Context(), client,
 		types.UpdateParams{Cleanup: true, CurrentContainerID: currentID})
 	require.NoError(t, err)
 
@@ -246,7 +246,7 @@ func TestUpdate_SortFailureKeepsOldInstanceImage(t *testing.T) {
 			return false, c.ImageID(), "", nil
 		}).Maybe()
 
-	_, cleanup, err := Update(testLogger(), t.Context(), client,
+	_, cleanup, err := update(testLogger(), t.Context(), client,
 		types.UpdateParams{Cleanup: true, CurrentContainerID: currentID})
 	require.ErrorIs(t, err, errSortDependenciesFailed)
 

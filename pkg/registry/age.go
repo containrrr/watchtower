@@ -563,7 +563,7 @@ func retryManifestRequest(log *zerolog.Logger,
 // It handles multi-platform indexes by selecting the platform-specific manifest.
 //
 // On 401/404 responses, it retries across alternate hosts (challenge host, original host)
-// mirroring the retry logic in digest.go's HandleManifestResponse.
+// mirroring the retry logic in digest.go's handleManifestResponse.
 //
 // Parameters:
 //   - ctx: Context for cancellation and timeout control.
@@ -858,7 +858,7 @@ func fetchPlatformManifestWithRetry(log *zerolog.Logger,
 	platformPathPrefix := parsedURL.Path[:idx+len("/manifests/")]
 
 	// Build list of hosts to try: primary (current), then challenge, then original.
-	// This mirrors the retry chain in digest.go's HandleManifestResponse.
+	// This mirrors the retry chain in digest.go's handleManifestResponse.
 	type hostCandidate struct {
 		host string
 		name string
@@ -1129,7 +1129,7 @@ func fetchPlatformManifestWithRetry(log *zerolog.Logger,
 // match the same OS/architecture with different variants.
 //
 // On 401/404 responses, it retries on the challenge host mirroring the retry logic
-// in digest.go's HandleManifestResponse.
+// in digest.go's handleManifestResponse.
 //
 // Parameters:
 //   - ctx: Context for cancellation and timeout control.

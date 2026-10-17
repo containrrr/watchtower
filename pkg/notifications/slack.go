@@ -136,7 +136,7 @@ func (s *slackTypeNotifier) GetURL(_ *cobra.Command) (string, error) {
 		conf := &discord.Config{
 			WebhookID:  parts[len(parts)-3],
 			Token:      parts[len(parts)-2],
-			Color:      ColorInt,
+			Color:      colorInt,
 			SplitLines: true,
 			Username:   s.Username,
 		}
@@ -163,7 +163,7 @@ func (s *slackTypeNotifier) GetURL(_ *cobra.Command) (string, error) {
 	// Configure Slack settings.
 	conf := &slack.Config{
 		BotName: s.Username,
-		Color:   ColorHex,
+		Color:   colorHex,
 		Channel: s.webhookChannel(),
 	}
 

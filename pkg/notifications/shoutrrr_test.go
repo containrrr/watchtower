@@ -124,7 +124,7 @@ func mockDataFromStates(states ...session.State) notificationData {
 	return notificationData{
 		Entries: legacyMockData.Entries,
 		Report:  mockActions.CreateMockProgressReport(states...),
-		Title:   GetTitle(testLogger(), hostname, prefix),
+		Title:   getTitle(testLogger(), hostname, prefix),
 		Host:    hostname,
 	}
 }

@@ -102,7 +102,7 @@ func TestUpdate_ComposeDependencyCycle(t *testing.T) {
 			client.EXPECT().StartContainerByID(mock.Anything, newID).Return(nil).Maybe()
 			client.EXPECT().GetContainer(mock.Anything, newID).Return(app, nil).Maybe()
 
-			report, _, err := Update(testLogger(), t.Context(), client,
+			report, _, err := update(testLogger(), t.Context(), client,
 				types.UpdateParams{UseComposeDependsOn: true})
 			require.NoError(t, err)
 
@@ -177,7 +177,7 @@ func TestUpdate_LinkToCycleMember(t *testing.T) {
 			return nil, errNoContainer
 		}).Maybe()
 
-	report, _, err := Update(testLogger(), t.Context(), client, types.UpdateParams{})
+	report, _, err := update(testLogger(), t.Context(), client, types.UpdateParams{})
 	require.NoError(t, err)
 
 	assert.ElementsMatch(t, []string{"db", "e"}, reportNames(report.Skipped()), "both cycle members are skipped")
@@ -233,7 +233,7 @@ func TestUpdate_HostConfigDependencyCycle(t *testing.T) {
 	client.EXPECT().StartContainerByID(mock.Anything, mock.Anything).Return(nil).Maybe()
 	client.EXPECT().GetContainer(mock.Anything, mock.Anything).Return(web, nil).Maybe()
 
-	report, _, err := Update(testLogger(), t.Context(), client, types.UpdateParams{})
+	report, _, err := update(testLogger(), t.Context(), client, types.UpdateParams{})
 	require.NoError(t, err)
 
 	assert.ElementsMatch(t, []string{"app", "vpn"}, reportNames(report.Skipped()), "both cycle members are skipped")

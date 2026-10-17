@@ -360,7 +360,7 @@ func executeUpdate(
 	// Log before calling the Update function
 	log.Debug().Msg("About to call Update function")
 
-	result, cleanupImageInfos, err := Update(log, ctx, client, config, gitClient)
+	result, cleanupImageInfos, err := update(log, ctx, client, config, gitClient)
 
 	// Log after Update function returns
 	log.Debug().Msg("Update function returned, about to check cleanup")

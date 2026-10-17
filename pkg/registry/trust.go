@@ -99,14 +99,6 @@ func initEncodedAuthCache() {
 	})
 }
 
-// resetEncodedAuthCache clears cached encoded auth entries.
-//
-// Tests use this to isolate Docker config mutations between cases.
-func resetEncodedAuthCache() {
-	initEncodedAuthCache()
-	encodedAuthCache.InvalidateAll()
-}
-
 // encodedAuthCacheKey builds a cache key from registry host and config directory.
 //
 // Parameters:

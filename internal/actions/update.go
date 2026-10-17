@@ -182,7 +182,7 @@ func TryRecoverOrphanedContainer(
 	return nil, false
 }
 
-// Update scans and updates containers based on parameters.
+// update scans and updates containers based on parameters.
 //
 // It checks container staleness, sorts by dependencies, and updates or restarts
 // containers as needed, collecting cleaned image info for cleanup.
@@ -201,7 +201,7 @@ func TryRecoverOrphanedContainer(
 //   - types.Report: Session report summarizing scanned, updated, and failed containers.
 //   - []types.RemovedImageInfo: Slice of cleaned image info to clean up after updates.
 //   - error: Non-nil if listing or sorting fails, nil on success.
-func Update(
+func update(
 	log *zerolog.Logger,
 	ctx context.Context,
 	client container.Client,
@@ -2040,7 +2040,7 @@ func restartStaleContainer(
 		// Opt-in ephemeral self-update: use a short-lived orchestrator container
 		// to perform the transition atomically. The orchestrator handles stopping
 		// the old container, creating and starting the new one, and cleanup.
-		// EphemeralSelfUpdate returns immediately after starting the orchestrator.
+		// ephemeralSelfUpdate returns immediately after starting the orchestrator.
 		// The orchestrator completes the replacement asynchronously. The current
 		// Watchtower process will be stopped by the orchestrator shortly after.
 		if config.EphemeralSelfUpdate {
@@ -2048,7 +2048,7 @@ func restartStaleContainer(
 				Fields(fields).
 				Msg("Using ephemeral self-update")
 
-			_, renamed, err := EphemeralSelfUpdate(log,
+			_, renamed, err := ephemeralSelfUpdate(log,
 				ctx,
 				client,
 				sourceContainer,

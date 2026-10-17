@@ -296,7 +296,7 @@ func goldenFullReport() types.Report {
 func goldenFixtures() map[string]notificationData {
 	nop := zerolog.Nop()
 	staticData := StaticData{
-		Title: GetTitle(&nop, goldenHost, ""),
+		Title: getTitle(&nop, goldenHost, ""),
 		Host:  goldenHost,
 	}
 

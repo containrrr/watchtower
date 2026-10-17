@@ -26,8 +26,8 @@ const stopContainerTimeout = 10 * time.Minute
 // plus overhead for image removal delays.
 const maxRemovalAttempts = 30
 
-// RemovalRetryDelay sets the delay before retrying removal operations.
-var RemovalRetryDelay = 1 * time.Second
+// removalRetryDelay sets the delay before retrying removal operations.
+var removalRetryDelay = 1 * time.Second
 
 // RemoveExcessWatchtowerInstances ensures a single Watchtower container within the same scope.
 //
@@ -670,7 +670,7 @@ func removeExcessContainers(log *zerolog.Logger, ctx context.Context,
 
 			if attempt < maxRemovalAttempts-1 {
 				select {
-				case <-time.After(RemovalRetryDelay):
+				case <-time.After(removalRetryDelay):
 					// continue to next retry attempt
 				case <-ctx.Done():
 					// The caller still removes the images of the instances

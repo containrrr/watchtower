@@ -175,6 +175,18 @@ func Test_imageClient_buildMirrorEndpoints(t *testing.T) {
 	}
 }
 
+// resetDaemonInfoCache clears the process-wide Docker Info cache, so each
+// test counts its own Info() calls.
+func resetDaemonInfoCache() {
+	sharedDaemonInfoCache.mu.Lock()
+	defer sharedDaemonInfoCache.mu.Unlock()
+
+	sharedDaemonInfoCache.info = nil
+	sharedDaemonInfoCache.expires = time.Time{}
+	sharedDaemonInfoCache.fetched = false
+	sharedDaemonInfoCache.inflight = nil
+}
+
 // Test_newImageClient_nilLogger_noMirrors verifies resolveRegistryMirrorConfig does not
 // panic when the image client logger is nil and Docker reports no registry mirrors.
 func Test_newImageClient_nilLogger_noMirrors(t *testing.T) {

@@ -130,11 +130,6 @@ func NewDigestFetcher(settings registryConfig.Registry) DigestFetcher {
 	return DigestFetcher{settings: settings}
 }
 
-// ClearCache discards every cached result. It exists for tests.
-func (r *Resolver) ClearCache() {
-	r.cache.Clear()
-}
-
 // ResolveTag returns the release tag whose manifest matches newDigest, or empty
 // when no candidate spelling matches or the lookup could not be completed.
 //
@@ -437,7 +432,7 @@ func (r *Resolver) loadAnswer(key string) (cachedAnswer, bool) {
 //
 // Both sides are bare manifest digests rather than the repo-scoped
 // "repo@sha256:..." form that container image info carries, so the
-// digest package's DigestsMatch does not apply. Normalization strips a leading
+// digest package's repo-scoped digest comparison does not apply. Normalization strips a leading
 // "sha256:" because a HEAD response may omit it.
 //
 // Parameters:

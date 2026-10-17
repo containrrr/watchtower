@@ -73,7 +73,7 @@ func TestUpdate_PreUpdateExitCode75IsSkipped(t *testing.T) {
 				ExecuteCommand(mock.Anything, app, "/pre-update.sh", mock.Anything, mock.Anything, mock.Anything).
 				Return(true, nil).Once()
 
-			report, _, err := Update(testLogger(), t.Context(), client,
+			report, _, err := update(testLogger(), t.Context(), client,
 				types.UpdateParams{LifecycleHooks: true, RollingRestart: rolling})
 			require.NoError(t, err)
 
@@ -108,7 +108,7 @@ func TestUpdate_CanceledContainersAreSkipped(t *testing.T) {
 			client.EXPECT().GetImageAnnotations(mock.Anything, mock.Anything).Return(oci.Annotations{}).Maybe()
 
 			// The update is canceled as soon as the first container is stopped.
-			// Update stops containers one at a time on the calling goroutine,
+			// update stops containers one at a time on the calling goroutine,
 			// so stopped needs no lock.
 			var stopped string
 
@@ -126,7 +126,7 @@ func TestUpdate_CanceledContainersAreSkipped(t *testing.T) {
 			client.EXPECT().GetContainer(mock.Anything, mock.Anything).Return(first, nil).Maybe()
 			client.EXPECT().WaitForContainerHealthy(mock.Anything, mock.Anything, mock.Anything).Return(nil).Maybe()
 
-			report, _, _ := Update(testLogger(), ctx, client, types.UpdateParams{RollingRestart: rolling})
+			report, _, _ := update(testLogger(), ctx, client, types.UpdateParams{RollingRestart: rolling})
 			require.NotNil(t, report)
 
 			untouched := first.Name()
@@ -161,7 +161,7 @@ func TestUpdate_CanceledRecreateFailureIsFailed(t *testing.T) {
 		Return(true, types.ImageID("sha256:new"), "", nil)
 	client.EXPECT().GetImageAnnotations(mock.Anything, mock.Anything).Return(oci.Annotations{}).Maybe()
 
-	// Update stops containers one at a time on the calling goroutine, so
+	// update stops containers one at a time on the calling goroutine, so
 	// stopped needs no lock.
 	var stopped string
 
@@ -176,7 +176,7 @@ func TestUpdate_CanceledRecreateFailureIsFailed(t *testing.T) {
 	client.EXPECT().CreateContainer(mock.Anything, mock.Anything).
 		Return(types.ContainerID(""), fmt.Errorf("create container: %w", context.Canceled)).Once()
 
-	report, _, _ := Update(testLogger(), ctx, client, types.UpdateParams{})
+	report, _, _ := update(testLogger(), ctx, client, types.UpdateParams{})
 	require.NotNil(t, report)
 
 	untouched := first.Name()
@@ -214,7 +214,7 @@ func TestUpdate_StopFailureStaysFailedWhenCanceled(t *testing.T) {
 			return errors.New("daemon unavailable")
 		}).Once()
 
-	report, _, _ := Update(testLogger(), ctx, client, types.UpdateParams{})
+	report, _, _ := update(testLogger(), ctx, client, types.UpdateParams{})
 	require.NotNil(t, report)
 
 	assert.Empty(t, report.Skipped())
@@ -244,7 +244,7 @@ func TestUpdate_ContainerGoneBeforeStopIsSkipped(t *testing.T) {
 			client.EXPECT().StopAndRemoveContainer(mock.Anything, app, mock.Anything).
 				Return(fmt.Errorf("no such container: %w", cerrdefs.ErrNotFound)).Once()
 
-			report, _, err := Update(testLogger(), t.Context(), client, types.UpdateParams{RollingRestart: rolling})
+			report, _, err := update(testLogger(), t.Context(), client, types.UpdateParams{RollingRestart: rolling})
 			require.NoError(t, err)
 
 			skips := reportErrors(report.Skipped())
@@ -282,7 +282,7 @@ func TestUpdate_SkipSelfUpdateLeavesDependentWatchtowerRunning(t *testing.T) {
 	client.EXPECT().StartContainerByID(mock.Anything, mock.Anything).Return(nil).Once()
 	client.EXPECT().GetContainer(mock.Anything, mock.Anything).Return(app, nil).Maybe()
 
-	report, _, err := Update(testLogger(), t.Context(), client, types.UpdateParams{SkipSelfUpdate: true})
+	report, _, err := update(testLogger(), t.Context(), client, types.UpdateParams{SkipSelfUpdate: true})
 	require.NoError(t, err)
 
 	assert.Equal(t, []string{app.Name()}, reportNames(report.Updated()))
@@ -390,7 +390,7 @@ func TestUpdate_DependencyProblemsWarnOnce(t *testing.T) {
 
 				log := zerolog.New(&out).Level(zerolog.DebugLevel)
 
-				_, _, err := Update(&log, t.Context(), client, types.UpdateParams{})
+				_, _, err := update(&log, t.Context(), client, types.UpdateParams{})
 				require.NoError(t, err)
 
 				scanLevels = append(scanLevels, messageLevels(t, out.String(), tt.message))

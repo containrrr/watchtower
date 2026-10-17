@@ -327,11 +327,7 @@ linters:
       - path: "internal/actions/update.go"
         linters:
           - gocyclo
-        text: "of func `Update` is high"
-      - path: "internal/actions/update.go"
-        linters:
-          - gocyclo
-        text: "of func `linkedIdentifierMarkedForRestart` is high"
+        text: "of func `update` is high"
       - path: "internal/git/project/checkout.go"
         linters:
           - gocyclo
@@ -347,7 +343,7 @@ linters:
       - path: "pkg/registry/digest/digest.go"
         linters:
           - gocyclo
-        text: "of func `HandleManifestResponse` is high"
+        text: "of func `handleManifestResponse` is high"
       - path: "pkg/registry/age.go"
         linters:
           - gocyclo

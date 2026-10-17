@@ -96,7 +96,7 @@ func TestUpdate_PostChecksTargetCurrentContainers(t *testing.T) {
 				}).
 				Return(false, nil)
 
-			_, _, err := Update(testLogger(), t.Context(), client, types.UpdateParams{LifecycleHooks: true})
+			_, _, err := update(testLogger(), t.Context(), client, types.UpdateParams{LifecycleHooks: true})
 			require.NoError(t, err)
 
 			assert.Equal(t, []types.ContainerID{tt.wantTarget}, targets)

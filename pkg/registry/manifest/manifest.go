@@ -170,7 +170,7 @@ func manifestURLPath(imagePath, specifier string) string {
 // image reference itself.
 //
 // The function does not support host overrides. Callers that need to target registry mirrors
-// apply overrides after obtaining the canonical URL (see digest.BuildManifestURL).
+// apply overrides after obtaining the canonical URL, as the digest package does.
 //
 // Parameters:
 //   - log: Logger.

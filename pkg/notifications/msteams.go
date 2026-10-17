@@ -104,7 +104,7 @@ func (n *msTeamsTypeNotifier) GetURL(_ *cobra.Command) (string, error) {
 	// Create Teams config with the full webhook URL as the host.
 	config := &teams.Config{
 		Host:  n.webHookURL,
-		Color: ColorHex,
+		Color: colorHex,
 	}
 
 	urlStr := config.GetURL().String()

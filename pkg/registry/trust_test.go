@@ -707,6 +707,13 @@ func TestEncodedConfigCredentials_InvalidImageRef(t *testing.T) {
 	assert.Empty(t, credentials)
 }
 
+// resetEncodedAuthCache clears cached encoded auth entries, so Docker config
+// changes in one test do not leak into another.
+func resetEncodedAuthCache() {
+	initEncodedAuthCache()
+	encodedAuthCache.InvalidateAll()
+}
+
 func TestEncodedConfigCredentials_CacheHitAndMtimeInvalidation(t *testing.T) {
 	resetEncodedAuthCache()
 	t.Cleanup(resetEncodedAuthCache)

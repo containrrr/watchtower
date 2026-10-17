@@ -91,16 +91,6 @@ func isCachedLocalOnlyImage(container types.Container) bool {
 	return ok
 }
 
-// clearLocalOnlyImageCache removes all cached local-only image entries.
-// Intended for tests.
-func clearLocalOnlyImageCache() {
-	localOnlyImageCache.Range(func(key, _ any) bool {
-		localOnlyImageCache.Delete(key)
-
-		return true
-	})
-}
-
 // NormalizeDigest standardizes a digest string for consistent comparison.
 //
 // It trims common prefixes (e.g., "sha256:") to return the raw digest value.
@@ -345,7 +335,7 @@ func CompareDigestWithRemote(log *zerolog.Logger,
 			Fields(fields).
 			Msg("HEAD request returned empty digest - falling back to GET")
 
-		remoteDigest, err = FetchDigest(log,
+		remoteDigest, err = fetchDigestWithGet(log,
 			ctx,
 			container,
 			registryAuth,
@@ -358,7 +348,7 @@ func CompareDigestWithRemote(log *zerolog.Logger,
 	}
 
 	// Compare the fetched remote digest with the container's local digests.
-	matches := DigestsMatch(log,
+	matches := digestsMatch(log,
 		container.ImageInfo().RepoDigests,
 		remoteDigest,
 	)
@@ -392,7 +382,7 @@ func formatDigest(digest string) string {
 	return "sha256:" + digest
 }
 
-// FetchDigest retrieves the digest of an image from its registry using a GET request.
+// fetchDigestWithGet retrieves the digest of an image from its registry using a GET request.
 // It fetches the manifest to ensure the digest header is present, which may be necessary when
 // HEAD requests are unsupported. The digest is extracted from the response headers and normalized for consistency.
 //
@@ -406,7 +396,7 @@ func formatDigest(digest string) string {
 // Returns:
 //   - string: The normalized digest (e.g., "abc..." without "sha256:") if successful.
 //   - error: An error if the request fails or digest header is missing, nil if successful.
-func FetchDigest(
+func fetchDigestWithGet(
 	log *zerolog.Logger,
 	ctx context.Context,
 	container types.Container,
@@ -451,7 +441,7 @@ func FetchDigestForTag(
 	return fetchDigest(log, ctx, container, authToken, settings, http.MethodHead, tag, endpoints...)
 }
 
-// BuildManifestURL constructs and validates a manifest URL for a container.
+// buildManifestURL constructs and validates a manifest URL for a container.
 //
 // It determines the scheme from the registry settings, builds the initial URL via
 // manifest.BuildManifestURLForImage (which always uses the canonical host from the image reference),
@@ -473,7 +463,7 @@ func FetchDigestForTag(
 //   - string: The original host before applying hostOverride.
 //   - *url.URL: The parsed URL object.
 //   - error: Non-nil if construction or validation fails.
-func BuildManifestURL(log *zerolog.Logger,
+func buildManifestURL(log *zerolog.Logger,
 	container types.Container,
 	settings registryConfig.Registry,
 	hostOverride string,
@@ -719,7 +709,7 @@ func fetchDigest(log *zerolog.Logger,
 	client := auth.NewAuthClient(log, settings)
 
 	// Build the canonical manifest URL and apply lscr.io/host-override handling.
-	manifestURL, originalHost, _, err := BuildManifestURL(log, container, settings, "")
+	manifestURL, originalHost, _, err := buildManifestURL(log, container, settings, "")
 	if err != nil {
 		log.Debug().
 			Err(err).
@@ -878,7 +868,7 @@ func fetchDigest(log *zerolog.Logger,
 
 			var handleErr error
 
-			digest, updatedURL, retry, handleErr = HandleManifestResponse(log,
+			digest, updatedURL, retry, handleErr = handleManifestResponse(log,
 				resp,
 				method,
 				originalHost,
@@ -954,7 +944,7 @@ func fetchDigest(log *zerolog.Logger,
 	return "", lastErr
 }
 
-// HandleManifestResponse processes the HTTP response, handles redirects, and extracts the digest.
+// handleManifestResponse processes the HTTP response, handles redirects, and extracts the digest.
 //
 // It checks for redirects, updates the manifest URL if necessary, and extracts the digest
 // from the response headers or body based on the request method.
@@ -973,7 +963,7 @@ func fetchDigest(log *zerolog.Logger,
 //   - string: Updated manifest URL if redirected, otherwise empty.
 //   - bool: Whether a retry is needed.
 //   - error: Non-nil if processing or extraction fails, nil on success.
-func HandleManifestResponse(log *zerolog.Logger,
+func handleManifestResponse(log *zerolog.Logger,
 	resp *http.Response,
 	method, originalHost, challengeHost string,
 	redirected bool,
@@ -1158,9 +1148,9 @@ func HandleManifestResponse(log *zerolog.Logger,
 		Msg("Extracting digest")
 
 	if method == http.MethodHead {
-		digest, err = ExtractHeadDigest(log, resp)
+		digest, err = extractHeadDigest(log, resp)
 	} else {
-		digest, err = ExtractGetDigest(log, resp)
+		digest, err = extractGetDigest(log, resp)
 	}
 
 	if err != nil {
@@ -1180,7 +1170,7 @@ func HandleManifestResponse(log *zerolog.Logger,
 	return digest, "", false, nil
 }
 
-// ExtractHeadDigest extracts the image digest from a HEAD response's headers.
+// extractHeadDigest extracts the image digest from a HEAD response's headers.
 //
 // It retrieves the digest from the "Docker-Content-Digest" header, normalizing it for comparison,
 // and validates its presence to ensure a valid response from the registry.
@@ -1191,7 +1181,7 @@ func HandleManifestResponse(log *zerolog.Logger,
 // Returns:
 //   - string: The normalized digest (e.g., "abc..." without "sha256:") if present.
 //   - error: An error if the digest is missing or the response is invalid, nil if successful.
-func ExtractHeadDigest(log *zerolog.Logger, resp *http.Response) (string, error) {
+func extractHeadDigest(log *zerolog.Logger, resp *http.Response) (string, error) {
 	// Retrieve the digest from the standard header.
 	digest := resp.Header.Get(ContentDigestHeader)
 	if digest == "" {
@@ -1219,7 +1209,7 @@ func ExtractHeadDigest(log *zerolog.Logger, resp *http.Response) (string, error)
 	return normalizedDigest, nil
 }
 
-// ExtractGetDigest extracts the image digest from a GET response's headers or body.
+// extractGetDigest extracts the image digest from a GET response's headers or body.
 //
 // It first tries to retrieve the digest from the "Docker-Content-Digest" header.
 // If the header is missing, it falls back to parsing the response body as a JSON
@@ -1236,7 +1226,7 @@ func ExtractHeadDigest(log *zerolog.Logger, resp *http.Response) (string, error)
 // Returns:
 //   - string: The normalized digest (e.g., "abc..." without "sha256:") if present.
 //   - error: An error if the digest cannot be extracted, nil if successful.
-func ExtractGetDigest(log *zerolog.Logger, resp *http.Response) (string, error) {
+func extractGetDigest(log *zerolog.Logger, resp *http.Response) (string, error) {
 	// First, try to retrieve the digest from the standard header.
 	digest := resp.Header.Get(ContentDigestHeader)
 	if digest != "" {
@@ -1362,7 +1352,7 @@ func ExtractGetDigest(log *zerolog.Logger, resp *http.Response) (string, error) 
 	return normalizedDigest, nil
 }
 
-// DigestsMatch compares a list of local digests with a remote digest to determine if there's a match.
+// digestsMatch compares a list of local digests with a remote digest to determine if there's a match.
 //
 // It normalizes both the remote digest and each local digest, checking for equality to confirm
 // whether the container's image is up-to-date with the registry's latest version.
@@ -1373,7 +1363,7 @@ func ExtractGetDigest(log *zerolog.Logger, resp *http.Response) (string, error) 
 //
 // Returns:
 //   - bool: True if any normalized local digest matches the normalized remote digest, false otherwise.
-func DigestsMatch(log *zerolog.Logger, localDigests []string, remoteDigest string) bool {
+func digestsMatch(log *zerolog.Logger, localDigests []string, remoteDigest string) bool {
 	// Normalize the remote digest once for efficiency.
 	normalizedRemoteDigest := NormalizeDigest(log, remoteDigest)
 
@@ -1503,7 +1493,7 @@ func retryManifestRequest(
 
 		defer func() { _ = resp.Body.Close() }()
 
-		got, nextURL, retry, handleErr := HandleManifestResponse(log,
+		got, nextURL, retry, handleErr := handleManifestResponse(log,
 			resp,
 			method,
 			originalHost,

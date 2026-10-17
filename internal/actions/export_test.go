@@ -1,11 +1,37 @@
 package actions
 
 import (
+	"testing"
+	"time"
+
 	"github.com/rs/zerolog"
 
 	"github.com/nicholas-fedor/watchtower/pkg/sorter"
 	"github.com/nicholas-fedor/watchtower/pkg/types"
 )
+
+// Update exposes update to the external test package, so a whole update scan
+// can be run against a mock client.
+var Update = update
+
+// EphemeralSelfUpdate exposes ephemeralSelfUpdate to the external test
+// package, so the orchestrator handoff can be run against a mock client.
+var EphemeralSelfUpdate = ephemeralSelfUpdate
+
+// SetRemovalRetryDelay sets the delay between removal retries until the test
+// ends, so retried removals do not wait in real time.
+//
+// Parameters:
+//   - t: Test that restores the previous delay when it ends.
+//   - delay: Delay between retries.
+func SetRemovalRetryDelay(t *testing.T, delay time.Duration) {
+	t.Helper()
+
+	previous := removalRetryDelay
+	removalRetryDelay = delay
+
+	t.Cleanup(func() { removalRetryDelay = previous })
+}
 
 // UpdateImplicitRestart marks the containers that depend on a restarting
 // container as linked to restarting, as an update scan does. The dependency

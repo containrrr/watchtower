@@ -67,7 +67,7 @@ func WriteStartupMessage(params StartupParams) {
 	}
 
 	// Batch startup lines through the notifier when present (suppression already returned).
-	startupLog := SetupStartupLogger(params.Logger, params.Notifier)
+	startupLog := setupStartupLogger(params.Logger, params.Notifier)
 
 	var apiVersion string
 	if params.Client != nil {
@@ -90,7 +90,7 @@ func WriteStartupMessage(params StartupParams) {
 		notifierNames = params.Notifier.GetNames()
 	}
 
-	LogNotifierInfo(startupLog, notifierNames)
+	logNotifierInfo(startupLog, notifierNames)
 
 	// Log filtering information, using structured logging for scope when set.
 	if params.Scope != "" {
@@ -102,7 +102,7 @@ func WriteStartupMessage(params StartupParams) {
 	}
 
 	// Log scheduling or run mode information based on configuration.
-	LogScheduleInfo(startupLog, params.ScheduleInfo)
+	logScheduleInfo(startupLog, params.ScheduleInfo)
 
 	// Send batched notifications if not suppressed, ensuring startup info reaches users.
 	if params.Notifier != nil {
@@ -116,7 +116,7 @@ func WriteStartupMessage(params StartupParams) {
 	}
 }
 
-// SetupStartupLogger prepares the logger for startup messages and starts notifier batching.
+// setupStartupLogger prepares the logger for startup messages and starts notifier batching.
 //
 // Callers that suppress startup messages must return before invoking this helper.
 // When notifier is non-nil, StartNotification batches subsequent startup lines for
@@ -128,7 +128,7 @@ func WriteStartupMessage(params StartupParams) {
 //
 // Returns:
 //   - *zerolog.Logger: The logger to use for writing startup messages.
-func SetupStartupLogger(log *zerolog.Logger, notifier types.Notifier) *zerolog.Logger {
+func setupStartupLogger(log *zerolog.Logger, notifier types.Notifier) *zerolog.Logger {
 	if notifier != nil {
 		notifier.StartNotification(false)
 	}
@@ -136,7 +136,7 @@ func SetupStartupLogger(log *zerolog.Logger, notifier types.Notifier) *zerolog.L
 	return log
 }
 
-// LogNotifierInfo logs details about the notification setup for Watchtower.
+// logNotifierInfo logs details about the notification setup for Watchtower.
 //
 // It reports the list of configured notifier names (for example "email, slack") or
 // indicates that no notifications are set up.
@@ -144,7 +144,7 @@ func SetupStartupLogger(log *zerolog.Logger, notifier types.Notifier) *zerolog.L
 // Parameters:
 //   - log: The zerolog logger used to write the notification information.
 //   - notifierNames: Names of configured notifiers.
-func LogNotifierInfo(log *zerolog.Logger, notifierNames []string) {
+func logNotifierInfo(log *zerolog.Logger, notifierNames []string) {
 	if len(notifierNames) > 0 {
 		log.Info().Msg("Using notifications: " + strings.Join(notifierNames, ", "))
 	} else {
@@ -168,7 +168,7 @@ type ScheduleInfo struct {
 	Sched time.Time
 }
 
-// LogScheduleInfo logs information about the scheduling or run mode configuration.
+// logScheduleInfo logs information about the scheduling or run mode configuration.
 //
 // It handles scheduled runs with timing details, one-time updates, or indicates no periodic runs,
 // ensuring users understand when and how updates will occur. It also warns about flag conflicts
@@ -177,7 +177,7 @@ type ScheduleInfo struct {
 // Parameters:
 //   - log: The zerolog logger used to write the schedule information.
 //   - info: Resolved schedule and mode values (no flag reads).
-func LogScheduleInfo(log *zerolog.Logger, info ScheduleInfo) {
+func logScheduleInfo(log *zerolog.Logger, info ScheduleInfo) {
 	// Use provided update-on-start value when set. Otherwise treat as disabled.
 	var updateOnStartVal bool
 	if info.UpdateOnStart != nil {

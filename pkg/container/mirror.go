@@ -35,19 +35,6 @@ type daemonInfoResult struct {
 	ok   bool
 }
 
-// resetDaemonInfoCache clears the process-wide Docker Info cache.
-//
-// Tests use this to isolate Info() call counts between cases.
-func resetDaemonInfoCache() {
-	sharedDaemonInfoCache.mu.Lock()
-	defer sharedDaemonInfoCache.mu.Unlock()
-
-	sharedDaemonInfoCache.info = nil
-	sharedDaemonInfoCache.expires = time.Time{}
-	sharedDaemonInfoCache.fetched = false
-	sharedDaemonInfoCache.inflight = nil
-}
-
 // resolveRegistryMirrorConfig fetches the registry mirror configuration from the Docker daemon.
 //
 // Successful Info() results are reused for daemonInfoTTL so concurrent check and
