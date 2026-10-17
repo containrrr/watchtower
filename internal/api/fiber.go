@@ -37,20 +37,20 @@ const (
 	corsMaxAge = 3600
 )
 
-// ShutdownGracePeriod defines the maximum duration allowed for the server to
+// shutdownGracePeriod defines the maximum duration allowed for the server to
 // shut down gracefully.
-const ShutdownGracePeriod = 5 * time.Second
+const shutdownGracePeriod = 5 * time.Second
 
-// ProxyConfig holds configuration for reverse proxy support.
-type ProxyConfig struct {
+// proxyConfig holds configuration for reverse proxy support.
+type proxyConfig struct {
 	// TrustedProxies is a list of trusted proxy IPs/CIDRs.
 	TrustedProxies []string
 	// ProxyHeader is the header for the real client IP (e.g. X-Forwarded-For).
 	ProxyHeader string
 }
 
-// CORSConfig holds configuration for CORS middleware.
-type CORSConfig struct {
+// corsConfig holds configuration for CORS middleware.
+type corsConfig struct {
 	// AllowedOrigins is a list of origins allowed to make cross-origin requests.
 	// Use ["*"] to allow all origins.
 	AllowedOrigins []string
@@ -60,7 +60,7 @@ type CORSConfig struct {
 	AllowedHeaders []string
 }
 
-// New creates a new Fiber-based API application with the configured middleware
+// newApp creates a new Fiber-based API application with the configured middleware
 // stack and lifecycle hooks.
 //
 // Parameters:
@@ -73,11 +73,11 @@ type CORSConfig struct {
 //
 // Returns:
 //   - *fiber.App: Configured Fiber application.
-func New(
+func newApp(
 	log *zerolog.Logger,
 	rateLimitPerMinute int,
-	proxyCfg ProxyConfig,
-	corsCfg CORSConfig,
+	proxyCfg proxyConfig,
+	corsCfg corsConfig,
 	noStartupMessage bool,
 ) *fiber.App {
 	rateLimit := rateLimitPerMinute

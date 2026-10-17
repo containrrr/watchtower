@@ -20,36 +20,36 @@ import (
 )
 
 func TestNew_ProxyConfig(t *testing.T) {
-	app := New(
+	app := newApp(
 		testLogger(),
 		60,
-		ProxyConfig{
+		proxyConfig{
 			TrustedProxies: []string{"127.0.0.1"},
 			ProxyHeader:    "X-Real-IP",
 		},
-		CORSConfig{},
+		corsConfig{},
 		false,
 	)
 	assert.NotNil(t, app)
 
-	app2 := New(
+	app2 := newApp(
 		testLogger(),
 		60,
-		ProxyConfig{
+		proxyConfig{
 			TrustedProxies: []string{"10.0.0.0/8"},
 		},
-		CORSConfig{},
+		corsConfig{},
 		false,
 	)
 	assert.NotNil(t, app2)
 }
 
 func TestNew_CORSConfig(t *testing.T) {
-	app := New(
+	app := newApp(
 		testLogger(),
 		60,
-		ProxyConfig{},
-		CORSConfig{
+		proxyConfig{},
+		corsConfig{
 			AllowedOrigins: []string{"https://example.com"},
 		},
 		false,
@@ -75,11 +75,11 @@ func TestNew_CORSConfig(t *testing.T) {
 }
 
 func TestNew_CORSWildcard(t *testing.T) {
-	app := New(
+	app := newApp(
 		testLogger(),
 		60,
-		ProxyConfig{},
-		CORSConfig{
+		proxyConfig{},
+		corsConfig{
 			AllowedOrigins: []string{"*"},
 		},
 		false,
@@ -109,11 +109,11 @@ func TestNew_CORSWildcard(t *testing.T) {
 }
 
 func TestNew_CORSCustomMethodsHeaders(t *testing.T) {
-	app := New(
+	app := newApp(
 		testLogger(),
 		60,
-		ProxyConfig{},
-		CORSConfig{
+		proxyConfig{},
+		corsConfig{
 			AllowedOrigins: []string{"https://example.com"},
 			AllowedMethods: []string{"GET", "POST"},
 			AllowedHeaders: []string{"Content-Type", "X-Custom-Header"},
@@ -146,11 +146,11 @@ func TestNew_CORSCustomMethodsHeaders(t *testing.T) {
 }
 
 func TestNew_NoCORSWhenNoOrigins(t *testing.T) {
-	app := New(
+	app := newApp(
 		testLogger(),
 		60,
-		ProxyConfig{},
-		CORSConfig{},
+		proxyConfig{},
+		corsConfig{},
 		false,
 	)
 	assert.NotNil(t, app)
@@ -207,11 +207,11 @@ func TestNew(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := New(
+			got := newApp(
 				tt.log,
 				tt.rateLimitPerMinute,
-				ProxyConfig{},
-				CORSConfig{},
+				proxyConfig{},
+				corsConfig{},
 				false,
 			)
 			if tt.wantNil {
@@ -314,7 +314,7 @@ func TestNew_OnListenHook(t *testing.T) {
 
 	logger := zerolog.New(&buf).Level(zerolog.DebugLevel)
 
-	app := New(&logger, 60, ProxyConfig{}, CORSConfig{}, false)
+	app := newApp(&logger, 60, proxyConfig{}, corsConfig{}, false)
 
 	app.Get("/test", func(c fiber.Ctx) error {
 		return c.SendString("ok")

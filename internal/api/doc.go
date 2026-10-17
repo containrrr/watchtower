@@ -28,8 +28,8 @@
 // /v1/events requires a separate events token (via http-api-events-token).
 //
 // Key components:
-//   - New: Creates a Fiber application with the configured middleware stack (fiber.go).
-//   - NewAPIAuthMiddleware: Bearer token authentication (auth.go).
+//   - newApp: Creates a Fiber application with the configured middleware stack (fiber.go).
+//   - newAPIAuthMiddleware: Bearer token authentication (auth.go).
 //   - routes.ValidateAndRegister: Validates options and registers enabled endpoints.
 //   - SetupAndStartAPI: Orchestrates endpoint registration and server lifecycle (lifecycle.go).
 //   - config.ValidateUpdateOptions: Validates required update API dependencies (config/).

@@ -22,8 +22,8 @@ import (
 )
 
 var (
-	// ErrMissingRunUpdatesWithNotifications indicates RunUpdatesWithNotifications was not provided.
-	ErrMissingRunUpdatesWithNotifications = errors.New("RunUpdatesWithNotifications must be provided when EnableUpdateAPI is set")
+	// errMissingRunUpdatesWithNotifications indicates RunUpdatesWithNotifications was not provided.
+	errMissingRunUpdatesWithNotifications = errors.New("RunUpdatesWithNotifications must be provided when EnableUpdateAPI is set")
 	// ErrMissingFilterByImage indicates FilterByImage was not provided when an
 	// endpoint that builds image-scoped filters is enabled.
 	ErrMissingFilterByImage = errors.New("FilterByImage must be provided when update or check API is enabled")
@@ -36,9 +36,9 @@ var (
 	ErrMissingEventsAPIToken = errors.New("events API token is required when events API is enabled")
 	// ErrMissingEventBroadcaster indicates EventBroadcaster was not provided when events API is enabled.
 	ErrMissingEventBroadcaster = errors.New("EventBroadcaster must be provided when events API is enabled")
-	// ErrMissingUpdateLock indicates UpdateLock was not provided when the
+	// errMissingUpdateLock indicates UpdateLock was not provided when the
 	// update API is enabled.
-	ErrMissingUpdateLock = errors.New("UpdateLock must be provided when EnableUpdateAPI is set")
+	errMissingUpdateLock = errors.New("UpdateLock must be provided when EnableUpdateAPI is set")
 	// ErrMissingTLSConfig indicates only one of TLS cert/key was provided.
 	ErrMissingTLSConfig = errors.New("TLS requires both TLS Cert Path and TLS Key Path to be set")
 	// ErrMissingLogger indicates Options.Logger was nil when an API endpoint is enabled.
@@ -46,10 +46,10 @@ var (
 )
 
 const (
-	// HandlerTimeout defines the maximum duration for non-update handlers to
+	// handlerTimeout defines the maximum duration for non-update handlers to
 	// complete. This prevents slow Docker API calls from blocking connections
 	// indefinitely.
-	HandlerTimeout = 30 * time.Second
+	handlerTimeout = 30 * time.Second
 	// DefaultCheckTimeout defines the default maximum duration for the /v1/check
 	// API endpoint.
 	DefaultCheckTimeout = 5 * time.Minute
@@ -195,7 +195,7 @@ func ValidateUpdateOptions(opts Options) error {
 	// RunUpdatesWithNotifications executes the scan-and-update pipeline,
 	// which is the core operation of the update endpoint.
 	if opts.RunUpdatesWithNotifications == nil {
-		return ErrMissingRunUpdatesWithNotifications
+		return errMissingRunUpdatesWithNotifications
 	}
 
 	// FilterByImage builds an image-level predicate that the update endpoint
@@ -214,7 +214,7 @@ func ValidateUpdateOptions(opts Options) error {
 	// UpdateLock keeps API updates from running alongside scheduled updates.
 	// A lock of the endpoint's own would not exclude them.
 	if opts.UpdateLock == nil {
-		return ErrMissingUpdateLock
+		return errMissingUpdateLock
 	}
 
 	return nil
@@ -227,6 +227,6 @@ func TimeoutMiddleware() fiber.Handler {
 	return timeout.New(func(c fiber.Ctx) error {
 		return c.Next()
 	}, timeout.Config{
-		Timeout: HandlerTimeout,
+		Timeout: handlerTimeout,
 	})
 }

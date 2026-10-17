@@ -1,4 +1,4 @@
-package api_test
+package api
 
 import (
 	"bufio"
@@ -26,7 +26,6 @@ import (
 	dockerContainer "github.com/moby/moby/api/types/container"
 	dockerImage "github.com/moby/moby/api/types/image"
 
-	"github.com/nicholas-fedor/watchtower/internal/api"
 	"github.com/nicholas-fedor/watchtower/internal/api/config"
 	"github.com/nicholas-fedor/watchtower/internal/api/handlers/events"
 	"github.com/nicholas-fedor/watchtower/internal/api/routes"
@@ -234,9 +233,9 @@ func fixtureOptions(client container.Client, store *metrics.Metrics) config.Opti
 func newFixtureApp(t *testing.T, opts config.Options) *fiber.App {
 	t.Helper()
 
-	app := api.New(opts.Logger, opts.RateLimit, api.ProxyConfig{}, api.CORSConfig{}, opts.NoStartupMessage)
+	app := newApp(opts.Logger, opts.RateLimit, proxyConfig{}, corsConfig{}, opts.NoStartupMessage)
 
-	err := routes.ValidateAndRegister(t.Context(), app, api.NewAPIAuthMiddleware(opts.Logger, opts.Token), opts)
+	err := routes.ValidateAndRegister(t.Context(), app, newAPIAuthMiddleware(opts.Logger, opts.Token), opts)
 	require.NoError(t, err)
 
 	return app

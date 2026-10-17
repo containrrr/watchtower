@@ -73,19 +73,19 @@ func ValidateAndRegister(
 		return config.ErrMissingEventBroadcaster
 	}
 
-	Register(ctx, app, auth, opts)
+	registerRoutes(ctx, app, auth, opts)
 
 	return nil
 }
 
-// Register mounts enabled HTTP API routes on the Fiber app.
+// registerRoutes mounts enabled HTTP API routes on the Fiber app.
 //
 // Parameters:
 //   - ctx: Request context for long-lived handlers.
 //   - app: Fiber application.
 //   - auth: Middleware for protected /v1/* routes.
 //   - opts: API configuration options.
-func Register(
+func registerRoutes(
 	ctx context.Context,
 	app *fiber.App,
 	auth fiber.Handler,

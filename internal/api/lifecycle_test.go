@@ -104,7 +104,7 @@ func runServerAndShutdown(t *testing.T, opts config.Options) {
 	case err := <-errCh:
 		assert.True(t, err == nil || errors.Is(err, context.Canceled),
 			"unexpected error: %v", err)
-	case <-time.After(ShutdownGracePeriod + 2*time.Second):
+	case <-time.After(shutdownGracePeriod + 2*time.Second):
 		t.Fatal("server did not shut down within expected time")
 	}
 }
@@ -390,7 +390,7 @@ func TestRegisterUpdateRoute_UnblockHTTPAPI(t *testing.T) {
 	case err := <-errCh:
 		assert.True(t, err == nil || errors.Is(err, context.Canceled),
 			"unexpected error: %v", err)
-	case <-time.After(ShutdownGracePeriod + 2*time.Second):
+	case <-time.After(shutdownGracePeriod + 2*time.Second):
 		t.Fatal("server did not shut down")
 	}
 }
@@ -624,7 +624,7 @@ func TestRunServer_BlockingUntilCancel(t *testing.T) {
 	case err := <-done:
 		assert.True(t, err == nil || errors.Is(err, context.Canceled),
 			"unexpected error: %v", err)
-	case <-time.After(ShutdownGracePeriod + 2*time.Second):
+	case <-time.After(shutdownGracePeriod + 2*time.Second):
 		t.Fatal("blocking SetupAndStartAPI did not return after cancel")
 	}
 }
@@ -987,7 +987,7 @@ func requireAddrReleased(t *testing.T, addr string) {
 		_ = ln.Close()
 
 		return true
-	}, ShutdownGracePeriod+2*time.Second, 20*time.Millisecond, "the server kept listening on %s", addr)
+	}, shutdownGracePeriod+2*time.Second, 20*time.Millisecond, "the server kept listening on %s", addr)
 }
 
 // TestRunServer_CancelBetweenBindAndServe verifies that a server canceled
@@ -1003,7 +1003,7 @@ func TestRunServer_CancelBetweenBindAndServe(t *testing.T) {
 
 			shutdownRan := make(chan struct{})
 
-			app := New(testLogger(), 60, ProxyConfig{}, CORSConfig{}, true)
+			app := newApp(testLogger(), 60, proxyConfig{}, corsConfig{}, true)
 			app.Hooks().OnPostShutdown(func(error) error {
 				close(shutdownRan)
 
@@ -1014,7 +1014,7 @@ func TestRunServer_CancelBetweenBindAndServe(t *testing.T) {
 
 				select {
 				case <-shutdownRan:
-				case <-time.After(ShutdownGracePeriod):
+				case <-time.After(shutdownGracePeriod):
 				}
 
 				return nil
@@ -1030,7 +1030,7 @@ func TestRunServer_CancelBetweenBindAndServe(t *testing.T) {
 			select {
 			case err := <-done:
 				require.NoError(t, err)
-			case <-time.After(ShutdownGracePeriod + 2*time.Second):
+			case <-time.After(shutdownGracePeriod + 2*time.Second):
 				t.Fatal("the server canceled between bind and serve did not stop")
 			}
 

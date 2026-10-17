@@ -135,10 +135,10 @@ func TestErrSentinelValues(t *testing.T) {
 		err  error
 		msg  string
 	}{
-		{name: "ErrMissingRunUpdatesWithNotifications", err: ErrMissingRunUpdatesWithNotifications, msg: "RunUpdatesWithNotifications must be provided"},
+		{name: "errMissingRunUpdatesWithNotifications", err: errMissingRunUpdatesWithNotifications, msg: "RunUpdatesWithNotifications must be provided"},
 		{name: "ErrMissingFilterByImage", err: ErrMissingFilterByImage, msg: "FilterByImage must be provided"},
 		{name: "ErrMissingDefaultMetrics", err: ErrMissingDefaultMetrics, msg: "DefaultMetrics must be provided"},
-		{name: "ErrMissingUpdateLock", err: ErrMissingUpdateLock, msg: "UpdateLock must be provided"},
+		{name: "errMissingUpdateLock", err: errMissingUpdateLock, msg: "UpdateLock must be provided"},
 		{name: "ErrMissingAPIToken", err: ErrMissingAPIToken, msg: "API token is empty or unset"},
 		{name: "ErrMissingEventsAPIToken", err: ErrMissingEventsAPIToken, msg: "events API token is required"},
 		{name: "ErrMissingEventBroadcaster", err: ErrMissingEventBroadcaster, msg: "EventBroadcaster must be provided"},

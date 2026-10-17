@@ -1,4 +1,4 @@
-package api_test
+package api
 
 import (
 	"context"
@@ -11,15 +11,12 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v3"
-	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
-	"github.com/nicholas-fedor/watchtower/internal/api"
 	"github.com/nicholas-fedor/watchtower/internal/api/config"
 	"github.com/nicholas-fedor/watchtower/internal/api/handlers/events"
-	mockAPI "github.com/nicholas-fedor/watchtower/internal/api/mocks"
 	"github.com/nicholas-fedor/watchtower/internal/api/routes"
 	"github.com/nicholas-fedor/watchtower/internal/logging"
 	"github.com/nicholas-fedor/watchtower/internal/metrics"
@@ -30,85 +27,8 @@ import (
 
 var helperMetrics = metrics.Default()
 
-func testLogger() *zerolog.Logger {
-	l := zerolog.Nop()
-
-	return &l
-}
-
-func withTestLogger(opts config.Options) config.Options {
-	if opts.Logger == nil {
-		opts.Logger = testLogger()
-	}
-
-	return opts
-}
-
-func makeListContainersMock(t *testing.T) *mockContainer.MockClient {
-	t.Helper()
-	mc := mockContainer.NewMockClient(t)
-	mc.EXPECT().ListContainers(mock.Anything, mock.Anything).Return([]types.Container{}, nil).Maybe()
-	mc.EXPECT().ListContainers(mock.Anything).Return([]types.Container{}, nil).Maybe()
-
-	return mc
-}
-
-func makeFilter(_ *testing.T) types.Filter {
-	return func(_ types.FilterableContainer) bool { return true }
-}
-
 // NewEventsBroadcasterHelper creates an event broadcaster for integration tests.
 func NewEventsBroadcasterHelper() *events.Broadcaster { return events.NewBroadcaster() }
-
-func withTestListenAddr(opts config.Options) config.Options {
-	opts = withTestLogger(opts)
-
-	if opts.Host == "" {
-		opts.Host = "127.0.0.1"
-	}
-
-	if opts.Port == "" {
-		opts.Port = "0"
-	}
-
-	return opts
-}
-
-func runServerAndShutdown(t *testing.T, opts config.Options) {
-	t.Helper()
-
-	opts = withTestListenAddr(opts)
-
-	ctx, cancel := context.WithCancel(t.Context())
-	defer cancel()
-
-	errCh := make(chan error, 1)
-	go func() {
-		errCh <- api.SetupAndStartAPI(ctx, opts)
-	}()
-
-	select {
-	case err := <-errCh:
-		assert.True(t, err == nil || errors.Is(err, context.Canceled),
-			"unexpected error: %v", err)
-		cancel()
-		time.Sleep(50 * time.Millisecond)
-
-		return
-	case <-time.After(500 * time.Millisecond):
-		// Blocking mode still inside SetupAndStartAPI.
-	}
-
-	cancel()
-
-	select {
-	case err := <-errCh:
-		assert.True(t, err == nil || errors.Is(err, context.Canceled),
-			"unexpected error: %v", err)
-	case <-time.After(5 * time.Second):
-		t.Fatal("server did not shut down within expected time")
-	}
-}
 
 // ---------------------------------------------------------------------------
 // Health probes
@@ -128,7 +48,7 @@ func TestIntegration_HealthProbes_CustomRoute(t *testing.T) {
 	mc := mockContainer.NewMockClient(t)
 	mc.EXPECT().ListContainers(mock.Anything).Return([]types.Container{}, nil)
 
-	app := api.New(testLogger(), 60, api.ProxyConfig{}, api.CORSConfig{}, false)
+	app := newApp(testLogger(), 60, proxyConfig{}, corsConfig{}, false)
 	app.Get("/health/custom", func(c fiber.Ctx) error {
 		_, err := mc.ListContainers(c.Context())
 		if err != nil {
@@ -155,7 +75,7 @@ func TestIntegration_SetupAndStartAPI_NoAPIs(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
-	err := api.SetupAndStartAPI(ctx, withTestLogger(config.Options{Token: "test"}))
+	err := SetupAndStartAPI(ctx, withTestLogger(config.Options{Token: "test"}))
 	assert.NoError(t, err)
 }
 
@@ -250,7 +170,7 @@ func TestIntegration_SetupAndStartAPI_MissingUpdateDependencies(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := api.SetupAndStartAPI(ctx, withTestLogger(tt.opts))
+			err := SetupAndStartAPI(ctx, withTestLogger(tt.opts))
 			require.Error(t, err)
 			assert.Contains(t, err.Error(), tt.errMsg)
 		})
@@ -266,7 +186,7 @@ func TestIntegration_GracefulShutdown_MetricsAPI(t *testing.T) {
 	errCh := make(chan error, 1)
 
 	go func() {
-		errCh <- api.SetupAndStartAPI(ctx, withTestLogger(config.Options{
+		errCh <- SetupAndStartAPI(ctx, withTestLogger(config.Options{
 			Token:            "test-token",
 			EnableMetricsAPI: true,
 			RateLimit:        60,
@@ -290,7 +210,7 @@ func TestIntegration_GracefulShutdown_AllAPIs(t *testing.T) {
 	errCh := make(chan error, 1)
 
 	go func() {
-		errCh <- api.SetupAndStartAPI(ctx, withTestLogger(config.Options{
+		errCh <- SetupAndStartAPI(ctx, withTestLogger(config.Options{
 			Token:               "test-token",
 			EnableUpdateAPI:     true,
 			UpdateLock:          scheduling.NewUpdateLock(),
@@ -325,7 +245,7 @@ func TestIntegration_GracefulShutdownTiming(t *testing.T) {
 
 	errCh := make(chan error, 1)
 	go func() {
-		errCh <- api.SetupAndStartAPI(ctx, withTestLogger(config.Options{
+		errCh <- SetupAndStartAPI(ctx, withTestLogger(config.Options{
 			Token:               "test-token",
 			EnableUpdateAPI:     true,
 			UpdateLock:          scheduling.NewUpdateLock(),
@@ -350,20 +270,9 @@ func TestIntegration_GracefulShutdownTiming(t *testing.T) {
 	case err := <-errCh:
 		assert.True(t, err == nil || errors.Is(err, context.Canceled),
 			"unexpected error: %v", err)
-	case <-time.After(api.ShutdownGracePeriod + 2*time.Second):
+	case <-time.After(shutdownGracePeriod + 2*time.Second):
 		t.Fatal("server did not shut down within expected time")
 	}
-}
-
-// ---------------------------------------------------------------------------
-// Server interface
-// ---------------------------------------------------------------------------
-
-func TestIntegration_ServerInterface(t *testing.T) {
-	mockServer := mockAPI.NewMockServer(t)
-	mockServer.EXPECT().Listen(mock.Anything, mock.Anything).Return(nil).Maybe()
-	mockServer.EXPECT().ShutdownWithTimeout(mock.Anything).Return(nil).Maybe()
-	assert.NotNil(t, mockServer)
 }
 
 // ---------------------------------------------------------------------------
@@ -388,7 +297,7 @@ func TestIntegration_GetAPIAddr(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, api.GetAPIAddr(tt.host, tt.port))
+			assert.Equal(t, tt.want, GetAPIAddr(tt.host, tt.port))
 		})
 	}
 }
@@ -398,7 +307,7 @@ func TestIntegration_GetAPIAddr(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestIntegration_ConcurrentRequests(t *testing.T) {
-	app := api.New(testLogger(), 60, api.ProxyConfig{}, api.CORSConfig{}, false)
+	app := newApp(testLogger(), 60, proxyConfig{}, corsConfig{}, false)
 
 	var wg sync.WaitGroup
 	for range 10 {
@@ -559,7 +468,7 @@ func TestIntegration_CheckDuringUpdate(t *testing.T) {
 
 	updateDone := make(chan struct{})
 
-	app := api.New(testLogger(), 60, api.ProxyConfig{}, api.CORSConfig{}, false)
+	app := newApp(testLogger(), 60, proxyConfig{}, corsConfig{}, false)
 
 	opts := config.Options{
 		Token:           "test-token",
@@ -580,7 +489,7 @@ func TestIntegration_CheckDuringUpdate(t *testing.T) {
 
 	opts = withTestLogger(opts)
 
-	authMiddleware := api.NewAPIAuthMiddleware(testLogger(), opts.Token)
+	authMiddleware := newAPIAuthMiddleware(testLogger(), opts.Token)
 
 	err := routes.ValidateAndRegister(t.Context(), app, authMiddleware, opts)
 	require.NoError(t, err)
@@ -659,7 +568,7 @@ func TestIntegration_APIAndScheduling_ConcurrentWithUnblockHTTPAPI(t *testing.T)
 
 	apiDone := make(chan error, 1)
 	go func() {
-		apiDone <- api.SetupAndStartAPI(testCtx, opts)
+		apiDone <- SetupAndStartAPI(testCtx, opts)
 	}()
 
 	select {
@@ -704,7 +613,7 @@ func TestIntegration_APIAndScheduling_ConcurrentWithUnblockHTTPAPI(t *testing.T)
 func TestIntegration_UpdateHonorsReviveStoppedAndComposeDependsOn(t *testing.T) {
 	var captured types.UpdateParams
 
-	app := api.New(testLogger(), 60, api.ProxyConfig{}, api.CORSConfig{}, false)
+	app := newApp(testLogger(), 60, proxyConfig{}, corsConfig{}, false)
 
 	opts := config.Options{
 		Token:           "test-token",
@@ -726,7 +635,7 @@ func TestIntegration_UpdateHonorsReviveStoppedAndComposeDependsOn(t *testing.T) 
 		DefaultMetrics: func() *metrics.Metrics { return helperMetrics },
 	}
 
-	authMiddleware := api.NewAPIAuthMiddleware(testLogger(), opts.Token)
+	authMiddleware := newAPIAuthMiddleware(testLogger(), opts.Token)
 
 	err := routes.ValidateAndRegister(t.Context(), app, authMiddleware, opts)
 	require.NoError(t, err)

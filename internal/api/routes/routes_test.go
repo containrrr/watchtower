@@ -280,7 +280,7 @@ func TestRegister(t *testing.T) {
 				opts.EventBroadcaster = events.NewBroadcaster()
 			}
 
-			Register(context.Background(), app, auth, opts)
+			registerRoutes(context.Background(), app, auth, opts)
 
 			routes := app.GetRoutes()
 			apiCount := 0

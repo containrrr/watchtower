@@ -1,4 +1,4 @@
-package api_test
+package api
 
 import (
 	"context"
@@ -15,7 +15,6 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
-	"github.com/nicholas-fedor/watchtower/internal/api"
 	"github.com/nicholas-fedor/watchtower/internal/api/config"
 	"github.com/nicholas-fedor/watchtower/internal/api/routes"
 	"github.com/nicholas-fedor/watchtower/internal/metrics"
@@ -69,9 +68,9 @@ func newFullSurfaceApp(t *testing.T) *fiber.App {
 		EventBroadcaster: NewEventsBroadcasterHelper(),
 	})
 
-	app := api.New(opts.Logger, opts.RateLimit, api.ProxyConfig{}, api.CORSConfig{}, opts.NoStartupMessage)
+	app := newApp(opts.Logger, opts.RateLimit, proxyConfig{}, corsConfig{}, opts.NoStartupMessage)
 
-	err := routes.ValidateAndRegister(t.Context(), app, api.NewAPIAuthMiddleware(opts.Logger, opts.Token), opts)
+	err := routes.ValidateAndRegister(t.Context(), app, newAPIAuthMiddleware(opts.Logger, opts.Token), opts)
 	require.NoError(t, err)
 
 	return app

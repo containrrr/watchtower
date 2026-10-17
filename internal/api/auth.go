@@ -11,7 +11,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-// NewAPIAuthMiddleware returns a Fiber middleware that validates the HTTP API
+// newAPIAuthMiddleware returns a Fiber middleware that validates the HTTP API
 // token using constant-time SHA-256 comparison.
 //
 // Accepted credentials (first match wins):
@@ -20,7 +20,7 @@ import (
 //   - Cookie access_token=<token>
 //
 // Auth failure logs use notify=no so they never fan out through notification hooks.
-func NewAPIAuthMiddleware(log *zerolog.Logger, token string) fiber.Handler {
+func newAPIAuthMiddleware(log *zerolog.Logger, token string) fiber.Handler {
 	expectedHash := sha256.Sum256([]byte(token))
 	// Child logger for high-volume auth warnings. The composition root may already
 	// pass a notify=no logger, but setting it here keeps auth safe either way.

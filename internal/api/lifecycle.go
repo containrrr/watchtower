@@ -18,15 +18,6 @@ import (
 	"github.com/nicholas-fedor/watchtower/internal/api/routes"
 )
 
-// Server defines the interface for Watchtower's HTTP API server.
-type Server interface {
-	Listen(addr string, config ...fiber.ListenConfig) error
-	ShutdownWithTimeout(timeout time.Duration) error
-}
-
-// Compile-time check that *fiber.App implements Server.
-var _ Server = (*fiber.App)(nil)
-
 // GetAPIAddr formats the API address string from host and port, bracketing
 // IPv6 addresses as needed.
 //
@@ -107,18 +98,18 @@ func SetupAndStartAPI(ctx context.Context, opts config.Options) error {
 
 	log := opts.Logger
 
-	app := New(
+	app := newApp(
 		log,
 		opts.RateLimit,
-		ProxyConfig{
+		proxyConfig{
 			TrustedProxies: opts.TrustedProxies,
 			ProxyHeader:    opts.ProxyHeader,
-		}, CORSConfig{
+		}, corsConfig{
 			AllowedOrigins: opts.CORSAllowedOrigins,
 		}, opts.NoStartupMessage,
 	)
 
-	authMiddleware := NewAPIAuthMiddleware(log, opts.Token)
+	authMiddleware := newAPIAuthMiddleware(log, opts.Token)
 
 	err := routes.ValidateAndRegister(ctx, app, authMiddleware, opts)
 	if err != nil {
@@ -392,7 +383,7 @@ func listenNetwork(address string) string {
 //   - app: Fiber application to stop.
 //   - listener: The app's listener.
 func stopServer(log *zerolog.Logger, app *fiber.App, listener net.Listener) {
-	err := app.ShutdownWithTimeout(ShutdownGracePeriod)
+	err := app.ShutdownWithTimeout(shutdownGracePeriod)
 	if err != nil {
 		log.Debug().Err(err).Msg("HTTP server shutdown did not finish draining")
 	}
