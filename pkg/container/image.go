@@ -99,6 +99,8 @@ type imageClient struct {
 	daemonInfo *daemonInfoCache
 	// registrySettings holds the settings for registry requests.
 	registrySettings registryConfig.Registry
+	// rateLimiter paces pulls, digest checks, and image age requests per registry host.
+	rateLimiter *ratelimit.Limiter
 }
 
 // IsContainerStale determines if a container's image is outdated.
@@ -227,6 +229,7 @@ func (c imageClient) CheckContainerUpdate(
 		sourceContainer,
 		opts.RegistryAuth,
 		c.registrySettings,
+		c.rateLimiter,
 		endpoints...,
 	)
 	if err != nil {
@@ -650,6 +653,7 @@ func (c imageClient) logger() *zerolog.Logger {
 //   - api: Docker API client.
 //   - log: Logger for debug output.
 //   - registrySettings: Settings for registry requests.
+//   - rateLimiter: Rate limiter shared by registry requests. Must not be nil.
 //
 // Returns:
 //   - imageClient: Initialized client for image operations.
@@ -657,12 +661,14 @@ func newImageClient(
 	api dockerClient.APIClient,
 	log *zerolog.Logger,
 	registrySettings registryConfig.Registry,
+	rateLimiter *ratelimit.Limiter,
 ) imageClient {
 	return imageClient{
 		api:              api,
 		log:              log,
 		daemonInfo:       sharedDaemonInfoCache,
 		registrySettings: registrySettings,
+		rateLimiter:      rateLimiter,
 	}
 }
 
@@ -703,7 +709,7 @@ func (c imageClient) shouldSkipPull(
 
 	// Compare current and remote digests, trying each endpoint.
 	// Local-only images are handled inside CompareDigest (match=true, err=nil).
-	match, err := digest.CompareDigest(c.logger(), ctx, sourceContainer, registryAuth, c.registrySettings, endpoints...)
+	match, err := digest.CompareDigest(c.logger(), ctx, sourceContainer, registryAuth, c.registrySettings, c.rateLimiter, endpoints...)
 	if err != nil {
 		clog.Debug().
 			Bool("match", match).
@@ -783,7 +789,7 @@ func (c imageClient) performImagePull(
 
 	pullHost := ratelimit.Scope(address, opts.RegistryAuth != "")
 
-	pullErr := ratelimit.Do(ctx, clog, pullHost, func() error {
+	pullErr := c.rateLimiter.Do(ctx, clog, pullHost, func() error {
 		err := acquirePullSlot(ctx, pullHost)
 		if err != nil {
 			return err
@@ -793,7 +799,7 @@ func (c imageClient) performImagePull(
 		// A sibling pull may have recorded a 429 after this attempt passed Wait
 		// and while it was queued on the slot. Recheck cooldown without taking
 		// another quota token.
-		cooldownErr := ratelimit.WaitCooldown(ctx, pullHost)
+		cooldownErr := c.rateLimiter.WaitCooldown(ctx, pullHost)
 		if cooldownErr != nil {
 			return fmt.Errorf("image pull cooldown wait: %w", cooldownErr)
 		}
@@ -802,7 +808,7 @@ func (c imageClient) performImagePull(
 		if err != nil {
 			info := ratelimit.FromErrorMessage(err.Error())
 			if info != nil {
-				ratelimit.Observe(pullHost, info)
+				c.rateLimiter.Observe(pullHost, info)
 
 				return info
 			}
@@ -837,7 +843,7 @@ func (c imageClient) performImagePull(
 		if waitErr != nil {
 			info := ratelimit.FromErrorMessage(waitErr.Error())
 			if info != nil {
-				ratelimit.Observe(pullHost, info)
+				c.rateLimiter.Observe(pullHost, info)
 				clog.Debug().
 					Err(info).
 					Msg("Registry rate limited image pull")

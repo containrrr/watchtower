@@ -12,6 +12,7 @@ import (
 	"github.com/nicholas-fedor/watchtower/internal/git"
 	"github.com/nicholas-fedor/watchtower/internal/metrics"
 	"github.com/nicholas-fedor/watchtower/pkg/container"
+	"github.com/nicholas-fedor/watchtower/pkg/registry/ratelimit"
 	"github.com/nicholas-fedor/watchtower/pkg/session"
 	"github.com/nicholas-fedor/watchtower/pkg/types"
 )
@@ -27,6 +28,9 @@ type RunUpdatesWithNotificationsParams struct {
 	Client container.Client
 	// GitClient inspects remotes and clones repositories when the Git watcher is used.
 	GitClient *git.Client
+	// RateLimiter paces the session's registry requests. It must be the limiter
+	// Client uses, so release tag lookups share the client's registry budget.
+	RateLimiter *ratelimit.Limiter
 	// Notifier sends update status messages to configured channels.
 	Notifier types.Notifier
 	// NotificationSplitByContainer enables a separate notification per updated container.
@@ -82,6 +86,7 @@ func RunUpdatesWithNotifications(
 		ctx,
 		params.Client,
 		updateConfig,
+		params.RateLimiter,
 		params.GitClient,
 	)
 	// An old instance stops instead of reporting a failed update, since nothing failed.
@@ -344,6 +349,7 @@ func startNotifications(log *zerolog.Logger, notifier types.Notifier, notificati
 //   - ctx: Context for cancellation and timeouts.
 //   - client: Docker client used for container operations.
 //   - config: Update parameters.
+//   - rateLimiter: Rate limiter shared by registry requests.
 //   - gitClient: Git monitor client. Nil when Git monitoring is unused.
 //
 // Returns:
@@ -355,12 +361,13 @@ func executeUpdate(
 	ctx context.Context,
 	client container.Client,
 	config types.UpdateParams,
+	rateLimiter *ratelimit.Limiter,
 	gitClient *git.Client,
 ) (types.Report, []types.RemovedImageInfo, error) {
 	// Log before calling the Update function
 	log.Debug().Msg("About to call Update function")
 
-	result, cleanupImageInfos, err := update(log, ctx, client, config, gitClient)
+	result, cleanupImageInfos, err := update(log, ctx, client, config, rateLimiter, gitClient)
 
 	// Log after Update function returns
 	log.Debug().Msg("Update function returned, about to check cleanup")

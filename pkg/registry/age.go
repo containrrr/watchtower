@@ -110,6 +110,7 @@ type imageConfig struct {
 //   - container: Container whose image creation time to fetch.
 //   - registryAuth: Base64-encoded registry credentials.
 //   - settings: Registry request settings.
+//   - limiter: Rate limiter shared by registry requests. Must not be nil.
 //
 // Returns:
 //   - time.Time: The image creation timestamp from the registry config.
@@ -119,6 +120,7 @@ func FetchImageCreationTime(log *zerolog.Logger,
 	container types.Container,
 	registryAuth string,
 	settings registryConfig.Registry,
+	limiter *ratelimit.Limiter,
 ) (time.Time, error) {
 	fields := map[string]any{
 		"container": container.Name(),
@@ -144,14 +146,14 @@ func FetchImageCreationTime(log *zerolog.Logger,
 			Msg("Failed to resolve registry host for rate limiting")
 	}
 
-	limitKey, release, holdErr := ratelimit.HoldAnonymous(ctx, limitHost, registryAuth != "")
+	limitKey, release, holdErr := limiter.HoldAnonymous(ctx, limitHost, registryAuth != "")
 	if holdErr != nil {
 		return time.Time{}, fmt.Errorf("%w: %w", errFetchManifestFailed, holdErr)
 	}
 	defer release()
 
 	// Obtain an authentication token and challenge host for the registry.
-	result, err := ratelimit.DoValue(ctx, log, limitKey, func() (auth.TokenResult, error) {
+	result, err := limiter.DoValue(ctx, log, limitKey, func() (auth.TokenResult, error) {
 		return auth.GetToken(log,
 			ctx,
 			container,
@@ -215,6 +217,7 @@ func FetchImageCreationTime(log *zerolog.Logger,
 	configDigest, winningHost, err := fetchManifestForAge(log,
 		ctx,
 		client,
+		limiter,
 		manifestURL,
 		token,
 		parsedURL,
@@ -243,6 +246,7 @@ func FetchImageCreationTime(log *zerolog.Logger,
 	configBody, err := fetchConfigBlob(log,
 		ctx,
 		client,
+		limiter,
 		&blobURL,
 		configDigest,
 		token,
@@ -352,6 +356,7 @@ func buildManifestURLForAge(log *zerolog.Logger,
 // Parameters:
 //   - ctx: Context for cancellation and timeout control.
 //   - client: HTTP client for registry requests.
+//   - limiter: Rate limiter shared by registry requests.
 //   - parsedURL: Parsed manifest URL used as the base for host substitution.
 //   - manifestURL: Original manifest URL string (to avoid redundant re-fetch).
 //   - token: Authentication token for the Authorization header.
@@ -368,6 +373,7 @@ func buildManifestURLForAge(log *zerolog.Logger,
 func retryManifestRequest(log *zerolog.Logger,
 	ctx context.Context,
 	client auth.Client,
+	limiter *ratelimit.Limiter,
 	parsedURL *url.URL,
 	manifestURL, token, challengeHost, originalHost, limitKey string,
 	fields map[string]any,
@@ -454,7 +460,7 @@ func retryManifestRequest(log *zerolog.Logger,
 		}, ", "))
 		req.Header.Set("User-Agent", meta.UserAgent)
 
-		resp, err := doRegistryRequest(log, ctx, client, req, limitKey)
+		resp, err := doRegistryRequest(log, ctx, client, limiter, req, limitKey)
 		if err != nil {
 			log.Debug().
 				Err(err).
@@ -568,6 +574,7 @@ func retryManifestRequest(log *zerolog.Logger,
 // Parameters:
 //   - ctx: Context for cancellation and timeout control.
 //   - client: HTTP client for registry requests.
+//   - limiter: Rate limiter shared by registry requests.
 //   - manifestURL: URL of the manifest to fetch.
 //   - token: Authentication token.
 //   - parsedURL: Parsed manifest URL.
@@ -585,6 +592,7 @@ func retryManifestRequest(log *zerolog.Logger,
 func fetchManifestForAge(log *zerolog.Logger,
 	ctx context.Context,
 	client auth.Client,
+	limiter *ratelimit.Limiter,
 	manifestURL, token string,
 	parsedURL *url.URL,
 	targetOS, targetArch, targetVariant, challengeHost, originalHost, limitKey string,
@@ -593,6 +601,7 @@ func fetchManifestForAge(log *zerolog.Logger,
 	body, winningHost, contentType, err := retryManifestRequest(log,
 		ctx,
 		client,
+		limiter,
 		parsedURL,
 		manifestURL,
 		token,
@@ -633,6 +642,7 @@ func fetchManifestForAge(log *zerolog.Logger,
 		return selectPlatformManifest(log,
 			ctx,
 			client,
+			limiter,
 			index,
 			&effectiveURL,
 			token,
@@ -819,6 +829,7 @@ func selectPlatformCandidate(log *zerolog.Logger,
 // Parameters:
 //   - ctx: Context for cancellation and timeout control.
 //   - client: HTTP client for registry requests.
+//   - limiter: Rate limiter shared by registry requests.
 //   - parsedURL: Parsed base manifest URL for path construction.
 //   - token: Authentication token.
 //   - selectedDigest: Platform manifest digest to fetch.
@@ -833,6 +844,7 @@ func selectPlatformCandidate(log *zerolog.Logger,
 func fetchPlatformManifestWithRetry(log *zerolog.Logger,
 	ctx context.Context,
 	client auth.Client,
+	limiter *ratelimit.Limiter,
 	parsedURL *url.URL,
 	token, selectedDigest, challengeHost, limitKey string,
 	fields map[string]any,
@@ -926,7 +938,7 @@ func fetchPlatformManifestWithRetry(log *zerolog.Logger,
 		)
 		req.Header.Set("User-Agent", meta.UserAgent)
 
-		resp, err := doRegistryRequest(log, ctx, client, req, limitKey)
+		resp, err := doRegistryRequest(log, ctx, client, limiter, req, limitKey)
 		if err != nil {
 			log.Debug().
 				Err(err).
@@ -1009,7 +1021,7 @@ func fetchPlatformManifestWithRetry(log *zerolog.Logger,
 				)
 				retryReq.Header.Set("User-Agent", meta.UserAgent)
 
-				retryResp, retryErr := doRegistryRequest(log, ctx, client, retryReq, limitKey)
+				retryResp, retryErr := doRegistryRequest(log, ctx, client, limiter, retryReq, limitKey)
 				if retryErr != nil {
 					if ratelimit.Is(retryErr) {
 						return "", "", retryErr
@@ -1134,6 +1146,7 @@ func fetchPlatformManifestWithRetry(log *zerolog.Logger,
 // Parameters:
 //   - ctx: Context for cancellation and timeout control.
 //   - client: HTTP client for registry requests.
+//   - limiter: Rate limiter shared by registry requests.
 //   - index: The parsed image index.
 //   - parsedURL: Parsed URL for constructing platform manifest URLs.
 //   - token: Authentication token.
@@ -1152,6 +1165,7 @@ func selectPlatformManifest(
 	log *zerolog.Logger,
 	ctx context.Context,
 	client auth.Client,
+	limiter *ratelimit.Limiter,
 	index imageIndex,
 	parsedURL *url.URL,
 	token string,
@@ -1181,6 +1195,7 @@ func selectPlatformManifest(
 	return fetchPlatformManifestWithRetry(log,
 		ctx,
 		client,
+		limiter,
 		parsedURL,
 		token,
 		selectedDigest,
@@ -1196,6 +1211,7 @@ func selectPlatformManifest(
 // Parameters:
 //   - ctx: Context for cancellation and timeout control.
 //   - client: HTTP client for registry requests.
+//   - limiter: Rate limiter shared by registry requests.
 //   - parsedURL: Parsed manifest URL for constructing blob URL.
 //   - configDigest: Digest of the config blob.
 //   - token: Authentication token.
@@ -1208,6 +1224,7 @@ func selectPlatformManifest(
 func fetchConfigBlob(log *zerolog.Logger,
 	ctx context.Context,
 	client auth.Client,
+	limiter *ratelimit.Limiter,
 	parsedURL *url.URL,
 	configDigest, token, limitKey string,
 	fields map[string]any,
@@ -1264,7 +1281,7 @@ func fetchConfigBlob(log *zerolog.Logger,
 
 	req.Header.Set("User-Agent", meta.UserAgent)
 
-	resp, err := doRegistryRequest(log, ctx, client, req, limitKey)
+	resp, err := doRegistryRequest(log, ctx, client, limiter, req, limitKey)
 	if err != nil {
 		log.Debug().
 			Err(err).
@@ -1332,7 +1349,7 @@ func fetchConfigBlob(log *zerolog.Logger,
 			}
 		}
 
-		resp, err = doRegistryRequest(log, ctx, client, redirectReq, limitKey)
+		resp, err = doRegistryRequest(log, ctx, client, limiter, redirectReq, limitKey)
 		if err != nil {
 			log.Debug().
 				Err(err).
@@ -1366,15 +1383,16 @@ func fetchConfigBlob(log *zerolog.Logger,
 	return resp.Body, nil
 }
 
-// doRegistryRequest executes req through [ratelimit.Do] so 429s honor the retry window.
+// doRegistryRequest executes req through [ratelimit.Limiter.Do] so 429s honor the retry window.
 //
-// Observation is left to [ratelimit.Do]. This helper only returns a parsed
+// Observation is left to [ratelimit.Limiter.Do]. This helper only returns a parsed
 // [ratelimit.Error] so nested callers do not Observe twice.
 //
 // Parameters:
 //   - log: Logger for retry notices. May be nil.
 //   - ctx: Context that bounds the retry loop.
 //   - client: HTTP client for the registry request.
+//   - limiter: Rate limiter shared by registry requests.
 //   - req: Request to execute. GET requests may be retried.
 //   - limitKey: Rate-limit host key from [ratelimit.Scope].
 //
@@ -1385,12 +1403,13 @@ func doRegistryRequest(
 	log *zerolog.Logger,
 	ctx context.Context,
 	client auth.Client,
+	limiter *ratelimit.Limiter,
 	req *http.Request,
 	limitKey string,
 ) (*http.Response, error) {
 	var resp *http.Response
 
-	err := ratelimit.Do(ctx, log, limitKey, func() error {
+	err := limiter.Do(ctx, log, limitKey, func() error {
 		got, doErr := client.Do(req)
 		if doErr != nil {
 			return fmt.Errorf("registry request: %w", doErr)
@@ -1416,8 +1435,8 @@ func doRegistryRequest(
 
 // registryRateLimitError returns a rate-limit error when the registry responded 429.
 //
-// It parses the response and does not call [ratelimit.Observe]. Callers that
-// retry through [ratelimit.Do] rely on that loop to record the 429 once.
+// It parses the response and does not call [ratelimit.Limiter.Observe]. Callers that
+// retry through [ratelimit.Limiter.Do] rely on that loop to record the 429 once.
 //
 // Parameters:
 //   - resp: HTTP response from a registry request.

@@ -18,6 +18,7 @@ import (
 	dockerClient "github.com/moby/moby/client"
 
 	registryConfig "github.com/nicholas-fedor/watchtower/internal/config/registry"
+	"github.com/nicholas-fedor/watchtower/pkg/registry/ratelimit"
 )
 
 func Test_imageClient_buildMirrorEndpoints(t *testing.T) {
@@ -215,7 +216,7 @@ func Test_newImageClient_nilLogger_noMirrors(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	c := newImageClient(api, nil, registryConfig.Registry{})
+	c := newImageClient(api, nil, registryConfig.Registry{}, ratelimit.New())
 
 	assert.NotPanics(t, func() {
 		got := c.resolveRegistryMirrorConfig(context.Background())
@@ -249,8 +250,8 @@ func TestResolveRegistryMirrorConfig_CachesInfo(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	first := newImageClient(api, testLog(), registryConfig.Registry{})
-	second := newImageClient(api, testLog(), registryConfig.Registry{})
+	first := newImageClient(api, testLog(), registryConfig.Registry{}, ratelimit.New())
+	second := newImageClient(api, testLog(), registryConfig.Registry{}, ratelimit.New())
 
 	gotFirst := first.resolveRegistryMirrorConfig(context.Background())
 	gotSecond := second.resolveRegistryMirrorConfig(context.Background())
@@ -283,7 +284,7 @@ func TestResolveRegistryMirrorConfig_InfoErrorNotCached(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	client := newImageClient(api, testLog(), registryConfig.Registry{})
+	client := newImageClient(api, testLog(), registryConfig.Registry{}, ratelimit.New())
 
 	assert.Nil(t, client.resolveRegistryMirrorConfig(context.Background()))
 	assert.Nil(t, client.resolveRegistryMirrorConfig(context.Background()))
@@ -351,8 +352,8 @@ func TestResolveRegistryMirrorConfig_CoalescesConcurrentFetches(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	firstClient := newImageClient(api, testLog(), registryConfig.Registry{})
-	secondClient := newImageClient(api, testLog(), registryConfig.Registry{})
+	firstClient := newImageClient(api, testLog(), registryConfig.Registry{}, ratelimit.New())
+	secondClient := newImageClient(api, testLog(), registryConfig.Registry{}, ratelimit.New())
 
 	var (
 		wg          sync.WaitGroup

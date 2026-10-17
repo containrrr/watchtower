@@ -17,6 +17,7 @@ import (
 	"github.com/nicholas-fedor/watchtower/pkg/container"
 	mockContainer "github.com/nicholas-fedor/watchtower/pkg/container/mocks"
 	"github.com/nicholas-fedor/watchtower/pkg/container/oci"
+	"github.com/nicholas-fedor/watchtower/pkg/registry/ratelimit"
 	"github.com/nicholas-fedor/watchtower/pkg/types"
 )
 
@@ -103,7 +104,7 @@ func TestUpdate_ComposeDependencyCycle(t *testing.T) {
 			client.EXPECT().GetContainer(mock.Anything, newID).Return(app, nil).Maybe()
 
 			report, _, err := update(testLogger(), t.Context(), client,
-				types.UpdateParams{UseComposeDependsOn: true})
+				types.UpdateParams{UseComposeDependsOn: true}, ratelimit.New())
 			require.NoError(t, err)
 
 			assert.ElementsMatch(t, []string{"web-server", "api-server"}, reportNames(report.Skipped()),
@@ -177,7 +178,7 @@ func TestUpdate_LinkToCycleMember(t *testing.T) {
 			return nil, errNoContainer
 		}).Maybe()
 
-	report, _, err := update(testLogger(), t.Context(), client, types.UpdateParams{})
+	report, _, err := update(testLogger(), t.Context(), client, types.UpdateParams{}, ratelimit.New())
 	require.NoError(t, err)
 
 	assert.ElementsMatch(t, []string{"db", "e"}, reportNames(report.Skipped()), "both cycle members are skipped")
@@ -233,7 +234,7 @@ func TestUpdate_HostConfigDependencyCycle(t *testing.T) {
 	client.EXPECT().StartContainerByID(mock.Anything, mock.Anything).Return(nil).Maybe()
 	client.EXPECT().GetContainer(mock.Anything, mock.Anything).Return(web, nil).Maybe()
 
-	report, _, err := update(testLogger(), t.Context(), client, types.UpdateParams{})
+	report, _, err := update(testLogger(), t.Context(), client, types.UpdateParams{}, ratelimit.New())
 	require.NoError(t, err)
 
 	assert.ElementsMatch(t, []string{"app", "vpn"}, reportNames(report.Skipped()), "both cycle members are skipped")

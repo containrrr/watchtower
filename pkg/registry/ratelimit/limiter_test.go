@@ -12,153 +12,153 @@ import (
 )
 
 func TestWaitRespectsHostCooldown(t *testing.T) {
-	ResetForTest()
+	l := New()
 
-	Observe("ghcr.io", &Error{RetryAfter: 80 * time.Millisecond})
+	l.Observe("ghcr.io", &Error{RetryAfter: 80 * time.Millisecond})
 
 	started := time.Now()
-	err := Wait(t.Context(), "ghcr.io")
+	err := l.Wait(t.Context(), "ghcr.io")
 	require.NoError(t, err)
 	assert.GreaterOrEqual(t, time.Since(started), 70*time.Millisecond)
 }
 
 func TestWaitDoesNotBlockOtherHosts(t *testing.T) {
-	ResetForTest()
+	l := New()
 
-	Observe("ghcr.io", &Error{RetryAfter: time.Hour})
+	l.Observe("ghcr.io", &Error{RetryAfter: time.Hour})
 
 	started := time.Now()
-	err := Wait(t.Context(), "index.docker.io")
+	err := l.Wait(t.Context(), "index.docker.io")
 	require.NoError(t, err)
 	assert.Less(t, time.Since(started), 50*time.Millisecond)
 }
 
 func TestWaitHonorsAllowedBudget(t *testing.T) {
-	ResetForTest()
+	l := New()
 
-	Observe("ghcr.io", &Error{
+	l.Observe("ghcr.io", &Error{
 		Allowed:       2,
 		AllowedWindow: 200 * time.Millisecond,
 	})
 
-	require.NoError(t, Wait(t.Context(), "ghcr.io"))
-	require.NoError(t, Wait(t.Context(), "ghcr.io"))
+	require.NoError(t, l.Wait(t.Context(), "ghcr.io"))
+	require.NoError(t, l.Wait(t.Context(), "ghcr.io"))
 
 	started := time.Now()
 
 	ctx, cancel := context.WithTimeout(t.Context(), time.Second)
 	defer cancel()
 
-	err := Wait(ctx, "ghcr.io")
+	err := l.Wait(ctx, "ghcr.io")
 	require.NoError(t, err)
 	assert.GreaterOrEqual(t, time.Since(started), 80*time.Millisecond)
 }
 
 func TestWaitCooldownRespectsHostCooldown(t *testing.T) {
-	ResetForTest()
+	l := New()
 
-	Observe("ghcr.io", &Error{RetryAfter: 80 * time.Millisecond})
+	l.Observe("ghcr.io", &Error{RetryAfter: 80 * time.Millisecond})
 
 	started := time.Now()
-	err := WaitCooldown(t.Context(), "ghcr.io")
+	err := l.WaitCooldown(t.Context(), "ghcr.io")
 	require.NoError(t, err)
 	assert.GreaterOrEqual(t, time.Since(started), 70*time.Millisecond)
 }
 
 func TestWaitCooldownDoesNotConsumeQuotaToken(t *testing.T) {
-	ResetForTest()
+	l := New()
 
-	Observe("ghcr.io", &Error{
+	l.Observe("ghcr.io", &Error{
 		Allowed:       2,
 		AllowedWindow: 200 * time.Millisecond,
 	})
 
-	require.NoError(t, WaitCooldown(t.Context(), "ghcr.io"))
+	require.NoError(t, l.WaitCooldown(t.Context(), "ghcr.io"))
 
 	started := time.Now()
 
-	require.NoError(t, Wait(t.Context(), "ghcr.io"))
+	require.NoError(t, l.Wait(t.Context(), "ghcr.io"))
 	assert.Less(t, time.Since(started), 50*time.Millisecond)
 }
 
 func TestWaitCooldownEmptyHostReturnsImmediately(t *testing.T) {
-	ResetForTest()
+	l := New()
 
 	started := time.Now()
-	err := WaitCooldown(t.Context(), "")
+	err := l.WaitCooldown(t.Context(), "")
 	require.NoError(t, err)
 	assert.Less(t, time.Since(started), 20*time.Millisecond)
 }
 
 func TestWaitCooldownCancelsWithContext(t *testing.T) {
-	ResetForTest()
+	l := New()
 
-	Observe("ghcr.io", &Error{RetryAfter: 5 * time.Second})
+	l.Observe("ghcr.io", &Error{RetryAfter: 5 * time.Second})
 
 	ctx, cancel := context.WithTimeout(t.Context(), 20*time.Millisecond)
 	defer cancel()
 
-	err := WaitCooldown(ctx, "ghcr.io")
+	err := l.WaitCooldown(ctx, "ghcr.io")
 	require.Error(t, err)
 	assert.ErrorIs(t, err, context.DeadlineExceeded)
 }
 
 func TestWaitEmptyHostReturnsImmediately(t *testing.T) {
-	ResetForTest()
+	l := New()
 
 	started := time.Now()
-	err := Wait(t.Context(), "")
+	err := l.Wait(t.Context(), "")
 	require.NoError(t, err)
 	assert.Less(t, time.Since(started), 20*time.Millisecond)
 }
 
 func TestObserveIgnoresEmptyHostAndNilInfo(t *testing.T) {
-	ResetForTest()
+	l := New()
 
-	Observe("", &Error{RetryAfter: time.Hour})
-	Observe("ghcr.io", nil)
+	l.Observe("", &Error{RetryAfter: time.Hour})
+	l.Observe("ghcr.io", nil)
 
 	started := time.Now()
 
-	require.NoError(t, Wait(t.Context(), "ghcr.io"))
+	require.NoError(t, l.Wait(t.Context(), "ghcr.io"))
 	assert.Less(t, time.Since(started), 20*time.Millisecond)
 }
 
 func TestObserveDoesNotShrinkExistingCooldown(t *testing.T) {
-	ResetForTest()
+	l := New()
 
-	Observe("ghcr.io", &Error{RetryAfter: 80 * time.Millisecond})
-	Observe("ghcr.io", &Error{RetryAfter: time.Millisecond})
+	l.Observe("ghcr.io", &Error{RetryAfter: 80 * time.Millisecond})
+	l.Observe("ghcr.io", &Error{RetryAfter: time.Millisecond})
 
 	started := time.Now()
 
-	require.NoError(t, Wait(t.Context(), "ghcr.io"))
+	require.NoError(t, l.Wait(t.Context(), "ghcr.io"))
 	assert.GreaterOrEqual(t, time.Since(started), 70*time.Millisecond)
 }
 
 func TestObserveSuccessIgnoresUnknownHost(t *testing.T) {
-	ResetForTest()
+	l := New()
 
-	observeSuccess("")
-	observeSuccess("ghcr.io")
+	l.observeSuccess("")
+	l.observeSuccess("ghcr.io")
 
-	require.NoError(t, Wait(t.Context(), "ghcr.io"))
+	require.NoError(t, l.Wait(t.Context(), "ghcr.io"))
 }
 
 func TestObserveSuccessDoesNotGiftExtraToken(t *testing.T) {
-	ResetForTest()
+	l := New()
 
-	Observe("ghcr.io", &Error{
+	l.Observe("ghcr.io", &Error{
 		Allowed:       2,
 		AllowedWindow: 200 * time.Millisecond,
 	})
 
-	require.NoError(t, Wait(t.Context(), "ghcr.io"))
-	observeSuccess("ghcr.io")
+	require.NoError(t, l.Wait(t.Context(), "ghcr.io"))
+	l.observeSuccess("ghcr.io")
 
 	started := time.Now()
 
-	require.NoError(t, Wait(t.Context(), "ghcr.io"))
+	require.NoError(t, l.Wait(t.Context(), "ghcr.io"))
 	assert.GreaterOrEqual(t, time.Since(started), 80*time.Millisecond)
 }
 
@@ -224,28 +224,28 @@ func TestRefillLocked(t *testing.T) {
 }
 
 func TestWaitCancelsWithContext(t *testing.T) {
-	ResetForTest()
+	l := New()
 
-	Observe("ghcr.io", &Error{RetryAfter: 5 * time.Second})
+	l.Observe("ghcr.io", &Error{RetryAfter: 5 * time.Second})
 
 	ctx, cancel := context.WithTimeout(t.Context(), 20*time.Millisecond)
 	defer cancel()
 
-	err := Wait(ctx, "ghcr.io")
+	err := l.Wait(ctx, "ghcr.io")
 	require.Error(t, err)
 	assert.ErrorIs(t, err, context.DeadlineExceeded)
 }
 
 func TestWaitSerializesAfterQuotaThrottle(t *testing.T) {
-	ResetForTest()
+	l := New()
 
-	Observe("registry.example", &Error{
+	l.Observe("registry.example", &Error{
 		RetryAfter:    521600 * time.Nanosecond,
 		Allowed:       44000,
 		AllowedWindow: time.Minute,
 	})
 
-	require.NoError(t, Wait(t.Context(), "registry.example"))
+	require.NoError(t, l.Wait(t.Context(), "registry.example"))
 
 	started := time.Now()
 
@@ -255,23 +255,23 @@ func TestWaitSerializesAfterQuotaThrottle(t *testing.T) {
 
 	for range waiters {
 		wg.Go(func() {
-			assert.NoError(t, Wait(t.Context(), "registry.example"))
+			assert.NoError(t, l.Wait(t.Context(), "registry.example"))
 		})
 	}
 
 	wg.Wait()
 
 	elapsed := time.Since(started)
-	t.Logf("20 concurrent Wait() after quota throttle completed in %s", elapsed)
+	t.Logf("20 concurrent l.Wait() after quota throttle completed in %s", elapsed)
 	assert.GreaterOrEqual(t, elapsed, 15*time.Millisecond)
 }
 
 func TestWaitSerializesAfterRetryAfterOnlyThrottle(t *testing.T) {
-	ResetForTest()
+	l := New()
 
-	Observe("registry.example", &Error{RetryAfter: 80 * time.Millisecond})
+	l.Observe("registry.example", &Error{RetryAfter: 80 * time.Millisecond})
 
-	require.NoError(t, Wait(t.Context(), "registry.example"))
+	require.NoError(t, l.Wait(t.Context(), "registry.example"))
 
 	started := time.Now()
 
@@ -281,19 +281,19 @@ func TestWaitSerializesAfterRetryAfterOnlyThrottle(t *testing.T) {
 
 	for range waiters {
 		wg.Go(func() {
-			assert.NoError(t, Wait(t.Context(), "registry.example"))
+			assert.NoError(t, l.Wait(t.Context(), "registry.example"))
 		})
 	}
 
 	wg.Wait()
 
 	elapsed := time.Since(started)
-	t.Logf("4 concurrent Wait() after Retry-After-only throttle completed in %s", elapsed)
+	t.Logf("4 concurrent l.Wait() after Retry-After-only throttle completed in %s", elapsed)
 	assert.GreaterOrEqual(t, elapsed, 200*time.Millisecond)
 }
 
 func TestWaitUnthrottledHostStaysImmediate(t *testing.T) {
-	ResetForTest()
+	l := New()
 
 	started := time.Now()
 
@@ -303,7 +303,7 @@ func TestWaitUnthrottledHostStaysImmediate(t *testing.T) {
 
 	for range waiters {
 		wg.Go(func() {
-			assert.NoError(t, Wait(t.Context(), "registry.example"))
+			assert.NoError(t, l.Wait(t.Context(), "registry.example"))
 		})
 	}
 
@@ -313,15 +313,15 @@ func TestWaitUnthrottledHostStaysImmediate(t *testing.T) {
 }
 
 func TestWaitDoesNotAccrueBurstDuringCooldown(t *testing.T) {
-	ResetForTest()
+	l := New()
 
-	Observe("registry.example", &Error{
+	l.Observe("registry.example", &Error{
 		RetryAfter:    80 * time.Millisecond,
 		Allowed:       44000,
 		AllowedWindow: time.Minute,
 	})
 
-	require.NoError(t, Wait(t.Context(), "registry.example"))
+	require.NoError(t, l.Wait(t.Context(), "registry.example"))
 
 	ctx, cancel := context.WithTimeout(t.Context(), time.Millisecond)
 	defer cancel()
@@ -329,7 +329,7 @@ func TestWaitDoesNotAccrueBurstDuringCooldown(t *testing.T) {
 	granted := 0
 
 	for {
-		err := Wait(ctx, "registry.example")
+		err := l.Wait(ctx, "registry.example")
 		if err != nil {
 			break
 		}
@@ -359,7 +359,7 @@ func TestScopeSeparatesAnonymousGHCR(t *testing.T) {
 }
 
 func TestAnonymousGHCRSerializes(t *testing.T) {
-	ResetForTest()
+	l := New()
 
 	key := Scope("ghcr.io", false)
 
@@ -372,8 +372,8 @@ func TestAnonymousGHCRSerializes(t *testing.T) {
 
 	for range 8 {
 		wg.Go(func() {
-			require.NoError(t, acquireSerial(t.Context(), key))
-			defer releaseSerial(key)
+			require.NoError(t, l.acquireSerial(t.Context(), key))
+			defer l.releaseSerial(key)
 
 			n := inFlight.Add(1)
 
@@ -394,56 +394,62 @@ func TestAnonymousGHCRSerializes(t *testing.T) {
 }
 
 func TestAuthenticatedGHCRDoesNotTakeAnonLock(t *testing.T) {
-	ResetForTest()
+	l := New()
 
 	anonKey := Scope("ghcr.io", false)
 
-	require.NoError(t, acquireSerial(t.Context(), anonKey))
-	defer releaseSerial(anonKey)
+	require.NoError(t, l.acquireSerial(t.Context(), anonKey))
+	defer l.releaseSerial(anonKey)
 
 	started := time.Now()
 	authKey := Scope("ghcr.io", true)
 	require.Equal(t, "ghcr.io", authKey)
-	require.NoError(t, Wait(t.Context(), authKey))
+	require.NoError(t, l.Wait(t.Context(), authKey))
 	assert.Less(t, time.Since(started), 50*time.Millisecond)
 }
 
-func TestResetForTestSerialSlotsConcurrent(t *testing.T) {
-	t.Cleanup(ResetForTest)
+// TestSerialSlotForConcurrent verifies that concurrent callers asking for the
+// same key get one shared slot, so the slot serializes them.
+func TestSerialSlotForConcurrent(t *testing.T) {
+	l := New()
+
+	slots := make(chan chan struct{}, 32)
 
 	var wg sync.WaitGroup
 
 	for range 32 {
 		wg.Go(func() {
-			ResetForTest()
-		})
-		wg.Go(func() {
-			_ = serialSlotFor("serial-race")
+			slots <- l.serialSlotFor("serial-race")
 		})
 	}
 
 	wg.Wait()
+	close(slots)
+
+	first := <-slots
+	for slot := range slots {
+		assert.Equal(t, first, slot)
+	}
 }
 
 func TestObserveAnonDoesNotPaceAuth(t *testing.T) {
-	ResetForTest()
+	l := New()
 
-	Observe(Scope("ghcr.io", false), &Error{RetryAfter: time.Hour})
+	l.Observe(Scope("ghcr.io", false), &Error{RetryAfter: time.Hour})
 
 	started := time.Now()
 
-	require.NoError(t, Wait(t.Context(), Scope("ghcr.io", true)))
+	require.NoError(t, l.Wait(t.Context(), Scope("ghcr.io", true)))
 	assert.Less(t, time.Since(started), 50*time.Millisecond)
 }
 
-// TestResetForTestRestoresRetryBudgets covers the reset returning both retry
-// budgets to their production values.
-func TestResetForTestRestoresRetryBudgets(t *testing.T) {
-	retryElapsed = time.Millisecond
-	bucketRetryElapsed = time.Millisecond
+// TestNewUsesProductionRetryBudgets verifies that a new limiter starts with
+// the production retry budgets.
+func TestNewUsesProductionRetryBudgets(t *testing.T) {
+	t.Parallel()
 
-	ResetForTest()
+	l := New()
 
-	assert.Equal(t, maxRetryElapsed, retryElapsed)
-	assert.Equal(t, maxBucketRetryElapsed, bucketRetryElapsed)
+	assert.Equal(t, maxRetryElapsed, l.retryElapsed)
+	assert.Equal(t, maxBucketRetryElapsed, l.bucketRetryElapsed)
 }

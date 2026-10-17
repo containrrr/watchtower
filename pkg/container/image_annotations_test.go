@@ -17,6 +17,7 @@ import (
 
 	registryConfig "github.com/nicholas-fedor/watchtower/internal/config/registry"
 	"github.com/nicholas-fedor/watchtower/pkg/container/oci"
+	"github.com/nicholas-fedor/watchtower/pkg/registry/ratelimit"
 )
 
 // inspectServer is a minimal Docker API stand-in serving one image inspect.
@@ -113,7 +114,7 @@ func TestImageClientImageAnnotations(t *testing.T) {
 			},
 		})
 
-		got := newImageClient(newInspectClient(t, srv), testLog(), registryConfig.Registry{}).
+		got := newImageClient(newInspectClient(t, srv), testLog(), registryConfig.Registry{}, ratelimit.New()).
 			GetImageAnnotations(t.Context(), "app:latest")
 
 		assert.Equal(t, "https://github.com/org/app.git", got.Source)
@@ -130,7 +131,7 @@ func TestImageClientImageAnnotations(t *testing.T) {
 			Labels: map[string]string{"com.centurylinklabs.watchtower": "true"},
 		})
 
-		got := newImageClient(newInspectClient(t, srv), testLog(), registryConfig.Registry{}).
+		got := newImageClient(newInspectClient(t, srv), testLog(), registryConfig.Registry{}, ratelimit.New()).
 			GetImageAnnotations(t.Context(), "app:latest")
 
 		assert.Equal(t, oci.Annotations{}, got)
@@ -141,7 +142,7 @@ func TestImageClientImageAnnotations(t *testing.T) {
 
 		srv := newInspectServer(t, nil)
 
-		got := newImageClient(newInspectClient(t, srv), testLog(), registryConfig.Registry{}).
+		got := newImageClient(newInspectClient(t, srv), testLog(), registryConfig.Registry{}, ratelimit.New()).
 			GetImageAnnotations(t.Context(), "app:latest")
 
 		assert.Equal(t, oci.Annotations{}, got)
@@ -154,7 +155,7 @@ func TestImageClientImageAnnotations(t *testing.T) {
 			Labels: map[string]string{oci.VersionLabel: "1.2.3"},
 		})
 
-		got := newImageClient(newInspectClient(t, srv), testLog(), registryConfig.Registry{}).
+		got := newImageClient(newInspectClient(t, srv), testLog(), registryConfig.Registry{}, ratelimit.New()).
 			GetImageAnnotations(t.Context(), "")
 
 		assert.Equal(t, oci.Annotations{}, got)
@@ -166,7 +167,7 @@ func TestImageClientImageAnnotations(t *testing.T) {
 
 		srv := newNotFoundInspectServer(t)
 
-		got := newImageClient(newInspectClient(t, srv), testLog(), registryConfig.Registry{}).
+		got := newImageClient(newInspectClient(t, srv), testLog(), registryConfig.Registry{}, ratelimit.New()).
 			GetImageAnnotations(t.Context(), "missing:latest")
 
 		assert.Equal(t, oci.Annotations{}, got)

@@ -56,7 +56,7 @@ func TestJitterWaitDoesNotExceedHonorWindow(t *testing.T) {
 }
 
 func TestDoLogsRetryAtDebug(t *testing.T) {
-	ResetForTest()
+	l := New()
 
 	var buf bytes.Buffer
 
@@ -64,7 +64,7 @@ func TestDoLogsRetryAtDebug(t *testing.T) {
 
 	var attempts atomic.Int32
 
-	err := Do(t.Context(), &log, "registry.example", func() error {
+	err := l.Do(t.Context(), &log, "registry.example", func() error {
 		if attempts.Add(1) < 2 {
 			return &Error{RetryAfter: minHonorWait}
 		}
@@ -79,13 +79,13 @@ func TestDoLogsRetryAtDebug(t *testing.T) {
 }
 
 func TestDoLogsExhaustionAtWarn(t *testing.T) {
-	ResetForTest()
+	l := New()
 
 	var buf bytes.Buffer
 
 	log := zerolog.New(&buf).Level(zerolog.DebugLevel)
 
-	err := Do(t.Context(), &log, "registry.example", func() error {
+	err := l.Do(t.Context(), &log, "registry.example", func() error {
 		return &Error{RetryAfter: 2 * time.Hour}
 	})
 	require.ErrorIs(t, err, ErrRateLimited)
@@ -96,17 +96,15 @@ func TestDoLogsExhaustionAtWarn(t *testing.T) {
 }
 
 func TestDoLogsTinyTokenBucketExhaustionAtDebug(t *testing.T) {
-	ResetForTest()
+	l := New()
 
-	bucketRetryElapsed = 250 * time.Millisecond
-
-	defer ResetForTest()
+	l.bucketRetryElapsed = 250 * time.Millisecond
 
 	var buf bytes.Buffer
 
 	log := zerolog.New(&buf).Level(zerolog.DebugLevel)
 
-	err := Do(t.Context(), &log, "ghcr.io", func() error {
+	err := l.Do(t.Context(), &log, "ghcr.io", func() error {
 		return &Error{
 			RetryAfter:    975 * time.Microsecond,
 			Allowed:       44000,
@@ -122,11 +120,11 @@ func TestDoLogsTinyTokenBucketExhaustionAtDebug(t *testing.T) {
 }
 
 func TestDoRetriesPastFiveWhenRetryAfterIsTiny(t *testing.T) {
-	ResetForTest()
+	l := New()
 
 	var attempts atomic.Int32
 
-	err := Do(t.Context(), testLog(), "ghcr.io", func() error {
+	err := l.Do(t.Context(), testLog(), "ghcr.io", func() error {
 		if attempts.Add(1) < 6 {
 			return &Error{
 				RetryAfter:    23722 * time.Nanosecond,
@@ -146,11 +144,9 @@ func TestDoRetriesPastFiveWhenRetryAfterIsTiny(t *testing.T) {
 // answering with a sub-floor Retry-After: the waits grow instead of repeating
 // the floor, and the bucket budget ends the loop at debug.
 func TestDoBacksOffExponentiallyForTinyRetryAfter(t *testing.T) {
-	ResetForTest()
+	l := New()
 
-	bucketRetryElapsed = time.Second
-
-	defer ResetForTest()
+	l.bucketRetryElapsed = time.Second
 
 	var buf bytes.Buffer
 
@@ -158,7 +154,7 @@ func TestDoBacksOffExponentiallyForTinyRetryAfter(t *testing.T) {
 
 	var attempts atomic.Int32
 
-	err := Do(t.Context(), &log, "ghcr.io", func() error {
+	err := l.Do(t.Context(), &log, "ghcr.io", func() error {
 		attempts.Add(1)
 
 		return &Error{
@@ -192,15 +188,13 @@ func TestDoBacksOffExponentiallyForTinyRetryAfter(t *testing.T) {
 // the whole bucket budget before its first 429, such as a pull queued behind a
 // sibling on the same slot. The budget starts at that 429, so the retry runs.
 func TestDoBudgetStartsAtFirstThrottle(t *testing.T) {
-	ResetForTest()
+	l := New()
 
-	bucketRetryElapsed = 200 * time.Millisecond
-
-	defer ResetForTest()
+	l.bucketRetryElapsed = 200 * time.Millisecond
 
 	var attempts atomic.Int32
 
-	err := Do(t.Context(), testLog(), "ghcr.io", func() error {
+	err := l.Do(t.Context(), testLog(), "ghcr.io", func() error {
 		if attempts.Add(1) == 1 {
 			time.Sleep(300 * time.Millisecond)
 
@@ -221,12 +215,10 @@ func TestDoBudgetStartsAtFirstThrottle(t *testing.T) {
 // it is honored as sent and stops at the shorter honor budget, not the bucket
 // budget.
 func TestDoKeepsHonorWindowForUsableRetryAfter(t *testing.T) {
-	ResetForTest()
+	l := New()
 
-	retryElapsed = 250 * time.Millisecond
-	bucketRetryElapsed = 5 * time.Second
-
-	defer ResetForTest()
+	l.retryElapsed = 250 * time.Millisecond
+	l.bucketRetryElapsed = 5 * time.Second
 
 	var buf bytes.Buffer
 
@@ -235,7 +227,7 @@ func TestDoKeepsHonorWindowForUsableRetryAfter(t *testing.T) {
 	var attempts atomic.Int32
 
 	started := time.Now()
-	err := Do(t.Context(), &log, "ghcr.io", func() error {
+	err := l.Do(t.Context(), &log, "ghcr.io", func() error {
 		attempts.Add(1)
 
 		return &Error{RetryAfter: minHonorWait}
@@ -284,19 +276,17 @@ func TestExceedsHonorWindow(t *testing.T) {
 // TestMaxRetryAttemptsDerivesFromLargerBudget covers the spin breaker following
 // whichever budget is longer.
 func TestMaxRetryAttemptsDerivesFromLargerBudget(t *testing.T) {
-	ResetForTest()
+	l := New()
 
-	defer ResetForTest()
+	l.retryElapsed = minHonorWait
+	l.bucketRetryElapsed = 3 * minHonorWait
 
-	retryElapsed = minHonorWait
-	bucketRetryElapsed = 3 * minHonorWait
+	assert.Equal(t, uint(4), l.maxRetryAttempts())
 
-	assert.Equal(t, uint(4), maxRetryAttempts())
+	l.retryElapsed = 5 * minHonorWait
+	l.bucketRetryElapsed = minHonorWait
 
-	retryElapsed = 5 * minHonorWait
-	bucketRetryElapsed = minHonorWait
-
-	assert.Equal(t, uint(6), maxRetryAttempts())
+	assert.Equal(t, uint(6), l.maxRetryAttempts())
 }
 
 // TestNewBucketPolicyStartsAtFloorAndCapsAtHonorWindow covers the policy
@@ -366,11 +356,11 @@ func loggedRetryWaits(t *testing.T, logs string) []float64 {
 }
 
 func TestDoRetriesRateLimitedOperations(t *testing.T) {
-	ResetForTest()
+	l := New()
 
 	var attempts atomic.Int32
 
-	err := Do(t.Context(), testLog(), "ghcr.io", func() error {
+	err := l.Do(t.Context(), testLog(), "ghcr.io", func() error {
 		if attempts.Add(1) < 3 {
 			return &Error{RetryAfter: minHonorWait, Allowed: 44000, AllowedWindow: time.Minute}
 		}
@@ -382,13 +372,13 @@ func TestDoRetriesRateLimitedOperations(t *testing.T) {
 }
 
 func TestDoDoesNotRetryPermanentErrors(t *testing.T) {
-	ResetForTest()
+	l := New()
 
 	var attempts atomic.Int32
 
 	permanent := errors.New("manifest not found")
 
-	err := Do(t.Context(), testLog(), "ghcr.io", func() error {
+	err := l.Do(t.Context(), testLog(), "ghcr.io", func() error {
 		attempts.Add(1)
 
 		return permanent
@@ -398,11 +388,11 @@ func TestDoDoesNotRetryPermanentErrors(t *testing.T) {
 }
 
 func TestDoGivesUpWhenRetryAfterExceedsHonorWindow(t *testing.T) {
-	ResetForTest()
+	l := New()
 
 	var attempts atomic.Int32
 
-	err := Do(t.Context(), testLog(), "ghcr.io", func() error {
+	err := l.Do(t.Context(), testLog(), "ghcr.io", func() error {
 		attempts.Add(1)
 
 		return &Error{RetryAfter: 2 * time.Hour}
@@ -412,9 +402,9 @@ func TestDoGivesUpWhenRetryAfterExceedsHonorWindow(t *testing.T) {
 }
 
 func TestDoValueReturnsSuccessfulResult(t *testing.T) {
-	ResetForTest()
+	l := New()
 
-	got, err := DoValue(t.Context(), testLog(), "ghcr.io", func() (string, error) {
+	got, err := l.DoValue(t.Context(), testLog(), "ghcr.io", func() (string, error) {
 		return "digest", nil
 	})
 	require.NoError(t, err)
@@ -422,11 +412,11 @@ func TestDoValueReturnsSuccessfulResult(t *testing.T) {
 }
 
 func TestDoTreatsSentinelTextWithoutWrappingAsPermanent(t *testing.T) {
-	ResetForTest()
+	l := New()
 
 	var attempts atomic.Int32
 
-	err := Do(t.Context(), nil, "ghcr.io", func() error {
+	err := l.Do(t.Context(), nil, "ghcr.io", func() error {
 		if attempts.Add(1) < 2 {
 			return errors.New("registry rate limited: " + ErrRateLimited.Error())
 		}
@@ -439,11 +429,11 @@ func TestDoTreatsSentinelTextWithoutWrappingAsPermanent(t *testing.T) {
 }
 
 func TestDoRetriesWrappedErrRateLimited(t *testing.T) {
-	ResetForTest()
+	l := New()
 
 	var attempts atomic.Int32
 
-	err := Do(t.Context(), nil, "ghcr.io", func() error {
+	err := l.Do(t.Context(), nil, "ghcr.io", func() error {
 		if attempts.Add(1) < 2 {
 			return errors.Join(ErrRateLimited)
 		}
@@ -455,14 +445,14 @@ func TestDoRetriesWrappedErrRateLimited(t *testing.T) {
 }
 
 func TestDoValueConsumesOneTokenPerAttempt(t *testing.T) {
-	ResetForTest()
+	l := New()
 
-	Observe("ghcr.io", &Error{
+	l.Observe("ghcr.io", &Error{
 		Allowed:       2,
 		AllowedWindow: 200 * time.Millisecond,
 	})
 
-	got, err := DoValue(t.Context(), testLog(), "ghcr.io", func() (string, error) {
+	got, err := l.DoValue(t.Context(), testLog(), "ghcr.io", func() (string, error) {
 		return "ok", nil
 	})
 	require.NoError(t, err)
@@ -470,19 +460,19 @@ func TestDoValueConsumesOneTokenPerAttempt(t *testing.T) {
 
 	started := time.Now()
 
-	require.NoError(t, Wait(t.Context(), "ghcr.io"))
+	require.NoError(t, l.Wait(t.Context(), "ghcr.io"))
 	assert.GreaterOrEqual(t, time.Since(started), 80*time.Millisecond)
 }
 
 func TestDoValueHonorsHostWaitCancellation(t *testing.T) {
-	ResetForTest()
+	l := New()
 
-	Observe("ghcr.io", &Error{RetryAfter: 5 * time.Second})
+	l.Observe("ghcr.io", &Error{RetryAfter: 5 * time.Second})
 
 	ctx, cancel := context.WithTimeout(t.Context(), 20*time.Millisecond)
 	defer cancel()
 
-	_, err := DoValue(ctx, testLog(), "ghcr.io", func() (string, error) {
+	_, err := l.DoValue(ctx, testLog(), "ghcr.io", func() (string, error) {
 		return "unused", nil
 	})
 	require.Error(t, err)
@@ -498,12 +488,12 @@ func TestLastOperationErrorPassesThroughPlainErrors(t *testing.T) {
 }
 
 func TestDoStopsWhenContextCanceled(t *testing.T) {
-	ResetForTest()
+	l := New()
 
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 
-	err := Do(ctx, testLog(), "ghcr.io", func() error {
+	err := l.Do(ctx, testLog(), "ghcr.io", func() error {
 		return &Error{RetryAfter: minHonorWait}
 	})
 	require.Error(t, err)

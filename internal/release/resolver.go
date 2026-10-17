@@ -92,6 +92,8 @@ type cachedAnswer struct {
 type DigestFetcher struct {
 	// settings holds the settings for registry requests.
 	settings registryConfig.Registry
+	// rateLimiter paces the requests with the rest of the process's registry traffic.
+	rateLimiter *ratelimit.Limiter
 }
 
 // probeOutcome is how a candidate sweep ended.
@@ -119,15 +121,17 @@ func NewResolver(fetcher Fetcher) *Resolver {
 }
 
 // NewDigestFetcher returns a DigestFetcher that makes registry requests with
-// settings.
+// settings, paced by rateLimiter.
 //
 // Parameters:
 //   - settings: Registry request settings.
+//   - rateLimiter: Rate limiter shared with the process's other registry
+//     requests. Must not be nil.
 //
 // Returns:
 //   - DigestFetcher: Fetcher ready for use.
-func NewDigestFetcher(settings registryConfig.Registry) DigestFetcher {
-	return DigestFetcher{settings: settings}
+func NewDigestFetcher(settings registryConfig.Registry, rateLimiter *ratelimit.Limiter) DigestFetcher {
+	return DigestFetcher{settings: settings, rateLimiter: rateLimiter}
 }
 
 // ResolveTag returns the release tag whose manifest matches newDigest, or empty
@@ -270,7 +274,7 @@ func (f DigestFetcher) FetchDigestForTag(
 	tag string,
 	endpoints ...string,
 ) (string, error) {
-	remote, err := digest.FetchDigestForTag(log, ctx, container, authToken, tag, f.settings, endpoints...)
+	remote, err := digest.FetchDigestForTag(log, ctx, container, authToken, tag, f.settings, f.rateLimiter, endpoints...)
 	if err != nil {
 		return "", fmt.Errorf("%w: %w", errFetchTagDigest, err)
 	}

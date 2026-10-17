@@ -32,14 +32,6 @@ const (
 	equalJitterDivisor = 2
 )
 
-// Retry budgets. Tests shorten them so budget exhaustion does not sleep for real.
-var (
-	// retryElapsed bounds how long one operation keeps honoring a usable Retry-After.
-	retryElapsed = maxRetryElapsed
-	// bucketRetryElapsed bounds how long one operation keeps retrying token-bucket 429s.
-	bucketRetryElapsed = maxBucketRetryElapsed
-)
-
 // Error is a registry 429 with the wait and quota the registry advertised.
 type Error struct {
 	// StatusCode is the HTTP status when the limit came from an HTTP response.

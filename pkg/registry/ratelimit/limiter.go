@@ -26,32 +26,47 @@ type hostState struct {
 	lastRefill time.Time
 }
 
+// Limiter paces registry requests per host and retries the ones a registry
+// rate limits.
+//
+// It records each host's 429 cooldown and advertised quota, and serializes
+// unauthenticated GHCR requests. Requests share a host's budget only when they
+// go through the same Limiter, so a process uses one Limiter for all of its
+// registry traffic.
+type Limiter struct {
+	// hostsMu guards hostStates.
+	hostsMu sync.Mutex
+	// hostStates holds the cooldown and token budget of each host.
+	hostStates map[string]*hostState
+	// serialMu guards serialSlots.
+	serialMu sync.Mutex
+	// serialSlots holds the one-at-a-time slot of each serialized limiter key.
+	serialSlots map[string]chan struct{}
+	// retryElapsed bounds how long one operation keeps honoring a usable Retry-After.
+	retryElapsed time.Duration
+	// bucketRetryElapsed bounds how long one operation keeps retrying token-bucket 429s.
+	bucketRetryElapsed time.Duration
+}
+
 const (
 	// anonSuffix marks limiter keys for unauthenticated GHCR traffic.
 	anonSuffix = "|anon"
 )
 
-var (
-	hostsMu     sync.Mutex
-	hostStates  = map[string]*hostState{}
-	serialMu    sync.Mutex
-	serialSlots = map[string]chan struct{}{}
-)
-
-// ResetForTest clears per-host cooldown, quota, and serial-slot state.
+// New returns a Limiter with no recorded throttles and the production retry
+// budgets.
 //
-// Tests call this so one case cannot leak a cooldown or serial hold into the next.
-// It also restores the production retry budgets used by [Do] and [DoValue].
-func ResetForTest() {
-	hostsMu.Lock()
-	hostStates = map[string]*hostState{}
-	retryElapsed = maxRetryElapsed
-	bucketRetryElapsed = maxBucketRetryElapsed
-	hostsMu.Unlock()
-
-	serialMu.Lock()
-	serialSlots = map[string]chan struct{}{}
-	serialMu.Unlock()
+// Returns:
+//   - *Limiter: Limiter ready for use.
+func New() *Limiter {
+	return &Limiter{
+		hostsMu:            sync.Mutex{},
+		hostStates:         map[string]*hostState{},
+		serialMu:           sync.Mutex{},
+		serialSlots:        map[string]chan struct{}{},
+		retryElapsed:       maxRetryElapsed,
+		bucketRetryElapsed: maxBucketRetryElapsed,
+	}
 }
 
 // Scope returns the limiter key for host.
@@ -95,7 +110,7 @@ func isAnonymousScope(key string) bool {
 }
 
 // HoldAnonymous returns the limiter key for host and, for unauthenticated GHCR,
-// acquires the one-at-a-time serial slot with [acquireSerial].
+// acquires the one-at-a-time serial slot with acquireSerial.
 //
 // The release function is always non-nil. Callers should defer it. Authenticated
 // GHCR and other registries do not take the serial slot.
@@ -109,7 +124,7 @@ func isAnonymousScope(key string) bool {
 //   - string: Limiter key from [Scope].
 //   - func(): Release callback. A no-op when no slot was acquired.
 //   - error: [context.Context.Err] when canceled while waiting for the serial slot.
-func HoldAnonymous(ctx context.Context, host string, authenticated bool) (string, func(), error) {
+func (l *Limiter) HoldAnonymous(ctx context.Context, host string, authenticated bool) (string, func(), error) {
 	key := Scope(host, authenticated)
 	release := func() {}
 
@@ -117,77 +132,12 @@ func HoldAnonymous(ctx context.Context, host string, authenticated bool) (string
 		return key, release, nil
 	}
 
-	err := acquireSerial(ctx, key)
+	err := l.acquireSerial(ctx, key)
 	if err != nil {
 		return key, release, err
 	}
 
-	return key, func() { releaseSerial(key) }, nil
-}
-
-// acquireSerial blocks until this process may run one operation on key.
-//
-// Empty keys return immediately. [releaseSerial] must be called for the same key.
-//
-// Parameters:
-//   - ctx: Context that can cancel the wait.
-//   - key: Serial slot key. Empty values return immediately.
-//
-// Returns:
-//   - error: [context.Context.Err] when canceled. Nil when the caller may proceed.
-func acquireSerial(ctx context.Context, key string) error {
-	if key == "" {
-		return nil
-	}
-
-	ctxErr := ctx.Err()
-	if ctxErr != nil {
-		return fmt.Errorf("registry serial wait canceled: %w", ctxErr)
-	}
-
-	select {
-	case serialSlotFor(key) <- struct{}{}:
-		return nil
-	case <-ctx.Done():
-		return fmt.Errorf("registry serial wait canceled: %w", ctx.Err())
-	}
-}
-
-// releaseSerial returns a serial slot acquired with [acquireSerial].
-//
-// Empty keys and slots that are not held are ignored.
-//
-// Parameters:
-//   - key: Serial slot key passed to [acquireSerial].
-func releaseSerial(key string) {
-	if key == "" {
-		return
-	}
-
-	select {
-	case <-serialSlotFor(key):
-	default:
-	}
-}
-
-// serialSlotFor returns the capacity-1 slot for key, creating it when missing.
-//
-// Parameters:
-//   - key: Serial slot key.
-//
-// Returns:
-//   - chan struct{}: Buffered channel used as a mutex. Capacity is 1.
-func serialSlotFor(key string) chan struct{} {
-	serialMu.Lock()
-	defer serialMu.Unlock()
-
-	slot := serialSlots[key]
-	if slot == nil {
-		slot = make(chan struct{}, 1)
-		serialSlots[key] = slot
-	}
-
-	return slot
+	return key, func() { l.releaseSerial(key) }, nil
 }
 
 // Observe records a 429 against host so later Wait calls honor it.
@@ -200,15 +150,15 @@ func serialSlotFor(key string) chan struct{} {
 // Parameters:
 //   - host: Registry host. Empty values are ignored.
 //   - info: Parsed 429. Nil values are ignored.
-func Observe(host string, info *Error) {
+func (l *Limiter) Observe(host string, info *Error) {
 	if host == "" || info == nil {
 		return
 	}
 
-	hostsMu.Lock()
-	defer hostsMu.Unlock()
+	l.hostsMu.Lock()
+	defer l.hostsMu.Unlock()
 
-	state := hostLocked(host)
+	state := l.hostLocked(host)
 	now := time.Now()
 
 	cooldown := min(info.RetryAfter, maxHonorWait)
@@ -247,29 +197,6 @@ func Observe(host string, info *Error) {
 	}
 }
 
-// observeSuccess refreshes host's fill-rate tokens after a successful request.
-//
-// Token reservation happens in Wait. This only refills up to the burst cap so
-// a success does not spend a second token or restore a pre-throttle dump.
-//
-// Parameters:
-//   - host: Registry host. Empty values are ignored.
-func observeSuccess(host string) {
-	if host == "" {
-		return
-	}
-
-	hostsMu.Lock()
-	defer hostsMu.Unlock()
-
-	state := hostStates[host]
-	if state == nil || state.allowed <= 0 || state.window <= 0 {
-		return
-	}
-
-	state.refillLocked(time.Now())
-}
-
 // Wait blocks until host is outside its 429 cooldown and has budget.
 //
 // Parameters:
@@ -278,13 +205,13 @@ func observeSuccess(host string) {
 //
 // Returns:
 //   - error: ctx.Err() when canceled. Nil when the caller may proceed.
-func Wait(ctx context.Context, host string) error {
+func (l *Limiter) Wait(ctx context.Context, host string) error {
 	if host == "" {
 		return nil
 	}
 
 	for {
-		wait := nextWait(host)
+		wait := l.nextWait(host)
 		if wait <= 0 {
 			return nil
 		}
@@ -311,13 +238,13 @@ func Wait(ctx context.Context, host string) error {
 //
 // Returns:
 //   - error: ctx.Err() when canceled. Nil when the caller may proceed.
-func WaitCooldown(ctx context.Context, host string) error {
+func (l *Limiter) WaitCooldown(ctx context.Context, host string) error {
 	if host == "" {
 		return nil
 	}
 
 	for {
-		wait := nextCooldownWait(host)
+		wait := l.nextCooldownWait(host)
 		if wait <= 0 {
 			return nil
 		}
@@ -333,6 +260,94 @@ func WaitCooldown(ctx context.Context, host string) error {
 	}
 }
 
+// acquireSerial blocks until no other caller of this limiter runs an operation on key.
+//
+// Empty keys return immediately. releaseSerial must be called for the same key.
+//
+// Parameters:
+//   - ctx: Context that can cancel the wait.
+//   - key: Serial slot key. Empty values return immediately.
+//
+// Returns:
+//   - error: [context.Context.Err] when canceled. Nil when the caller may proceed.
+func (l *Limiter) acquireSerial(ctx context.Context, key string) error {
+	if key == "" {
+		return nil
+	}
+
+	ctxErr := ctx.Err()
+	if ctxErr != nil {
+		return fmt.Errorf("registry serial wait canceled: %w", ctxErr)
+	}
+
+	select {
+	case l.serialSlotFor(key) <- struct{}{}:
+		return nil
+	case <-ctx.Done():
+		return fmt.Errorf("registry serial wait canceled: %w", ctx.Err())
+	}
+}
+
+// releaseSerial returns a serial slot acquired with acquireSerial.
+//
+// Empty keys and slots that are not held are ignored.
+//
+// Parameters:
+//   - key: Serial slot key passed to acquireSerial.
+func (l *Limiter) releaseSerial(key string) {
+	if key == "" {
+		return
+	}
+
+	select {
+	case <-l.serialSlotFor(key):
+	default:
+	}
+}
+
+// serialSlotFor returns the capacity-1 slot for key, creating it when missing.
+//
+// Parameters:
+//   - key: Serial slot key.
+//
+// Returns:
+//   - chan struct{}: Buffered channel used as a mutex. Capacity is 1.
+func (l *Limiter) serialSlotFor(key string) chan struct{} {
+	l.serialMu.Lock()
+	defer l.serialMu.Unlock()
+
+	slot := l.serialSlots[key]
+	if slot == nil {
+		slot = make(chan struct{}, 1)
+		l.serialSlots[key] = slot
+	}
+
+	return slot
+}
+
+// observeSuccess refreshes host's fill-rate tokens after a successful request.
+//
+// Token reservation happens in Wait. This only refills up to the burst cap so
+// a success does not spend a second token or restore a pre-throttle dump.
+//
+// Parameters:
+//   - host: Registry host. Empty values are ignored.
+func (l *Limiter) observeSuccess(host string) {
+	if host == "" {
+		return
+	}
+
+	l.hostsMu.Lock()
+	defer l.hostsMu.Unlock()
+
+	state := l.hostStates[host]
+	if state == nil || state.allowed <= 0 || state.window <= 0 {
+		return
+	}
+
+	state.refillLocked(time.Now())
+}
+
 // nextWait computes how long the caller must wait before contacting host.
 //
 // Parameters:
@@ -340,11 +355,11 @@ func WaitCooldown(ctx context.Context, host string) error {
 //
 // Returns:
 //   - time.Duration: Sleep before the next request. Zero when the caller may proceed.
-func nextWait(host string) time.Duration {
-	hostsMu.Lock()
-	defer hostsMu.Unlock()
+func (l *Limiter) nextWait(host string) time.Duration {
+	l.hostsMu.Lock()
+	defer l.hostsMu.Unlock()
 
-	state := hostLocked(host)
+	state := l.hostLocked(host)
 	now := time.Now()
 
 	if now.Before(state.cooldownUntil) {
@@ -375,11 +390,11 @@ func nextWait(host string) time.Duration {
 //
 // Returns:
 //   - time.Duration: Sleep before the next request. Zero when there is no cooldown.
-func nextCooldownWait(host string) time.Duration {
-	hostsMu.Lock()
-	defer hostsMu.Unlock()
+func (l *Limiter) nextCooldownWait(host string) time.Duration {
+	l.hostsMu.Lock()
+	defer l.hostsMu.Unlock()
 
-	state := hostStates[host]
+	state := l.hostStates[host]
 	if state == nil || !time.Now().Before(state.cooldownUntil) {
 		return 0
 	}
@@ -396,11 +411,11 @@ func nextCooldownWait(host string) time.Duration {
 //
 // Returns:
 //   - *hostState: Existing or newly created state for host.
-func hostLocked(host string) *hostState {
-	state := hostStates[host]
+func (l *Limiter) hostLocked(host string) *hostState {
+	state := l.hostStates[host]
 	if state == nil {
 		state = &hostState{lastRefill: time.Now()}
-		hostStates[host] = state
+		l.hostStates[host] = state
 	}
 
 	return state

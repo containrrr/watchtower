@@ -24,6 +24,7 @@ import (
 	"github.com/nicholas-fedor/watchtower/pkg/container"
 	mockContainer "github.com/nicholas-fedor/watchtower/pkg/container/mocks"
 	"github.com/nicholas-fedor/watchtower/pkg/notifications"
+	"github.com/nicholas-fedor/watchtower/pkg/registry/ratelimit"
 	"github.com/nicholas-fedor/watchtower/pkg/types"
 )
 
@@ -62,6 +63,7 @@ func setRunState(t *testing.T, state runTestState) {
 
 	savedCfg := appCfg
 	savedClient := client
+	savedRateLimiter := rateLimiter
 	savedNotifier := notifier
 	savedCurrent := currentWatchtowerContainer
 	savedCurrentID := currentWatchtowerContainerID
@@ -73,6 +75,7 @@ func setRunState(t *testing.T, state runTestState) {
 	t.Cleanup(func() {
 		appCfg = savedCfg
 		client = savedClient
+		rateLimiter = savedRateLimiter
 		notifier = savedNotifier
 		currentWatchtowerContainer = savedCurrent
 		currentWatchtowerContainerID = savedCurrentID
@@ -84,6 +87,7 @@ func setRunState(t *testing.T, state runTestState) {
 
 	appCfg = appConfig.Config{}
 	client = state.client
+	rateLimiter = ratelimit.New()
 	currentWatchtowerContainer = state.current
 	currentWatchtowerContainerID = state.currentID
 	currentWatchtowerContainerUnknown = false

@@ -1,18 +1,42 @@
 package actions
 
 import (
+	"context"
 	"testing"
 	"time"
 
 	"github.com/rs/zerolog"
 
+	"github.com/nicholas-fedor/watchtower/internal/git"
+	"github.com/nicholas-fedor/watchtower/pkg/container"
+	"github.com/nicholas-fedor/watchtower/pkg/registry/ratelimit"
 	"github.com/nicholas-fedor/watchtower/pkg/sorter"
 	"github.com/nicholas-fedor/watchtower/pkg/types"
 )
 
-// Update exposes update to the external test package, so a whole update scan
-// can be run against a mock client.
-var Update = update
+// Update runs update for the external test package with a rate limiter of its
+// own, so a whole update scan can be run against a mock client.
+//
+// Parameters:
+//   - log: Process logger.
+//   - ctx: Context for cancellation and timeouts.
+//   - client: Container client.
+//   - config: Update parameters.
+//   - gitClient: Optional Git monitor client.
+//
+// Returns:
+//   - types.Report: Results of the update.
+//   - []types.RemovedImageInfo: Images eligible for cleanup.
+//   - error: Non-nil when the update fails.
+func Update(
+	log *zerolog.Logger,
+	ctx context.Context,
+	client container.Client,
+	config types.UpdateParams,
+	gitClient ...*git.Client,
+) (types.Report, []types.RemovedImageInfo, error) {
+	return update(log, ctx, client, config, ratelimit.New(), gitClient...)
+}
 
 // EphemeralSelfUpdate exposes ephemeralSelfUpdate to the external test
 // package, so the orchestrator handoff can be run against a mock client.

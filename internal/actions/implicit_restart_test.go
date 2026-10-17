@@ -16,6 +16,7 @@ import (
 
 	"github.com/nicholas-fedor/watchtower/pkg/container"
 	mockContainer "github.com/nicholas-fedor/watchtower/pkg/container/mocks"
+	"github.com/nicholas-fedor/watchtower/pkg/registry/ratelimit"
 	"github.com/nicholas-fedor/watchtower/pkg/sorter"
 	"github.com/nicholas-fedor/watchtower/pkg/types"
 )
@@ -318,7 +319,7 @@ func TestUpdate_WarnsOnUnresolvedDependsOn(t *testing.T) {
 
 	log := zerolog.New(zerolog.SyncWriter(&output))
 
-	_, _, err := update(&log, t.Context(), client, types.UpdateParams{})
+	_, _, err := update(&log, t.Context(), client, types.UpdateParams{}, ratelimit.New())
 	require.NoError(t, err)
 
 	assert.Contains(t, output.String(),

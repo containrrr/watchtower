@@ -30,9 +30,6 @@ func testLog() *zerolog.Logger {
 }
 
 func TestRegistryRateLimitError(t *testing.T) {
-	ratelimit.ResetForTest()
-	t.Cleanup(ratelimit.ResetForTest)
-
 	assert.NoError(t, registryRateLimitError(nil))
 	assert.NoError(t, registryRateLimitError(&http.Response{
 		StatusCode: http.StatusOK,
@@ -52,9 +49,6 @@ func TestRegistryRateLimitError(t *testing.T) {
 	got := registryRateLimitError(resp)
 	require.Error(t, got)
 	require.ErrorIs(t, got, ratelimit.ErrRateLimited)
-
-	waitErr := ratelimit.Wait(t.Context(), "ghcr.io")
-	require.NoError(t, waitErr)
 }
 
 // newMockContainer creates a mockery-generated mock Container with the given image name.
@@ -170,6 +164,7 @@ func TestFetchManifestForAge_SinglePlatform(t *testing.T) {
 
 	got, _, err := fetchManifestForAge(testLog(), context.Background(),
 		server.HTTPTestServer.Client(),
+		ratelimit.New(),
 		parsedURL.String(),
 		"Bearer test-token",
 		parsedURL,
@@ -211,6 +206,7 @@ func TestFetchManifestForAge_RetriesSubMillisecondRateLimit(t *testing.T) {
 
 	got, _, err := fetchManifestForAge(testLog(), t.Context(),
 		server.HTTPTestServer.Client(),
+		ratelimit.New(),
 		parsedURL.String(),
 		"Bearer test-token",
 		parsedURL,
@@ -253,6 +249,7 @@ func TestFetchManifestForAge_MultiPlatformIndex(t *testing.T) {
 
 	got, _, err := fetchManifestForAge(testLog(), context.Background(),
 		server.HTTPTestServer.Client(),
+		ratelimit.New(),
 		parsedURL.String(),
 		"Bearer test-token",
 		parsedURL,
@@ -284,6 +281,7 @@ func TestFetchManifestForAge_AuthFailure(t *testing.T) {
 
 	_, _, err = fetchManifestForAge(testLog(), context.Background(),
 		server.HTTPTestServer.Client(),
+		ratelimit.New(),
 		parsedURL.String(),
 		"Bearer test-token",
 		parsedURL,
@@ -315,6 +313,7 @@ func TestFetchManifestForAge_NotFound(t *testing.T) {
 
 	_, _, err = fetchManifestForAge(testLog(), context.Background(),
 		server.HTTPTestServer.Client(),
+		ratelimit.New(),
 		parsedURL.String(),
 		"Bearer test-token",
 		parsedURL,
@@ -350,6 +349,7 @@ func TestFetchManifestForAge_MissingConfigDigest(t *testing.T) {
 
 	_, _, err = fetchManifestForAge(testLog(), context.Background(),
 		server.HTTPTestServer.Client(),
+		ratelimit.New(),
 		parsedURL.String(),
 		"Bearer test-token",
 		parsedURL,
@@ -385,6 +385,7 @@ func TestFetchConfigBlob_Success(t *testing.T) {
 
 	body, err := fetchConfigBlob(testLog(), context.Background(),
 		server.HTTPTestServer.Client(),
+		ratelimit.New(),
 		parsedURL,
 		configDigest,
 		"Bearer test-token",
@@ -424,6 +425,7 @@ func TestFetchConfigBlob_Failure500(t *testing.T) {
 
 	_, err = fetchConfigBlob(testLog(), context.Background(),
 		server.HTTPTestServer.Client(),
+		ratelimit.New(),
 		parsedURL,
 		configDigest,
 		"Bearer test-token",
@@ -461,6 +463,7 @@ func TestFetchConfigBlob_Redirect(t *testing.T) {
 
 	body, err := fetchConfigBlob(testLog(), context.Background(),
 		server.HTTPTestServer.Client(),
+		ratelimit.New(),
 		parsedURL,
 		configDigest,
 		"Bearer test-token",
@@ -710,6 +713,7 @@ func TestSelectPlatformManifest_PlatformMatch(t *testing.T) {
 
 	got, _, err := selectPlatformManifest(testLog(), context.Background(),
 		server.HTTPTestServer.Client(),
+		ratelimit.New(),
 		idx,
 		parsedURL,
 		"Bearer test-token",
@@ -746,6 +750,7 @@ func TestSelectPlatformManifest_NoMatch(t *testing.T) {
 
 	_, _, err = selectPlatformManifest(testLog(), context.Background(),
 		nil,
+		ratelimit.New(),
 		idx,
 		parsedURL,
 		"",
@@ -809,6 +814,7 @@ func TestSelectPlatformManifest_SkipsAttestationManifests(t *testing.T) {
 
 	got, _, err := selectPlatformManifest(testLog(), context.Background(),
 		server.HTTPTestServer.Client(),
+		ratelimit.New(),
 		idx,
 		parsedURL,
 		"Bearer test-token",
@@ -861,6 +867,7 @@ func TestSelectPlatformManifest_MissingConfigDigest(t *testing.T) {
 
 	_, _, err = selectPlatformManifest(testLog(), context.Background(),
 		server.HTTPTestServer.Client(),
+		ratelimit.New(),
 		idx,
 		parsedURL,
 		"Bearer test-token",
@@ -903,11 +910,11 @@ func TestPipeline_SinglePlatformManifest_ReturnsCreationTime(t *testing.T) {
 	ctx := context.Background()
 	fields := map[string]any{"test": "pipeline_single"}
 
-	digest, _, err := fetchManifestForAge(testLog(), ctx, client, parsedURL.String(), "", parsedURL, "", "", "", "", parsedURL.Host, "", fields)
+	digest, _, err := fetchManifestForAge(testLog(), ctx, client, ratelimit.New(), parsedURL.String(), "", parsedURL, "", "", "", "", parsedURL.Host, "", fields)
 	require.NoError(t, err)
 	assert.Equal(t, configDigest, digest)
 
-	body, err := fetchConfigBlob(testLog(), ctx, client, parsedURL, digest, "", "", fields)
+	body, err := fetchConfigBlob(testLog(), ctx, client, ratelimit.New(), parsedURL, digest, "", "", fields)
 	require.NoError(t, err)
 	t.Cleanup(func() { body.Close() })
 
@@ -957,11 +964,11 @@ func TestPipeline_MultiPlatformIndex_ReturnsCreationTime(t *testing.T) {
 	ctx := context.Background()
 	fields := map[string]any{"test": "pipeline_multi"}
 
-	digest, _, err := fetchManifestForAge(testLog(), ctx, client, parsedURL.String(), "", parsedURL, "", "", "", "", parsedURL.Host, "", fields)
+	digest, _, err := fetchManifestForAge(testLog(), ctx, client, ratelimit.New(), parsedURL.String(), "", parsedURL, "", "", "", "", parsedURL.Host, "", fields)
 	require.NoError(t, err)
 	assert.Equal(t, configDigest, digest)
 
-	body, err := fetchConfigBlob(testLog(), ctx, client, parsedURL, digest, "", "", fields)
+	body, err := fetchConfigBlob(testLog(), ctx, client, ratelimit.New(), parsedURL, digest, "", "", fields)
 	require.NoError(t, err)
 	t.Cleanup(func() { body.Close() })
 
@@ -1003,10 +1010,10 @@ func TestPipeline_MissingCreationTimestamp(t *testing.T) {
 	ctx := context.Background()
 	fields := map[string]any{"test": "pipeline_missing_created"}
 
-	digest, _, err := fetchManifestForAge(testLog(), ctx, client, parsedURL.String(), "", parsedURL, "", "", "", "", parsedURL.Host, "", fields)
+	digest, _, err := fetchManifestForAge(testLog(), ctx, client, ratelimit.New(), parsedURL.String(), "", parsedURL, "", "", "", "", parsedURL.Host, "", fields)
 	require.NoError(t, err)
 
-	body, err := fetchConfigBlob(testLog(), ctx, client, parsedURL, digest, "", "", fields)
+	body, err := fetchConfigBlob(testLog(), ctx, client, ratelimit.New(), parsedURL, digest, "", "", fields)
 	require.NoError(t, err)
 	t.Cleanup(func() { body.Close() })
 
@@ -1047,10 +1054,10 @@ func TestPipeline_ConfigBlobNotFound(t *testing.T) {
 	ctx := context.Background()
 	fields := map[string]any{"test": "pipeline_config_fail"}
 
-	digest, _, err := fetchManifestForAge(testLog(), ctx, client, parsedURL.String(), "", parsedURL, "", "", "", "", parsedURL.Host, "", fields)
+	digest, _, err := fetchManifestForAge(testLog(), ctx, client, ratelimit.New(), parsedURL.String(), "", parsedURL, "", "", "", "", parsedURL.Host, "", fields)
 	require.NoError(t, err)
 
-	_, err = fetchConfigBlob(testLog(), ctx, client, parsedURL, digest, "", "", fields)
+	_, err = fetchConfigBlob(testLog(), ctx, client, ratelimit.New(), parsedURL, digest, "", "", fields)
 	require.Error(t, err)
 	assert.ErrorIs(t, err, errFetchConfigFailed)
 }
@@ -1083,10 +1090,10 @@ func TestPipeline_InvalidConfigJSON(t *testing.T) {
 	ctx := context.Background()
 	fields := map[string]any{"test": "pipeline_invalid_json"}
 
-	digest, _, err := fetchManifestForAge(testLog(), ctx, client, parsedURL.String(), "", parsedURL, "", "", "", "", parsedURL.Host, "", fields)
+	digest, _, err := fetchManifestForAge(testLog(), ctx, client, ratelimit.New(), parsedURL.String(), "", parsedURL, "", "", "", "", parsedURL.Host, "", fields)
 	require.NoError(t, err)
 
-	body, err := fetchConfigBlob(testLog(), ctx, client, parsedURL, digest, "", "", fields)
+	body, err := fetchConfigBlob(testLog(), ctx, client, ratelimit.New(), parsedURL, digest, "", "", fields)
 	require.NoError(t, err)
 	t.Cleanup(func() { body.Close() })
 
@@ -1132,10 +1139,10 @@ func TestPipeline_RedirectOnBlob(t *testing.T) {
 	ctx := context.Background()
 	fields := map[string]any{"test": "pipeline_redirect"}
 
-	digest, _, err := fetchManifestForAge(testLog(), ctx, client, parsedURL.String(), "", parsedURL, "", "", "", "", parsedURL.Host, "", fields)
+	digest, _, err := fetchManifestForAge(testLog(), ctx, client, ratelimit.New(), parsedURL.String(), "", parsedURL, "", "", "", "", parsedURL.Host, "", fields)
 	require.NoError(t, err)
 
-	body, err := fetchConfigBlob(testLog(), ctx, client, parsedURL, digest, "", "", fields)
+	body, err := fetchConfigBlob(testLog(), ctx, client, ratelimit.New(), parsedURL, digest, "", "", fields)
 	require.NoError(t, err)
 	t.Cleanup(func() { body.Close() })
 
@@ -1169,6 +1176,7 @@ func TestPipeline_ManifestNotFound(t *testing.T) {
 
 	_, _, err = fetchManifestForAge(testLog(), context.Background(),
 		server.HTTPTestServer.Client(),
+		ratelimit.New(),
 		parsedURL.String(),
 		"",
 		parsedURL,
@@ -1202,6 +1210,7 @@ func TestPipeline_AuthFailure(t *testing.T) {
 
 	_, _, err = fetchManifestForAge(testLog(), context.Background(),
 		server.HTTPTestServer.Client(),
+		ratelimit.New(),
 		parsedURL.String(),
 		"Bearer invalid",
 		parsedURL,
@@ -1247,6 +1256,7 @@ func TestFetchManifestForAge_OversizedManifest(t *testing.T) {
 
 	_, _, err = fetchManifestForAge(testLog(), context.Background(),
 		server.HTTPTestServer.Client(),
+		ratelimit.New(),
 		parsedURL.String(),
 		"Bearer test-token",
 		parsedURL,
@@ -1297,6 +1307,7 @@ func TestSelectPlatformManifest_AmbiguousPlatformMatch(t *testing.T) {
 
 	_, _, err = selectPlatformManifest(testLog(), context.Background(),
 		nil,
+		ratelimit.New(),
 		idx,
 		parsedURL,
 		"",
@@ -1361,6 +1372,7 @@ func TestSelectPlatformManifest_VariantSelection(t *testing.T) {
 
 	got, _, err := selectPlatformManifest(testLog(), context.Background(),
 		server.HTTPTestServer.Client(),
+		ratelimit.New(),
 		idx,
 		parsedURL,
 		"Bearer test-token",
@@ -1505,6 +1517,7 @@ func TestFetchManifestForAge_IndexWithoutMediaType_ContentTypeFallback(t *testin
 
 	got, _, err := fetchManifestForAge(testLog(), context.Background(),
 		server.HTTPTestServer.Client(),
+		ratelimit.New(),
 		parsedURL.String(),
 		"Bearer test-token",
 		parsedURL,

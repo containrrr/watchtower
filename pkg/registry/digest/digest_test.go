@@ -210,16 +210,13 @@ func TestCompareDigestWithRemote(t *testing.T) {
 	host := parts[len(parts)-1]
 	mc.On("ImageName").Return(host + "/myapp:latest")
 
-	match, remoteDigest, err := CompareDigestWithRemote(testLog(), context.Background(), mc, "", registryConfig.Registry{}, server.URL)
+	match, remoteDigest, err := CompareDigestWithRemote(testLog(), context.Background(), mc, "", registryConfig.Registry{}, ratelimit.New(), server.URL)
 	require.NoError(t, err)
 	assert.False(t, match)
 	assert.Equal(t, "sha256:"+remoteHash, remoteDigest)
 }
 
 func TestCompareDigestWithRemote_Head429DoesNotFallBackToGET(t *testing.T) {
-	ratelimit.ResetForTest()
-	t.Cleanup(ratelimit.ResetForTest)
-
 	settings := registryConfig.Registry{TLSSkip: true}
 
 	mc := mockTypes.NewMockContainer(t)
@@ -265,7 +262,7 @@ func TestCompareDigestWithRemote_Head429DoesNotFallBackToGET(t *testing.T) {
 	host := parts[len(parts)-1]
 	mc.On("ImageName").Return(host + "/linuxserver/radarr:latest")
 
-	match, _, err := CompareDigestWithRemote(testLog(), context.Background(), mc, "", settings, server.URL)
+	match, _, err := CompareDigestWithRemote(testLog(), context.Background(), mc, "", settings, ratelimit.New(), server.URL)
 	require.Error(t, err)
 	require.ErrorIs(t, err, ratelimit.ErrRateLimited)
 	assert.False(t, match)
@@ -276,9 +273,6 @@ func TestCompareDigestWithRemote_Head429DoesNotFallBackToGET(t *testing.T) {
 // regression test for a 429 on the challenge-host retry. That error must abort
 // the endpoint loop instead of trying the next mirror.
 func TestCompareDigestWithRemote_Retry429DoesNotContinueToNextEndpoint(t *testing.T) {
-	ratelimit.ResetForTest()
-	t.Cleanup(ratelimit.ResetForTest)
-
 	settings := registryConfig.Registry{TLSSkip: true}
 
 	mc := mockTypes.NewMockContainer(t)
@@ -361,6 +355,7 @@ func TestCompareDigestWithRemote_Retry429DoesNotContinueToNextEndpoint(t *testin
 		mc,
 		"",
 		settings,
+		ratelimit.New(),
 		primary.URL,
 		mirror.URL,
 	)
@@ -376,9 +371,6 @@ func TestCompareDigestWithRemote_Retry429DoesNotContinueToNextEndpoint(t *testin
 // token host produces an error, not an empty digest that marks the image as
 // out of date and causes a pull.
 func TestCompareDigestWithRemote_UnauthorizedOnBothHostsIsError(t *testing.T) {
-	ratelimit.ResetForTest()
-	t.Cleanup(ratelimit.ResetForTest)
-
 	settings := registryConfig.Registry{TLSSkip: true}
 
 	// The token host issues tokens but rejects manifest requests.
@@ -419,7 +411,7 @@ func TestCompareDigestWithRemote_UnauthorizedOnBothHostsIsError(t *testing.T) {
 		},
 	})
 
-	match, remoteDigest, err := CompareDigestWithRemote(testLog(), context.Background(), mc, "", settings)
+	match, remoteDigest, err := CompareDigestWithRemote(testLog(), context.Background(), mc, "", settings, ratelimit.New())
 	require.ErrorIs(t, err, errUnresolvedManifestRetry)
 	assert.False(t, match)
 	assert.Empty(t, remoteDigest)
@@ -429,9 +421,6 @@ func TestCompareDigestWithRemote_UnauthorizedOnBothHostsIsError(t *testing.T) {
 // registry that is its own token host rejects HEAD manifest requests, the
 // retried HEAD falls back to GET, which returns the digest.
 func TestCompareDigestWithRemote_HeadRejectedFallsBackToGet(t *testing.T) {
-	ratelimit.ResetForTest()
-	t.Cleanup(ratelimit.ResetForTest)
-
 	settings := registryConfig.Registry{TLSSkip: true}
 
 	const remote = "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
@@ -469,7 +458,7 @@ func TestCompareDigestWithRemote_HeadRejectedFallsBackToGet(t *testing.T) {
 		},
 	})
 
-	match, remoteDigest, err := CompareDigestWithRemote(testLog(), context.Background(), mc, "", settings)
+	match, remoteDigest, err := CompareDigestWithRemote(testLog(), context.Background(), mc, "", settings, ratelimit.New())
 	require.NoError(t, err)
 	assert.False(t, match)
 	assert.Equal(t, remote, remoteDigest)
@@ -547,6 +536,7 @@ func TestCompareDigestWithRemote_LocalOnly404(t *testing.T) {
 		mc,
 		"",
 		settings,
+		ratelimit.New(),
 		host,
 	)
 	require.NoError(t, err)
@@ -676,13 +666,13 @@ func TestLocalOnlyImageCache(t *testing.T) {
 	host := parts[len(parts)-1]
 
 	// First call: probe registry, cache local-only.
-	match, _, err := CompareDigestWithRemote(testLog(), context.Background(), mc, "", settings, host)
+	match, _, err := CompareDigestWithRemote(testLog(), context.Background(), mc, "", settings, ratelimit.New(), host)
 	require.NoError(t, err)
 	assert.True(t, match)
 	assert.Equal(t, 1, headManifestCalls)
 
 	// Second call: cache hit, no additional HEAD.
-	match, _, err = CompareDigestWithRemote(testLog(), context.Background(), mc, "", settings, host)
+	match, _, err = CompareDigestWithRemote(testLog(), context.Background(), mc, "", settings, ratelimit.New(), host)
 	require.NoError(t, err)
 	assert.True(t, match)
 	assert.Equal(t, 1, headManifestCalls, "cached local-only image must not re-probe registry")
@@ -831,7 +821,7 @@ func TestCompareDigest(t *testing.T) {
 
 			container.On("ImageName").Return(host + "/myapp:latest").Maybe()
 
-			got, err := CompareDigest(testLog(), context.Background(), container, "", registryConfig.Registry{}, serverURL)
+			got, err := CompareDigest(testLog(), context.Background(), container, "", registryConfig.Registry{}, ratelimit.New(), serverURL)
 			if tt.wantErr {
 				require.Error(t, err)
 				assert.Equal(t, tt.expected, got)
@@ -975,7 +965,7 @@ func TestFetchDigestWithGet(t *testing.T) {
 			host := parts[len(parts)-1]
 			container.On("ImageName").Return(host + "/myapp:latest").Maybe()
 
-			got, err := fetchDigestWithGet(testLog(), context.Background(), container, "", registryConfig.Registry{}, server.URL)
+			got, err := fetchDigestWithGet(testLog(), context.Background(), container, "", registryConfig.Registry{}, ratelimit.New(), server.URL)
 			if tt.wantErr {
 				require.Error(t, err)
 				assert.Empty(t, got)
@@ -1869,9 +1859,6 @@ func TestRetryManifestRequest(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ratelimit.ResetForTest()
-			t.Cleanup(ratelimit.ResetForTest)
-
 			client := tt.setupClient(t)
 
 			challengeHost := cmp.Or(tt.challengeHost, "ghcr.io")
@@ -1887,6 +1874,7 @@ func TestRetryManifestRequest(t *testing.T) {
 				mustParseURL(currentURL),
 				"",
 				client,
+				ratelimit.New(),
 			)
 			if tt.wantErr {
 				require.Error(t, err)

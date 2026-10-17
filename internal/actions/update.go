@@ -195,6 +195,7 @@ func TryRecoverOrphanedContainer(
 //   - ctx: Context for cancellation and timeouts.
 //   - client: Container client for interacting with Docker API.
 //   - config: UpdateParams specifying behavior like cleanup, restart, and filtering.
+//   - rateLimiter: Rate limiter shared by registry requests. Must not be nil.
 //   - gitClient: Git monitor client. Nil when Git monitoring is unused.
 //
 // Returns:
@@ -206,6 +207,7 @@ func update(
 	ctx context.Context,
 	client container.Client,
 	config types.UpdateParams,
+	rateLimiter *ratelimit.Limiter,
 	gitClient ...*git.Client,
 ) (types.Report, []types.RemovedImageInfo, error) {
 	// Check for context cancellation early
@@ -512,7 +514,7 @@ func update(
 
 	// One resolver per session so sibling containers on the same upstream image
 	// share a single release tag lookup.
-	tagResolver := release.NewResolver(release.NewDigestFetcher(config.Registry))
+	tagResolver := release.NewResolver(release.NewDigestFetcher(config.Registry, rateLimiter))
 
 	for _, task := range checkTasks {
 		checkGroup.Go(func() error {

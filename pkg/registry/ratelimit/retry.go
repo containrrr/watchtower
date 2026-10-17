@@ -29,15 +29,15 @@ import (
 //
 // Returns:
 //   - error: The last operation error, or [context.Context.Err] when canceled.
-func Do(ctx context.Context, log *zerolog.Logger, host string, operation func() error) error {
-	_, err := DoValue(ctx, log, host, func() (struct{}, error) {
+func (l *Limiter) Do(ctx context.Context, log *zerolog.Logger, host string, operation func() error) error {
+	_, err := l.DoValue(ctx, log, host, func() (struct{}, error) {
 		return struct{}{}, operation()
 	})
 
 	return err
 }
 
-// DoValue is [Do] with a successful result.
+// DoValue is [Limiter.Do] with a successful result.
 //
 // Parameters:
 //   - ctx: Context that bounds the retry loop.
@@ -48,7 +48,7 @@ func Do(ctx context.Context, log *zerolog.Logger, host string, operation func() 
 // Returns:
 //   - T: Value from a successful attempt.
 //   - error: The last operation error, or [context.Context.Err] when canceled.
-func DoValue[T any](
+func (l *Limiter) DoValue[T any](
 	ctx context.Context,
 	log *zerolog.Logger,
 	host string,
@@ -70,14 +70,14 @@ func DoValue[T any](
 	lastRawRetryAfter := time.Duration(0)
 
 	result, err := backoff.Retry(ctx, func() (T, error) {
-		waitErr := Wait(ctx, host)
+		waitErr := l.Wait(ctx, host)
 		if waitErr != nil {
 			return zero, backoff.Permanent(waitErr)
 		}
 
 		value, opErr := operation()
 		if opErr == nil {
-			observeSuccess(host)
+			l.observeSuccess(host)
 
 			return value, nil
 		}
@@ -92,7 +92,7 @@ func DoValue[T any](
 				info.Host = host
 			}
 
-			Observe(host, info)
+			l.Observe(host, info)
 			lastRawRetryAfter = info.RetryAfter
 		}
 
@@ -103,11 +103,11 @@ func DoValue[T any](
 
 		wait, giveUp := decision(info)
 		bucket := isTokenBucket(info)
-		budget := retryElapsed
+		budget := l.retryElapsed
 
 		if bucket {
 			wait = bucketWait(policy)
-			budget = bucketRetryElapsed
+			budget = l.bucketRetryElapsed
 		} else {
 			wait = jitterWait(wait)
 		}
@@ -133,7 +133,7 @@ func DoValue[T any](
 		// the library's elapsed limit is off. RetryAfter resets the policy the
 		// library holds on every retry, which is why the bucket policy lives
 		// outside it.
-		backoff.WithMaxTries(maxRetryAttempts()),
+		backoff.WithMaxTries(l.maxRetryAttempts()),
 		backoff.WithMaxElapsedTime(0),
 	)
 	if err == nil {
@@ -157,7 +157,7 @@ func DoValue[T any](
 // ExceedsHonorWindow reports whether err is a rate limit whose Retry-After is
 // longer than the honor window.
 //
-// [Do] and [DoValue] stop at once on such a limit and log it at warn, so
+// [Limiter.Do] and [Limiter.DoValue] stop at once on such a limit and log it at warn, so
 // callers use this to avoid warning a second time about the same failure.
 //
 // Parameters:
@@ -197,8 +197,8 @@ func exhaustionLevel(err error) zerolog.Level {
 //
 // Returns:
 //   - uint: Maximum attempts passed to [backoff.WithMaxTries].
-func maxRetryAttempts() uint {
-	n := max(retryElapsed, bucketRetryElapsed)/minHonorWait + 1
+func (l *Limiter) maxRetryAttempts() uint {
+	n := max(l.retryElapsed, l.bucketRetryElapsed)/minHonorWait + 1
 	if n < 1 {
 		return 1
 	}

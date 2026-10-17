@@ -11,6 +11,7 @@ import (
 	registryConfig "github.com/nicholas-fedor/watchtower/internal/config/registry"
 	"github.com/nicholas-fedor/watchtower/internal/util"
 	"github.com/nicholas-fedor/watchtower/pkg/registry"
+	"github.com/nicholas-fedor/watchtower/pkg/registry/ratelimit"
 	"github.com/nicholas-fedor/watchtower/pkg/types"
 )
 
@@ -77,6 +78,7 @@ func (c imageClient) isOutsideCooldown(
 		sourceContainer,
 		delay,
 		c.registrySettings,
+		c.rateLimiter,
 		clog,
 	)
 	if cdErr != nil {
@@ -113,6 +115,7 @@ func shouldCheckCooldown(sourceContainer types.Container, params types.UpdatePar
 //   - sourceContainer: Container whose image creation time to fetch.
 //   - delay: Cooldown delay for error formatting.
 //   - settings: Registry request settings.
+//   - rateLimiter: Rate limiter shared by registry requests.
 //   - clog: Logger entry with container/image fields.
 //
 // Returns:
@@ -123,6 +126,7 @@ func fetchImageCreationTime(
 	sourceContainer types.Container,
 	delay time.Duration,
 	settings registryConfig.Registry,
+	rateLimiter *ratelimit.Limiter,
 	clog *zerolog.Logger,
 ) (time.Time, error) {
 	pullOpts, err := registry.GetPullOptions(clog, sourceContainer.ImageName())
@@ -147,6 +151,7 @@ func fetchImageCreationTime(
 		sourceContainer,
 		pullOpts.RegistryAuth,
 		settings,
+		rateLimiter,
 	)
 	if err != nil {
 		clog.Info().

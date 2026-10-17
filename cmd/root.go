@@ -28,6 +28,7 @@ import (
 	"github.com/nicholas-fedor/watchtower/pkg/container"
 	"github.com/nicholas-fedor/watchtower/pkg/filters"
 	"github.com/nicholas-fedor/watchtower/pkg/notifications"
+	"github.com/nicholas-fedor/watchtower/pkg/registry/ratelimit"
 	"github.com/nicholas-fedor/watchtower/pkg/types"
 )
 
@@ -63,6 +64,11 @@ var (
 	// the preRun phase with options derived from appCfg.ClientOptions() (DOCKER_HOST, TLS, API version, and
 	// related client flags/environment variables).
 	client container.Client
+
+	// rateLimiter paces every registry request, so image pulls, digest checks,
+	// image age lookups, and release tag lookups share one budget per registry
+	// host. It is created in preRun with client.
+	rateLimiter *ratelimit.Limiter
 
 	// notifier is the notification system instance responsible for sending update status messages to configured channels.
 	//
@@ -245,8 +251,13 @@ func (p *process) preRun(cmd *cobra.Command, _ []string) {
 			Msg("Configured operational scope")
 	}
 
-	// Initialize the Docker client from the resolved ClientOptions projection.
-	client = newClient(p.log, appCfg.ClientOptions())
+	// Initialize the Docker client from the resolved ClientOptions projection,
+	// with the rate limiter that update sessions also use for release tag lookups.
+	rateLimiter = ratelimit.New()
+
+	clientOpts := appCfg.ClientOptions()
+	clientOpts.RateLimiter = rateLimiter
+	client = newClient(p.log, clientOpts)
 
 	// Check for orchestrator mode early. This is an internal mode where Watchtower
 	// runs as a one-shot orchestrator for self-update.
@@ -610,6 +621,7 @@ func (p *process) runMain(cfg types.RunConfig) int {
 			Logger:                       p.log,
 			Client:                       client,
 			GitClient:                    gitClient,
+			RateLimiter:                  rateLimiter,
 			Notifier:                     notifier,
 			NotificationSplitByContainer: appCfg.Notify.SplitByContainer,
 			NotificationReport:           appCfg.Notify.Report,

@@ -16,6 +16,7 @@ import (
 	mockActions "github.com/nicholas-fedor/watchtower/internal/actions/mocks"
 	"github.com/nicholas-fedor/watchtower/internal/api/handlers/events"
 	mockContainer "github.com/nicholas-fedor/watchtower/pkg/container/mocks"
+	"github.com/nicholas-fedor/watchtower/pkg/registry/ratelimit"
 	"github.com/nicholas-fedor/watchtower/pkg/types"
 	mockTypes "github.com/nicholas-fedor/watchtower/pkg/types/mocks"
 )
@@ -206,7 +207,7 @@ func TestUpdate_OldInstanceImageJoinsSessionCleanup(t *testing.T) {
 		}).Maybe()
 
 	_, cleanup, err := update(testLogger(), t.Context(), client,
-		types.UpdateParams{Cleanup: true, CurrentContainerID: currentID})
+		types.UpdateParams{Cleanup: true, CurrentContainerID: currentID}, ratelimit.New())
 	require.NoError(t, err)
 
 	assert.Equal(t, []string{"org/watchtower:1 watchtower-old-a"}, imageEntries(cleanup))
@@ -247,7 +248,7 @@ func TestUpdate_SortFailureKeepsOldInstanceImage(t *testing.T) {
 		}).Maybe()
 
 	_, cleanup, err := update(testLogger(), t.Context(), client,
-		types.UpdateParams{Cleanup: true, CurrentContainerID: currentID})
+		types.UpdateParams{Cleanup: true, CurrentContainerID: currentID}, ratelimit.New())
 	require.ErrorIs(t, err, errSortDependenciesFailed)
 
 	assert.Equal(t, []string{"org/watchtower:1 watchtower-old-a"}, imageEntries(cleanup))

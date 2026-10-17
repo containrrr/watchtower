@@ -21,6 +21,7 @@ import (
 	dockerClient "github.com/moby/moby/client"
 
 	registryConfig "github.com/nicholas-fedor/watchtower/internal/config/registry"
+	"github.com/nicholas-fedor/watchtower/pkg/registry/ratelimit"
 	"github.com/nicholas-fedor/watchtower/pkg/types"
 )
 
@@ -126,7 +127,7 @@ var _ = ginkgo.Describe("isOutsideCooldown", func() {
 
 	ginkgo.When("no cooldown delay is configured", func() {
 		ginkgo.It("returns true with no registry calls", func() {
-			i := newImageClient(mockClient, testLog(), registryConfig.Registry{})
+			i := newImageClient(mockClient, testLog(), registryConfig.Registry{}, ratelimit.New())
 			c := MockContainer(WithImageName("test:latest"))
 
 			outside, err := i.isOutsideCooldown(
@@ -139,7 +140,7 @@ var _ = ginkgo.Describe("isOutsideCooldown", func() {
 
 	ginkgo.When("cooldown delay is zero", func() {
 		ginkgo.It("returns true immediately", func() {
-			i := newImageClient(mockClient, testLog(), registryConfig.Registry{})
+			i := newImageClient(mockClient, testLog(), registryConfig.Registry{}, ratelimit.New())
 			c := MockContainer(WithImageName("test:latest"))
 
 			outside, err := i.isOutsideCooldown(
@@ -154,7 +155,7 @@ var _ = ginkgo.Describe("isOutsideCooldown", func() {
 
 	ginkgo.When("container is monitor-only", func() {
 		ginkgo.It("returns true and bypasses the cooldown check", func() {
-			i := newImageClient(mockClient, testLog(), registryConfig.Registry{})
+			i := newImageClient(mockClient, testLog(), registryConfig.Registry{}, ratelimit.New())
 			c := MockContainer(WithImageName("test:latest"))
 
 			outside, err := i.isOutsideCooldown(
@@ -170,7 +171,7 @@ var _ = ginkgo.Describe("isOutsideCooldown", func() {
 
 	ginkgo.When("container has no-pull enabled", func() {
 		ginkgo.It("returns true and bypasses the cooldown check", func() {
-			i := newImageClient(mockClient, testLog(), registryConfig.Registry{})
+			i := newImageClient(mockClient, testLog(), registryConfig.Registry{}, ratelimit.New())
 			c := MockContainer(WithImageName("test:latest"))
 
 			outside, err := i.isOutsideCooldown(
@@ -188,7 +189,7 @@ var _ = ginkgo.Describe("isOutsideCooldown", func() {
 		ginkgo.It("returns false with a CooldownError wrapping the pull options error", func() {
 			log, _ := captureLog(zerolog.DebugLevel)
 
-			i := newImageClient(mockClient, log, registryConfig.Registry{})
+			i := newImageClient(mockClient, log, registryConfig.Registry{}, ratelimit.New())
 
 			imageName := "localhost/unsupported-image-format:latest"
 			c := MockContainer(WithImageName(imageName))
@@ -218,7 +219,7 @@ var _ = ginkgo.Describe("isOutsideCooldown", func() {
 				),
 			)
 
-			i := newImageClient(mockClient, log, registryConfig.Registry{})
+			i := newImageClient(mockClient, log, registryConfig.Registry{}, ratelimit.New())
 			c := MockContainer(WithImageName("test:latest"))
 
 			outside, err := i.isOutsideCooldown(
@@ -275,7 +276,7 @@ var _ = ginkgo.Describe("PullImage cooldown gate", func() {
 				),
 			)
 
-			i := newImageClient(mockClient, log, registryConfig.Registry{})
+			i := newImageClient(mockClient, log, registryConfig.Registry{}, ratelimit.New())
 			// Use an explicit registry host so local-only 404 handling does not apply.
 			// Digest failure must fall through to the cooldown gate.
 			c := MockContainer(
@@ -345,13 +346,13 @@ func TestIsOutsideCooldown_RegistrySettings(t *testing.T) {
 	container := MockContainer(WithImageName(strings.TrimPrefix(server.URL, "http://") + "/org/app:1.0"))
 	params := types.UpdateParams{CooldownDelay: time.Hour}
 
-	plain := newImageClient(nil, testLog(), registryConfig.Registry{TLSSkip: true})
+	plain := newImageClient(nil, testLog(), registryConfig.Registry{TLSSkip: true}, ratelimit.New())
 
 	outside, err := plain.isOutsideCooldown(t.Context(), container, params)
 	require.NoError(t, err)
 	assert.True(t, outside, "an image older than the cooldown was deferred")
 
-	secure := newImageClient(nil, testLog(), registryConfig.Registry{})
+	secure := newImageClient(nil, testLog(), registryConfig.Registry{}, ratelimit.New())
 
 	outside, err = secure.isOutsideCooldown(t.Context(), container, params)
 	require.Error(t, err, "an HTTPS request reached the plain HTTP registry")

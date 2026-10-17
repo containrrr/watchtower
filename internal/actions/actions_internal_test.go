@@ -19,6 +19,7 @@ import (
 	mockActions "github.com/nicholas-fedor/watchtower/internal/actions/mocks"
 	"github.com/nicholas-fedor/watchtower/internal/metrics"
 	"github.com/nicholas-fedor/watchtower/pkg/filters"
+	"github.com/nicholas-fedor/watchtower/pkg/registry/ratelimit"
 	"github.com/nicholas-fedor/watchtower/pkg/session"
 	"github.com/nicholas-fedor/watchtower/pkg/types"
 	mockTypes "github.com/nicholas-fedor/watchtower/pkg/types/mocks"
@@ -301,6 +302,7 @@ var _ = ginkgo.Describe("executeUpdate", func() {
 			context.Background(),
 			client,
 			config,
+			ratelimit.New(),
 			nil,
 		)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
@@ -321,6 +323,7 @@ var _ = ginkgo.Describe("executeUpdate", func() {
 			context.Background(),
 			client,
 			config,
+			ratelimit.New(),
 			nil,
 		)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
@@ -356,6 +359,7 @@ var _ = ginkgo.Describe("executeUpdate", func() {
 			context.Background(),
 			client,
 			config,
+			ratelimit.New(),
 			nil,
 		)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
@@ -397,6 +401,7 @@ var _ = ginkgo.Describe("executeUpdate", func() {
 			context.Background(),
 			client,
 			config,
+			ratelimit.New(),
 			nil,
 		)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
@@ -438,6 +443,7 @@ var _ = ginkgo.Describe("executeUpdate", func() {
 			context.Background(),
 			client,
 			config,
+			ratelimit.New(),
 			nil,
 		)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())

@@ -132,6 +132,7 @@ func NormalizeDigest(log *zerolog.Logger, digest string) string {
 //   - container: Container whose digest is being compared.
 //   - registryAuth: Base64-encoded auth string.
 //   - settings: Registry request settings.
+//   - limiter: Rate limiter shared by registry requests. Must not be nil.
 //   - endpoints: Optional list of registry mirror host overrides to try before the canonical host.
 //
 // Returns:
@@ -143,6 +144,7 @@ func CompareDigest(
 	container types.Container,
 	registryAuth string,
 	settings registryConfig.Registry,
+	limiter *ratelimit.Limiter,
 	endpoints ...string,
 ) (bool, error) {
 	match, _, err := CompareDigestWithRemote(log,
@@ -150,6 +152,7 @@ func CompareDigest(
 		container,
 		registryAuth,
 		settings,
+		limiter,
 		endpoints...,
 	)
 
@@ -247,6 +250,7 @@ func repoPartHasRegistryHost(repoPart string) bool {
 //   - container: Container whose digest is being compared.
 //   - registryAuth: Base64-encoded auth string.
 //   - settings: Registry request settings.
+//   - limiter: Rate limiter shared by registry requests. Must not be nil.
 //   - endpoints: Optional list of registry mirror host overrides to try before the canonical host.
 //
 // Returns:
@@ -258,6 +262,7 @@ func CompareDigestWithRemote(log *zerolog.Logger,
 	container types.Container,
 	registryAuth string,
 	settings registryConfig.Registry,
+	limiter *ratelimit.Limiter,
 	endpoints ...string,
 ) (bool, string, error) {
 	fields := map[string]any{
@@ -309,6 +314,7 @@ func CompareDigestWithRemote(log *zerolog.Logger,
 		container,
 		registryAuth,
 		settings,
+		limiter,
 		http.MethodHead,
 		"",
 		endpoints...,
@@ -340,6 +346,7 @@ func CompareDigestWithRemote(log *zerolog.Logger,
 			container,
 			registryAuth,
 			settings,
+			limiter,
 			endpoints...,
 		)
 		if err != nil {
@@ -391,6 +398,7 @@ func formatDigest(digest string) string {
 //   - container: The container whose image digest is being fetched, providing the image name and reference.
 //   - authToken: A base64-encoded authentication string for registry access.
 //   - settings: Registry request settings.
+//   - limiter: Rate limiter shared by registry requests.
 //   - endpoints: Optional list of registry mirror host overrides to try before the canonical host.
 //
 // Returns:
@@ -402,9 +410,10 @@ func fetchDigestWithGet(
 	container types.Container,
 	authToken string,
 	settings registryConfig.Registry,
+	limiter *ratelimit.Limiter,
 	endpoints ...string,
 ) (string, error) {
-	return fetchDigest(log, ctx, container, authToken, settings, http.MethodGet, "", endpoints...)
+	return fetchDigest(log, ctx, container, authToken, settings, limiter, http.MethodGet, "", endpoints...)
 }
 
 // FetchDigestForTag retrieves the manifest digest of a specific tag.
@@ -424,6 +433,7 @@ func fetchDigestWithGet(
 //   - authToken: A base64-encoded authentication string for registry access.
 //   - tag: Exact tag to fetch the digest for.
 //   - settings: Registry request settings.
+//   - limiter: Rate limiter shared by registry requests. Must not be nil.
 //   - endpoints: Optional list of registry mirror host overrides to try before the canonical host.
 //
 // Returns:
@@ -436,9 +446,10 @@ func FetchDigestForTag(
 	authToken string,
 	tag string,
 	settings registryConfig.Registry,
+	limiter *ratelimit.Limiter,
 	endpoints ...string,
 ) (string, error) {
-	return fetchDigest(log, ctx, container, authToken, settings, http.MethodHead, tag, endpoints...)
+	return fetchDigest(log, ctx, container, authToken, settings, limiter, http.MethodHead, tag, endpoints...)
 }
 
 // buildManifestURL constructs and validates a manifest URL for a container.
@@ -672,6 +683,7 @@ func buildManifestURLForImage(log *zerolog.Logger,
 //   - container: Container whose digest is being retrieved.
 //   - registryAuth: Base64-encoded auth string.
 //   - settings: Registry request settings.
+//   - limiter: Rate limiter shared by registry requests.
 //   - method: HTTP method ("HEAD" or "GET").
 //   - tag: Optional tag override for the manifest specifier.
 //   - endpoints: Optional list of registry mirror host overrides to try before the canonical host.
@@ -684,6 +696,7 @@ func fetchDigest(log *zerolog.Logger,
 	container types.Container,
 	registryAuth string,
 	settings registryConfig.Registry,
+	limiter *ratelimit.Limiter,
 	method string,
 	tag string,
 	endpoints ...string,
@@ -738,7 +751,7 @@ func fetchDigest(log *zerolog.Logger,
 			Msg("Failed to resolve registry host for rate limiting")
 	}
 
-	limitKey, release, holdErr := ratelimit.HoldAnonymous(ctx, limitHost, registryAuth != "")
+	limitKey, release, holdErr := limiter.HoldAnonymous(ctx, limitHost, registryAuth != "")
 	if holdErr != nil {
 		return "", fmt.Errorf("%w: %w", errFailedGetToken, holdErr)
 	}
@@ -762,7 +775,7 @@ func fetchDigest(log *zerolog.Logger,
 			}
 		}
 
-		result, err := ratelimit.DoValue(ctx, log, limitKey, func() (auth.TokenResult, error) {
+		result, err := limiter.DoValue(ctx, log, limitKey, func() (auth.TokenResult, error) {
 			return auth.GetToken(log,
 				ctx,
 				container,
@@ -855,7 +868,7 @@ func fetchDigest(log *zerolog.Logger,
 			retry      bool
 		)
 
-		err = ratelimit.Do(ctx, log, limitKey, func() error {
+		err = limiter.Do(ctx, log, limitKey, func() error {
 			req, reqErr := makeManifestRequest(ctx, method, manifestURL, token)
 			if reqErr != nil {
 				return reqErr
@@ -914,6 +927,7 @@ func fetchDigest(log *zerolog.Logger,
 				parsedURL,
 				limitKey,
 				client,
+				limiter,
 			)
 			if err != nil {
 				log.Debug().
@@ -1460,6 +1474,7 @@ func makeManifestRequest(
 //   - parsedURL: Parsed URL object.
 //   - limitKey: Rate-limit host key from [ratelimit.Scope]. Empty uses parsedURL.Host.
 //   - client: The HTTP client to use for the request.
+//   - limiter: Rate limiter shared by registry requests.
 //
 // Returns:
 //   - string: The extracted digest, or empty for a HEAD request that should fall back to GET.
@@ -1473,6 +1488,7 @@ func retryManifestRequest(
 	parsedURL *url.URL,
 	limitKey string,
 	client auth.Client,
+	limiter *ratelimit.Limiter,
 ) (string, error) {
 	var digest string
 
@@ -1480,7 +1496,7 @@ func retryManifestRequest(
 		limitKey = parsedURL.Host
 	}
 
-	err := ratelimit.Do(ctx, log, limitKey, func() error {
+	err := limiter.Do(ctx, log, limitKey, func() error {
 		req, reqErr := makeManifestRequest(ctx, method, updatedURL, token)
 		if reqErr != nil {
 			return reqErr

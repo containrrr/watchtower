@@ -153,15 +153,6 @@ func configBlob(created string) http.HandlerFunc {
 	return respondWith(http.StatusOK, "application/vnd.oci.image.config.v1+json", validConfigJSON(created))
 }
 
-// resetRateLimits clears the registry rate limit state before and after the
-// test, so earlier tests cannot throttle the fake registry.
-func resetRateLimits(t *testing.T) {
-	t.Helper()
-
-	ratelimit.ResetForTest()
-	t.Cleanup(ratelimit.ResetForTest)
-}
-
 // fetchCreated runs FetchImageCreationTime for an image in registry, selecting
 // the runtime platform from an image index.
 func fetchCreated(t *testing.T, registry *fakeRegistry, image string) (time.Time, error) {
@@ -183,7 +174,7 @@ func fetchCreatedFor(
 
 	settings := registryConfig.Registry{CooldownPlatform: platform, TLSSkip: true}
 
-	return FetchImageCreationTime(testLog(), t.Context(), newMockContainer(t, registry.host()+"/"+image), "", settings)
+	return FetchImageCreationTime(testLog(), t.Context(), newMockContainer(t, registry.host()+"/"+image), "", settings, ratelimit.New())
 }
 
 // mustParseTime parses an RFC 3339 timestamp.
@@ -199,8 +190,6 @@ func mustParseTime(t *testing.T, value string) time.Time {
 // TestFetchImageCreationTime_SinglePlatform verifies the anonymous path for a
 // single-platform image: the challenge, the manifest, then the config blob.
 func TestFetchImageCreationTime_SinglePlatform(t *testing.T) {
-	resetRateLimits(t)
-
 	registry := newFakeRegistry(t)
 	registry.handle(fakeManifestTagPath, singlePlatformManifest(fakeConfigDigest))
 	registry.handle(fakeRepositoryPath+"/blobs/"+fakeConfigDigest, configBlob(testCreatedTimestamp))
@@ -238,8 +227,6 @@ func TestFetchImageCreationTime_PlatformSelection(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			resetRateLimits(t)
-
 			registry := newFakeRegistry(t)
 			registry.handle(fakeManifestTagPath, platformIndex())
 			registry.handle(fakeRepositoryPath+"/manifests/"+fakeRuntimeManifest, singlePlatformManifest(fakeConfigDigest))
@@ -258,8 +245,6 @@ func TestFetchImageCreationTime_PlatformSelection(t *testing.T) {
 // answered with a token from the realm, and that the token is sent with every
 // manifest and blob request.
 func TestFetchImageCreationTime_BearerToken(t *testing.T) {
-	resetRateLimits(t)
-
 	registry := newFakeRegistry(t)
 	registry.handle("/v2/", bearerChallenge(registry))
 	registry.handle("/token", tokenEndpoint())
@@ -285,8 +270,6 @@ func TestFetchImageCreationTime_BearerToken(t *testing.T) {
 // registry does not serve the image but its bearer realm is on another host,
 // the manifests and the config blob are fetched from the realm's host.
 func TestFetchImageCreationTime_ChallengeHostFallback(t *testing.T) {
-	resetRateLimits(t)
-
 	realm := newFakeRegistry(t)
 	realm.handle("/token", tokenEndpoint())
 	realm.handle(fakeManifestTagPath, requireBearer(platformIndex()))
@@ -318,8 +301,6 @@ func TestFetchImageCreationTime_ChallengeHostFallback(t *testing.T) {
 // is missing, the identical platform manifest request is sent a second time
 // before the fetch fails.
 func TestFetchImageCreationTime_PlatformManifestRetry(t *testing.T) {
-	resetRateLimits(t)
-
 	registry := newFakeRegistry(t)
 	registry.handle("/v2/", bearerChallenge(registry))
 	registry.handle("/token", tokenEndpoint())
@@ -426,8 +407,6 @@ func TestFetchImageCreationTime_Failures(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			resetRateLimits(t)
-
 			registry := newFakeRegistry(t)
 			for path, handler := range tt.handlers {
 				registry.handle(path, handler)
@@ -459,8 +438,6 @@ func tokenEndpoint() http.HandlerFunc {
 // token. The redirect names the storage server as localhost so its hostname
 // differs from the registry's, as a real storage host's would.
 func TestFetchImageCreationTime_BlobRedirect(t *testing.T) {
-	resetRateLimits(t)
-
 	storage := newFakeRegistry(t)
 	storage.handle("/blobs/config", configBlob(testCreatedTimestamp))
 
@@ -484,8 +461,6 @@ func TestFetchImageCreationTime_BlobRedirect(t *testing.T) {
 // platform manifest missing from the image registry is fetched from the bearer
 // realm's host, along with its config blob.
 func TestFetchImageCreationTime_PlatformManifestOnChallengeHost(t *testing.T) {
-	resetRateLimits(t)
-
 	realm := newFakeRegistry(t)
 	realm.handle("/token", tokenEndpoint())
 	realm.handle(fakeRepositoryPath+"/manifests/"+fakeRuntimeManifest,
@@ -517,8 +492,6 @@ func TestFetchImageCreationTime_PlatformManifestOnChallengeHost(t *testing.T) {
 // that is missing on the first request and present on the identical second
 // request is used.
 func TestFetchImageCreationTime_PlatformManifestRetrySucceeds(t *testing.T) {
-	resetRateLimits(t)
-
 	var attempts atomic.Int32
 
 	registry := newFakeRegistry(t)

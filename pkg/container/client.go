@@ -22,6 +22,7 @@ import (
 
 	registryConfig "github.com/nicholas-fedor/watchtower/internal/config/registry"
 	"github.com/nicholas-fedor/watchtower/pkg/container/oci"
+	"github.com/nicholas-fedor/watchtower/pkg/registry/ratelimit"
 	"github.com/nicholas-fedor/watchtower/pkg/types"
 )
 
@@ -436,6 +437,9 @@ type ClientOptions struct {
 	Fs                      afero.Fs
 	// Registry holds the settings for registry digest and image age requests.
 	Registry registryConfig.Registry
+	// RateLimiter paces image pulls, digest checks, and image age requests per
+	// registry host. NewClient creates one when it is nil.
+	RateLimiter *ratelimit.Limiter
 }
 
 // NewClient initializes a new Client instance for Docker API interactions.
@@ -466,6 +470,10 @@ func NewClient(log *zerolog.Logger, opts ClientOptions) Client {
 	// Set default filesystem if not provided.
 	if opts.Fs == nil {
 		opts.Fs = afero.NewOsFs()
+	}
+
+	if opts.RateLimiter == nil {
+		opts.RateLimiter = ratelimit.New()
 	}
 
 	cli, result, err := negotiateDockerAPI(log, cli)
@@ -1066,7 +1074,7 @@ func (c *client) IsContainerStale(
 	params types.UpdateParams,
 ) (bool, types.ImageID, string, error) {
 	// Use image client to perform staleness check.
-	imgClient := newImageClient(c.api, c.logger(), c.Registry)
+	imgClient := newImageClient(c.api, c.logger(), c.Registry, c.RateLimiter)
 
 	stale, newestImage, latestDigest, err := imgClient.IsContainerStale(
 		ctx,
@@ -1109,7 +1117,7 @@ func (c *client) CheckContainerUpdate(
 	container types.Container,
 	params types.UpdateParams,
 ) (bool, types.ImageID, string, error) {
-	imgClient := newImageClient(c.api, c.logger(), c.Registry)
+	imgClient := newImageClient(c.api, c.logger(), c.Registry, c.RateLimiter)
 
 	available, newestImage, latestDigest, err := imgClient.CheckContainerUpdate(
 		ctx,
@@ -1144,7 +1152,7 @@ func (c *client) CheckContainerUpdate(
 // Returns:
 //   - oci.Annotations: Annotations from the image config labels, or empty.
 func (c *client) GetImageAnnotations(ctx context.Context, imageRef string) oci.Annotations {
-	imgClient := newImageClient(c.api, c.logger(), c.Registry)
+	imgClient := newImageClient(c.api, c.logger(), c.Registry, c.RateLimiter)
 
 	return imgClient.GetImageAnnotations(ctx, imageRef)
 }
@@ -1337,7 +1345,7 @@ func (c *client) RemoveImageByID(
 	imageName string,
 ) error {
 	// Use image client to remove the image.
-	imgClient := newImageClient(c.api, c.logger(), c.Registry)
+	imgClient := newImageClient(c.api, c.logger(), c.Registry, c.RateLimiter)
 
 	err := imgClient.RemoveImageByID(ctx, imageID, imageName)
 	if err != nil {

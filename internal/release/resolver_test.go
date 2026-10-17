@@ -447,12 +447,12 @@ func TestDigestFetcherUsesItsSettings(t *testing.T) {
 
 	container := stubContainer{imageName: strings.TrimPrefix(server.URL, "http://") + "/org/app:1.2.3"}
 
-	got, err := NewDigestFetcher(registryConfig.Registry{TLSSkip: true}).
+	got, err := NewDigestFetcher(registryConfig.Registry{TLSSkip: true}, ratelimit.New()).
 		FetchDigestForTag(testLog(), t.Context(), container, "", "v1.2.3")
 	require.NoError(t, err)
 	assert.Equal(t, strings.TrimPrefix(testDigest, "sha256:"), got)
 
-	_, err = NewDigestFetcher(registryConfig.Registry{}).
+	_, err = NewDigestFetcher(registryConfig.Registry{}, ratelimit.New()).
 		FetchDigestForTag(testLog(), t.Context(), container, "", "v1.2.3")
 	require.Error(t, err, "an HTTPS request reached the plain HTTP registry")
 }
