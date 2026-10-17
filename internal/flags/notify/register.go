@@ -7,8 +7,8 @@ import (
 	"github.com/nicholas-fedor/watchtower/internal/flags/spec"
 )
 
-// DefaultEmailServerPort is the static default SMTP port.
-const DefaultEmailServerPort = 25
+// defaultEmailServerPort is the static default SMTP port.
+const defaultEmailServerPort = 25
 
 // Specs returns notify domain flag metadata with static defaults.
 //
@@ -140,7 +140,7 @@ func Specs() []spec.FlagSpec {
 		{
 			Name:       "notification-email-server-port",
 			Kind:       spec.KindInt,
-			Default:    DefaultEmailServerPort,
+			Default:    defaultEmailServerPort,
 			EnvKeys:    []string{"WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PORT"},
 			Deprecated: "Use --notification-url with an smtp:// URL.",
 			Help:       "SMTP server port to send notification emails through",

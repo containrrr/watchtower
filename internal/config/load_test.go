@@ -107,7 +107,7 @@ func TestLoad_RollingRestartWithMonitorOnly(t *testing.T) {
 	_, _, cmd := bindLoad(t, "--rolling-restart", "--monitor-only")
 
 	_, err := Load(nopLog(), cmd, nil)
-	require.ErrorIs(t, err, ErrRollingRestartWithMonitorOnly)
+	require.ErrorIs(t, err, errRollingRestartWithMonitorOnly)
 }
 
 func TestLoad_MonitorOnlyWithNoPullSucceeds(t *testing.T) {
@@ -152,7 +152,7 @@ func TestLoad_NegativeStopTimeout(t *testing.T) {
 	_, _, cmd := bindLoad(t, "--stop-timeout", "-1s")
 
 	_, err := Load(nopLog(), cmd, nil)
-	require.ErrorIs(t, err, ErrNegativeStopTimeout)
+	require.ErrorIs(t, err, errNegativeStopTimeout)
 }
 
 func TestLoad_InvalidAndNegativeCooldown(t *testing.T) {
@@ -260,7 +260,7 @@ func TestLoadUpdate(t *testing.T) {
 	t.Run("negative timeout", func(t *testing.T) {
 		vCfg, flagSet, _ := bindLoad(t, "--stop-timeout", "-5s")
 		_, err := loadUpdate(nopLog(), vCfg, flagSet)
-		require.ErrorIs(t, err, ErrNegativeStopTimeout)
+		require.ErrorIs(t, err, errNegativeStopTimeout)
 	})
 
 	t.Run("invalid cooldown", func(t *testing.T) {
@@ -272,7 +272,7 @@ func TestLoadUpdate(t *testing.T) {
 
 	t.Run("negative cooldown", func(t *testing.T) {
 		// util.ParseDuration rejects a leading '-' before loadUpdate can return
-		// ErrNegativeCooldownDelay.
+		// errNegativeCooldownDelay.
 		vCfg, flagSet, _ := bindLoad(t, "--cooldown-delay", "-2d")
 		_, err := loadUpdate(nopLog(), vCfg, flagSet)
 		require.Error(t, err)
@@ -635,7 +635,7 @@ func TestValidate(t *testing.T) {
 				MonitorOnly:    true,
 			},
 		})
-		require.ErrorIs(t, err, ErrRollingRestartWithMonitorOnly)
+		require.ErrorIs(t, err, errRollingRestartWithMonitorOnly)
 	})
 
 	t.Run("monitor-only and no-pull warns", func(t *testing.T) {

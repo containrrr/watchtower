@@ -9,8 +9,8 @@ import (
 	"github.com/nicholas-fedor/watchtower/internal/flags/spec"
 )
 
-// DefaultStopTimeout is the static default container stop timeout.
-const DefaultStopTimeout = 30 * time.Second
+// defaultStopTimeout is the static default container stop timeout.
+const defaultStopTimeout = 30 * time.Second
 
 // Specs returns update domain flag metadata with static defaults.
 //
@@ -66,7 +66,7 @@ func Specs() []spec.FlagSpec {
 			Name:      "stop-timeout",
 			Shorthand: "t",
 			Kind:      spec.KindDuration,
-			Default:   DefaultStopTimeout,
+			Default:   defaultStopTimeout,
 			EnvKeys:   []string{"WATCHTOWER_TIMEOUT"},
 			Help:      "Timeout before a container is forcefully stopped (e.g., 30s, 1m, 5m)",
 		},

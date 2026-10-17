@@ -1,4 +1,4 @@
-package config_test
+package config
 
 import (
 	"io"
@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/nicholas-fedor/watchtower/internal/config"
 	"github.com/nicholas-fedor/watchtower/internal/flags"
 	"github.com/nicholas-fedor/watchtower/internal/logging"
 	"github.com/nicholas-fedor/watchtower/pkg/types"
@@ -25,7 +24,7 @@ func testLogger() *zerolog.Logger {
 }
 
 // newLoadedCommand registers flags, applies env, parses args, and loads config.
-func newLoadedCommand(t *testing.T, env map[string]string, args ...string) config.Config {
+func newLoadedCommand(t *testing.T, env map[string]string, args ...string) Config {
 	t.Helper()
 
 	for k, v := range env {
@@ -44,7 +43,7 @@ func newLoadedCommand(t *testing.T, env map[string]string, args ...string) confi
 	flags.ProcessFlagAliases(log, flagSet)
 	flags.GetSecretsFromFiles(log, cmd)
 
-	cfg, err := config.Load(testLogger(), cmd, nil)
+	cfg, err := Load(testLogger(), cmd, nil)
 	require.NoError(t, err)
 
 	return cfg
@@ -131,7 +130,7 @@ func TestUpdateParams_CompleteSnapshot(t *testing.T) {
 		"WATCHTOWER_LABEL_TAKE_PRECEDENCE":  "true",
 	})
 
-	params := cfg.UpdateParams(config.RunOverrides{})
+	params := cfg.UpdateParams(RunOverrides{})
 	assert.True(t, params.Cleanup)
 	assert.True(t, params.ReviveStopped, "ReviveStopped projects from Client domain")
 	assert.True(t, params.UseComposeDependsOn)
@@ -165,9 +164,9 @@ func TestLoad_APIChangedReflectsCLIOnly(t *testing.T) {
 		assert.False(t, cfg.API.CheckTimeoutChanged)
 		assert.False(t, cfg.API.UpdateTimeoutChanged)
 
-		run, err := cfg.BuildRunConfig(config.RunConfigInput{})
+		run, err := cfg.BuildRunConfig(RunConfigInput{})
 		require.NoError(t, err)
-		assert.False(t, config.AnyHTTPAPIConfig(run),
+		assert.False(t, AnyHTTPAPIConfig(run),
 			"env-only host/port/rate/timeouts must not trip the no-endpoint warning")
 	})
 
@@ -182,9 +181,9 @@ func TestLoad_APIChangedReflectsCLIOnly(t *testing.T) {
 		assert.True(t, cfg.API.PortChanged)
 		assert.True(t, cfg.API.RateLimitChanged)
 
-		run, err := cfg.BuildRunConfig(config.RunConfigInput{})
+		run, err := cfg.BuildRunConfig(RunConfigInput{})
 		require.NoError(t, err)
-		assert.True(t, config.AnyHTTPAPIConfig(run),
+		assert.True(t, AnyHTTPAPIConfig(run),
 			"CLI host/port/rate-limit should still trip the no-endpoint warning")
 	})
 }

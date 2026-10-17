@@ -61,7 +61,7 @@ func FuzzContextFragment(f *testing.F) {
 	f.Fuzz(func(t *testing.T, rel string) {
 		got, err := SafeRelPath(rel)
 		if err != nil {
-			assert.ErrorIs(t, err, ErrPathEscape)
+			assert.ErrorIs(t, err, errPathEscape)
 
 			return
 		}
@@ -89,7 +89,7 @@ func FuzzSafeRelPath(f *testing.F) {
 	f.Fuzz(func(t *testing.T, rel string) {
 		got, err := SafeRelPath(rel)
 		if err != nil {
-			assert.ErrorIs(t, err, ErrPathEscape)
+			assert.ErrorIs(t, err, errPathEscape)
 
 			return
 		}

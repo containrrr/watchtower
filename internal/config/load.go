@@ -36,26 +36,26 @@ import (
 const diskSpacePercentBase = 100
 
 var (
-	// ErrNegativeStopTimeout indicates stop-timeout was set to a negative duration.
-	ErrNegativeStopTimeout = errors.New("stop-timeout must be non-negative")
-	// ErrNegativeCooldownDelay indicates cooldown-delay was set to a negative duration.
-	ErrNegativeCooldownDelay = errors.New("cooldown-delay must be non-negative")
-	// ErrRollingRestartWithMonitorOnly indicates incompatible rolling-restart and monitor-only flags.
-	ErrRollingRestartWithMonitorOnly = errors.New(
+	// errNegativeStopTimeout indicates stop-timeout was set to a negative duration.
+	errNegativeStopTimeout = errors.New("stop-timeout must be non-negative")
+	// errNegativeCooldownDelay indicates cooldown-delay was set to a negative duration.
+	errNegativeCooldownDelay = errors.New("cooldown-delay must be non-negative")
+	// errRollingRestartWithMonitorOnly indicates incompatible rolling-restart and monitor-only flags.
+	errRollingRestartWithMonitorOnly = errors.New(
 		"rolling-restart and monitor-only cannot both be enabled",
 	)
-	// ErrDiskSpaceMaxPercent indicates disk-space-max was given as a percentage.
-	ErrDiskSpaceMaxPercent = errors.New("disk-space-max cannot be a percentage")
-	// ErrDiskSpacePercentWithoutMax indicates a percentage warn value without disk-space-max.
-	ErrDiskSpacePercentWithoutMax = errors.New(
+	// errDiskSpaceMaxPercent indicates disk-space-max was given as a percentage.
+	errDiskSpaceMaxPercent = errors.New("disk-space-max cannot be a percentage")
+	// errDiskSpacePercentWithoutMax indicates a percentage warn value without disk-space-max.
+	errDiskSpacePercentWithoutMax = errors.New(
 		"disk-space-warn percentage requires disk-space-max",
 	)
-	// ErrDiskSpacePercentOutOfRange indicates a percentage outside (0, 100].
-	ErrDiskSpacePercentOutOfRange = errors.New(
+	// errDiskSpacePercentOutOfRange indicates a percentage outside (0, 100].
+	errDiskSpacePercentOutOfRange = errors.New(
 		"disk-space percentage must be greater than 0 and at most 100",
 	)
-	// ErrDiskSpaceWarnNotBelowMax indicates the warn threshold is not below the max.
-	ErrDiskSpaceWarnNotBelowMax = errors.New(
+	// errDiskSpaceWarnNotBelowMax indicates the warn threshold is not below the max.
+	errDiskSpaceWarnNotBelowMax = errors.New(
 		"disk-space-warn must be below disk-space-max",
 	)
 )
@@ -188,7 +188,7 @@ func loadUpdate(log *zerolog.Logger, vCfg *viper.Viper, flagSet *pflag.FlagSet) 
 	stopTimeout := durationValue(vCfg, flagSet, "stop-timeout", []string{"WATCHTOWER_TIMEOUT"})
 
 	if stopTimeout < 0 {
-		return update.Update{}, ErrNegativeStopTimeout
+		return update.Update{}, errNegativeStopTimeout
 	}
 
 	if stopTimeout > 0 && stopTimeout < time.Second {
@@ -208,7 +208,7 @@ func loadUpdate(log *zerolog.Logger, vCfg *viper.Viper, flagSet *pflag.FlagSet) 
 		}
 
 		if parsed < 0 {
-			return update.Update{}, ErrNegativeCooldownDelay
+			return update.Update{}, errNegativeCooldownDelay
 		}
 
 		cooldown = parsed
@@ -259,7 +259,7 @@ func resolveDiskSpaceThresholds(maxRaw, warnRaw string) (int64, int64, error) {
 	warnRaw = strings.TrimSpace(warnRaw)
 
 	if strings.HasSuffix(maxRaw, "%") {
-		return 0, 0, ErrDiskSpaceMaxPercent
+		return 0, 0, errDiskSpaceMaxPercent
 	}
 
 	maxBytes, err := util.ParseDiskSpace(maxRaw)
@@ -273,7 +273,7 @@ func resolveDiskSpaceThresholds(maxRaw, warnRaw string) (int64, int64, error) {
 	}
 
 	if maxBytes > 0 && warnBytes > 0 && warnBytes >= maxBytes {
-		return 0, 0, ErrDiskSpaceWarnNotBelowMax
+		return 0, 0, errDiskSpaceWarnNotBelowMax
 	}
 
 	return maxBytes, warnBytes, nil
@@ -295,7 +295,7 @@ func parseDiskSpaceWarn(raw string, maxBytes int64) (int64, error) {
 
 	if strings.HasSuffix(raw, "%") {
 		if maxBytes <= 0 {
-			return 0, ErrDiskSpacePercentWithoutMax
+			return 0, errDiskSpacePercentWithoutMax
 		}
 
 		pctStr := strings.TrimSpace(strings.TrimSuffix(raw, "%"))
@@ -306,7 +306,7 @@ func parseDiskSpaceWarn(raw string, maxBytes int64) (int64, error) {
 		}
 
 		if pct <= 0 || pct > diskSpacePercentBase {
-			return 0, ErrDiskSpacePercentOutOfRange
+			return 0, errDiskSpacePercentOutOfRange
 		}
 
 		return int64(float64(maxBytes) * pct / diskSpacePercentBase), nil
@@ -643,7 +643,7 @@ func readOptionalFile(path string) ([]byte, error) {
 // validate checks cross-flag constraints that Load can enforce without side effects.
 func validate(log *zerolog.Logger, cfg Config) error {
 	if cfg.Update.RollingRestart && cfg.Update.MonitorOnly {
-		return ErrRollingRestartWithMonitorOnly
+		return errRollingRestartWithMonitorOnly
 	}
 
 	if cfg.Update.MonitorOnly && cfg.Update.NoPull {

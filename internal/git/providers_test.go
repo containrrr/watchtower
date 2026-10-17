@@ -966,7 +966,7 @@ func TestGetJSONPage(t *testing.T) {
 
 		_, err := client.getJSONPage(t.Context(), srv.URL, &map[string]any{}, "")
 		require.ErrorIs(t, err, errAPINotFound)
-		require.ErrorIs(t, err, ErrRefNotFound)
+		require.ErrorIs(t, err, errRefNotFound)
 	})
 
 	t.Run("status error", func(t *testing.T) {

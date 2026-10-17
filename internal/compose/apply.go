@@ -45,7 +45,7 @@ type Applier interface {
 	Apply(ctx context.Context, req Request) ([]Container, error)
 }
 
-// InjectLabels returns a copy of project with extra labels merged onto named services.
+// injectLabels returns a copy of project with extra labels merged onto named services.
 //
 // Parameters:
 //   - project: Loaded Compose project.
@@ -54,7 +54,7 @@ type Applier interface {
 // Returns:
 //   - *composetypes.Project: Transformed project.
 //   - error: Non-nil when a transform fails.
-func InjectLabels(project *composetypes.Project, labels map[string]map[string]string) (*composetypes.Project, error) {
+func injectLabels(project *composetypes.Project, labels map[string]map[string]string) (*composetypes.Project, error) {
 	if project == nil {
 		return nil, errNilProject
 	}

@@ -9,8 +9,8 @@ import (
 	"github.com/nicholas-fedor/watchtower/internal/flags/spec"
 )
 
-// DefaultRateLimit is the static default HTTP API rate limit per minute per IP.
-const DefaultRateLimit = 60
+// defaultRateLimit is the static default HTTP API rate limit per minute per IP.
+const defaultRateLimit = 60
 
 // Specs returns API domain flag metadata with static defaults.
 //
@@ -89,7 +89,7 @@ func Specs() []spec.FlagSpec {
 		{
 			Name:    "http-api-rate-limit",
 			Kind:    spec.KindInt,
-			Default: DefaultRateLimit,
+			Default: defaultRateLimit,
 			EnvKeys: []string{"WATCHTOWER_HTTP_API_RATE_LIMIT"},
 			Help:    "Maximum authentication requests per minute per IP address for the HTTP API (default: 60)",
 		},

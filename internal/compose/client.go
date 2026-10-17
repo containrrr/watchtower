@@ -52,7 +52,7 @@ func (c *Client) Apply(ctx context.Context, req Request) ([]Container, error) {
 		return nil, errNoComposeServices
 	}
 
-	project, err := Load(ctx, req.Ref)
+	project, err := loadProject(ctx, req.Ref)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +62,7 @@ func (c *Client) Apply(ctx context.Context, req Request) ([]Container, error) {
 		return nil, fmt.Errorf("select compose services: %w", err)
 	}
 
-	project, err = InjectLabels(project, req.Labels)
+	project, err = injectLabels(project, req.Labels)
 	if err != nil {
 		return nil, fmt.Errorf("inject compose labels: %w", err)
 	}

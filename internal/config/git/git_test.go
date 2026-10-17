@@ -97,7 +97,7 @@ func TestParseImageMapping(t *testing.T) {
 		{
 			name:    "unknown policy token",
 			raw:     "myapp:latest=https://github.com/org/app.git@latest",
-			wantErr: ErrInvalidGitPolicy,
+			wantErr: errInvalidGitPolicy,
 		},
 	}
 
@@ -105,7 +105,7 @@ func TestParseImageMapping(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			image, mapping, err := ParseImageMapping(tt.raw)
+			image, mapping, err := parseImageMapping(tt.raw)
 			if tt.wantErr != nil {
 				require.ErrorIs(t, err, tt.wantErr)
 

@@ -23,8 +23,8 @@ func TestValidateRef(t *testing.T) {
 	require.NoError(t, validateRef("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"))
 	require.NoError(t, validateRef("refs/heads/main"))
 	require.NoError(t, validateRef("refs/tags/v1.2.3"))
-	require.ErrorIs(t, validateRef("foo..bar"), ErrInvalidRef)
-	require.ErrorIs(t, validateRef("has space"), ErrInvalidRef)
+	require.ErrorIs(t, validateRef("foo..bar"), errInvalidRef)
+	require.ErrorIs(t, validateRef("has space"), errInvalidRef)
 }
 
 func TestResolveListedRefPrefersPeeledTag(t *testing.T) {
@@ -97,10 +97,10 @@ func TestRefName(t *testing.T) {
 func TestClassifyTransport(t *testing.T) {
 	t.Parallel()
 
-	require.ErrorIs(t, classifyTransport(transport.ErrAuthenticationRequired), ErrAuthRequired)
-	require.ErrorIs(t, classifyTransport(transport.ErrAuthorizationFailed), ErrAuthFailed)
-	require.ErrorIs(t, classifyTransport(transport.ErrRepositoryNotFound), ErrRepoNotFound)
-	require.ErrorIs(t, wrapRemoteErr("ls-remote", transport.ErrAuthenticationRequired), ErrAuthRequired)
+	require.ErrorIs(t, classifyTransport(transport.ErrAuthenticationRequired), errAuthRequired)
+	require.ErrorIs(t, classifyTransport(transport.ErrAuthorizationFailed), errAuthFailed)
+	require.ErrorIs(t, classifyTransport(transport.ErrRepositoryNotFound), errRepoNotFound)
+	require.ErrorIs(t, wrapRemoteErr("ls-remote", transport.ErrAuthenticationRequired), errAuthRequired)
 
 	other := errors.New("network down")
 	require.ErrorIs(t, classifyTransport(other), other)

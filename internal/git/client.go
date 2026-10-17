@@ -188,7 +188,7 @@ func (c *Client) Check(ctx context.Context, req CheckRequest) (CheckResult, erro
 //   - error: Non-nil on clone or checkout failure. The directory is removed on error.
 func (c *Client) Clone(ctx context.Context, repo string, rev CheckResult) (string, error) {
 	if c == nil {
-		return "", fmt.Errorf("%w: client is nil", ErrCloneFailed)
+		return "", fmt.Errorf("%w: client is nil", errCloneFailed)
 	}
 
 	ctx, cancel := c.WithTimeout(ctx)
@@ -196,7 +196,7 @@ func (c *Client) Clone(ctx context.Context, repo string, rev CheckResult) (strin
 
 	dir, err := os.MkdirTemp("", "watchtower-git-*")
 	if err != nil {
-		return "", fmt.Errorf("%w: mkdir: %w", ErrCloneFailed, err)
+		return "", fmt.Errorf("%w: mkdir: %w", errCloneFailed, err)
 	}
 
 	err = cloneCheckout(ctx, dir, repo, rev, c)
@@ -433,9 +433,9 @@ func repositoryOperationError(operation, repo string, err error) error {
 
 	classified := classifyTransport(err)
 	switch {
-	case errors.Is(classified, ErrAuthRequired),
-		errors.Is(classified, ErrAuthFailed),
-		errors.Is(classified, ErrRepoNotFound):
+	case errors.Is(classified, errAuthRequired),
+		errors.Is(classified, errAuthFailed),
+		errors.Is(classified, errRepoNotFound):
 		return fmt.Errorf("%s %s: %w", operation, safeRepo, classified)
 	case errors.Is(err, context.Canceled):
 		return fmt.Errorf("%s %s: %w", operation, safeRepo, context.Canceled)
@@ -513,7 +513,7 @@ func (c *Client) checkTagPolicy(ctx context.Context, req CheckRequest) (CheckRes
 	}
 
 	if lastTag == "" && req.LastCommit == "" {
-		selected, ok := SelectTag("", names, req.Policy)
+		selected, ok := selectTag("", names, req.Policy)
 		if !ok {
 			// No usable semver tags. Observe the configured ref without
 			// treating the missing baseline as a reason to rebuild.
@@ -535,7 +535,7 @@ func (c *Client) checkTagPolicy(ctx context.Context, req CheckRequest) (CheckRes
 		}, nil
 	}
 
-	selected, ok := SelectTag(lastTag, names, req.Policy)
+	selected, ok := selectTag(lastTag, names, req.Policy)
 	if !ok {
 		if inferred {
 			return CheckResult{

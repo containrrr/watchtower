@@ -409,7 +409,7 @@ func performImageCleanup(log *zerolog.Logger, ctx context.Context,
 	)
 	defer cancel()
 
-	cleaned, err := RemoveImages(log, cleanupCtx, client, uniqueByImageID)
+	cleaned, err := removeImages(log, cleanupCtx, client, uniqueByImageID)
 	if err != nil {
 		log.Warn().
 			Err(err).

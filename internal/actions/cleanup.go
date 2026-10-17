@@ -107,7 +107,7 @@ func RemoveExcessWatchtowerInstances(log *zerolog.Logger, ctx context.Context,
 	return removed, nil
 }
 
-// CleanupOldWatchtowerContainers removes old Watchtower containers that
+// cleanupOldWatchtowerContainers removes old Watchtower containers that
 // linger from a previous self-update. Unlike RemoveExcessWatchtowerInstances
 // (which runs once at startup), this is designed to be called during each update
 // cycle to catch any old containers that the startup cleanup may have missed.
@@ -130,7 +130,7 @@ func RemoveExcessWatchtowerInstances(log *zerolog.Logger, ctx context.Context,
 // Returns:
 //   - int: Number of removed old Watchtower containers.
 //   - error: Non-nil if removal fails, nil if none found or successful removal.
-func CleanupOldWatchtowerContainers(log *zerolog.Logger, ctx context.Context,
+func cleanupOldWatchtowerContainers(log *zerolog.Logger, ctx context.Context,
 	client container.Client,
 	cleanupImages bool,
 	scope string,
@@ -717,7 +717,7 @@ func removeExcessContainers(log *zerolog.Logger, ctx context.Context,
 		// its cleanup.
 		addCollectedImages(removeImageInfos, collected, nil)
 	} else if len(collected) > 0 {
-		removedInfos, err := RemoveImages(log, ctx, client, deduplicateByImageID(collected))
+		removedInfos, err := removeImages(log, ctx, client, deduplicateByImageID(collected))
 		if err != nil {
 			log.Error().
 				Err(err).
@@ -770,7 +770,7 @@ func addCollectedImages(
 	}
 }
 
-// RemoveImages removes specified images and returns successfully removed ones.
+// removeImages removes specified images and returns successfully removed ones.
 //
 // It iterates through the provided images, attempting to remove each from the Docker environment,
 // logging successes or failures for debugging and monitoring. Tracks successfully removed image info.
@@ -785,7 +785,7 @@ func addCollectedImages(
 // Returns:
 //   - []RemovedImageInfo: Slice of successfully removed image info.
 //   - error: Non-nil if any image removal failed, nil otherwise.
-func RemoveImages(log *zerolog.Logger, ctx context.Context,
+func removeImages(log *zerolog.Logger, ctx context.Context,
 	client container.Client,
 	images []types.RemovedImageInfo,
 ) ([]types.RemovedImageInfo, error) {

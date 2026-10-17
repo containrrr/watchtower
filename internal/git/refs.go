@@ -13,7 +13,7 @@ import (
 //   - ref: User-supplied branch, tag, or commit.
 //
 // Returns:
-//   - error: ErrInvalidRef when the name is unsafe.
+//   - error: errInvalidRef when the name is unsafe.
 func validateRef(ref string) error {
 	if ref == "" || plumbing.IsHash(ref) {
 		return nil
@@ -29,7 +29,7 @@ func validateRef(ref string) error {
 		return nil
 	}
 
-	return fmt.Errorf("%w: %s", ErrInvalidRef, ref)
+	return fmt.Errorf("%w: %s", errInvalidRef, ref)
 }
 
 // resolveListedRef matches ref against ls-remote names, preferring peeled tags.
@@ -40,7 +40,7 @@ func validateRef(ref string) error {
 //
 // Returns:
 //   - resolvedRef: Name, commit hash, and kind.
-//   - error: ErrRefNotFound when neither a branch nor a tag matches.
+//   - error: errRefNotFound when neither a branch nor a tag matches.
 func resolveListedRef(refs []RemoteRef, ref string) (resolvedRef, error) {
 	branch := refName(ref, kindBranch)
 	tag := refName(ref, kindTag)
@@ -70,7 +70,7 @@ func resolveListedRef(refs []RemoteRef, ref string) (resolvedRef, error) {
 		return resolvedRef{Name: ref, Hash: tagHash, Kind: kindTag}, nil
 	}
 
-	return resolvedRef{}, fmt.Errorf("%w: %s", ErrRefNotFound, ref)
+	return resolvedRef{}, fmt.Errorf("%w: %s", errRefNotFound, ref)
 }
 
 // collectTagHashes maps short tag names to commit hashes.

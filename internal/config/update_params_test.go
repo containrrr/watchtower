@@ -1,4 +1,4 @@
-package config_test
+package config
 
 import (
 	"reflect"
@@ -8,7 +8,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/nicholas-fedor/watchtower/internal/config"
 	"github.com/nicholas-fedor/watchtower/internal/config/client"
 	"github.com/nicholas-fedor/watchtower/internal/config/compatibility"
 	"github.com/nicholas-fedor/watchtower/internal/config/filter"
@@ -26,7 +25,7 @@ import (
 func TestUpdateParamsAssignsEveryField(t *testing.T) {
 	t.Parallel()
 
-	cfg := config.Config{
+	cfg := Config{
 		Client: client.Client{
 			ReviveStopped: true,
 			CPUCopyMode:   "full",
@@ -87,7 +86,7 @@ func TestUpdateParamsAssignsEveryField(t *testing.T) {
 		},
 	}
 
-	ov := config.RunOverrides{
+	ov := RunOverrides{
 		RunOnce:            true,
 		SkipSelfUpdate:     true,
 		CurrentContainerID: types.ContainerID("abc123"),
@@ -159,12 +158,12 @@ func TestUpdateParamsOverrideFilter(t *testing.T) {
 
 	override := func(types.FilterableContainer) bool { return false }
 
-	cfg := config.Config{
+	cfg := Config{
 		Filter:        filter.Filter{Predicate: filters.NoFilter},
 		Compatibility: compatibility.Compatibility{CPUCopyMode: "none"},
 	}
 
-	params := cfg.UpdateParams(config.RunOverrides{Filter: override})
+	params := cfg.UpdateParams(RunOverrides{Filter: override})
 	require.NotNil(t, params.Filter)
 	assert.False(t, params.Filter(nil))
 }
@@ -173,7 +172,7 @@ func TestUpdateParamsOverrideFilter(t *testing.T) {
 func TestClientOptionsMapsClientAndCompat(t *testing.T) {
 	t.Parallel()
 
-	cfg := config.Config{
+	cfg := Config{
 		Client: client.Client{
 			IncludeStopped:    true,
 			IncludeRestarting: true,

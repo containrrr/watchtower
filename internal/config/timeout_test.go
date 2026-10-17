@@ -1,4 +1,4 @@
-package config_test
+package config
 
 import (
 	"math"
@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/nicholas-fedor/watchtower/internal/config"
 	"github.com/nicholas-fedor/watchtower/internal/flags"
 )
 
@@ -60,7 +59,7 @@ func TestStopTimeout_LegacyBareNumberAsSeconds(t *testing.T) {
 			flags.RegisterAll(cmd)
 			require.NoError(t, cmd.ParseFlags([]string{}))
 
-			cfg, err := config.Load(testLogger(), cmd, nil)
+			cfg, err := Load(testLogger(), cmd, nil)
 			if tc.wantError {
 				require.Error(t, err)
 

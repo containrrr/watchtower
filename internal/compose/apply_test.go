@@ -23,7 +23,7 @@ func TestLoad(t *testing.T) {
 	t.Run("empty dir", func(t *testing.T) {
 		t.Parallel()
 
-		_, err := Load(t.Context(), ProjectRef{})
+		_, err := loadProject(t.Context(), ProjectRef{})
 		require.ErrorIs(t, err, errEmptyProjectDir)
 	})
 
@@ -40,7 +40,7 @@ services:
     image: postgres:16
 `), 0o600))
 
-		project, err := Load(t.Context(), ProjectRef{Dir: dir})
+		project, err := loadProject(t.Context(), ProjectRef{Dir: dir})
 		require.NoError(t, err)
 		assert.Equal(t, "webstack", project.Name)
 		assert.ElementsMatch(t, []string{"api", "db"}, project.ServiceNames())
@@ -57,7 +57,7 @@ services:
     build: ./worker
 `), 0o600))
 
-		project, err := Load(t.Context(), ProjectRef{
+		project, err := loadProject(t.Context(), ProjectRef{
 			Name:        "jobs",
 			Dir:         dir,
 			ConfigFiles: []string{path},
@@ -81,7 +81,7 @@ services:
       TOKEN: ${WATCHTOWER_GIT_AUTH_TOKEN}
 `), 0o600))
 
-	project, err := Load(t.Context(), ProjectRef{Dir: dir, Name: "p"})
+	project, err := loadProject(t.Context(), ProjectRef{Dir: dir, Name: "p"})
 	require.NoError(t, err)
 
 	api, err := project.GetService("api")
@@ -96,7 +96,7 @@ func TestInjectLabels(t *testing.T) {
 	t.Run("nil project", func(t *testing.T) {
 		t.Parallel()
 
-		_, err := InjectLabels(nil, map[string]map[string]string{"api": {"k": "v"}})
+		_, err := injectLabels(nil, map[string]map[string]string{"api": {"k": "v"}})
 		require.ErrorIs(t, err, errNilProject)
 	})
 
@@ -106,10 +106,10 @@ func TestInjectLabels(t *testing.T) {
 		dir := t.TempDir()
 		require.NoError(t, os.WriteFile(filepath.Join(dir, "compose.yaml"), []byte("services:\n  api:\n    image: app\n"), 0o600))
 
-		project, err := Load(t.Context(), ProjectRef{Dir: dir, Name: "p"})
+		project, err := loadProject(t.Context(), ProjectRef{Dir: dir, Name: "p"})
 		require.NoError(t, err)
 
-		got, err := InjectLabels(project, nil)
+		got, err := injectLabels(project, nil)
 		require.NoError(t, err)
 		assert.Equal(t, project, got)
 	})
@@ -128,10 +128,10 @@ services:
     image: postgres:16
 `), 0o600))
 
-		project, err := Load(t.Context(), ProjectRef{Dir: dir, Name: "p"})
+		project, err := loadProject(t.Context(), ProjectRef{Dir: dir, Name: "p"})
 		require.NoError(t, err)
 
-		got, err := InjectLabels(project, map[string]map[string]string{
+		got, err := injectLabels(project, map[string]map[string]string{
 			"api": {
 				"com.centurylinklabs.watchtower.git-last-commit": "abc",
 			},
@@ -377,7 +377,7 @@ func TestStampComposeIdentity(t *testing.T) {
 		t.Parallel()
 
 		dir := writeIdentityComposeDir(t)
-		project, err := Load(t.Context(), ProjectRef{Dir: dir, Name: "jobs"})
+		project, err := loadProject(t.Context(), ProjectRef{Dir: dir, Name: "jobs"})
 		require.NoError(t, err)
 
 		service, err := project.GetService("api")
@@ -458,7 +458,7 @@ func TestScopeComposeProjectRejectsMissingService(t *testing.T) {
 	dir := t.TempDir()
 	require.NoError(t, os.WriteFile(filepath.Join(dir, "compose.yaml"), []byte("services:\n  app:\n    image: app\n"), 0o600))
 
-	project, err := Load(t.Context(), ProjectRef{Dir: dir, Name: "project"})
+	project, err := loadProject(t.Context(), ProjectRef{Dir: dir, Name: "project"})
 	require.NoError(t, err)
 
 	_, err = scopeComposeProject(project, []string{"missing"})

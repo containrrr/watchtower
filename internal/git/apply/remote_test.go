@@ -27,38 +27,38 @@ func TestRemoteContext(t *testing.T) {
 	assert.Equal(t, "https://github.com/org/app.git#abc123", got)
 
 	_, err = RemoteContext("https://github.com/org/app.git", "abc123", "../etc")
-	require.ErrorIs(t, err, ErrPathEscape)
+	require.ErrorIs(t, err, errPathEscape)
 
 	_, err = RemoteContext("https://github.com/org/app.git", "", "")
-	require.ErrorIs(t, err, ErrCommitEmpty)
+	require.ErrorIs(t, err, errCommitEmpty)
 }
 
 func TestRemoteContextRejectsInvalidInput(t *testing.T) {
 	t.Parallel()
 
 	_, err := RemoteContext("", "abc123", "")
-	require.ErrorIs(t, err, ErrRemoteEmpty)
+	require.ErrorIs(t, err, errRemoteEmpty)
 
 	_, err = RemoteContext("https://github.com/org/app.git", "abc#123", "")
-	require.ErrorIs(t, err, ErrCommitInvalid)
+	require.ErrorIs(t, err, errCommitInvalid)
 
 	_, err = RemoteContext("https://github.com/org/app.git", "abc123", "/abs")
-	require.ErrorIs(t, err, ErrPathEscape)
+	require.ErrorIs(t, err, errPathEscape)
 
 	_, err = RemoteContext("https://github.com/org/app.git", "abc123", `\\`)
-	require.ErrorIs(t, err, ErrPathEscape)
+	require.ErrorIs(t, err, errPathEscape)
 
 	_, err = RemoteContext("https://github.com/org/app.git", "abc123", "foo:bar")
-	require.ErrorIs(t, err, ErrPathEscape)
+	require.ErrorIs(t, err, errPathEscape)
 
 	_, err = RemoteContext("file:///tmp/app.git", "abc123", "")
-	require.ErrorIs(t, err, ErrRemoteInvalid)
+	require.ErrorIs(t, err, errRemoteInvalid)
 
 	_, err = RemoteContext("https://github.com/org/app.git", "not-a-sha", "")
-	require.ErrorIs(t, err, ErrCommitInvalid)
+	require.ErrorIs(t, err, errCommitInvalid)
 
 	_, err = RemoteContext("https://github.com/org/app.git", "abc", "")
-	require.ErrorIs(t, err, ErrCommitInvalid)
+	require.ErrorIs(t, err, errCommitInvalid)
 
 	got, err := RemoteContext("http://git.example.com/org/app", "abc123", "")
 	require.NoError(t, err)
@@ -95,7 +95,7 @@ func TestRemoteContextInvalidRemoteDoesNotExposeCredentials(t *testing.T) {
 			t.Parallel()
 
 			_, err := RemoteContext(tt.remote, "abc123", "")
-			require.ErrorIs(t, err, ErrRemoteInvalid)
+			require.ErrorIs(t, err, errRemoteInvalid)
 
 			for _, secret := range tt.secrets {
 				assert.NotContains(t, err.Error(), secret)
@@ -120,10 +120,10 @@ func TestWithAuth(t *testing.T) {
 	assert.Equal(t, "https://git:secret@github.com/org/app.git#abc", got)
 
 	_, err = WithAuth("http://git.example.com/org/app.git#abc", "git", "secret")
-	require.ErrorIs(t, err, ErrNeedsHTTPS)
+	require.ErrorIs(t, err, errNeedsHTTPS)
 
 	_, err = WithAuth("ssh://git@github.com/org/app.git", "git", "secret")
-	require.ErrorIs(t, err, ErrNeedsHTTPS)
+	require.ErrorIs(t, err, errNeedsHTTPS)
 
 	_, err = WithAuth("://", "git", "secret")
 	require.Error(t, err)
@@ -149,7 +149,7 @@ func TestWithAuthErrorsDoNotExposeRemoteCredentials(t *testing.T) {
 
 		remote := "audit-user:scp-password@git.example.com:org/app.git?token=scp-query-secret"
 		_, err := WithAuth(remote, "git", "secret")
-		require.ErrorIs(t, err, ErrNeedsHTTPS)
+		require.ErrorIs(t, err, errNeedsHTTPS)
 		assert.NotContains(t, err.Error(), "audit-user")
 		assert.NotContains(t, err.Error(), "scp-password")
 		assert.NotContains(t, err.Error(), "scp-query-secret")
@@ -168,13 +168,13 @@ func TestSafeRelPath(t *testing.T) {
 	assert.Empty(t, got)
 
 	_, err = SafeRelPath("../Dockerfile")
-	require.ErrorIs(t, err, ErrPathEscape)
+	require.ErrorIs(t, err, errPathEscape)
 
 	_, err = SafeRelPath("/etc/passwd")
-	require.ErrorIs(t, err, ErrPathEscape)
+	require.ErrorIs(t, err, errPathEscape)
 
 	_, err = SafeRelPath(`\\`)
-	require.ErrorIs(t, err, ErrPathEscape)
+	require.ErrorIs(t, err, errPathEscape)
 }
 
 func TestValidCommit(t *testing.T) {

@@ -1,4 +1,4 @@
-package config_test
+package config
 
 import (
 	"io"
@@ -8,7 +8,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/nicholas-fedor/watchtower/internal/config"
 	"github.com/nicholas-fedor/watchtower/internal/flags"
 	"github.com/nicholas-fedor/watchtower/internal/logging"
 )
@@ -21,8 +20,8 @@ func TestLoad_DiskSpaceThresholds(t *testing.T) {
 		})
 		assert.Equal(t, int64(40_000_000_000), cfg.Update.DiskSpaceMaxBytes)
 		assert.Equal(t, int64(30_000_000_000), cfg.Update.DiskSpaceWarnBytes)
-		assert.Equal(t, int64(40_000_000_000), cfg.UpdateParams(config.RunOverrides{}).DiskSpaceMax)
-		assert.Equal(t, int64(30_000_000_000), cfg.UpdateParams(config.RunOverrides{}).DiskSpaceWarn)
+		assert.Equal(t, int64(40_000_000_000), cfg.UpdateParams(RunOverrides{}).DiskSpaceMax)
+		assert.Equal(t, int64(30_000_000_000), cfg.UpdateParams(RunOverrides{}).DiskSpaceWarn)
 	})
 
 	t.Run("warn percent of max", func(t *testing.T) {
@@ -66,12 +65,12 @@ func TestLoad_DiskSpaceValidation(t *testing.T) {
 		{
 			name: "percent warn without max",
 			env:  map[string]string{"WATCHTOWER_DISK_SPACE_WARN": "80%"},
-			want: config.ErrDiskSpacePercentWithoutMax,
+			want: errDiskSpacePercentWithoutMax,
 		},
 		{
 			name: "percent max",
 			env:  map[string]string{"WATCHTOWER_DISK_SPACE_MAX": "80%"},
-			want: config.ErrDiskSpaceMaxPercent,
+			want: errDiskSpaceMaxPercent,
 		},
 		{
 			name: "warn not below max",
@@ -79,7 +78,7 @@ func TestLoad_DiskSpaceValidation(t *testing.T) {
 				"WATCHTOWER_DISK_SPACE_MAX":  "10GB",
 				"WATCHTOWER_DISK_SPACE_WARN": "10GB",
 			},
-			want: config.ErrDiskSpaceWarnNotBelowMax,
+			want: errDiskSpaceWarnNotBelowMax,
 		},
 		{
 			name: "percent out of range",
@@ -87,7 +86,7 @@ func TestLoad_DiskSpaceValidation(t *testing.T) {
 				"WATCHTOWER_DISK_SPACE_MAX":  "10GB",
 				"WATCHTOWER_DISK_SPACE_WARN": "0%",
 			},
-			want: config.ErrDiskSpacePercentOutOfRange,
+			want: errDiskSpacePercentOutOfRange,
 		},
 	}
 
@@ -109,7 +108,7 @@ func TestLoad_DiskSpaceValidation(t *testing.T) {
 			flags.ProcessFlagAliases(log, flagSet)
 			flags.GetSecretsFromFiles(log, cmd)
 
-			_, err := config.Load(testLogger(), cmd, nil)
+			_, err := Load(testLogger(), cmd, nil)
 			require.Error(t, err)
 			assert.ErrorIs(t, err, tc.want)
 		})

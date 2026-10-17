@@ -126,7 +126,7 @@ func TestTagCandidates(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			assert.Equal(t, tt.want, TagCandidates(tt.version))
+			assert.Equal(t, tt.want, tagCandidates(tt.version))
 		})
 	}
 }

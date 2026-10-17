@@ -12,12 +12,12 @@ import (
 )
 
 var (
-	// ErrFlagNotRegistered indicates a FlagSpec name was not found on the flag set.
-	ErrFlagNotRegistered = errors.New("flag not registered")
-	// ErrInvalidFlagDefault indicates a FlagSpec default value has the wrong type.
-	ErrInvalidFlagDefault = errors.New("invalid flag default")
-	// ErrUnsupportedFlagKind indicates a FlagSpec kind is not supported.
-	ErrUnsupportedFlagKind = errors.New("unsupported flag kind")
+	// errFlagNotRegistered indicates a FlagSpec name was not found on the flag set.
+	errFlagNotRegistered = errors.New("flag not registered")
+	// errInvalidFlagDefault indicates a FlagSpec default value has the wrong type.
+	errInvalidFlagDefault = errors.New("invalid flag default")
+	// errUnsupportedFlagKind indicates a FlagSpec kind is not supported.
+	errUnsupportedFlagKind = errors.New("unsupported flag kind")
 )
 
 // BindAll applies Viper defaults, flag binds, and env binds from FlagSpec rows.
@@ -41,7 +41,7 @@ func BindAll(vCfg *viper.Viper, flagSet *pflag.FlagSet, specs []spec.FlagSpec) e
 
 		flag := flagSet.Lookup(flagSpec.Name)
 		if flag == nil {
-			return fmt.Errorf("%w: %q", ErrFlagNotRegistered, flagSpec.Name)
+			return fmt.Errorf("%w: %q", errFlagNotRegistered, flagSpec.Name)
 		}
 
 		err = vCfg.BindPFlag(flagSpec.Name, flag)
@@ -53,7 +53,7 @@ func BindAll(vCfg *viper.Viper, flagSet *pflag.FlagSet, specs []spec.FlagSpec) e
 		// Presence-only keys (NO_COLOR) are applied via ApplyEnvToFlags only.
 		envAliases := make([]string, 0, len(flagSpec.EnvKeys))
 		for _, envKey := range flagSpec.EnvKeys {
-			if IsPresenceEnvKey(envKey) {
+			if isPresenceEnvKey(envKey) {
 				continue
 			}
 
@@ -90,7 +90,7 @@ func applyDefault(vCfg *viper.Viper, flagSpec spec.FlagSpec) error {
 	case spec.KindBool:
 		b, ok := flagSpec.Default.(bool)
 		if !ok && flagSpec.Default != nil {
-			return fmt.Errorf("%w: bool %s", ErrInvalidFlagDefault, flagSpec.Name)
+			return fmt.Errorf("%w: bool %s", errInvalidFlagDefault, flagSpec.Name)
 		}
 
 		vCfg.SetDefault(flagSpec.Name, b)
@@ -100,14 +100,14 @@ func applyDefault(vCfg *viper.Viper, flagSpec spec.FlagSpec) error {
 	case spec.KindInt:
 		n, ok := flagSpec.Default.(int)
 		if !ok && flagSpec.Default != nil {
-			return fmt.Errorf("%w: int %s", ErrInvalidFlagDefault, flagSpec.Name)
+			return fmt.Errorf("%w: int %s", errInvalidFlagDefault, flagSpec.Name)
 		}
 
 		vCfg.SetDefault(flagSpec.Name, n)
 	case spec.KindDuration:
 		d, ok := flagSpec.Default.(time.Duration)
 		if !ok && flagSpec.Default != nil {
-			return fmt.Errorf("%w: duration %s", ErrInvalidFlagDefault, flagSpec.Name)
+			return fmt.Errorf("%w: duration %s", errInvalidFlagDefault, flagSpec.Name)
 		}
 
 		vCfg.SetDefault(flagSpec.Name, d)
@@ -118,23 +118,23 @@ func applyDefault(vCfg *viper.Viper, flagSpec spec.FlagSpec) error {
 		case nil:
 			vCfg.SetDefault(flagSpec.Name, []string{})
 		default:
-			return fmt.Errorf("%w: string slice %s", ErrInvalidFlagDefault, flagSpec.Name)
+			return fmt.Errorf("%w: string slice %s", errInvalidFlagDefault, flagSpec.Name)
 		}
 	default:
-		return fmt.Errorf("%w: %s", ErrUnsupportedFlagKind, flagSpec.Name)
+		return fmt.Errorf("%w: %s", errUnsupportedFlagKind, flagSpec.Name)
 	}
 
 	return nil
 }
 
-// CollectSpecs aggregates FlagSpec rows from domain Specs functions.
+// collectSpecs aggregates FlagSpec rows from domain Specs functions.
 //
 // Parameters:
 //   - groups: Domain Specs() results.
 //
 // Returns:
 //   - []spec.FlagSpec: Combined specification list.
-func CollectSpecs(groups ...[]spec.FlagSpec) []spec.FlagSpec {
+func collectSpecs(groups ...[]spec.FlagSpec) []spec.FlagSpec {
 	var all []spec.FlagSpec
 
 	for _, group := range groups {

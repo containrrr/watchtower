@@ -89,7 +89,7 @@ func TestWrapRemoteErr(t *testing.T) {
 		t.Parallel()
 
 		err := wrapRemoteErr("ls-remote", transport.ErrAuthenticationRequired)
-		require.ErrorIs(t, err, ErrAuthRequired)
+		require.ErrorIs(t, err, errAuthRequired)
 		assert.ErrorContains(t, err, "ls-remote:")
 	})
 
@@ -111,9 +111,9 @@ func TestClassifyTransportMapping(t *testing.T) {
 		err  error
 		want error
 	}{
-		{name: "auth required", err: transport.ErrAuthenticationRequired, want: ErrAuthRequired},
-		{name: "auth failed", err: transport.ErrAuthorizationFailed, want: ErrAuthFailed},
-		{name: "repo not found", err: transport.ErrRepositoryNotFound, want: ErrRepoNotFound},
+		{name: "auth required", err: transport.ErrAuthenticationRequired, want: errAuthRequired},
+		{name: "auth failed", err: transport.ErrAuthorizationFailed, want: errAuthFailed},
+		{name: "repo not found", err: transport.ErrRepositoryNotFound, want: errRepoNotFound},
 		{name: "other", err: errors.New("network down")},
 	}
 

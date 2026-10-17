@@ -10,10 +10,10 @@ import (
 	"github.com/nicholas-fedor/watchtower/internal/flags/utils"
 )
 
-// ErrUnsupportedFlagKind indicates a FlagSpec kind is not supported for registration.
-var ErrUnsupportedFlagKind = errors.New("unsupported flag kind")
+// errUnsupportedFlagKind indicates a FlagSpec kind is not supported for registration.
+var errUnsupportedFlagKind = errors.New("unsupported flag kind")
 
-// Register registers pflags from FlagSpec rows using static defaults only.
+// register registers pflags from FlagSpec rows using static defaults only.
 //
 // Environment values are not baked into pflag defaults.
 // ApplyEnvToFlags and Viper bind resolve env after parse.
@@ -24,7 +24,7 @@ var ErrUnsupportedFlagKind = errors.New("unsupported flag kind")
 //
 // Returns:
 //   - error: Non-nil when a kind is unsupported or a flag cannot be marked hidden.
-func Register(flagSet *pflag.FlagSet, specs []FlagSpec) error {
+func register(flagSet *pflag.FlagSet, specs []FlagSpec) error {
 	for _, flagSpec := range specs {
 		err := registerOne(flagSet, flagSpec)
 		if err != nil {
@@ -41,7 +41,7 @@ func Register(flagSet *pflag.FlagSet, specs []FlagSpec) error {
 //   - flagSet: Target flag set that receives the registered flags.
 //   - specs: Domain flag specifications to register in order.
 func MustRegister(flagSet *pflag.FlagSet, specs []FlagSpec) {
-	err := Register(flagSet, specs)
+	err := register(flagSet, specs)
 	if err != nil {
 		panic(err)
 	}
@@ -72,7 +72,7 @@ func registerOne(flagSet *pflag.FlagSet, flagSpec FlagSpec) error {
 	case KindStringArray:
 		registerStringArray(flagSet, flagSpec)
 	default:
-		return fmt.Errorf("%w: %s", ErrUnsupportedFlagKind, flagSpec.Name)
+		return fmt.Errorf("%w: %s", errUnsupportedFlagKind, flagSpec.Name)
 	}
 
 	if flagSpec.Deprecated != "" {

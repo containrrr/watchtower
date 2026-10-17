@@ -8,7 +8,7 @@ import (
 	"github.com/nicholas-fedor/watchtower/pkg/types"
 )
 
-// SelectTag returns the highest policy-allowed tag newer than lastTag.
+// selectTag returns the highest policy-allowed tag newer than lastTag.
 //
 // Non-semver tags and pre-releases are ignored. Build metadata does not
 // affect ordering. When none remain, ok is false (not stale).
@@ -21,7 +21,7 @@ import (
 // Returns:
 //   - string: Selected tag name as advertised by the remote.
 //   - bool: True when a newer allowed tag exists.
-func SelectTag(lastTag string, tags []string, policy string) (string, bool) {
+func selectTag(lastTag string, tags []string, policy string) (string, bool) {
 	if policy == "" || policy == types.GitPolicyNone {
 		return "", false
 	}

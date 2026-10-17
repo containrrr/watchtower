@@ -13,8 +13,8 @@ import (
 	"github.com/rs/zerolog"
 )
 
-// ErrInvalidLogFormat is returned by ConfigureWriter for unrecognized format names.
-var ErrInvalidLogFormat = errors.New("invalid log format")
+// errInvalidLogFormat is returned by ConfigureWriter for unrecognized format names.
+var errInvalidLogFormat = errors.New("invalid log format")
 
 // ConfigureWriter returns an io.Writer for the requested log format.
 //
@@ -48,7 +48,7 @@ func ConfigureWriter(format string, noColor bool) (io.Writer, error) {
 
 		return newLogfmtWriter(), nil
 	default:
-		return nil, fmt.Errorf("%w: %q", ErrInvalidLogFormat, format)
+		return nil, fmt.Errorf("%w: %q", errInvalidLogFormat, format)
 	}
 }
 

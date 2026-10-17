@@ -313,7 +313,7 @@ func Update(
 				currentScope = "none"
 			}
 
-			_, cleanupErr := CleanupOldWatchtowerContainers(log,
+			_, cleanupErr := cleanupOldWatchtowerContainers(log,
 				ctx,
 				client,
 				config.Cleanup,

@@ -154,7 +154,7 @@ func TestResolveProjectDir(t *testing.T) {
 			filepath.Join(mountDir, "compose.yaml"),
 			filepath.Join(mountDir, "overrides", "api.yml"),
 		}, ref.ConfigFiles)
-		_, err = Load(t.Context(), ref)
+		_, err = loadProject(t.Context(), ref)
 		require.NoError(t, err)
 	})
 
@@ -170,7 +170,7 @@ func TestResolveProjectDir(t *testing.T) {
 			ComposeWorkingDirLabel:    hostDir,
 			ComposeConfigFilesLabel:   external,
 		}, nil)
-		require.ErrorIs(t, err, ErrConfigFile)
+		require.ErrorIs(t, err, errConfigFile)
 	})
 
 	t.Run("rejects a mapped config symlink that leaves the project", func(t *testing.T) {
@@ -187,7 +187,7 @@ func TestResolveProjectDir(t *testing.T) {
 			ComposeWorkingDirLabel:    hostDir,
 			ComposeConfigFilesLabel:   filepath.Join(hostDir, "override.yml"),
 		}, nil)
-		require.ErrorIs(t, err, ErrConfigFile)
+		require.ErrorIs(t, err, errConfigFile)
 	})
 
 	t.Run("rejects config file outside the project", func(t *testing.T) {
@@ -199,13 +199,13 @@ func TestResolveProjectDir(t *testing.T) {
 			WatchtowerComposeDirLabel: dir,
 			ComposeConfigFilesLabel:   "compose.yaml," + outside,
 		}, nil)
-		require.ErrorIs(t, err, ErrConfigFile)
+		require.ErrorIs(t, err, errConfigFile)
 
 		_, err = ResolveProjectDir(map[string]string{
 			WatchtowerComposeDirLabel: dir,
 			ComposeConfigFilesLabel:   "../secret.yml",
 		}, nil)
-		require.ErrorIs(t, err, ErrConfigFile)
+		require.ErrorIs(t, err, errConfigFile)
 	})
 
 	t.Run("rejects a symlink that leaves the project", func(t *testing.T) {
@@ -222,10 +222,10 @@ func TestResolveProjectDir(t *testing.T) {
 			WatchtowerComposeDirLabel: dir,
 			ComposeConfigFilesLabel:   "override.yaml",
 		}, nil)
-		require.ErrorIs(t, err, ErrConfigFile)
+		require.ErrorIs(t, err, errConfigFile)
 
-		_, err = Load(t.Context(), ProjectRef{Dir: dir, ConfigFiles: []string{link}})
-		require.ErrorIs(t, err, ErrConfigFile)
+		_, err = loadProject(t.Context(), ProjectRef{Dir: dir, ConfigFiles: []string{link}})
+		require.ErrorIs(t, err, errConfigFile)
 	})
 }
 
@@ -263,12 +263,12 @@ func TestConfigFiles(t *testing.T) {
 		_, err := configFiles(map[string]string{
 			ComposeConfigFilesLabel: "compose.yaml,/abs/file.yml",
 		}, "/proj")
-		require.ErrorIs(t, err, ErrConfigFile)
+		require.ErrorIs(t, err, errConfigFile)
 
 		_, err = configFiles(map[string]string{
 			ComposeConfigFilesLabel: "../secret.yml",
 		}, "/proj")
-		require.ErrorIs(t, err, ErrConfigFile)
+		require.ErrorIs(t, err, errConfigFile)
 	})
 
 	t.Run("skips blanks", func(t *testing.T) {

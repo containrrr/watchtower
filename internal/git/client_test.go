@@ -158,7 +158,7 @@ func TestCheck_RejectsUnsafeRef(t *testing.T) {
 		Repo: "https://example.com/org/app.git",
 		Ref:  "foo..bar",
 	})
-	require.ErrorIs(t, err, ErrInvalidRef)
+	require.ErrorIs(t, err, errInvalidRef)
 }
 
 func TestCheck_BranchSHACompare(t *testing.T) {
@@ -256,7 +256,7 @@ func TestCheck_MissingRef(t *testing.T) {
 		Repo: "https://example.com/org/app.git",
 		Ref:  "missing",
 	})
-	require.ErrorIs(t, err, ErrRefNotFound)
+	require.ErrorIs(t, err, errRefNotFound)
 }
 
 func TestCheck_TagPolicyIgnoresNonSemver(t *testing.T) {
@@ -610,7 +610,7 @@ func TestClone(t *testing.T) {
 		var client *Client
 
 		_, err := client.Clone(t.Context(), "https://example.com/org/app.git", CheckResult{})
-		require.ErrorIs(t, err, ErrCloneFailed)
+		require.ErrorIs(t, err, errCloneFailed)
 		assert.ErrorContains(t, err, "client is nil")
 	})
 
@@ -639,7 +639,7 @@ func TestClone(t *testing.T) {
 			Kind:   kindBranch,
 			Ref:    "main",
 		})
-		require.ErrorIs(t, err, ErrCloneFailed)
+		require.ErrorIs(t, err, errCloneFailed)
 	})
 }
 

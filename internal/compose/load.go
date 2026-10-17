@@ -10,7 +10,7 @@ import (
 	composetypes "github.com/compose-spec/compose-go/v2/types"
 )
 
-// Load parses a Compose project from an on-disk directory.
+// loadProject parses a Compose project from an on-disk directory.
 //
 // When ConfigFiles is empty, compose.yaml / docker-compose.yaml in Dir is used.
 // A project .env file is interpolated. The Watchtower process environment is
@@ -23,7 +23,7 @@ import (
 // Returns:
 //   - *composetypes.Project: Loaded project.
 //   - error: Non-nil when the directory or compose files cannot be loaded.
-func Load(ctx context.Context, ref ProjectRef) (*composetypes.Project, error) {
+func loadProject(ctx context.Context, ref ProjectRef) (*composetypes.Project, error) {
 	if ref.Dir == "" {
 		return nil, errEmptyProjectDir
 	}
@@ -71,7 +71,7 @@ func Load(ctx context.Context, ref ProjectRef) (*composetypes.Project, error) {
 //   - files: Explicit compose files, or empty for the defaults.
 //
 // Returns:
-//   - error: ErrConfigFile when a symlink resolves outside dir.
+//   - error: errConfigFile when a symlink resolves outside dir.
 func rejectEscapingConfig(dir string, files []string) error {
 	candidates := files
 	if len(candidates) == 0 {

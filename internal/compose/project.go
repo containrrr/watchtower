@@ -98,7 +98,7 @@ func labelValue(labels map[string]string, key string) string {
 //
 // Returns:
 //   - []string: Compose file paths, or nil when the label is absent.
-//   - error: ErrConfigFile when an entry leaves dir.
+//   - error: errConfigFile when an entry leaves dir.
 func configFiles(labels map[string]string, dir string) ([]string, error) {
 	raw := labelValue(labels, ComposeConfigFilesLabel)
 	if raw == "" {
@@ -143,7 +143,7 @@ func configFiles(labels map[string]string, dir string) ([]string, error) {
 //
 // Returns:
 //   - string: Absolute or joined path inside dir.
-//   - error: ErrConfigFile when part escapes dir.
+//   - error: errConfigFile when part escapes dir.
 func containedConfigFile(dir, part string) (string, error) {
 	return resolveConfigFile(dir, "", part)
 }
@@ -158,21 +158,21 @@ func containedConfigFile(dir, part string) (string, error) {
 //
 // Returns:
 //   - string: Resolved path inside dir.
-//   - error: ErrConfigFile when the entry is invalid or escapes the project.
+//   - error: errConfigFile when the entry is invalid or escapes the project.
 func resolveConfigFile(dir, workingDir, part string) (string, error) {
 	mountDir, err := filepath.Abs(filepath.Clean(dir))
 	if err != nil {
-		return "", fmt.Errorf("%w: %s", ErrConfigFile, dir)
+		return "", fmt.Errorf("%w: %s", errConfigFile, dir)
 	}
 
 	if !filepath.IsAbs(part) {
 		if !filepath.IsLocal(part) {
-			return "", fmt.Errorf("%w: %s", ErrConfigFile, part)
+			return "", fmt.Errorf("%w: %s", errConfigFile, part)
 		}
 
 		cleaned, err := filepath.Abs(filepath.Join(mountDir, part))
 		if err != nil {
-			return "", fmt.Errorf("%w: %s", ErrConfigFile, part)
+			return "", fmt.Errorf("%w: %s", errConfigFile, part)
 		}
 
 		return checkedConfigFile(mountDir, cleaned)
@@ -180,7 +180,7 @@ func resolveConfigFile(dir, workingDir, part string) (string, error) {
 
 	hostPath, err := filepath.Abs(filepath.Clean(part))
 	if err != nil {
-		return "", fmt.Errorf("%w: %s", ErrConfigFile, part)
+		return "", fmt.Errorf("%w: %s", errConfigFile, part)
 	}
 
 	if pathWithin(mountDir, hostPath) {
@@ -188,17 +188,17 @@ func resolveConfigFile(dir, workingDir, part string) (string, error) {
 	}
 
 	if workingDir == "" || !filepath.IsAbs(workingDir) {
-		return "", fmt.Errorf("%w: %s", ErrConfigFile, part)
+		return "", fmt.Errorf("%w: %s", errConfigFile, part)
 	}
 
 	hostRoot, err := filepath.Abs(filepath.Clean(workingDir))
 	if err != nil {
-		return "", fmt.Errorf("%w: %s", ErrConfigFile, workingDir)
+		return "", fmt.Errorf("%w: %s", errConfigFile, workingDir)
 	}
 
 	rel, err := filepath.Rel(hostRoot, hostPath)
 	if err != nil || !filepath.IsLocal(rel) {
-		return "", fmt.Errorf("%w: %s", ErrConfigFile, part)
+		return "", fmt.Errorf("%w: %s", errConfigFile, part)
 	}
 
 	mountPath := filepath.Join(mountDir, rel)
@@ -214,7 +214,7 @@ func resolveConfigFile(dir, workingDir, part string) (string, error) {
 //
 // Returns:
 //   - string: The verified path.
-//   - error: ErrConfigFile when the path resolves outside dir.
+//   - error: errConfigFile when the path resolves outside dir.
 func checkedConfigFile(dir, path string) (string, error) {
 	err := symlinkEscapes(dir, path)
 	if err != nil {
@@ -247,7 +247,7 @@ func pathWithin(dir, path string) bool {
 //   - path: Candidate compose file.
 //
 // Returns:
-//   - error: ErrConfigFile when the resolved path leaves dir.
+//   - error: errConfigFile when the resolved path leaves dir.
 func symlinkEscapes(dir, path string) error {
 	_, err := os.Lstat(path)
 	if err != nil {
@@ -255,22 +255,22 @@ func symlinkEscapes(dir, path string) error {
 			return nil
 		}
 
-		return fmt.Errorf("%w: %s", ErrConfigFile, path)
+		return fmt.Errorf("%w: %s", errConfigFile, path)
 	}
 
 	realDir, err := filepath.EvalSymlinks(dir)
 	if err != nil {
-		return fmt.Errorf("%w: %s", ErrConfigFile, dir)
+		return fmt.Errorf("%w: %s", errConfigFile, dir)
 	}
 
 	realPath, err := filepath.EvalSymlinks(path)
 	if err != nil {
-		return fmt.Errorf("%w: %s", ErrConfigFile, path)
+		return fmt.Errorf("%w: %s", errConfigFile, path)
 	}
 
 	rel, err := filepath.Rel(realDir, realPath)
 	if err != nil || !filepath.IsLocal(rel) {
-		return fmt.Errorf("%w: %s", ErrConfigFile, path)
+		return fmt.Errorf("%w: %s", errConfigFile, path)
 	}
 
 	return nil

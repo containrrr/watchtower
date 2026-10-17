@@ -28,9 +28,9 @@ func FuzzParseImageMapping(f *testing.F) {
 	f.Add("image=@patch")
 
 	f.Fuzz(func(t *testing.T, raw string) {
-		image, mapping, err := ParseImageMapping(raw)
+		image, mapping, err := parseImageMapping(raw)
 		if err != nil {
-			if !errors.Is(err, ErrInvalidGitImage) && !errors.Is(err, ErrInvalidGitPolicy) {
+			if !errors.Is(err, ErrInvalidGitImage) && !errors.Is(err, errInvalidGitPolicy) {
 				t.Fatalf("unexpected error: %v", err)
 			}
 

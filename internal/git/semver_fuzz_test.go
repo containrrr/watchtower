@@ -24,7 +24,7 @@ func FuzzSelectTag(f *testing.F) {
 	f.Fuzz(func(t *testing.T, lastTag, rawTags, policy string) {
 		tags := strings.Split(rawTags, "\n")
 
-		got, ok := SelectTag(lastTag, tags, policy)
+		got, ok := selectTag(lastTag, tags, policy)
 		if !ok {
 			assert.Empty(t, got)
 

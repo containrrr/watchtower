@@ -57,7 +57,7 @@ func ApplyEnvToFlags(flagSet *pflag.FlagSet, specs []spec.FlagSpec) error {
 func applyEnvValue(flagSet *pflag.FlagSet, flagSpec spec.FlagSpec, raw string) error {
 	flag := flagSet.Lookup(flagSpec.Name)
 	if flag == nil {
-		return fmt.Errorf("%w: %q", ErrFlagNotRegistered, flagSpec.Name)
+		return fmt.Errorf("%w: %q", errFlagNotRegistered, flagSpec.Name)
 	}
 
 	switch flagSpec.Kind {
@@ -66,7 +66,7 @@ func applyEnvValue(flagSet *pflag.FlagSet, flagSpec spec.FlagSpec, raw string) e
 
 		sliceValue, ok := flag.Value.(pflag.SliceValue)
 		if !ok {
-			return fmt.Errorf("%w: %s is not a slice", ErrUnsupportedFlagKind, flagSpec.Name)
+			return fmt.Errorf("%w: %s is not a slice", errUnsupportedFlagKind, flagSpec.Name)
 		}
 
 		err := sliceValue.Replace(parts)
@@ -94,7 +94,7 @@ func applyEnvValue(flagSet *pflag.FlagSet, flagSpec spec.FlagSpec, raw string) e
 
 		return nil
 	default:
-		return fmt.Errorf("%w: %s", ErrUnsupportedFlagKind, flagSpec.Name)
+		return fmt.Errorf("%w: %s", errUnsupportedFlagKind, flagSpec.Name)
 	}
 }
 
@@ -105,8 +105,8 @@ var presenceEnvKeys = map[string]struct{}{
 	"NO_COLOR": {},
 }
 
-// IsPresenceEnvKey reports whether envKey uses presence-means-true semantics.
-func IsPresenceEnvKey(envKey string) bool {
+// isPresenceEnvKey reports whether envKey uses presence-means-true semantics.
+func isPresenceEnvKey(envKey string) bool {
 	_, ok := presenceEnvKeys[envKey]
 
 	return ok
@@ -114,7 +114,7 @@ func IsPresenceEnvKey(envKey string) bool {
 
 // hasPresenceEnvKey reports whether any of flagSpec's env keys is presence-based.
 func hasPresenceEnvKey(flagSpec spec.FlagSpec) bool {
-	return slices.ContainsFunc(flagSpec.EnvKeys, IsPresenceEnvKey)
+	return slices.ContainsFunc(flagSpec.EnvKeys, isPresenceEnvKey)
 }
 
 // firstEnv returns the first usable environment value for the given keys.
@@ -135,7 +135,7 @@ func firstEnv(envKeys []string) (string, bool) {
 			continue
 		}
 
-		if raw == "" && !IsPresenceEnvKey(key) {
+		if raw == "" && !isPresenceEnvKey(key) {
 			continue
 		}
 
@@ -195,8 +195,8 @@ func formatEnvForFlag(flagSpec spec.FlagSpec, raw string) (string, error) {
 
 		return d.String(), nil
 	case spec.KindStringSlice, spec.KindStringArray:
-		return "", fmt.Errorf("%w: %s handled via Replace", ErrUnsupportedFlagKind, flagSpec.Name)
+		return "", fmt.Errorf("%w: %s handled via Replace", errUnsupportedFlagKind, flagSpec.Name)
 	default:
-		return "", fmt.Errorf("%w: %s", ErrUnsupportedFlagKind, flagSpec.Name)
+		return "", fmt.Errorf("%w: %s", errUnsupportedFlagKind, flagSpec.Name)
 	}
 }

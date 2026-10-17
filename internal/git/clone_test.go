@@ -69,7 +69,7 @@ func TestCloneCheckout(t *testing.T) {
 		assert.Equal(t, "hello\n", string(got))
 	})
 
-	t.Run("auth failure wraps ErrCloneFailed", func(t *testing.T) {
+	t.Run("auth failure wraps errCloneFailed", func(t *testing.T) {
 		t.Parallel()
 
 		err := cloneCheckout(t.Context(), filepath.Join(t.TempDir(), "clone"), "git@github.com:org/app.git", CheckResult{
@@ -77,11 +77,11 @@ func TestCloneCheckout(t *testing.T) {
 			Kind:   kindBranch,
 			Ref:    "main",
 		}, &Client{opts: Options{SSHKeyPath: filepath.Join(t.TempDir(), "missing")}})
-		require.ErrorIs(t, err, ErrCloneFailed)
+		require.ErrorIs(t, err, errCloneFailed)
 		assert.ErrorContains(t, err, "load ssh key:")
 	})
 
-	t.Run("missing repo wraps ErrCloneFailed", func(t *testing.T) {
+	t.Run("missing repo wraps errCloneFailed", func(t *testing.T) {
 		t.Parallel()
 
 		err := cloneCheckout(t.Context(), filepath.Join(t.TempDir(), "clone"), filepath.Join(t.TempDir(), "missing.git"), CheckResult{
@@ -89,10 +89,10 @@ func TestCloneCheckout(t *testing.T) {
 			Kind:   kindBranch,
 			Ref:    "main",
 		}, &Client{})
-		require.ErrorIs(t, err, ErrCloneFailed)
+		require.ErrorIs(t, err, errCloneFailed)
 	})
 
-	t.Run("unknown revision wraps ErrCloneFailed", func(t *testing.T) {
+	t.Run("unknown revision wraps errCloneFailed", func(t *testing.T) {
 		t.Parallel()
 
 		src := initLocalRepo(t)
@@ -101,7 +101,7 @@ func TestCloneCheckout(t *testing.T) {
 			Kind:   kindBranch,
 			Ref:    src.branch,
 		}, &Client{})
-		require.ErrorIs(t, err, ErrCloneFailed)
+		require.ErrorIs(t, err, errCloneFailed)
 		assert.ErrorContains(t, err, "resolve")
 	})
 
@@ -114,7 +114,7 @@ func TestCloneCheckout(t *testing.T) {
 			Kind:   kindBranch,
 			Ref:    "main",
 		}, &Client{})
-		require.ErrorIs(t, err, ErrCloneFailed)
+		require.ErrorIs(t, err, errCloneFailed)
 		assert.NotContains(t, err.Error(), "clone-secret")
 		assert.NotContains(t, err.Error(), "clone-query")
 		assert.NotContains(t, err.Error(), "clone-fragment")

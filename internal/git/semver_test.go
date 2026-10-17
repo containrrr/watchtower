@@ -46,7 +46,7 @@ func TestSelectTag(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, ok := SelectTag(tt.lastTag, tt.tags, tt.policy)
+			got, ok := selectTag(tt.lastTag, tt.tags, tt.policy)
 			assert.Equal(t, tt.ok, ok)
 			assert.Equal(t, tt.want, got)
 		})
@@ -97,7 +97,7 @@ func TestCanonicalize(t *testing.T) {
 func TestSelectTagKeepsRemoteName(t *testing.T) {
 	t.Parallel()
 
-	got, ok := SelectTag("v1.0.0", []string{"1.0.1"}, types.GitPolicyPatch)
+	got, ok := selectTag("v1.0.0", []string{"1.0.1"}, types.GitPolicyPatch)
 	require.True(t, ok)
 	assert.Equal(t, "1.0.1", got)
 }

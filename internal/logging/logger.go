@@ -14,8 +14,8 @@ import (
 	"github.com/rs/zerolog"
 )
 
-// ErrUnknownLogLevel is returned by ParseLevel for unrecognized level strings.
-var ErrUnknownLogLevel = errors.New("unknown log level")
+// errUnknownLogLevel is returned by ParseLevel for unrecognized level strings.
+var errUnknownLogLevel = errors.New("unknown log level")
 
 // Level maps to zerolog levels.
 type Level uint8
@@ -103,6 +103,6 @@ func ParseLevel(level string) (zerolog.Level, error) {
 	case "trace":
 		return zerolog.TraceLevel, nil
 	default:
-		return zerolog.NoLevel, fmt.Errorf("%w: %q", ErrUnknownLogLevel, level)
+		return zerolog.NoLevel, fmt.Errorf("%w: %q", errUnknownLogLevel, level)
 	}
 }

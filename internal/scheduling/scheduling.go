@@ -23,7 +23,7 @@ import (
 // updateWaitTimeout bounds how long shutdown waits for an in-flight update.
 const updateWaitTimeout = 60 * time.Second
 
-// WaitForRunningUpdate waits for a running update to finish before shutdown
+// waitForRunningUpdate waits for a running update to finish before shutdown
 // and then keeps the update lock, so no further update starts during shutdown.
 //
 // The wait ends after updateWaitTimeout, or when ctx is done, whichever comes
@@ -33,7 +33,7 @@ const updateWaitTimeout = 60 * time.Second
 //   - log: Process logger. Required and must be non-nil. A nil logger panics on the first log call.
 //   - ctx: The context for cancellation, allowing early shutdown on context timeout.
 //   - lock: The update lock shared by every caller that starts updates.
-func WaitForRunningUpdate(log *zerolog.Logger, ctx context.Context, lock *UpdateLock) {
+func waitForRunningUpdate(log *zerolog.Logger, ctx context.Context, lock *UpdateLock) {
 	log.Debug().Msg("Checking lock status before shutdown.")
 
 	if lock.TryLock() {
@@ -315,7 +315,7 @@ func RunUpgradesOnSchedule(ctx context.Context, deps ScheduleDeps) error {
 	)
 	defer waitCancel()
 
-	WaitForRunningUpdate(log, waitCtx, lock)
+	waitForRunningUpdate(log, waitCtx, lock)
 
 	// Close the notification system to clean up resources during shutdown.
 	if deps.Notifier != nil {

@@ -1,4 +1,4 @@
-package scheduling_test
+package scheduling
 
 import (
 	"context"
@@ -7,8 +7,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/nicholas-fedor/watchtower/internal/scheduling"
 )
 
 // TestUpdateLock_TryLock verifies that TryLock admits one holder at a time and
@@ -16,7 +14,7 @@ import (
 func TestUpdateLock_TryLock(t *testing.T) {
 	t.Parallel()
 
-	lock := scheduling.NewUpdateLock()
+	lock := NewUpdateLock()
 
 	require.True(t, lock.TryLock())
 	assert.False(t, lock.TryLock(), "a second holder took a held lock")
@@ -35,7 +33,7 @@ func TestUpdateLock_Lock(t *testing.T) {
 		t.Parallel()
 
 		synctest.Test(t, func(t *testing.T) {
-			lock := scheduling.NewUpdateLock()
+			lock := NewUpdateLock()
 			require.True(t, lock.TryLock())
 
 			taken := make(chan error, 1)
@@ -61,7 +59,7 @@ func TestUpdateLock_Lock(t *testing.T) {
 		t.Parallel()
 
 		synctest.Test(t, func(t *testing.T) {
-			lock := scheduling.NewUpdateLock()
+			lock := NewUpdateLock()
 			require.True(t, lock.TryLock())
 
 			ctx, cancel := context.WithCancel(t.Context())
@@ -86,7 +84,7 @@ func TestUpdateLock_Lock(t *testing.T) {
 func TestUpdateLock_UnlockFree(t *testing.T) {
 	t.Parallel()
 
-	lock := scheduling.NewUpdateLock()
+	lock := NewUpdateLock()
 
 	assert.Panics(t, lock.Unlock)
 }

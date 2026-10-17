@@ -21,18 +21,18 @@ const (
 )
 
 var (
-	// ErrRemoteEmpty indicates no clone URL was associated.
-	ErrRemoteEmpty = errors.New("git remote is empty")
-	// ErrRemoteInvalid indicates the clone URL cannot be turned into an HTTPS Git context.
-	ErrRemoteInvalid = errors.New("invalid git remote")
-	// ErrCommitEmpty indicates monitoring produced no commit SHA.
-	ErrCommitEmpty = errors.New("git commit is empty")
-	// ErrCommitInvalid indicates the commit cannot be used in a Docker Git fragment.
-	ErrCommitInvalid = errors.New("invalid git commit")
-	// ErrNeedsHTTPS indicates a token was given for a non-HTTP Git context.
-	ErrNeedsHTTPS = errors.New("git build token requires an HTTPS remote")
-	// ErrPathEscape indicates a context subdirectory left the repository.
-	ErrPathEscape = errors.New("git build path escapes checkout")
+	// errRemoteEmpty indicates no clone URL was associated.
+	errRemoteEmpty = errors.New("git remote is empty")
+	// errRemoteInvalid indicates the clone URL cannot be turned into an HTTPS Git context.
+	errRemoteInvalid = errors.New("invalid git remote")
+	// errCommitEmpty indicates monitoring produced no commit SHA.
+	errCommitEmpty = errors.New("git commit is empty")
+	// errCommitInvalid indicates the commit cannot be used in a Docker Git fragment.
+	errCommitInvalid = errors.New("invalid git commit")
+	// errNeedsHTTPS indicates a token was given for a non-HTTP Git context.
+	errNeedsHTTPS = errors.New("git build token requires an HTTPS remote")
+	// errPathEscape indicates a context subdirectory left the repository.
+	errPathEscape = errors.New("git build path escapes checkout")
 
 	errMalformedRemote = errors.New("parse git remote: malformed URL")
 )
@@ -52,13 +52,13 @@ var (
 func RemoteContext(repo, commit, contextRel string) (string, error) {
 	commit = strings.TrimSpace(commit)
 	if commit == "" {
-		return "", ErrCommitEmpty
+		return "", errCommitEmpty
 	}
 
 	// Docker's fragment is #ref:dir. Only hex object IDs are accepted so a
 	// hostile ref advertisement cannot inject path or tag characters.
 	if !validCommit(commit) {
-		return "", fmt.Errorf("%w: %s", ErrCommitInvalid, commit)
+		return "", fmt.Errorf("%w: %s", errCommitInvalid, commit)
 	}
 
 	httpsURL, err := httpsRemote(repo)
@@ -100,7 +100,7 @@ func WithAuth(remote, username, token string) (string, error) {
 	}
 
 	if parsed.Scheme != "https" {
-		return "", fmt.Errorf("%w: remote scheme must be https", ErrNeedsHTTPS)
+		return "", fmt.Errorf("%w: remote scheme must be https", errNeedsHTTPS)
 	}
 
 	if username == "" {
@@ -123,22 +123,22 @@ func WithAuth(remote, username, token string) (string, error) {
 func httpsRemote(repo string) (string, error) {
 	repo = strings.TrimSpace(repo)
 	if repo == "" {
-		return "", ErrRemoteEmpty
+		return "", errRemoteEmpty
 	}
 
 	endpoint, err := transport.NewEndpoint(repo)
 	if err != nil {
-		return "", fmt.Errorf("%w: endpoint could not be parsed", ErrRemoteInvalid)
+		return "", fmt.Errorf("%w: endpoint could not be parsed", errRemoteInvalid)
 	}
 
 	host := strings.Trim(endpoint.Host, "[]")
 	if host == "" {
-		return "", fmt.Errorf("%w: missing host", ErrRemoteInvalid)
+		return "", fmt.Errorf("%w: missing host", errRemoteInvalid)
 	}
 
 	repoPath := strings.TrimPrefix(endpoint.Path, "/")
 	if repoPath == "" {
-		return "", fmt.Errorf("%w: missing repository path", ErrRemoteInvalid)
+		return "", fmt.Errorf("%w: missing repository path", errRemoteInvalid)
 	}
 
 	if !strings.HasSuffix(repoPath, ".git") {
@@ -148,7 +148,7 @@ func httpsRemote(repo string) (string, error) {
 	switch endpoint.Protocol {
 	case "http", "https", "ssh", "git":
 	default:
-		return "", fmt.Errorf("%w: unsupported protocol", ErrRemoteInvalid)
+		return "", fmt.Errorf("%w: unsupported protocol", errRemoteInvalid)
 	}
 
 	// Preserve http only when the operator used it. Everything else becomes https.
@@ -185,12 +185,12 @@ func SafeRelPath(rel string) (string, error) {
 	}
 
 	if path.IsAbs(rel) || strings.Contains(rel, ":") {
-		return "", fmt.Errorf("%w: %s", ErrPathEscape, rel)
+		return "", fmt.Errorf("%w: %s", errPathEscape, rel)
 	}
 
 	cleaned := path.Clean(strings.ReplaceAll(rel, "\\", "/"))
 	if path.IsAbs(cleaned) || !filepath.IsLocal(filepath.FromSlash(cleaned)) {
-		return "", fmt.Errorf("%w: %s", ErrPathEscape, rel)
+		return "", fmt.Errorf("%w: %s", errPathEscape, rel)
 	}
 
 	return cleaned, nil

@@ -20,8 +20,8 @@ const (
 var (
 	// ErrInvalidGitImage indicates a --git-image value could not be parsed.
 	ErrInvalidGitImage = errors.New("invalid --git-image value")
-	// ErrInvalidGitPolicy indicates a semver policy is not none/patch/minor/major.
-	ErrInvalidGitPolicy = errors.New("invalid git semver policy")
+	// errInvalidGitPolicy indicates a semver policy is not none/patch/minor/major.
+	errInvalidGitPolicy = errors.New("invalid git semver policy")
 	// ErrInvalidComposeProject indicates a --compose-project value is not name=/path.
 	ErrInvalidComposeProject = errors.New("invalid --compose-project value")
 )
@@ -62,7 +62,7 @@ type Git struct {
 	ComposeProjects map[string]string
 }
 
-// ParseImageMapping parses one --git-image value of the form image=repo[#ref][@policy].
+// parseImageMapping parses one --git-image value of the form image=repo[#ref][@policy].
 //
 // Policy suffixes are recognized only when they are a known policy name so
 // userinfo in SSH URLs (git@host:path) is not treated as a policy.
@@ -74,7 +74,7 @@ type Git struct {
 //   - image: Exact image name including tag.
 //   - mapping: Parsed repo, ref, and policy.
 //   - error: Non-nil when the value is malformed or the policy is unknown.
-func ParseImageMapping(raw string) (string, types.GitImage, error) {
+func parseImageMapping(raw string) (string, types.GitImage, error) {
 	raw = strings.TrimSpace(raw)
 	if raw == "" {
 		return "", types.GitImage{}, fmt.Errorf("%w: empty value", ErrInvalidGitImage)
@@ -100,7 +100,7 @@ func ParseImageMapping(raw string) (string, types.GitImage, error) {
 			policy = maybePolicy
 			rest = rest[:at]
 		} else if isPolicyToken(maybePolicy) {
-			return "", types.GitImage{}, fmt.Errorf("%w: %q", ErrInvalidGitPolicy, maybePolicy)
+			return "", types.GitImage{}, fmt.Errorf("%w: %q", errInvalidGitPolicy, maybePolicy)
 		}
 	}
 
@@ -149,7 +149,7 @@ func ParseImageMappings(values []string) (map[string]types.GitImage, error) {
 			continue
 		}
 
-		image, mapping, err := ParseImageMapping(raw)
+		image, mapping, err := parseImageMapping(raw)
 		if err != nil {
 			return nil, err
 		}

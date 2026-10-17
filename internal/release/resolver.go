@@ -224,7 +224,7 @@ func (r *Resolver) ResolveTag(
 	return outcome.tag
 }
 
-// TagCandidates returns the release tag spellings to try, most likely first.
+// tagCandidates returns the release tag spellings to try, most likely first.
 //
 // A version that already carries a "v" is assumed to match its own release tag.
 // Otherwise the "v"-prefixed form leads, because the common case is an OCI
@@ -236,7 +236,7 @@ func (r *Resolver) ResolveTag(
 //
 // Returns:
 //   - []string: One or two candidate tag spellings, in priority order.
-func TagCandidates(version string) []string {
+func tagCandidates(version string) []string {
 	version = strings.TrimSpace(version)
 	if version == "" {
 		return nil
@@ -327,7 +327,7 @@ func (r *Resolver) probe(
 ) probeResult {
 	failed := false
 
-	for i, tag := range TagCandidates(version) {
+	for i, tag := range tagCandidates(version) {
 		found, err := r.fetcher.FetchDigestForTag(log, ctx, container, registryAuth, tag, endpoints...)
 		if err != nil {
 			if ratelimit.Is(err) {

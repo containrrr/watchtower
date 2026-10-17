@@ -53,13 +53,13 @@ func Specs() []spec.FlagSpec {
 // Parameters:
 //   - rootCmd: Root Cobra command.
 func Register(rootCmd *cobra.Command) {
-	RegisterOn(rootCmd.PersistentFlags())
+	registerOn(rootCmd.PersistentFlags())
 }
 
-// RegisterOn registers Docker flags onto an arbitrary flag set.
+// registerOn registers Docker flags onto an arbitrary flag set.
 //
 // Parameters:
 //   - flagSet: Target flag set.
-func RegisterOn(flagSet *pflag.FlagSet) {
+func registerOn(flagSet *pflag.FlagSet) {
 	spec.MustRegister(flagSet, Specs())
 }

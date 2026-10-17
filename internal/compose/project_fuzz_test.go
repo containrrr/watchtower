@@ -24,7 +24,7 @@ func FuzzConfigFiles(f *testing.F) {
 
 		got, err := configFiles(map[string]string{ComposeConfigFilesLabel: raw}, "/proj")
 		if err != nil {
-			assert.ErrorIs(t, err, ErrConfigFile)
+			assert.ErrorIs(t, err, errConfigFile)
 
 			return
 		}

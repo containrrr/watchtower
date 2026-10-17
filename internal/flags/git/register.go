@@ -9,8 +9,8 @@ import (
 	"github.com/nicholas-fedor/watchtower/internal/flags/spec"
 )
 
-// DefaultTimeout is the static default Git operation timeout.
-const DefaultTimeout = 30 * time.Second
+// defaultTimeout is the static default Git operation timeout.
+const defaultTimeout = 30 * time.Second
 
 // Specs returns Git domain flag metadata with static defaults.
 //
@@ -71,7 +71,7 @@ func Specs() []spec.FlagSpec {
 		{
 			Name:    "git-timeout",
 			Kind:    spec.KindDuration,
-			Default: DefaultTimeout,
+			Default: defaultTimeout,
 			EnvKeys: []string{"WATCHTOWER_GIT_TIMEOUT"},
 			Help:    "Timeout for Git network operations (e.g., 30s, 1m)",
 		},

@@ -47,7 +47,7 @@ func RegisterAll(rootCmd *cobra.Command) {
 // Returns:
 //   - []spec.FlagSpec: Flag metadata for BindAll.
 func AllSpecs() []spec.FlagSpec {
-	return CollectSpecs(
+	return collectSpecs(
 		docker.Specs(),
 		client.Specs(),
 		schedule.Specs(),

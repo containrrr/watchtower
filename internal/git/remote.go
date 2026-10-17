@@ -91,15 +91,15 @@ func wrapRemoteErr(op string, err error) error {
 //   - err: Error from clone or ls-remote.
 //
 // Returns:
-//   - error: ErrAuthRequired, ErrAuthFailed, ErrRepoNotFound, or err unchanged.
+//   - error: errAuthRequired, errAuthFailed, errRepoNotFound, or err unchanged.
 func classifyTransport(err error) error {
 	switch {
 	case errors.Is(err, transport.ErrAuthenticationRequired):
-		return ErrAuthRequired
+		return errAuthRequired
 	case errors.Is(err, transport.ErrAuthorizationFailed):
-		return ErrAuthFailed
+		return errAuthFailed
 	case errors.Is(err, transport.ErrRepositoryNotFound):
-		return ErrRepoNotFound
+		return errRepoNotFound
 	default:
 		return err
 	}

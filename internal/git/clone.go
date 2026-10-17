@@ -20,28 +20,28 @@ import (
 //   - client: Git client for auth and TLS options.
 //
 // Returns:
-//   - error: ErrCloneFailed wrapping the underlying cause.
+//   - error: errCloneFailed wrapping the underlying cause.
 func cloneCheckout(ctx context.Context, dir, repo string, rev CheckResult, client *Client) error {
 	auth, err := client.authMethod(repo)
 	if err != nil {
-		return fmt.Errorf("%w: %w", ErrCloneFailed, err)
+		return fmt.Errorf("%w: %w", errCloneFailed, err)
 	}
 
 	repoObj, err := goGit.PlainCloneContext(ctx, dir, false, client.cloneOptions(repo, rev, auth))
 	if err != nil {
-		return fmt.Errorf("%w: %w", ErrCloneFailed, repositoryOperationError("clone", repo, err))
+		return fmt.Errorf("%w: %w", errCloneFailed, repositoryOperationError("clone", repo, err))
 	}
 
 	target := revisionTarget(rev)
 
 	hash, err := repoObj.ResolveRevision(plumbing.Revision(target))
 	if err != nil {
-		return fmt.Errorf("%w: resolve %s: %w", ErrCloneFailed, target, err)
+		return fmt.Errorf("%w: resolve %s: %w", errCloneFailed, target, err)
 	}
 
 	worktree, err := repoObj.Worktree()
 	if err != nil {
-		return fmt.Errorf("%w: worktree: %w", ErrCloneFailed, err)
+		return fmt.Errorf("%w: worktree: %w", errCloneFailed, err)
 	}
 
 	err = worktree.Checkout(&goGit.CheckoutOptions{
@@ -49,7 +49,7 @@ func cloneCheckout(ctx context.Context, dir, repo string, rev CheckResult, clien
 		Force: true,
 	})
 	if err != nil {
-		return fmt.Errorf("%w: checkout %s: %w", ErrCloneFailed, hash.String(), err)
+		return fmt.Errorf("%w: checkout %s: %w", errCloneFailed, hash.String(), err)
 	}
 
 	return nil
