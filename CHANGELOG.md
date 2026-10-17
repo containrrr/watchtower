@@ -53,6 +53,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Build
 
+- Remove orphaned generated mocks by @nicholas-fedor in [#2895](https://github.com/nicholas-fedor/watchtower/pull/2895)
 - Verify the version ldflags targets by @nicholas-fedor in [#2871](https://github.com/nicholas-fedor/watchtower/pull/2871)
 
 ### Chores
