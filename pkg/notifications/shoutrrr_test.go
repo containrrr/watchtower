@@ -80,7 +80,7 @@ func createTestNotifier(
 // TODO: Remove legacyMockData when legacy notification types are removed.
 //
 //nolint:godox
-var legacyMockData = Data{
+var legacyMockData = notificationData{
 	Entries: []*notificationEntry{
 		{
 			Level:   "info",
@@ -89,7 +89,7 @@ var legacyMockData = Data{
 	},
 }
 
-var mockDataMultipleEntries = Data{
+var mockDataMultipleEntries = notificationData{
 	Entries: []*notificationEntry{
 		{
 			Level:   "info",
@@ -106,7 +106,7 @@ var mockDataMultipleEntries = Data{
 	},
 }
 
-var mockDataAllFresh = Data{
+var mockDataAllFresh = notificationData{
 	Entries: []*notificationEntry{},
 	Report:  mockActions.CreateMockProgressReport(session.FreshState),
 }
@@ -117,11 +117,11 @@ var mockDataAllFresh = Data{
 // TODO: Remove legacyMockData reference when legacy notification types are removed.
 //
 //nolint:godox
-func mockDataFromStates(states ...session.State) Data {
+func mockDataFromStates(states ...session.State) notificationData {
 	hostname := "Mock"
 	prefix := ""
 
-	return Data{
+	return notificationData{
 		Entries: legacyMockData.Entries,
 		Report:  mockActions.CreateMockProgressReport(states...),
 		Title:   GetTitle(testLogger(), hostname, prefix),
@@ -251,7 +251,7 @@ updt1 (mock/updt1:latest): Updated
 					{Message: "foo bar"},
 				}
 
-				s, err := shoutrrr.buildMessage(Data{Entries: entries})
+				s, err := shoutrrr.buildMessage(notificationData{Entries: entries})
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
 				gomega.Expect(s).To(gomega.Equal("foo bar"))
 			})
@@ -276,7 +276,7 @@ updt1 (mock/updt1:latest): Updated
 					},
 				}
 
-				s, err := shoutrrr.buildMessage(Data{Entries: entries})
+				s, err := shoutrrr.buildMessage(notificationData{Entries: entries})
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
 				gomega.Expect(s).To(gomega.Equal(
 					"Skipped image cleanup: ghcr.io/amir20/dtop:latest (769846626f2f): " +
@@ -337,7 +337,7 @@ updt1 (mock/updt1:latest): Updated
 					},
 				}
 
-				s, err := shoutrrr.buildMessage(Data{Entries: entries})
+				s, err := shoutrrr.buildMessage(notificationData{Entries: entries})
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
 				gomega.Expect(s).To(gomega.ContainSubstring(
 					"Docker image usage exceeds configured maximum: 10 KB of 10 KB used (2 KB reclaimable, 4 images)",
@@ -376,7 +376,7 @@ updt1 (mock/updt1:latest): Updated
 					},
 				}
 
-				s, err := shoutrrr.buildMessage(Data{Entries: entries})
+				s, err := shoutrrr.buildMessage(notificationData{Entries: entries})
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
 				gomega.Expect(s).To(gomega.Equal("info: foo bar\n"))
 			})
@@ -507,7 +507,7 @@ updt1 (mock/updt1:latest): Updated
 
 				var buf bytes.Buffer
 
-				err = tpl.Execute(&buf, Data{Report: report})
+				err = tpl.Execute(&buf, notificationData{Report: report})
 				gomega.Expect(err).ToNot(gomega.HaveOccurred())
 				gomega.Expect(buf.String()).To(gomega.Equal(
 					"app https://github.com/org/app/releases (https://github.com/org/app) repo=https://github.com/org/app.git",
@@ -1357,7 +1357,7 @@ func createNotifierWithTemplate(tplString string, legacy bool) (*shoutrrrTypeNot
 	if err != nil {
 		_ = err // template construction error ignored for this helper
 
-		tplBase := template.New("").Funcs(Funcs)
+		tplBase := template.New("").Funcs(templateFuncs)
 
 		defaultKey := "default"
 		if legacy {
@@ -1381,7 +1381,7 @@ func createNotifierWithTemplate(tplString string, legacy bool) (*shoutrrrTypeNot
 // TODO: Remove legacy parameter when legacy notification types are removed.
 //
 //nolint:godox
-func getTemplatedResult(tplString string, legacy bool, data Data) string {
+func getTemplatedResult(tplString string, legacy bool, data notificationData) string {
 	notifier, err := createNotifierWithTemplate(tplString, legacy)
 	gomega.ExpectWithOffset(1, err).NotTo(gomega.HaveOccurred())
 	msg, err := notifier.buildMessage(data)
@@ -1393,7 +1393,7 @@ func getTemplatedResult(tplString string, legacy bool, data Data) string {
 func TestDefaultLegacyGitMessages(t *testing.T) {
 	t.Parallel()
 
-	tpl := template.Must(template.New("git").Funcs(Funcs).Parse(commonTemplates["default-legacy"]))
+	tpl := template.Must(template.New("git").Funcs(templateFuncs).Parse(commonTemplates["default-legacy"]))
 
 	var buf bytes.Buffer
 
@@ -1433,7 +1433,7 @@ func TestDefaultLegacyGitMessages(t *testing.T) {
 func TestDefaultLegacyGitSkipAndComposeMessages(t *testing.T) {
 	t.Parallel()
 
-	tpl := template.Must(template.New("git").Funcs(Funcs).Parse(commonTemplates["default-legacy"]))
+	tpl := template.Must(template.New("git").Funcs(templateFuncs).Parse(commonTemplates["default-legacy"]))
 
 	cases := []struct {
 		name    string
@@ -1768,7 +1768,7 @@ func TestLevelToString_WarnMapsToWarning(t *testing.T) {
 	// Non-legacy template path: compare .Level with the legacy "warning" string.
 	const tpl = `{{ range .Entries }}{{ if eq .Level "warning" }}hit{{ end }}{{ end }}`
 
-	data := Data{
+	data := notificationData{
 		Entries: []*notificationEntry{
 			{Level: levelToString(zerolog.WarnLevel), Message: "caution"},
 		},
@@ -1822,7 +1822,7 @@ func TestRun_EventFieldMapPreservesLargeIntegers(t *testing.T) {
 	notifier, err := createNotifierWithTemplate(tpl, false)
 	require.NoError(t, err)
 
-	rendered, err := notifier.buildMessage(Data{Entries: entries})
+	rendered, err := notifier.buildMessage(notificationData{Entries: entries})
 	require.NoError(t, err)
 	require.Equal(t, "9007199254740993", rendered)
 

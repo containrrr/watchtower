@@ -26,35 +26,35 @@ func TestExcludeOldWatchtowerFilter(t *testing.T) {
 	nonWatchtower := new(mockContainer.FilterableContainer)
 	nonWatchtower.On("IsWatchtower").Return(false)
 	nonWatchtower.On("Name").Return("/regular-app").Maybe()
-	assert.True(t, ExcludeOldWatchtowerFilter(nonWatchtower))
+	assert.True(t, excludeOldWatchtowerFilter(nonWatchtower))
 	nonWatchtower.AssertExpectations(t)
 
 	// Test regular Watchtower container (should pass)
 	watchtower := new(mockContainer.FilterableContainer)
 	watchtower.On("IsWatchtower").Return(true)
 	watchtower.On("Name").Return("/watchtower")
-	assert.True(t, ExcludeOldWatchtowerFilter(watchtower))
+	assert.True(t, excludeOldWatchtowerFilter(watchtower))
 	watchtower.AssertExpectations(t)
 
 	// Test old Watchtower container (should be excluded)
 	oldContainer := new(mockContainer.FilterableContainer)
 	oldContainer.On("IsWatchtower").Return(true)
 	oldContainer.On("Name").Return("/watchtower-old-abc123")
-	assert.False(t, ExcludeOldWatchtowerFilter(oldContainer))
+	assert.False(t, excludeOldWatchtowerFilter(oldContainer))
 	oldContainer.AssertExpectations(t)
 
 	// Test old Watchtower container without leading slash (should be excluded)
 	oldContainerNoSlash := new(mockContainer.FilterableContainer)
 	oldContainerNoSlash.On("IsWatchtower").Return(true)
 	oldContainerNoSlash.On("Name").Return("watchtower-old-def456")
-	assert.False(t, ExcludeOldWatchtowerFilter(oldContainerNoSlash))
+	assert.False(t, excludeOldWatchtowerFilter(oldContainerNoSlash))
 	oldContainerNoSlash.AssertExpectations(t)
 
 	// Test container with similar but different prefix (should pass)
 	similarPrefix := new(mockContainer.FilterableContainer)
 	similarPrefix.On("IsWatchtower").Return(true)
 	similarPrefix.On("Name").Return("/watchtower-oldinstance")
-	assert.True(t, ExcludeOldWatchtowerFilter(similarPrefix))
+	assert.True(t, excludeOldWatchtowerFilter(similarPrefix))
 	similarPrefix.AssertExpectations(t)
 }
 
@@ -271,7 +271,7 @@ func TestFilterByNamesRegex(t *testing.T) {
 func TestFilterByEnabledLabelsPresenceCheck(t *testing.T) {
 	t.Parallel()
 
-	filter := FilterByEnabledLabels(testLog(), map[string]string{enableLabelKey: ""}, NoFilter)
+	filter := filterByEnabledLabels(testLog(), map[string]string{enableLabelKey: ""}, NoFilter)
 	assert.NotNil(t, filter)
 
 	container := new(mockContainer.FilterableContainer)
@@ -501,7 +501,7 @@ func TestBuildFilterNoneScope(t *testing.T) {
 func TestFilterByDisabledLabelsExactMatch(t *testing.T) {
 	t.Parallel()
 
-	filter := FilterByDisabledLabels(testLog(), map[string]string{enableLabelKey: "false"}, NoFilter)
+	filter := filterByDisabledLabels(testLog(), map[string]string{enableLabelKey: "false"}, NoFilter)
 	assert.NotNil(t, filter)
 
 	container := new(mockContainer.FilterableContainer)
@@ -948,11 +948,11 @@ func TestFilterByImageNames(t *testing.T) {
 
 	patterns := make([]string, 0, 1)
 
-	filter := FilterByMonitoredImageNamePatterns(testLog(), patterns, nil)
+	filter := filterByMonitoredImageNamePatterns(testLog(), patterns, nil)
 	assert.Nil(t, filter)
 
 	patterns = append(patterns, "nginx:latest")
-	filter = FilterByMonitoredImageNamePatterns(testLog(), patterns, NoFilter)
+	filter = filterByMonitoredImageNamePatterns(testLog(), patterns, NoFilter)
 	assert.NotNil(t, filter)
 
 	// Image matches -> kept.
@@ -973,7 +973,7 @@ func TestFilterByImageNames(t *testing.T) {
 func TestFilterByImageNamesRegex(t *testing.T) {
 	t.Parallel()
 
-	filter := FilterByMonitoredImageNamePatterns(testLog(), []string{"nginx:.*"}, NoFilter)
+	filter := filterByMonitoredImageNamePatterns(testLog(), []string{"nginx:.*"}, NoFilter)
 	assert.NotNil(t, filter)
 
 	// Anchored regex matches any nginx tag.
@@ -994,7 +994,7 @@ func TestFilterByImageNamesRegex(t *testing.T) {
 func TestFilterByImageNamesRegistryPath(t *testing.T) {
 	t.Parallel()
 
-	filter := FilterByMonitoredImageNamePatterns(testLog(), []string{"docker.io/library/nginx:.*"}, NoFilter)
+	filter := filterByMonitoredImageNamePatterns(testLog(), []string{"docker.io/library/nginx:.*"}, NoFilter)
 	assert.NotNil(t, filter)
 
 	// Registry path with slashes matches.
@@ -1017,11 +1017,11 @@ func TestFilterBySkippedImageNames(t *testing.T) {
 
 	patterns := make([]string, 0, 1)
 
-	filter := FilterBySkippedImageNamePatterns(testLog(), patterns, nil)
+	filter := filterBySkippedImageNamePatterns(testLog(), patterns, nil)
 	assert.Nil(t, filter)
 
 	patterns = append(patterns, "nginx:latest")
-	filter = FilterBySkippedImageNamePatterns(testLog(), patterns, NoFilter)
+	filter = filterBySkippedImageNamePatterns(testLog(), patterns, NoFilter)
 	assert.NotNil(t, filter)
 
 	// Skipped image.
@@ -1156,7 +1156,7 @@ func TestFilterByEnabledLabels(t *testing.T) {
 
 	labels := map[string]string{"Service": "Pelican", "Env": "prod"}
 
-	filter := FilterByEnabledLabels(testLog(), labels, NoFilter)
+	filter := filterByEnabledLabels(testLog(), labels, NoFilter)
 	assert.NotNil(t, filter)
 
 	container := new(mockContainer.FilterableContainer)
@@ -1187,7 +1187,7 @@ func TestFilterByEnabledLabels(t *testing.T) {
 	assert.False(t, filter(container))
 	container.AssertExpectations(t)
 
-	emptyFilter := FilterByEnabledLabels(testLog(), nil, NoFilter)
+	emptyFilter := filterByEnabledLabels(testLog(), nil, NoFilter)
 	container = new(mockContainer.FilterableContainer)
 	container.On("Name").Return("/anything").Maybe()
 	assert.True(t, emptyFilter(container))
@@ -1199,7 +1199,7 @@ func TestFilterByDisabledLabels(t *testing.T) {
 
 	labels := map[string]string{"Service": "Pelican", "Env": "dev"}
 
-	filter := FilterByDisabledLabels(testLog(), labels, NoFilter)
+	filter := filterByDisabledLabels(testLog(), labels, NoFilter)
 	assert.NotNil(t, filter)
 
 	container := new(mockContainer.FilterableContainer)
@@ -1230,7 +1230,7 @@ func TestFilterByDisabledLabels(t *testing.T) {
 	assert.True(t, filter(container))
 	container.AssertExpectations(t)
 
-	emptyFilter := FilterByDisabledLabels(testLog(), nil, NoFilter)
+	emptyFilter := filterByDisabledLabels(testLog(), nil, NoFilter)
 	container = new(mockContainer.FilterableContainer)
 	container.On("Name").Return("/anything").Maybe()
 	assert.True(t, emptyFilter(container))
@@ -1485,7 +1485,7 @@ func TestFilters_DebugLogging(t *testing.T) {
 
 	logBuf.Reset()
 
-	imageFilter := FilterByMonitoredImageNamePatterns(&debug, []string{"nginx:.*"}, NoFilter)
+	imageFilter := filterByMonitoredImageNamePatterns(&debug, []string{"nginx:.*"}, NoFilter)
 	matchedImage := new(mockContainer.FilterableContainer)
 	matchedImage.On("Name").Return("web")
 	matchedImage.On("ImageName").Return("nginx:1.25")
@@ -1504,7 +1504,7 @@ func TestFilters_DebugLogging(t *testing.T) {
 
 	logBuf.Reset()
 
-	skipImageFilter := FilterBySkippedImageNamePatterns(&debug, []string{"redis:.*"}, NoFilter)
+	skipImageFilter := filterBySkippedImageNamePatterns(&debug, []string{"redis:.*"}, NoFilter)
 	skippedImage := new(mockContainer.FilterableContainer)
 	skippedImage.On("Name").Return("cache")
 	skippedImage.On("ImageName").Return("redis:latest")

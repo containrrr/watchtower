@@ -164,7 +164,7 @@ func TestUpdateFromContainer(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := UpdateFromContainer(testLog(),
+			got := updateFromContainer(testLog(),
 				tt.args.container,
 				tt.args.newImage,
 				tt.args.state,
@@ -177,18 +177,18 @@ func TestUpdateFromContainer(t *testing.T) {
 				got.imageName != tt.want.imageName ||
 				got.state != tt.want.state ||
 				got.monitorOnly != tt.want.monitorOnly {
-				t.Errorf("UpdateFromContainer(testLog(), ) = %+v, want %+v", got, tt.want)
+				t.Errorf("updateFromContainer(testLog(), ) = %+v, want %+v", got, tt.want)
 			}
 			// Handle error field separately
 			if (got.containerError == nil) != (tt.want.containerError == nil) {
 				t.Errorf(
-					"UpdateFromContainer(testLog(), ) error = %v, want %v",
+					"updateFromContainer(testLog(), ) error = %v, want %v",
 					got.containerError,
 					tt.want.containerError,
 				)
 			} else if got.containerError != nil && !errors.Is(got.containerError, tt.want.containerError) {
 				t.Errorf(
-					"UpdateFromContainer(testLog(), ) error message = %v, want %v",
+					"updateFromContainer(testLog(), ) error message = %v, want %v",
 					got.containerError,
 					tt.want.containerError,
 				)
@@ -1445,7 +1445,7 @@ func TestApplyReportMeta(t *testing.T) {
 			gitPkg.RepoLabel: "https://github.com/org/app.git",
 			gitPkg.RefLabel:  "main",
 		})
-		got := UpdateFromContainer(testLog(), c, "img2", ScannedState, types.UpdateParams{})
+		got := updateFromContainer(testLog(), c, "img2", ScannedState, types.UpdateParams{})
 		assert.Equal(t, "https://github.com/org/app.git", got.GitRepo())
 		assert.Equal(t, "main", got.GitRef())
 		assert.Equal(t, "https://github.com/org/app/releases", got.Changelog())
@@ -1506,7 +1506,7 @@ func TestProgressSetLatestImageMeta(t *testing.T) {
 			gitPkg.RepoLabel:         "https://github.com/org/app.git",
 			gitPkg.ChangelogURLLabel: "https://example.com/notes/{tag}",
 		})
-		status := UpdateFromContainer(testLog(), c, "img", ScannedState, types.UpdateParams{})
+		status := updateFromContainer(testLog(), c, "img", ScannedState, types.UpdateParams{})
 		progress := Progress{c.ID(): status}
 
 		progress.SetLatestImageMeta(
@@ -1525,7 +1525,7 @@ func TestProgressSetLatestImageMeta(t *testing.T) {
 		c := reportTestContainer(t, map[string]string{
 			gitPkg.RepoLabel: "https://github.com/org/app.git",
 		})
-		status := UpdateFromContainer(testLog(), c, "img", ScannedState, types.UpdateParams{})
+		status := updateFromContainer(testLog(), c, "img", ScannedState, types.UpdateParams{})
 		progress := Progress{c.ID(): status}
 
 		meta := progress.SetLatestImageMeta(
@@ -1549,7 +1549,7 @@ func TestProgressSetLatestImageMeta(t *testing.T) {
 		c := reportTestContainer(t, map[string]string{
 			gitPkg.RepoLabel: "https://github.com/org/app.git",
 		})
-		status := UpdateFromContainer(testLog(), c, "img", ScannedState, types.UpdateParams{})
+		status := updateFromContainer(testLog(), c, "img", ScannedState, types.UpdateParams{})
 		progress := Progress{c.ID(): status}
 
 		progress.SetLatestImageMeta(

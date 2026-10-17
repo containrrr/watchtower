@@ -23,8 +23,8 @@ type notificationEntry struct {
 	Level   string
 }
 
-// Data is the notification template data model.
-type Data struct {
+// notificationData is the notification template data model.
+type notificationData struct {
 	StaticData
 
 	Entries []*notificationEntry

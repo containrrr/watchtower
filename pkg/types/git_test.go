@@ -34,11 +34,11 @@ func TestResolveGitHostKind(t *testing.T) {
 func TestCanonicalGitHostKind(t *testing.T) {
 	t.Parallel()
 
-	assert.Equal(t, GitHostGitHub, CanonicalGitHostKind("GitHub"))
-	assert.Equal(t, GitHostGitLab, CanonicalGitHostKind("gitlab"))
-	assert.Equal(t, GitHostGitea, CanonicalGitHostKind("gitea"))
-	assert.Equal(t, GitHostGitea, CanonicalGitHostKind("forgejo"))
-	assert.Empty(t, CanonicalGitHostKind("bitbucket"))
+	assert.Equal(t, GitHostGitHub, canonicalGitHostKind("GitHub"))
+	assert.Equal(t, GitHostGitLab, canonicalGitHostKind("gitlab"))
+	assert.Equal(t, GitHostGitea, canonicalGitHostKind("gitea"))
+	assert.Equal(t, GitHostGitea, canonicalGitHostKind("forgejo"))
+	assert.Empty(t, canonicalGitHostKind("bitbucket"))
 }
 
 func TestValidGitPolicy(t *testing.T) {

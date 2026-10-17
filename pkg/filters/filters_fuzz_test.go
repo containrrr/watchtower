@@ -110,7 +110,7 @@ func FuzzFilterByEnabledLabels(f *testing.F) {
 		}
 
 		c := newFuzzableContainer(containerName, imageName, true, "", false, containerLabels)
-		filter := FilterByEnabledLabels(fuzzLog(), filterLabels, NoFilter)
+		filter := filterByEnabledLabels(fuzzLog(), filterLabels, NoFilter)
 		_ = filter(c)
 	})
 }
@@ -137,7 +137,7 @@ func FuzzFilterByDisabledLabels(f *testing.F) {
 		}
 
 		c := newFuzzableContainer(containerName, imageName, true, "", false, containerLabels)
-		filter := FilterByDisabledLabels(fuzzLog(), filterLabels, NoFilter)
+		filter := filterByDisabledLabels(fuzzLog(), filterLabels, NoFilter)
 		_ = filter(c)
 	})
 }

@@ -45,7 +45,7 @@ func containerReportMethods() []string {
 func containerJSONKeys(t *testing.T) []string {
 	t.Helper()
 
-	encoded, err := json.Marshal(Data{Report: goldenFullReport()})
+	encoded, err := json.Marshal(notificationData{Report: goldenFullReport()})
 	require.NoError(t, err)
 
 	var decoded struct {

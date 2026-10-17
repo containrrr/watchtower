@@ -75,7 +75,7 @@ func UnscopedWatchtowerContainersFilter(c types.FilterableContainer) bool {
 	return containerScope == noScope
 }
 
-// ExcludeOldWatchtowerFilter rejects containers that are old Watchtower
+// excludeOldWatchtowerFilter rejects containers that are old Watchtower
 // containers renamed during self-update (prefixed with "watchtower-old-").
 //
 // These containers are predecessors that should only be removed, never updated
@@ -85,7 +85,7 @@ func UnscopedWatchtowerContainersFilter(c types.FilterableContainer) bool {
 // Returns:
 //   - bool: True if the container should be included, false if it is an old
 //     Watchtower container that should be excluded.
-func ExcludeOldWatchtowerFilter(c types.FilterableContainer) bool {
+func excludeOldWatchtowerFilter(c types.FilterableContainer) bool {
 	if !c.IsWatchtower() {
 		return true
 	}
@@ -100,7 +100,7 @@ func ExcludeOldWatchtowerFilter(c types.FilterableContainer) bool {
 // IsOldWatchtower reports whether the container is an old Watchtower
 // container renamed during self-update (prefixed with "watchtower-old-").
 //
-// This is the positive counterpart to ExcludeOldWatchtowerFilter and is
+// This is the positive counterpart to excludeOldWatchtowerFilter and is
 // intended for guard clauses where a positive check reads more naturally.
 //
 // Returns:
@@ -109,7 +109,7 @@ func IsOldWatchtower(c types.FilterableContainer) bool {
 	return c.IsWatchtower() && strings.HasPrefix(strings.TrimLeft(c.Name(), "/"), types.WatchtowerOldPrefix)
 }
 
-// ExcludeOldWatchtowerFilterChain wraps a base filter with old
+// excludeOldWatchtowerFilterChain wraps a base filter with old
 // Watchtower exclusion. It chains the exclusion check before the base filter,
 // ensuring old Watchtower containers are rejected early in the pipeline.
 //
@@ -119,9 +119,9 @@ func IsOldWatchtower(c types.FilterableContainer) bool {
 // Returns:
 //   - types.Filter: Filter function that excludes old Watchtower containers
 //     and applies the base filter.
-func ExcludeOldWatchtowerFilterChain(baseFilter types.Filter) types.Filter {
+func excludeOldWatchtowerFilterChain(baseFilter types.Filter) types.Filter {
 	return func(c types.FilterableContainer) bool {
-		if !ExcludeOldWatchtowerFilter(c) {
+		if !excludeOldWatchtowerFilter(c) {
 			return false
 		}
 
@@ -225,7 +225,7 @@ func FilterByDisableNames(log *zerolog.Logger, normalizedDisableNames []string, 
 	}
 }
 
-// FilterByMonitoredImageNamePatterns restricts monitoring to containers whose image name
+// filterByMonitoredImageNamePatterns restricts monitoring to containers whose image name
 // matches specified patterns. When set, only matching containers are monitored.
 //
 // Image patterns are compiled once when the filter is built.
@@ -238,7 +238,7 @@ func FilterByDisableNames(log *zerolog.Logger, normalizedDisableNames []string, 
 // Returns:
 //   - types.Filter: Filter function restricting to matching image names, then
 //     applying base filter.
-func FilterByMonitoredImageNamePatterns(log *zerolog.Logger, namePatterns []string, baseFilter types.Filter) types.Filter {
+func filterByMonitoredImageNamePatterns(log *zerolog.Logger, namePatterns []string, baseFilter types.Filter) types.Filter {
 	if len(namePatterns) == 0 {
 		return baseFilter
 	}
@@ -273,7 +273,7 @@ func FilterByMonitoredImageNamePatterns(log *zerolog.Logger, namePatterns []stri
 	}
 }
 
-// FilterBySkippedImageNamePatterns prevents monitoring of containers whose image name
+// filterBySkippedImageNamePatterns prevents monitoring of containers whose image name
 // matches specified patterns. Matching containers are excluded from monitoring.
 //
 // Image patterns are compiled once when the filter is built.
@@ -286,7 +286,7 @@ func FilterByMonitoredImageNamePatterns(log *zerolog.Logger, namePatterns []stri
 // Returns:
 //   - types.Filter: Filter function excluding matching image names, then applying
 //     base filter.
-func FilterBySkippedImageNamePatterns(log *zerolog.Logger, namePatterns []string, baseFilter types.Filter) types.Filter {
+func filterBySkippedImageNamePatterns(log *zerolog.Logger, namePatterns []string, baseFilter types.Filter) types.Filter {
 	if len(namePatterns) == 0 {
 		return baseFilter
 	}
@@ -371,7 +371,7 @@ func parseLabelPairs(pairs []string) (map[string]string, error) {
 	return result, nil
 }
 
-// FilterByEnabledLabels restricts processing to containers that have at least
+// filterByEnabledLabels restricts processing to containers that have at least
 // one of the specified label key-value pairs.
 //
 // An empty label list disables the filter entirely.
@@ -386,7 +386,7 @@ func parseLabelPairs(pairs []string) (map[string]string, error) {
 //
 // Returns:
 //   - types.Filter: Filter function matching labels and applying base filter.
-func FilterByEnabledLabels(log *zerolog.Logger, labels map[string]string, baseFilter types.Filter) types.Filter {
+func filterByEnabledLabels(log *zerolog.Logger, labels map[string]string, baseFilter types.Filter) types.Filter {
 	if len(labels) == 0 {
 		return baseFilter
 	}
@@ -421,7 +421,7 @@ func FilterByEnabledLabels(log *zerolog.Logger, labels map[string]string, baseFi
 	}
 }
 
-// FilterByDisabledLabels excludes containers that have any of the specified
+// filterByDisabledLabels excludes containers that have any of the specified
 // label key-value pairs.
 //
 // An empty label list disables the filter entirely.
@@ -436,7 +436,7 @@ func FilterByEnabledLabels(log *zerolog.Logger, labels map[string]string, baseFi
 //
 // Returns:
 //   - types.Filter: Filter function excluding matching labels and applying base filter.
-func FilterByDisabledLabels(log *zerolog.Logger, labels map[string]string, baseFilter types.Filter) types.Filter {
+func filterByDisabledLabels(log *zerolog.Logger, labels map[string]string, baseFilter types.Filter) types.Filter {
 	if len(labels) == 0 {
 		return baseFilter
 	}
@@ -471,7 +471,7 @@ func FilterByDisabledLabels(log *zerolog.Logger, labels map[string]string, baseF
 	}
 }
 
-// FilterByEnableLabel applies the boolean --label-enable filter.
+// filterByEnableLabel applies the boolean --label-enable filter.
 //
 // When enable is true, only containers whose enable label is present with a
 // value that parses as true are included. When enable is false, containers
@@ -485,7 +485,7 @@ func FilterByDisabledLabels(log *zerolog.Logger, labels map[string]string, baseF
 //
 // Returns:
 //   - types.Filter: filter function applying enable-label semantics and baseFilter.
-func FilterByEnableLabel(enable bool, baseFilter types.Filter) types.Filter {
+func filterByEnableLabel(enable bool, baseFilter types.Filter) types.Filter {
 	return func(c types.FilterableContainer) bool {
 		enabled, ok := c.Enabled()
 		if ok && !enabled {
@@ -767,11 +767,11 @@ func BuildFilter(log *zerolog.Logger,
 	filter := NoFilter
 	filter = FilterByNames(log, normalizedNames, filter)
 	filter = FilterByDisableNames(log, normalizedDisableNames, filter)
-	filter = FilterByMonitoredImageNamePatterns(log, monitoredImageNamePatterns, filter)
-	filter = FilterBySkippedImageNamePatterns(log, skippedImageNamePatterns, filter)
-	filter = FilterByEnabledLabels(log, enabledLabelMap, filter)
-	filter = FilterByDisabledLabels(log, disabledLabelMap, filter)
-	filter = FilterByEnableLabel(enableLabel, filter)
+	filter = filterByMonitoredImageNamePatterns(log, monitoredImageNamePatterns, filter)
+	filter = filterBySkippedImageNamePatterns(log, skippedImageNamePatterns, filter)
+	filter = filterByEnabledLabels(log, enabledLabelMap, filter)
+	filter = filterByDisabledLabels(log, disabledLabelMap, filter)
+	filter = filterByEnableLabel(enableLabel, filter)
 
 	// Add name-based filter description.
 	if len(normalizedNames) > 0 {
@@ -898,7 +898,7 @@ func BuildFilter(log *zerolog.Logger,
 
 	// Exclude old Watchtower containers (predecessors from self-update).
 	// Applied last so it wraps the entire chain and short-circuits first.
-	filter = ExcludeOldWatchtowerFilterChain(filter)
+	filter = excludeOldWatchtowerFilterChain(filter)
 
 	// Build filter description.
 	filterDesc := "Checking all containers (except explicitly disabled with label)"

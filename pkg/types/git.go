@@ -54,7 +54,7 @@ func ValidGitPolicy(policy string) bool {
 	}
 }
 
-// CanonicalGitHostKind maps a provider name to github, gitlab, or gitea.
+// canonicalGitHostKind maps a provider name to github, gitlab, or gitea.
 //
 // Forgejo shares Gitea's API and release URL shape.
 //
@@ -63,7 +63,7 @@ func ValidGitPolicy(policy string) bool {
 //
 // Returns:
 //   - string: github, gitlab, gitea, or empty.
-func CanonicalGitHostKind(kind string) string {
+func canonicalGitHostKind(kind string) string {
 	switch strings.ToLower(strings.TrimSpace(kind)) {
 	case GitHostGitHub:
 		return GitHostGitHub
@@ -114,5 +114,5 @@ func ResolveGitHostKind(host string, extra map[string]string) string {
 		return ""
 	}
 
-	return CanonicalGitHostKind(extra[host])
+	return canonicalGitHostKind(extra[host])
 }

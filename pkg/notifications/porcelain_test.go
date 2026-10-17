@@ -14,7 +14,7 @@ import (
 func TestToPorcelainReport_NilInput(t *testing.T) {
 	t.Parallel()
 
-	report := ToPorcelainReport(nil)
+	report := toPorcelainReport(nil)
 
 	assert.Empty(t, report.Containers)
 	assert.Empty(t, report.Containers)
@@ -23,7 +23,7 @@ func TestToPorcelainReport_NilInput(t *testing.T) {
 func TestToPorcelainJSON_NilInput(t *testing.T) {
 	t.Parallel()
 
-	result := ToPorcelainJSON(nil)
+	result := toPorcelainJSON(nil)
 
 	require.NotEmpty(t, result)
 	assert.JSONEq(t, `{
@@ -46,7 +46,7 @@ func TestToPorcelainJSON_GitAndOCIFields(t *testing.T) {
 		LatestRevision:  "deadbeef",
 	})
 
-	jsonOut := ToPorcelainJSON(&session.SingleContainerReport{
+	jsonOut := toPorcelainJSON(&session.SingleContainerReport{
 		UpdatedReports: []types.ContainerReport{status},
 	})
 	assert.Contains(t, jsonOut, `"git_repo": "https://github.com/org/app.git"`)

@@ -8,7 +8,7 @@ import (
 	"github.com/nicholas-fedor/watchtower/pkg/types"
 )
 
-var _ json.Marshaler = &Data{}
+var _ json.Marshaler = &notificationData{}
 
 // Errors for JSON marshaling.
 var (
@@ -24,7 +24,7 @@ type jsonMap = map[string]any
 // Returns:
 //   - []byte: JSON-encoded data.
 //   - error: Non-nil if marshaling fails, nil on success.
-func (d Data) MarshalJSON() ([]byte, error) {
+func (d notificationData) MarshalJSON() ([]byte, error) {
 	// Convert log entries to JSON maps.
 	entries := make([]jsonMap, len(d.Entries))
 	for i, entry := range d.Entries {

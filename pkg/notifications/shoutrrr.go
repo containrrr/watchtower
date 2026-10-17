@@ -104,14 +104,14 @@ type shoutrrrTypeNotifier struct {
 	localLog *zerolog.Logger
 }
 
-// GetScheme extracts the scheme from a Shoutrrr URL.
+// getScheme extracts the scheme from a Shoutrrr URL.
 //
 // Parameters:
 //   - url: URL to parse.
 //
 // Returns:
 //   - string: Scheme or "invalid" if none found.
-func GetScheme(url string) string {
+func getScheme(url string) string {
 	schemeEnd := strings.Index(url, ":")
 	if schemeEnd <= 0 {
 		return "invalid"
@@ -127,7 +127,7 @@ func GetScheme(url string) string {
 func (n *shoutrrrTypeNotifier) GetNames() []string {
 	names := make([]string, len(n.Urls))
 	for i, u := range n.Urls {
-		names[i] = GetScheme(u)
+		names[i] = getScheme(u)
 	}
 
 	return names
@@ -291,7 +291,7 @@ func processSendErrors(notifier *shoutrrrTypeNotifier, errs []error) {
 		// Increment failure count and prepare URL details for logging on notification failure.
 		if err != nil {
 			failureCount++
-			scheme := GetScheme(notifier.Urls[i])
+			scheme := getScheme(notifier.Urls[i])
 			sanitizedURL := sanitizeURLForLogging(notifier.Urls[i])
 
 			// Diagnostic logging: Categorize failure types
@@ -1069,7 +1069,7 @@ func (n *shoutrrrTypeNotifier) send(msg string) {
 // Returns:
 //   - string: Rendered message.
 //   - error: Non-nil if templating fails, nil on success.
-func (n *shoutrrrTypeNotifier) buildMessage(data Data) (string, error) {
+func (n *shoutrrrTypeNotifier) buildMessage(data notificationData) (string, error) {
 	log := n.ll()
 
 	var body bytes.Buffer
@@ -1149,7 +1149,7 @@ func reportCategoryCount(report types.Report) int {
 func (n *shoutrrrTypeNotifier) sendEntries(entries []*notificationEntry, report types.Report) {
 	log := n.ll()
 
-	msg, err := n.buildMessage(Data{n.data, entries, report})
+	msg, err := n.buildMessage(notificationData{n.data, entries, report})
 	if err != nil {
 		log.Debug().
 			Err(err).
@@ -1229,7 +1229,7 @@ func (n *shoutrrrTypeNotifier) sendEntries(entries []*notificationEntry, report 
 //   - *template.Template: Parsed or default template.
 //   - error: Non-nil if parsing fails, nil on success.
 func getShoutrrrTemplate(log *zerolog.Logger, tplString string, legacy bool) (*template.Template, error) {
-	tplBase := template.New("").Funcs(Funcs)
+	tplBase := template.New("").Funcs(templateFuncs)
 
 	// Use common template if specified.
 	builtin, found := commonTemplates[tplString]

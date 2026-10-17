@@ -36,8 +36,8 @@ type SingleContainerReport struct {
 	FreshReports     []types.ContainerReport // All containers with fresh images (for context)
 }
 
-// SortableContainers implements sort.Interface for reports.
-type SortableContainers []types.ContainerReport
+// sortableContainers implements sort.Interface for reports.
+type sortableContainers []types.ContainerReport
 
 // Scanned returns scanned containers.
 //
@@ -142,7 +142,7 @@ func allFromSlices(
 	appendUnique(fresh)     // Containers with fresh images (no update needed)
 	appendUnique(scanned)   // Lowest priority - all containers that were scanned
 
-	sort.Sort(SortableContainers(all)) // Sort final list by container ID for consistent ordering
+	sort.Sort(sortableContainers(all)) // Sort final list by container ID for consistent ordering
 
 	return all
 }
@@ -155,14 +155,14 @@ func (r *report) All() []types.ContainerReport {
 	return allFromSlices(r.scanned, r.updated, r.restarted, r.failed, r.skipped, r.stale, r.fresh)
 }
 
-// NewReport creates a report from progress data.
+// newReport creates a report from progress data.
 //
 // Parameters:
 //   - progress: Progress map to process.
 //
 // Returns:
 //   - types.Report: Categorized and sorted report.
-func NewReport(log *zerolog.Logger, progress Progress) types.Report {
+func newReport(log *zerolog.Logger, progress Progress) types.Report {
 	report := &report{
 		scanned:   make([]types.ContainerReport, 0, len(progress)),
 		updated:   make([]types.ContainerReport, 0),
@@ -214,7 +214,7 @@ func categorizeContainer(log *zerolog.Logger, report *report, update *ContainerS
 		log.Debug().
 			Str("container", update.containerName).
 			Str("old_state", update.State()).
-			Str("new_state", FreshStateString).
+			Str("new_state", freshStateString).
 			Msg("Setting container state to fresh due to equal images")
 		update.state = FreshState
 		report.fresh = append(report.fresh, update)
@@ -247,20 +247,20 @@ func categorizeContainer(log *zerolog.Logger, report *report, update *ContainerS
 // Parameters:
 //   - report: Report to sort.
 func sortCategories(report *report) {
-	sort.Sort(SortableContainers(report.scanned))
-	sort.Sort(SortableContainers(report.updated))
-	sort.Sort(SortableContainers(report.failed))
-	sort.Sort(SortableContainers(report.skipped))
-	sort.Sort(SortableContainers(report.stale))
-	sort.Sort(SortableContainers(report.fresh))
-	sort.Sort(SortableContainers(report.restarted))
+	sort.Sort(sortableContainers(report.scanned))
+	sort.Sort(sortableContainers(report.updated))
+	sort.Sort(sortableContainers(report.failed))
+	sort.Sort(sortableContainers(report.skipped))
+	sort.Sort(sortableContainers(report.stale))
+	sort.Sort(sortableContainers(report.fresh))
+	sort.Sort(sortableContainers(report.restarted))
 }
 
 // Len returns the slice length.
 //
 // Returns:
 //   - int: Number of reports.
-func (s SortableContainers) Len() int {
+func (s sortableContainers) Len() int {
 	return len(s)
 }
 
@@ -271,7 +271,7 @@ func (s SortableContainers) Len() int {
 //
 // Returns:
 //   - bool: True if i's ID is less than j's.
-func (s SortableContainers) Less(i, j int) bool {
+func (s sortableContainers) Less(i, j int) bool {
 	return s[i].ID() < s[j].ID()
 }
 
@@ -316,6 +316,6 @@ func (r *SingleContainerReport) All() []types.ContainerReport {
 //
 // Parameters:
 //   - i, j: Indices to swap.
-func (s SortableContainers) Swap(i, j int) {
+func (s sortableContainers) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
 }

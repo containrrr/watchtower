@@ -188,7 +188,7 @@ func BenchmarkDependencySorter(b *testing.B) {
 			b.ResetTimer()
 
 			for b.Loop() {
-				ds := DependencySorter{}
+				ds := dependencySorter{}
 				// Create a copy for each iteration to avoid modifying the original
 				testContainers := make([]types.Container, len(containers))
 				copy(testContainers, containers)
@@ -280,7 +280,7 @@ func BenchmarkCycleDetection(b *testing.B) {
 			b.ResetTimer()
 
 			for b.Loop() {
-				ds := DependencySorter{}
+				ds := dependencySorter{}
 				testContainers := make([]types.Container, len(containers))
 				copy(testContainers, containers)
 
@@ -308,7 +308,7 @@ func BenchmarkMemoryUsage(b *testing.B) {
 		b.ReportAllocs()
 
 		for b.Loop() {
-			ds := DependencySorter{}
+			ds := dependencySorter{}
 			testContainers := make([]types.Container, len(containers))
 			copy(testContainers, containers)
 
@@ -329,7 +329,7 @@ func BenchmarkSortStability(b *testing.B) {
 		benchLog := testLog()
 
 		for b.Loop() {
-			ds := DependencySorter{}
+			ds := dependencySorter{}
 			testContainers := make([]types.Container, len(containers))
 			copy(testContainers, containers)
 

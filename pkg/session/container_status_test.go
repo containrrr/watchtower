@@ -210,7 +210,7 @@ func TestContainerStatus_State(t *testing.T) {
 		{
 			name: "restarted state",
 			u:    &ContainerStatus{state: RestartedState},
-			want: RestartedStateString,
+			want: restartedStateString,
 		},
 		{
 			name: "invalid state",
@@ -257,8 +257,8 @@ func TestContainerStatus_RestartedStateBehavior(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Verify state is Restarted
-			if got := tt.u.State(); got != RestartedStateString {
-				t.Errorf("ContainerStatus.State() = %v, want %v", got, RestartedStateString)
+			if got := tt.u.State(); got != restartedStateString {
+				t.Errorf("ContainerStatus.State() = %v, want %v", got, restartedStateString)
 			}
 			// Verify other methods return expected values
 			if got := tt.u.ID(); got != tt.u.containerID {
@@ -321,8 +321,8 @@ func TestContainerStatus_RestartedStateErrorHandling(t *testing.T) {
 				t.Errorf("ContainerStatus.Error() = %v, want %v", got, tt.want)
 			}
 			// Ensure state is still Restarted
-			if got := tt.u.State(); got != RestartedStateString {
-				t.Errorf("ContainerStatus.State() = %v, want %v", got, RestartedStateString)
+			if got := tt.u.State(); got != restartedStateString {
+				t.Errorf("ContainerStatus.State() = %v, want %v", got, restartedStateString)
 			}
 		})
 	}
@@ -362,8 +362,8 @@ func TestContainerStatus_RestartedStateWithMissingData(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Verify state is Restarted
-			if got := tt.u.State(); got != RestartedStateString {
-				t.Errorf("ContainerStatus.State() = %v, want %v", got, RestartedStateString)
+			if got := tt.u.State(); got != restartedStateString {
+				t.Errorf("ContainerStatus.State() = %v, want %v", got, restartedStateString)
 			}
 			// Verify methods return empty values appropriately
 			if tt.u.ID() != tt.u.containerID {
@@ -399,8 +399,8 @@ func TestNewContainerStatus(t *testing.T) {
 		t.Errorf("ImageName() = %q, want org/app:latest", got.ImageName())
 	}
 
-	if got.State() != UpdatedStateString {
-		t.Errorf("State() = %q, want %q", got.State(), UpdatedStateString)
+	if got.State() != updatedStateString {
+		t.Errorf("State() = %q, want %q", got.State(), updatedStateString)
 	}
 }
 
@@ -632,8 +632,8 @@ func TestContainerStatus_RestartedStateIntegration(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Verify state is Restarted
-			if got := tt.u.State(); got != RestartedStateString {
-				t.Errorf("ContainerStatus.State() = %v, want %v", got, RestartedStateString)
+			if got := tt.u.State(); got != restartedStateString {
+				t.Errorf("ContainerStatus.State() = %v, want %v", got, restartedStateString)
 			}
 			// Verify integration of fields
 			if tt.u.ID() != tt.u.containerID {

@@ -7,8 +7,8 @@ import (
 	"github.com/nicholas-fedor/watchtower/pkg/types"
 )
 
-// PorcelainContainer represents a single container in the porcelain JSON report.
-type PorcelainContainer struct {
+// porcelainContainer represents a single container in the porcelain JSON report.
+type porcelainContainer struct {
 	Name                 string `json:"name"`
 	Image                string `json:"image"`
 	ImageID              string `json:"image_id"`
@@ -28,30 +28,30 @@ type PorcelainContainer struct {
 	LatestImageRevision  string `json:"latest_revision,omitempty"`
 }
 
-// PorcelainReport is the top-level JSON structure for --porcelain json.
-type PorcelainReport struct {
-	Containers []PorcelainContainer `json:"containers"`
+// porcelainReport is the top-level JSON structure for --porcelain json.
+type porcelainReport struct {
+	Containers []porcelainContainer `json:"containers"`
 }
 
-// ToPorcelainReport converts a types.Report into a PorcelainReport.
+// toPorcelainReport converts a types.Report into a porcelainReport.
 //
 // Parameters:
 //   - sourceReport: Source report.
 //
 // Returns:
-//   - PorcelainReport: JSON-ready report.
-func ToPorcelainReport(sourceReport types.Report) PorcelainReport {
+//   - porcelainReport: JSON-ready report.
+func toPorcelainReport(sourceReport types.Report) porcelainReport {
 	if sourceReport == nil {
-		return PorcelainReport{Containers: make([]PorcelainContainer, 0)}
+		return porcelainReport{Containers: make([]porcelainContainer, 0)}
 	}
 
 	allContainers := sourceReport.All()
-	report := PorcelainReport{
-		Containers: make([]PorcelainContainer, 0, len(allContainers)),
+	report := porcelainReport{
+		Containers: make([]porcelainContainer, 0, len(allContainers)),
 	}
 
 	for _, containerReport := range allContainers {
-		container := PorcelainContainer{
+		container := porcelainContainer{
 			Name:                 containerReport.Name(),
 			Image:                containerReport.ImageName(),
 			ImageID:              containerReport.CurrentImageID().ShortID(),
@@ -79,15 +79,15 @@ func ToPorcelainReport(sourceReport types.Report) PorcelainReport {
 	return report
 }
 
-// ToPorcelainJSON marshals a types.Report to an indented JSON string for templates.
+// toPorcelainJSON marshals a types.Report to an indented JSON string for templates.
 //
 // Parameters:
 //   - sourceReport: Source report.
 //
 // Returns:
 //   - string: Indented JSON or error string if marshaling fails.
-func ToPorcelainJSON(sourceReport types.Report) string {
-	report := ToPorcelainReport(sourceReport)
+func toPorcelainJSON(sourceReport types.Report) string {
+	report := toPorcelainReport(sourceReport)
 
 	bytes, err := json.MarshalIndent(report, "", "  ")
 	if err != nil {

@@ -18,7 +18,7 @@ func FuzzCanonicalGitHostKind(f *testing.F) {
 	f.Add("  GITEA  ")
 
 	f.Fuzz(func(t *testing.T, kind string) {
-		got := CanonicalGitHostKind(kind)
+		got := canonicalGitHostKind(kind)
 		switch got {
 		case "", GitHostGitHub, GitHostGitLab, GitHostGitea:
 		default:

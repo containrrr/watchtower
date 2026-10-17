@@ -20,14 +20,14 @@ const (
 
 // State string constants.
 const (
-	UnknownStateString   = "Unknown"
-	SkippedStateString   = "Skipped"
-	ScannedStateString   = "Scanned"
-	UpdatedStateString   = "Updated"
-	FailedStateString    = "Failed"
-	FreshStateString     = "Fresh"
-	StaleStateString     = "Stale"
-	RestartedStateString = "Restarted"
+	unknownStateString   = "Unknown"
+	skippedStateString   = "Skipped"
+	scannedStateString   = "Scanned"
+	updatedStateString   = "Updated"
+	failedStateString    = "Failed"
+	freshStateString     = "Fresh"
+	staleStateString     = "Stale"
+	restartedStateString = "Restarted"
 )
 
 // State indicates what the current state is of the container.
@@ -137,23 +137,23 @@ func (u *ContainerStatus) Error() string {
 func (u *ContainerStatus) State() string {
 	switch u.state {
 	case UnknownState:
-		return UnknownStateString // Uninitialized state.
+		return unknownStateString // Uninitialized state.
 	case SkippedState:
-		return SkippedStateString
+		return skippedStateString
 	case ScannedState:
-		return ScannedStateString
+		return scannedStateString
 	case UpdatedState:
-		return UpdatedStateString
+		return updatedStateString
 	case FailedState:
-		return FailedStateString
+		return failedStateString
 	case FreshState:
-		return FreshStateString
+		return freshStateString
 	case StaleState:
-		return StaleStateString
+		return staleStateString
 	case RestartedState:
-		return RestartedStateString
+		return restartedStateString
 	default:
-		return UnknownStateString // Fallback for unexpected values.
+		return unknownStateString // Fallback for unexpected values.
 	}
 }
 

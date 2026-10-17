@@ -17,7 +17,7 @@
 //	notifier := someNotifierImpl{}
 //	notifier.StartNotification(false)
 //	log := logging.New(os.Stderr, logging.InfoLevel)
-//	progress := session.NewReport(log, progressMap)
+//	report := progress.Report(log)
 //	notifier.SendNotification(report)
 //
 // The package integrates with container, notifications, session, and registry packages.

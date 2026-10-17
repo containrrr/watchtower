@@ -14,12 +14,12 @@ import (
 	"github.com/nicholas-fedor/watchtower/internal/util"
 )
 
-// Funcs defines utility functions for notification templates.
-var Funcs = template.FuncMap{
+// templateFuncs defines utility functions for notification templates.
+var templateFuncs = template.FuncMap{
 	"ToUpper":         strings.ToUpper,
 	"ToLower":         strings.ToLower,
 	"ToJSON":          toJSON,
-	"ToPorcelainJSON": ToPorcelainJSON,
+	"ToPorcelainJSON": toPorcelainJSON,
 	"Title":           cases.Title(language.AmericanEnglish).String,
 	"RFC1123":         formatRFC1123,
 	"HasKey":          hasKey,

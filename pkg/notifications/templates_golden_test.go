@@ -293,14 +293,14 @@ func goldenFullReport() types.Report {
 }
 
 // goldenFixtures returns the notification data each built-in template is rendered against.
-func goldenFixtures() map[string]Data {
+func goldenFixtures() map[string]notificationData {
 	nop := zerolog.Nop()
 	staticData := StaticData{
 		Title: GetTitle(&nop, goldenHost, ""),
 		Host:  goldenHost,
 	}
 
-	return map[string]Data{
+	return map[string]notificationData{
 		"full": {
 			StaticData: staticData,
 			Entries:    goldenEntries(),

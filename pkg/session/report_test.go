@@ -824,22 +824,22 @@ func TestNewReport(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := NewReport(testLog(), tt.args.progress)
+			got := newReport(testLog(), tt.args.progress)
 			if !compareReports(got.(*report), tt.want.(*report)) {
-				t.Errorf("NewReport(testLog(), ) = %+v, want %+v", got, tt.want)
+				t.Errorf("newReport(testLog(), ) = %+v, want %+v", got, tt.want)
 			}
 			// Explicitly exercise Stale() to ensure coverage
 			stale := got.Stale()
 			wantStale := tt.want.Stale()
 
 			if len(stale) != len(wantStale) {
-				t.Errorf("NewReport(testLog(), ).Stale() length = %d, want %d", len(stale), len(wantStale))
+				t.Errorf("newReport(testLog(), ).Stale() length = %d, want %d", len(stale), len(wantStale))
 			}
 
 			for i := range stale {
 				if stale[i].ID() != wantStale[i].ID() {
 					t.Errorf(
-						"NewReport(testLog(), ).Stale()[%d].ID() = %v, want %v",
+						"newReport(testLog(), ).Stale()[%d].ID() = %v, want %v",
 						i,
 						stale[i].ID(),
 						wantStale[i].ID(),
@@ -1106,17 +1106,17 @@ func Test_sortCategories(t *testing.T) {
 func Test_SortableContainers_Len(t *testing.T) {
 	tests := []struct {
 		name string
-		s    SortableContainers
+		s    sortableContainers
 		want int
 	}{
 		{
 			name: "empty slice",
-			s:    SortableContainers{},
+			s:    sortableContainers{},
 			want: 0,
 		},
 		{
 			name: "two elements",
-			s: SortableContainers{
+			s: sortableContainers{
 				mockTypes.NewMockContainerReport(t),
 				mockTypes.NewMockContainerReport(t),
 			},
@@ -1126,7 +1126,7 @@ func Test_SortableContainers_Len(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.s.Len(); got != tt.want {
-				t.Errorf("SortableContainers.Len() = %v, want %v", got, tt.want)
+				t.Errorf("sortableContainers.Len() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -1140,13 +1140,13 @@ func Test_SortableContainers_Less(t *testing.T) {
 
 	tests := []struct {
 		name string
-		s    SortableContainers
+		s    sortableContainers
 		args args
 		want bool
 	}{
 		{
 			name: "lower ID first",
-			s: SortableContainers{
+			s: sortableContainers{
 				func() types.ContainerReport {
 					mock := mockTypes.NewMockContainerReport(t)
 					mock.EXPECT().ID().Return(types.ContainerID("cont1"))
@@ -1165,7 +1165,7 @@ func Test_SortableContainers_Less(t *testing.T) {
 		},
 		{
 			name: "higher ID first",
-			s: SortableContainers{
+			s: sortableContainers{
 				func() types.ContainerReport {
 					mock := mockTypes.NewMockContainerReport(t)
 					mock.EXPECT().ID().Return(types.ContainerID("cont2"))
@@ -1186,7 +1186,7 @@ func Test_SortableContainers_Less(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.s.Less(tt.args.i, tt.args.j); got != tt.want {
-				t.Errorf("SortableContainers.Less() = %v, want %v", got, tt.want)
+				t.Errorf("sortableContainers.Less() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -1200,13 +1200,13 @@ func Test_SortableContainers_Swap(t *testing.T) {
 
 	tests := []struct {
 		name string
-		s    SortableContainers
+		s    sortableContainers
 		args args
 		want []string // Use IDs directly instead of mocks for want
 	}{
 		{
 			name: "swap first and second",
-			s: SortableContainers{
+			s: sortableContainers{
 				func() types.ContainerReport {
 					mock := mockTypes.NewMockContainerReport(t)
 					// Expect 1 call in the comparison loop after swap
@@ -1230,7 +1230,7 @@ func Test_SortableContainers_Swap(t *testing.T) {
 			tt.s.Swap(tt.args.i, tt.args.j)
 
 			if len(tt.s) != len(tt.want) {
-				t.Errorf("SortableContainers.Swap() length = %d, want %d", len(tt.s), len(tt.want))
+				t.Errorf("sortableContainers.Swap() length = %d, want %d", len(tt.s), len(tt.want))
 
 				return
 			}
@@ -1241,7 +1241,7 @@ func Test_SortableContainers_Swap(t *testing.T) {
 				gotID := tt.s[i].ID()
 				if gotID != types.ContainerID(tt.want[i]) {
 					t.Errorf(
-						"SortableContainers.Swap()[%d].ID() = %v, want %v",
+						"sortableContainers.Swap()[%d].ID() = %v, want %v",
 						i,
 						gotID,
 						tt.want[i],

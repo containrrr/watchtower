@@ -14,8 +14,8 @@ import (
 	"github.com/nicholas-fedor/watchtower/pkg/types"
 )
 
-// DependencySorter handles topological sorting by dependencies.
-type DependencySorter struct{}
+// dependencySorter handles topological sorting by dependencies.
+type dependencySorter struct{}
 
 // SortByDependencies sorts containers in place by dependencies.
 //
@@ -27,7 +27,7 @@ type DependencySorter struct{}
 // Returns:
 //   - error: Non-nil if circular reference detected, nil on success.
 func SortByDependencies(log *zerolog.Logger, containers []types.Container, useComposeDependsOn bool) error {
-	sorter := DependencySorter{}
+	sorter := dependencySorter{}
 
 	return sorter.Sort(log, containers, useComposeDependsOn)
 }
@@ -56,7 +56,7 @@ func SortByDependencies(log *zerolog.Logger, containers []types.Container, useCo
 // Returns:
 //   - error: Non-nil if circular reference detected, nil on success.
 //     Error includes the container name and cycle path for debugging.
-func (ds DependencySorter) Sort(log *zerolog.Logger, containers []types.Container, useComposeDependsOn bool) error {
+func (ds dependencySorter) Sort(log *zerolog.Logger, containers []types.Container, useComposeDependsOn bool) error {
 	if containers == nil {
 		return nil
 	}
@@ -168,7 +168,7 @@ func sortByDependencies(log *zerolog.Logger, containers []types.Container, useCo
 //
 // Returns:
 //   - []types.Container: Sorted list in dependency order (dependencies first).
-//   - error: A CircularReferenceError when not every container can be ordered.
+//   - error: A circularReferenceError when not every container can be ordered.
 func kahnSort(log *zerolog.Logger,
 	containers []types.Container,
 	containerMap map[string]types.Container,
@@ -241,7 +241,7 @@ func kahnSort(log *zerolog.Logger,
 //  1. Exact match on canonical identifier or bare container name
 //  2. Prefix match for Docker Compose replica suffixes (e.g., "db" matches "db-1", "db-2")
 //  3. Project-qualified suffix match (id ends with "-"+link) for multi-segment links, or
-//     ExtractServiceName equality only for unhyphenated bare service names
+//     extractServiceName equality only for unhyphenated bare service names
 //
 // Parameters:
 //   - containers: List of containers to build graph for.
@@ -252,7 +252,7 @@ func kahnSort(log *zerolog.Logger,
 //   - map[string]int: Indegree count for each container
 //   - map[string][]string: Adjacency list (canonical dependency -> dependents)
 //   - map[types.Container]string: Reverse map from container to normalized identifier
-//   - error: IdentifierCollisionError if duplicate identifiers detected, nil otherwise
+//   - error: identifierCollisionError if duplicate identifiers detected, nil otherwise
 func buildDependencyGraph(log *zerolog.Logger,
 	containers []types.Container,
 	useComposeDependsOn bool,
@@ -281,7 +281,7 @@ func buildDependencyGraph(log *zerolog.Logger,
 //
 // Returns:
 //   - map[string]types.Container: Container for each normalized identifier.
-//   - error: IdentifierCollisionError if containers share an identifier.
+//   - error: identifierCollisionError if containers share an identifier.
 func identifierIndex(log *zerolog.Logger, containers []types.Container) (map[string]types.Container, error) {
 	// Use temporary map to collect all containers per normalized identifier
 	tempMap := make(map[string][]types.Container, len(containers))
@@ -302,7 +302,7 @@ func identifierIndex(log *zerolog.Logger, containers []types.Container) (map[str
 				dupContainers,
 			)
 
-			return nil, IdentifierCollisionError{
+			return nil, identifierCollisionError{
 				DuplicateIdentifier: identifier,
 				AffectedContainers:  dupContainers,
 			}
@@ -511,7 +511,7 @@ func resolveLinkToCanonicalKeys(
 	return canonicalKeys
 }
 
-// IsPositiveInteger checks if a string represents a positive integer (1 or greater).
+// isPositiveInteger checks if a string represents a positive integer (1 or greater).
 //
 // This validation is critical for distinguishing Docker Compose-style replica suffixes
 // (e.g., "db-1", "db-2") from other hyphenated container names (e.g., "db-backup",
@@ -524,7 +524,7 @@ func resolveLinkToCanonicalKeys(
 //
 // This prevents false dependency relationships between unrelated containers with
 // similar names, which could cause incorrect update ordering or circular dependencies.
-func IsPositiveInteger(s string) bool {
+func isPositiveInteger(s string) bool {
 	if s == "" {
 		return false
 	}
@@ -534,7 +534,7 @@ func IsPositiveInteger(s string) bool {
 	return err == nil && n > 0
 }
 
-// ExtractServiceName extracts the service name from a container identifier.
+// extractServiceName extracts the service name from a container identifier.
 //
 // Container identifiers from ResolveContainerIdentifier() follow the pattern:
 //   - "project-service" when both project and service labels exist
@@ -552,7 +552,7 @@ func IsPositiveInteger(s string) bool {
 //   - "myapp" -> "myapp"
 //   - "my-app-service" -> "service" (last segment before any replica number)
 //   - "my-app-service-2" -> "service" (strips replica suffix)
-func ExtractServiceName(identifier string) string {
+func extractServiceName(identifier string) string {
 	if identifier == "" {
 		return ""
 	}
@@ -566,7 +566,7 @@ func ExtractServiceName(identifier string) string {
 
 	// Check if the last part is a replica number (positive integer)
 	// If so, we need to skip it and take the second-to-last part as service name
-	if IsPositiveInteger(identifier[last+1:]) {
+	if isPositiveInteger(identifier[last+1:]) {
 		// Return the part before the replica number (e.g., "service" from "project-service-1")
 		rest := identifier[:last]
 
@@ -589,7 +589,7 @@ type matchSet struct {
 	sorted []string
 	// services holds the identifier of sorted[i] without its replica number.
 	services []string
-	// serviceNames holds ExtractServiceName of sorted[i].
+	// serviceNames holds extractServiceName of sorted[i].
 	serviceNames []string
 }
 
@@ -607,7 +607,7 @@ func newMatchSet(idSet map[string]bool) *matchSet {
 
 	for i, identifier := range sorted {
 		services[i] = replicaService(identifier)
-		serviceNames[i] = ExtractServiceName(identifier)
+		serviceNames[i] = extractServiceName(identifier)
 	}
 
 	return &matchSet{names: idSet, sorted: sorted, services: services, serviceNames: serviceNames}
@@ -621,7 +621,7 @@ func newMatchSet(idSet map[string]bool) *matchSet {
 //     after the hyphen is a positive integer (Docker Compose replica numbering).
 //  3. Project-qualified suffix match (the identifier, without a replica
 //     number, ends with "-"+link), and for unhyphenated links only,
-//     ExtractServiceName equality on both sides. This strategy only succeeds
+//     extractServiceName equality on both sides. This strategy only succeeds
 //     when every candidate belongs to the same service, and then returns all
 //     of its replicas. Candidates from more than one service (e.g. the same
 //     service name in different projects) are treated as ambiguous and return
@@ -655,7 +655,7 @@ func (s *matchSet) match(link string) []string {
 			break
 		}
 
-		if IsPositiveInteger(identifier[len(prefix):]) {
+		if isPositiveInteger(identifier[len(prefix):]) {
 			replicaMatches = append(replicaMatches, identifier)
 		}
 	}
@@ -668,10 +668,10 @@ func (s *matchSet) match(link string) []string {
 	// service, and resolves to every replica of it. Candidates from more than
 	// one service are ambiguous and resolve to nothing.
 	// Multi-segment links (containing "-") only use the precise "-"+link suffix,
-	// ignoring a replica number, so trailing-token ExtractServiceName equality
+	// ignoring a replica number, so trailing-token extractServiceName equality
 	// cannot select an unrelated peer (e.g. link "net-proxy" must not match
 	// "myproject-other-proxy").
-	// Unhyphenated bare service names may still match via ExtractServiceName
+	// Unhyphenated bare service names may still match via extractServiceName
 	// (e.g. link "db" → "myproject-db" or "myproject-db-1").
 	serviceSuffix := "-" + link
 	linkHasHyphen := strings.Contains(link, "-")
@@ -712,7 +712,7 @@ func (s *matchSet) match(link string) []string {
 //     itself when it has none.
 func replicaService(identifier string) string {
 	i := strings.LastIndex(identifier, "-")
-	if i > 0 && IsPositiveInteger(identifier[i+1:]) {
+	if i > 0 && isPositiveInteger(identifier[i+1:]) {
 		return identifier[:i]
 	}
 
@@ -761,7 +761,7 @@ func initializeQueue(indegree map[string]int) []string {
 //   - normalizedMap: Map of containers to their normalized identifiers
 //
 // Returns:
-//   - error: CircularReferenceError if cycle detected, nil otherwise
+//   - error: circularReferenceError if cycle detected, nil otherwise
 func detectAndReportCycle(log *zerolog.Logger,
 	sorted []types.Container,
 	containers []types.Container,
@@ -806,7 +806,7 @@ func detectAndReportCycle(log *zerolog.Logger,
 			Msg("Detected circular reference in dependency graph")
 
 		// Return detailed error with cycle information for debugging
-		return CircularReferenceError{ContainerName: cycleContainer, CyclePath: cyclePath}
+		return circularReferenceError{ContainerName: cycleContainer, CyclePath: cyclePath}
 	}
 
 	return nil

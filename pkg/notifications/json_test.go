@@ -204,7 +204,7 @@ var _ = ginkgo.Describe("JSON template", func() {
 
 			ginkgo.It("should handle template rendering edge cases", func() {
 				// Test with empty report
-				data := Data{
+				data := notificationData{
 					Entries: []*notificationEntry{},
 					Report:  nil,
 					Title:   "Test Title",
@@ -280,7 +280,7 @@ var _ = ginkgo.Describe("JSON Git and OCI report fields", func() {
 		status := session.NewContainerStatus("app", "org/app:latest")
 		status.SetGitMetadata(container.ReportMeta{GitRepo: "https://github.com/org/app.git", GitRef: "main"})
 
-		raw, err := json.Marshal(Data{
+		raw, err := json.Marshal(notificationData{
 			Title: "update", Host: "box",
 			Report: &session.SingleContainerReport{
 				UpdatedReports: []types.ContainerReport{status},

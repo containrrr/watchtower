@@ -13,7 +13,7 @@ import (
 // Progress tracks container statuses during a session.
 type Progress map[types.ContainerID]*ContainerStatus
 
-// UpdateFromContainer creates a status from container data.
+// updateFromContainer creates a status from container data.
 //
 // Parameters:
 //   - container: Container to update from.
@@ -23,7 +23,7 @@ type Progress map[types.ContainerID]*ContainerStatus
 //
 // Returns:
 //   - *ContainerStatus: Updated status.
-func UpdateFromContainer(log *zerolog.Logger,
+func updateFromContainer(log *zerolog.Logger,
 	container types.Container,
 	newImage types.ImageID,
 	state State,
@@ -57,7 +57,7 @@ func UpdateFromContainer(log *zerolog.Logger,
 //   - err: Skip reason error.
 //   - params: Update parameters for monitor-only check.
 func (m Progress) AddSkipped(log *zerolog.Logger, container types.Container, err error, params types.UpdateParams) {
-	update := UpdateFromContainer(log, container, container.ImageID(), SkippedState, params)
+	update := updateFromContainer(log, container, container.ImageID(), SkippedState, params)
 	update.containerError = err
 	m.Add(log, update)
 	log.Debug().
@@ -75,7 +75,7 @@ func (m Progress) AddSkipped(log *zerolog.Logger, container types.Container, err
 //   - err: Failure reason error.
 //   - params: Update parameters for monitor-only check.
 func (m Progress) AddFailed(log *zerolog.Logger, container types.Container, err error, params types.UpdateParams) {
-	update := UpdateFromContainer(log, container, container.ImageID(), FailedState, params)
+	update := updateFromContainer(log, container, container.ImageID(), FailedState, params)
 	update.containerError = err
 	m.Add(log, update)
 	log.Debug().
@@ -96,7 +96,7 @@ func (m Progress) AddScanned(log *zerolog.Logger,
 	newImage types.ImageID,
 	params types.UpdateParams,
 ) {
-	m.Add(log, UpdateFromContainer(log, container, newImage, ScannedState, params))
+	m.Add(log, updateFromContainer(log, container, newImage, ScannedState, params))
 	log.Debug().
 		Str("container_id", container.ID().ShortID()).
 		Str("name", container.Name()).
@@ -352,5 +352,5 @@ func (m Progress) Report(log *zerolog.Logger) types.Report {
 		Int("count", len(m)).
 		Msg("Generating report")
 
-	return NewReport(log, m)
+	return newReport(log, m)
 }

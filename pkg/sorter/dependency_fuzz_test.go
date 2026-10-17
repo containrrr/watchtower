@@ -47,17 +47,17 @@ func FuzzDependencySort(f *testing.F) {
 
 		// Test with both useComposeDependsOn values
 		for _, useComposeDependsOn := range []bool{true, false} {
-			ds := DependencySorter{}
+			ds := dependencySorter{}
 			testContainers := make([]types.Container, len(containers))
 			copy(testContainers, containers)
 
 			// This should not panic
 			err := ds.Sort(testLog(), testContainers, useComposeDependsOn)
-			// If there's an error, it should be a CircularReferenceError or IdentifierCollisionError
+			// If there's an error, it should be a circularReferenceError or identifierCollisionError
 			if err != nil {
 				var (
-					circularErr  CircularReferenceError
-					collisionErr IdentifierCollisionError
+					circularErr  circularReferenceError
+					collisionErr identifierCollisionError
 				)
 
 				if !errors.As(err, &circularErr) && !errors.As(err, &collisionErr) {
@@ -103,17 +103,17 @@ func FuzzCycleDetection(f *testing.F) {
 
 		// Test with both useComposeDependsOn values
 		for _, useComposeDependsOn := range []bool{true, false} {
-			ds := DependencySorter{}
+			ds := dependencySorter{}
 			testContainers := make([]types.Container, len(containers))
 			copy(testContainers, containers)
 
 			// This should not panic
 			err := ds.Sort(testLog(), testContainers, useComposeDependsOn)
-			// Error should either be nil, CircularReferenceError, or IdentifierCollisionError
+			// Error should either be nil, circularReferenceError, or identifierCollisionError
 			if err != nil {
 				var (
-					circularErr  CircularReferenceError
-					collisionErr IdentifierCollisionError
+					circularErr  circularReferenceError
+					collisionErr identifierCollisionError
 				)
 
 				if !errors.As(err, &circularErr) && !errors.As(err, &collisionErr) {
@@ -219,11 +219,11 @@ func FuzzSortByDependencies(f *testing.F) {
 		for _, useComposeDependsOn := range []bool{true, false} {
 			// This should not panic
 			sorted, err := sortByDependencies(testLog(), containers, useComposeDependsOn)
-			// If there's an error, it should be a CircularReferenceError or IdentifierCollisionError
+			// If there's an error, it should be a circularReferenceError or identifierCollisionError
 			if err != nil {
 				var (
-					circularErr  CircularReferenceError
-					collisionErr IdentifierCollisionError
+					circularErr  circularReferenceError
+					collisionErr identifierCollisionError
 				)
 
 				if !errors.As(err, &circularErr) && !errors.As(err, &collisionErr) {
@@ -360,7 +360,7 @@ func generateCollisionContainers(data []byte) []types.Container {
 }
 
 // isRealCycle verifies that a detected cycle is actually real and not a false positive.
-func isRealCycle(containers []types.Container, circularErr CircularReferenceError, useComposeDependsOn bool) bool {
+func isRealCycle(containers []types.Container, circularErr circularReferenceError, useComposeDependsOn bool) bool {
 	cyclePath := circularErr.CyclePath
 
 	// Edge case: cycle path must have at least 3 elements for a valid cycle (A->B->A)
@@ -709,17 +709,17 @@ func FuzzIdentifierCollisions(f *testing.F) {
 
 		// Test with both useComposeDependsOn values
 		for _, useComposeDependsOn := range []bool{true, false} {
-			ds := DependencySorter{}
+			ds := dependencySorter{}
 			testContainers := make([]types.Container, len(containers))
 			copy(testContainers, containers)
 
 			// This should not panic and should not detect false cycles
 			err := ds.Sort(testLog(), testContainers, useComposeDependsOn)
-			// Error should either be nil, CircularReferenceError, or IdentifierCollisionError
+			// Error should either be nil, circularReferenceError, or identifierCollisionError
 			if err != nil {
 				var (
-					circularErr  CircularReferenceError
-					collisionErr IdentifierCollisionError
+					circularErr  circularReferenceError
+					collisionErr identifierCollisionError
 				)
 
 				if errors.As(err, &circularErr) {
@@ -730,7 +730,7 @@ func FuzzIdentifierCollisions(f *testing.F) {
 				} else if !errors.As(err, &collisionErr) {
 					t.Fatalf("Unexpected error type: %T, error: %v", err, err)
 				}
-				// IdentifierCollisionError is expected and acceptable
+				// identifierCollisionError is expected and acceptable
 			}
 		}
 	})
@@ -759,17 +759,17 @@ func FuzzMalformedLabels(f *testing.F) {
 
 		// Test with both useComposeDependsOn values
 		for _, useComposeDependsOn := range []bool{true, false} {
-			ds := DependencySorter{}
+			ds := dependencySorter{}
 			testContainers := make([]types.Container, len(containers))
 			copy(testContainers, containers)
 
 			// This should not panic
 			err := ds.Sort(testLog(), testContainers, useComposeDependsOn)
-			// Error should either be nil, CircularReferenceError, or IdentifierCollisionError
+			// Error should either be nil, circularReferenceError, or identifierCollisionError
 			if err != nil {
 				var (
-					circularErr  CircularReferenceError
-					collisionErr IdentifierCollisionError
+					circularErr  circularReferenceError
+					collisionErr identifierCollisionError
 				)
 
 				if !errors.As(err, &circularErr) && !errors.As(err, &collisionErr) {
@@ -802,17 +802,17 @@ func FuzzLinkNormalization(f *testing.F) {
 
 		// Test with both useComposeDependsOn values
 		for _, useComposeDependsOn := range []bool{true, false} {
-			ds := DependencySorter{}
+			ds := dependencySorter{}
 			testContainers := make([]types.Container, len(containers))
 			copy(testContainers, containers)
 
 			// This should not panic
 			err := ds.Sort(testLog(), testContainers, useComposeDependsOn)
-			// Error should either be nil, CircularReferenceError, or IdentifierCollisionError
+			// Error should either be nil, circularReferenceError, or identifierCollisionError
 			if err != nil {
 				var (
-					circularErr  CircularReferenceError
-					collisionErr IdentifierCollisionError
+					circularErr  circularReferenceError
+					collisionErr identifierCollisionError
 				)
 
 				if !errors.As(err, &circularErr) && !errors.As(err, &collisionErr) {
@@ -844,17 +844,17 @@ func FuzzEmptyIdentifiers(f *testing.F) {
 
 		// Test with both useComposeDependsOn values
 		for _, useComposeDependsOn := range []bool{true, false} {
-			ds := DependencySorter{}
+			ds := dependencySorter{}
 			testContainers := make([]types.Container, len(containers))
 			copy(testContainers, containers)
 
 			// This should not panic
 			err := ds.Sort(testLog(), testContainers, useComposeDependsOn)
-			// Error should either be nil, CircularReferenceError, or IdentifierCollisionError
+			// Error should either be nil, circularReferenceError, or identifierCollisionError
 			if err != nil {
 				var (
-					circularErr  CircularReferenceError
-					collisionErr IdentifierCollisionError
+					circularErr  circularReferenceError
+					collisionErr identifierCollisionError
 				)
 
 				if !errors.As(err, &circularErr) && !errors.As(err, &collisionErr) {
@@ -886,7 +886,7 @@ func referenceFindMatchingIdentifiers(link string, idSet map[string]bool) []stri
 	for identifier := range idSet {
 		if strings.HasPrefix(identifier, link+"-") {
 			suffix := identifier[len(link)+1:]
-			if IsPositiveInteger(suffix) {
+			if isPositiveInteger(suffix) {
 				replicaMatches = append(replicaMatches, identifier)
 			}
 		}
@@ -923,7 +923,7 @@ func referenceFindMatchingIdentifiers(link string, idSet map[string]bool) []stri
 	return matches
 }
 
-// referenceExtractServiceName is ExtractServiceName as it split the whole
+// referenceExtractServiceName is extractServiceName as it split the whole
 // identifier on hyphens.
 func referenceExtractServiceName(identifier string) string {
 	if identifier == "" {
@@ -935,7 +935,7 @@ func referenceExtractServiceName(identifier string) string {
 	}
 
 	parts := strings.Split(identifier, "-")
-	if IsPositiveInteger(parts[len(parts)-1]) {
+	if isPositiveInteger(parts[len(parts)-1]) {
 		return parts[len(parts)-2]
 	}
 
@@ -944,7 +944,7 @@ func referenceExtractServiceName(identifier string) string {
 
 // FuzzMatchSetMatch verifies that the indexed link matcher returns
 // exactly what scanning every identifier returns, matches and order alike,
-// and that ExtractServiceName is unchanged. Identifiers are given as a
+// and that extractServiceName is unchanged. Identifiers are given as a
 // comma-separated list. The seeds cover exact names, replicas, Compose
 // services in one and several projects, hyphenated services, multi-segment
 // links, and replica-like suffixes that are not positive integers.
@@ -969,8 +969,8 @@ func FuzzMatchSetMatch(f *testing.F) {
 			if identifier != "" {
 				idSet[identifier] = true
 
-				if got, want := ExtractServiceName(identifier), referenceExtractServiceName(identifier); got != want {
-					t.Fatalf("ExtractServiceName(%q) = %q, want %q", identifier, got, want)
+				if got, want := extractServiceName(identifier), referenceExtractServiceName(identifier); got != want {
+					t.Fatalf("extractServiceName(%q) = %q, want %q", identifier, got, want)
 				}
 			}
 		}

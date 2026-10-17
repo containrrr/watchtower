@@ -37,7 +37,7 @@ func FuzzCycleMembers(f *testing.F) {
 		for _, useComposeDependsOn := range []bool{true, false} {
 			graph, err := NewDependencyGraph(testLog(), containers, nil, useComposeDependsOn)
 			if err != nil {
-				if !errors.Is(err, ErrIdentifierCollision) {
+				if !errors.Is(err, errIdentifierCollision) {
 					t.Fatalf("unexpected error: %v", err)
 				}
 
@@ -78,7 +78,7 @@ func FuzzCycleMembers(f *testing.F) {
 
 			for _, sorted := range [][]types.Container{rest, subset} {
 				err = graph.Sort(testLog(), sorted)
-				if errors.Is(err, ErrCircularReference) {
+				if errors.Is(err, errCircularReference) {
 					t.Fatalf("containers outside the reported cycles do not sort: %v", err)
 				}
 			}
@@ -307,7 +307,7 @@ func FuzzDeploymentGraphs(f *testing.F) {
 		for _, useComposeDependsOn := range []bool{true, false} {
 			graph, err := NewDependencyGraph(testLog(), monitored, unmonitored, useComposeDependsOn)
 			if err != nil {
-				if !errors.Is(err, ErrIdentifierCollision) {
+				if !errors.Is(err, errIdentifierCollision) {
 					t.Fatalf("unexpected error: %v", err)
 				}
 

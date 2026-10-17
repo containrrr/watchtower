@@ -176,7 +176,7 @@ func TestNewDependencyGraph_IdentifierCollision(t *testing.T) {
 		cycleContainer("first", labels),
 		cycleContainer("second", labels),
 	}, nil, false)
-	require.ErrorIs(t, err, ErrIdentifierCollision)
+	require.ErrorIs(t, err, errIdentifierCollision)
 }
 
 // TestDependencyGraph_CycleMembersLinkSources verifies that a cycle is found whichever source
@@ -516,7 +516,7 @@ func TestDependencyGraph_Sort(t *testing.T) {
 		t.Parallel()
 
 		containers := append(pick(all, "app"), deployed{name: "other"}.container())
-		require.ErrorIs(t, graph.Sort(testLog(), containers), ErrNotInGraph)
+		require.ErrorIs(t, graph.Sort(testLog(), containers), errNotInGraph)
 	})
 }
 
