@@ -37,6 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Unexport package-internal identifiers by @nicholas-fedor in [#2891](https://github.com/nicholas-fedor/watchtower/pull/2891)
 - Unexport package-internal identifiers by @nicholas-fedor in [#2889](https://github.com/nicholas-fedor/watchtower/pull/2889)
 - Unexport package-internal identifiers by @nicholas-fedor in [#2887](https://github.com/nicholas-fedor/watchtower/pull/2887)
 - Unexport package-internal identifiers by @nicholas-fedor in [#2883](https://github.com/nicholas-fedor/watchtower/pull/2883)
