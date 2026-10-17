@@ -9,8 +9,6 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/nicholas-fedor/watchtower/internal/logging"
 )
 
 // mockDigested is a test implementation of reference.Digested with an invalid String() method.
@@ -28,7 +26,7 @@ func (m *mockDigested) Digest() digest.Digest {
 }
 
 func testLog() *zerolog.Logger {
-	return logging.NopLogger()
+	return new(zerolog.Nop())
 }
 
 func TestParseImageRef(t *testing.T) {

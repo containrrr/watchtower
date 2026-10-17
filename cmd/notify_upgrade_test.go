@@ -9,11 +9,11 @@ import (
 	"testing/synctest"
 	"time"
 
+	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/nicholas-fedor/watchtower/internal/logging"
 	"github.com/nicholas-fedor/watchtower/internal/testutil/golden"
 )
 
@@ -69,7 +69,7 @@ func runNotifyUpgradeUntilTimeout(t *testing.T, args ...string) notifyUpgradeRun
 			done := make(chan error, 1)
 
 			go func() {
-				_, err := runNotifyUpgradeE(cmd, nil, logging.NopLogger())
+				_, err := runNotifyUpgradeE(cmd, nil, new(zerolog.Nop()))
 				done <- err
 			}()
 
@@ -212,7 +212,7 @@ func TestNotifyUpgrade_Failures(t *testing.T) {
 
 			cmd := newNotifyUpgradeCommand(t, tt.args...)
 
-			_, err := runNotifyUpgradeE(cmd, nil, logging.NopLogger())
+			_, err := runNotifyUpgradeE(cmd, nil, new(zerolog.Nop()))
 			require.Error(t, err)
 
 			if tt.wantErr != nil {
@@ -262,7 +262,7 @@ func TestWriteNotificationEnvFile(t *testing.T) {
 			dir := t.TempDir()
 			line := "WATCHTOWER_NOTIFICATION_URL=discord://token@webhookid"
 
-			path, err := writeNotificationEnvFile(logging.NopLogger(), dir, line, tt.syncFile)
+			path, err := writeNotificationEnvFile(new(zerolog.Nop()), dir, line, tt.syncFile)
 
 			entries, readErr := os.ReadDir(dir)
 			require.NoError(t, readErr)

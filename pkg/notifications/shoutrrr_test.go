@@ -483,7 +483,7 @@ updt1 (mock/updt1:latest): Updated
 
 		ginkgo.When("using a template referencing Git and OCI report fields", func() {
 			ginkgo.It("should render Changelog, GitRepo, and Source", func() {
-				status := session.NewContainerStatus("app", "org/app:latest")
+				status := updatedAppStatus()
 				status.SetGitMetadata(container.ReportMeta{
 					GitRepo:         "https://github.com/org/app.git",
 					GitRef:          "v1.2.3",

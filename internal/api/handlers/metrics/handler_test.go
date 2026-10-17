@@ -9,11 +9,18 @@ import (
 	"testing"
 
 	"github.com/gofiber/fiber/v3"
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/nicholas-fedor/watchtower/internal/metrics"
 )
+
+// testLogger returns a logger that discards every event, for tests that do not
+// assert on logs.
+func testLogger() *zerolog.Logger {
+	return new(zerolog.Nop())
+}
 
 func TestNew(t *testing.T) {
 	h := New(testLogger())

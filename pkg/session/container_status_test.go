@@ -389,21 +389,6 @@ func TestContainerStatus_RestartedStateWithMissingData(t *testing.T) {
 	}
 }
 
-func TestNewContainerStatus(t *testing.T) {
-	got := NewContainerStatus("app", "org/app:latest")
-	if got.Name() != "app" {
-		t.Errorf("Name() = %q, want app", got.Name())
-	}
-
-	if got.ImageName() != "org/app:latest" {
-		t.Errorf("ImageName() = %q, want org/app:latest", got.ImageName())
-	}
-
-	if got.State() != updatedStateString {
-		t.Errorf("State() = %q, want %q", got.State(), updatedStateString)
-	}
-}
-
 func TestContainerStatus_SetGitMetadata(t *testing.T) {
 	u := &ContainerStatus{}
 	u.SetGitMetadata(container.ReportMeta{

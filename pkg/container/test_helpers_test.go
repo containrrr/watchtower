@@ -1,6 +1,9 @@
 package container
 
 import (
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"net"
 	"net/http"
@@ -19,7 +22,16 @@ import (
 
 // testLog returns a discarded zerolog logger for tests that do not assert on output.
 func testLog() *zerolog.Logger {
-	return logging.NopLogger()
+	return new(zerolog.Nop())
+}
+
+// randomSHA256 returns 64 random hex characters, the form of a SHA-256 digest
+// without its "sha256:" prefix, so each test gets unique image IDs and digests.
+func randomSHA256() string {
+	hash := make([]byte, sha256.Size)
+	_, _ = rand.Read(hash)
+
+	return hex.EncodeToString(hash)
 }
 
 // mustParseMAC returns a 6-byte HardwareAddr as Docker inspect JSON unmarshals it.

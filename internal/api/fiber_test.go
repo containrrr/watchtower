@@ -19,6 +19,12 @@ import (
 	"github.com/nicholas-fedor/watchtower/internal/api/config"
 )
 
+// testLogger returns a logger that discards every event, for tests that do not
+// assert on logs.
+func testLogger() *zerolog.Logger {
+	return new(zerolog.Nop())
+}
+
 func TestNew_ProxyConfig(t *testing.T) {
 	app := newApp(
 		testLogger(),

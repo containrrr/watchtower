@@ -8,12 +8,19 @@ import (
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
+	"github.com/rs/zerolog"
 
 	dockerImage "github.com/moby/moby/api/types/image"
 
 	mockActions "github.com/nicholas-fedor/watchtower/internal/actions/mocks"
 	"github.com/nicholas-fedor/watchtower/pkg/registry/manifest"
 )
+
+// testLog returns a logger that discards every event, for tests that do not
+// assert on logs.
+func testLog() *zerolog.Logger {
+	return new(zerolog.Nop())
+}
 
 func TestManifest(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)

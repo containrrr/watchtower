@@ -62,22 +62,6 @@ type ContainerStatus struct {
 	latestImageRevision  string            // OCI revision annotation of the new image.
 }
 
-// NewContainerStatus builds a report status with identity fields populated.
-//
-// Parameters:
-//   - name: Container name.
-//   - image: Image name with tag.
-//
-// Returns:
-//   - *ContainerStatus: Status in the updated state for template tests and previews.
-func NewContainerStatus(name, image string) *ContainerStatus {
-	return &ContainerStatus{
-		containerName: name,
-		imageName:     image,
-		state:         UpdatedState,
-	}
-}
-
 // ID returns the container ID.
 //
 // Returns:

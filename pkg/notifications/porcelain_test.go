@@ -34,7 +34,7 @@ func TestToPorcelainJSON_NilInput(t *testing.T) {
 func TestToPorcelainJSON_GitAndOCIFields(t *testing.T) {
 	t.Parallel()
 
-	status := session.NewContainerStatus("app", "org/app:latest")
+	status := updatedAppStatus()
 	status.SetGitMetadata(container.ReportMeta{
 		GitRepo:         "https://github.com/org/app.git",
 		GitRef:          "main",

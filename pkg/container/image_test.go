@@ -23,7 +23,6 @@ import (
 	gomegaTypes "github.com/onsi/gomega/types"
 
 	registryConfig "github.com/nicholas-fedor/watchtower/internal/config/registry"
-	"github.com/nicholas-fedor/watchtower/internal/util"
 	mockContainer "github.com/nicholas-fedor/watchtower/pkg/container/mocks"
 	"github.com/nicholas-fedor/watchtower/pkg/registry/digest"
 	"github.com/nicholas-fedor/watchtower/pkg/registry/ratelimit"
@@ -564,8 +563,8 @@ var _ = ginkgo.Describe("the client", func() {
 	ginkgo.When("removing a image", func() {
 		ginkgo.When("debug logging is enabled", func() {
 			ginkgo.It("should log removed and untagged images", func() {
-				imageA := util.GenerateRandomSHA256()
-				imageAParent := util.GenerateRandomSHA256()
+				imageA := randomSHA256()
+				imageAParent := randomSHA256()
 				images := map[string][]string{imageA: {imageAParent}}
 				mockServer.AppendHandlers(
 					ghttp.CombineHandlers(
@@ -593,7 +592,7 @@ var _ = ginkgo.Describe("the client", func() {
 		})
 		ginkgo.When("image is not found", func() {
 			ginkgo.It("should return an error", func() {
-				image := util.GenerateRandomSHA256()
+				image := randomSHA256()
 
 				mockServer.AppendHandlers(
 					ghttp.CombineHandlers(
@@ -617,7 +616,7 @@ var _ = ginkgo.Describe("the client", func() {
 					state string
 				},
 				) {
-					imageA := util.GenerateRandomSHA256()
+					imageA := randomSHA256()
 
 					mockServer.AppendHandlers(
 						ghttp.CombineHandlers(
@@ -659,7 +658,7 @@ var _ = ginkgo.Describe("the client", func() {
 		})
 		ginkgo.When("ContainerList API fails", func() {
 			ginkgo.It("should return an error and not proceed with removal", func() {
-				imageA := util.GenerateRandomSHA256()
+				imageA := randomSHA256()
 
 				mockServer.AppendHandlers(
 					ghttp.CombineHandlers(
@@ -685,7 +684,7 @@ var _ = ginkgo.Describe("the client", func() {
 	ginkgo.When("the context is canceled", func() {
 		ginkgo.Describe("IsContainerStale", func() {
 			ginkgo.It("should return context.Canceled error", func() {
-				currentImageID := "sha256:" + util.GenerateRandomSHA256()
+				currentImageID := "sha256:" + randomSHA256()
 				container := MockContainer(
 					WithImageName("test-image:latest"),
 					func(container *dockerContainer.InspectResponse, image *dockerImage.InspectResponse) {
@@ -710,7 +709,7 @@ var _ = ginkgo.Describe("the client", func() {
 		})
 		ginkgo.Describe("RemoveImageByID", func() {
 			ginkgo.It("should return context.Canceled error without warning", func() {
-				imageID := util.GenerateRandomSHA256()
+				imageID := randomSHA256()
 
 				// Create a canceled context
 				ctx, cancel := context.WithCancel(context.Background())
@@ -729,7 +728,7 @@ var _ = ginkgo.Describe("the client", func() {
 	ginkgo.When("checking container staleness with no-pull", func() {
 		ginkgo.When("no newer local image exists", func() {
 			ginkgo.It("should return false and current image ID", func() {
-				currentImageID := "sha256:" + util.GenerateRandomSHA256()
+				currentImageID := "sha256:" + randomSHA256()
 				container := MockContainer(
 					WithImageName("test-image:latest"),
 					func(container *dockerContainer.InspectResponse, image *dockerImage.InspectResponse) {
@@ -770,8 +769,8 @@ var _ = ginkgo.Describe("the client", func() {
 		})
 		ginkgo.When("a newer local image exists", func() {
 			ginkgo.It("should return true and new image ID", func() {
-				currentImageID := "sha256:" + util.GenerateRandomSHA256()
-				newImageID := "sha256:" + util.GenerateRandomSHA256()
+				currentImageID := "sha256:" + randomSHA256()
+				newImageID := "sha256:" + randomSHA256()
 				container := MockContainer(
 					WithImageName("test-image:latest"),
 					func(container *dockerContainer.InspectResponse, image *dockerImage.InspectResponse) {
@@ -812,9 +811,9 @@ var _ = ginkgo.Describe("the client", func() {
 		})
 		ginkgo.When("a newer local image exists with a repo digest", func() {
 			ginkgo.It("should return the latest digest from RepoDigests", func() {
-				currentImageID := "sha256:" + util.GenerateRandomSHA256()
-				newImageID := "sha256:" + util.GenerateRandomSHA256()
-				newDigest := "sha256:" + util.GenerateRandomSHA256()
+				currentImageID := "sha256:" + randomSHA256()
+				newImageID := "sha256:" + randomSHA256()
+				newDigest := "sha256:" + randomSHA256()
 				container := MockContainer(
 					WithImageName("test-image:latest"),
 					func(container *dockerContainer.InspectResponse, image *dockerImage.InspectResponse) {
@@ -851,8 +850,8 @@ var _ = ginkgo.Describe("the client", func() {
 		})
 		ginkgo.When("a newer local image exists with empty RepoDigests", func() {
 			ginkgo.It("should return an empty latest digest", func() {
-				currentImageID := "sha256:" + util.GenerateRandomSHA256()
-				newImageID := "sha256:" + util.GenerateRandomSHA256()
+				currentImageID := "sha256:" + randomSHA256()
+				newImageID := "sha256:" + randomSHA256()
 				container := MockContainer(
 					WithImageName("test-image:latest"),
 					func(container *dockerContainer.InspectResponse, image *dockerImage.InspectResponse) {
@@ -889,8 +888,8 @@ var _ = ginkgo.Describe("the client", func() {
 		})
 		ginkgo.When("a newer local image exists with malformed RepoDigests", func() {
 			ginkgo.It("should return an empty latest digest when no @ separator", func() {
-				currentImageID := "sha256:" + util.GenerateRandomSHA256()
-				newImageID := "sha256:" + util.GenerateRandomSHA256()
+				currentImageID := "sha256:" + randomSHA256()
+				newImageID := "sha256:" + randomSHA256()
 				container := MockContainer(
 					WithImageName("test-image:latest"),
 					func(container *dockerContainer.InspectResponse, image *dockerImage.InspectResponse) {
@@ -927,7 +926,7 @@ var _ = ginkgo.Describe("the client", func() {
 		})
 		ginkgo.When("image inspection fails", func() {
 			ginkgo.It("should return an error", func() {
-				currentImageID := "sha256:" + util.GenerateRandomSHA256()
+				currentImageID := "sha256:" + randomSHA256()
 				container := MockContainer(
 					WithImageName("test-image:latest"),
 					func(container *dockerContainer.InspectResponse, image *dockerImage.InspectResponse) {
@@ -971,9 +970,9 @@ var _ = ginkgo.Describe("the client", func() {
 	ginkgo.When("pulling and checking for updates", func() {
 		ginkgo.When("a newer image is available with a repo digest", func() {
 			ginkgo.It("should return the latest digest after pulling", func() {
-				currentImageID := "sha256:" + util.GenerateRandomSHA256()
-				newImageID := "sha256:" + util.GenerateRandomSHA256()
-				newDigest := "sha256:" + util.GenerateRandomSHA256()
+				currentImageID := "sha256:" + randomSHA256()
+				newImageID := "sha256:" + randomSHA256()
+				newDigest := "sha256:" + randomSHA256()
 				container := MockContainer(
 					WithImageName("test-image:latest"),
 					func(container *dockerContainer.InspectResponse, image *dockerImage.InspectResponse) {
@@ -1011,7 +1010,7 @@ var _ = ginkgo.Describe("the client", func() {
 		})
 		ginkgo.When("the image is not found in any registry", func() {
 			ginkgo.It("should treat the container as up-to-date without error", func() {
-				currentImageID := "sha256:" + util.GenerateRandomSHA256()
+				currentImageID := "sha256:" + randomSHA256()
 				container := MockContainer(
 					WithImageName("atlas-badgerdb:latest"),
 					WithRepoDigests([]string{"atlas-badgerdb@sha256:80f07677bee57274a48929d0688bf0cfabe5e83f06f2f152dab4076445d6ab35"}),
@@ -1066,8 +1065,8 @@ var _ = ginkgo.Describe("the client", func() {
 		// compares the running image ID to the local tag.
 		ginkgo.When("container image has empty RepoDigests but the local tag points at a different ID", func() {
 			ginkgo.It("skips pull and still reports the container as stale", func() {
-				currentImageID := "sha256:" + util.GenerateRandomSHA256()
-				newerLocalImageID := "sha256:" + util.GenerateRandomSHA256()
+				currentImageID := "sha256:" + randomSHA256()
+				newerLocalImageID := "sha256:" + randomSHA256()
 				container := MockContainer(
 					WithImageName("registry.example.com/app:latest"),
 					WithRepoDigests([]string{}),
@@ -1225,7 +1224,7 @@ var _ = ginkgo.Describe("CheckContainerUpdate", func() {
 
 	ginkgo.When("no-pull is enabled", func() {
 		ginkgo.It("uses local image inspection only", func() {
-			currentImageID := "sha256:" + util.GenerateRandomSHA256()
+			currentImageID := "sha256:" + randomSHA256()
 			container := MockContainer(
 				WithImageName("test-image:latest"),
 				func(container *dockerContainer.InspectResponse, image *dockerImage.InspectResponse) {
@@ -1265,7 +1264,7 @@ var _ = ginkgo.Describe("CheckContainerUpdate", func() {
 
 	ginkgo.When("local image has empty RepoDigests", func() {
 		ginkgo.It("treats the image as up-to-date without pulling", func() {
-			currentImageID := "sha256:" + util.GenerateRandomSHA256()
+			currentImageID := "sha256:" + randomSHA256()
 			container := MockContainer(
 				WithImageName("local-build:latest"),
 				WithRepoDigests([]string{}),
@@ -1323,8 +1322,8 @@ var _ = ginkgo.Describe("CheckContainerUpdate", func() {
 			serverURL, err := url.Parse(registryServer.URL())
 			gomega.Expect(err).To(gomega.Succeed())
 
-			localDigest := "sha256:" + util.GenerateRandomSHA256()
-			currentImageID := "sha256:" + util.GenerateRandomSHA256()
+			localDigest := "sha256:" + randomSHA256()
+			currentImageID := "sha256:" + randomSHA256()
 			imageRef := serverURL.Host + "/test/image:latest"
 
 			appendUnauthenticatedRegistryHandlers(localDigest)
@@ -1369,9 +1368,9 @@ var _ = ginkgo.Describe("CheckContainerUpdate", func() {
 			serverURL, err := url.Parse(registryServer.URL())
 			gomega.Expect(err).To(gomega.Succeed())
 
-			localDigest := "sha256:" + util.GenerateRandomSHA256()
-			remoteDigest := "sha256:" + util.GenerateRandomSHA256()
-			currentImageID := "sha256:" + util.GenerateRandomSHA256()
+			localDigest := "sha256:" + randomSHA256()
+			remoteDigest := "sha256:" + randomSHA256()
+			currentImageID := "sha256:" + randomSHA256()
 			imageRef := serverURL.Host + "/test/image:latest"
 
 			appendUnauthenticatedRegistryHandlers(remoteDigest)

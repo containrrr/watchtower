@@ -23,14 +23,13 @@ import (
 	dockerImage "github.com/moby/moby/api/types/image"
 
 	registryConfig "github.com/nicholas-fedor/watchtower/internal/config/registry"
-	"github.com/nicholas-fedor/watchtower/internal/logging"
 	mockAuth "github.com/nicholas-fedor/watchtower/pkg/registry/auth/mocks"
 	"github.com/nicholas-fedor/watchtower/pkg/registry/ratelimit"
 	mockTypes "github.com/nicholas-fedor/watchtower/pkg/types/mocks"
 )
 
 func testLog() *zerolog.Logger {
-	return logging.NopLogger()
+	return new(zerolog.Nop())
 }
 
 func TestNormalizeDigest(t *testing.T) {

@@ -68,12 +68,14 @@ func (f *stubFetcher) FetchDigestForTag(
 	return newDigest, nil
 }
 
-// newProgressWithContainer registers a container status and returns the progress map.
+// newProgressWithContainer returns a progress map holding c as updated, built
+// the way an update session builds it.
 func newProgressWithContainer(t *testing.T, c *container.Container) *session.Progress {
 	t.Helper()
 
-	status := session.NewContainerStatus(c.Name(), c.ImageName())
-	progress := session.Progress{c.ID(): status}
+	progress := session.Progress{}
+	progress.AddScanned(testLogger(), c, c.ImageID(), types.UpdateParams{})
+	progress.MarkForUpdate(testLogger(), c.ID())
 
 	return &progress
 }

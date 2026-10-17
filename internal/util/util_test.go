@@ -51,25 +51,6 @@ func TestStructMapSubtract(t *testing.T) {
 	assert.Equal(t, map[string]struct{}{"a": emptyStruct, "c": emptyStruct}, map2)
 }
 
-// TestGenerateRandomSHA256 verifies that GenerateRandomSHA256 produces a 64-character string.
-// It ensures the result is the correct length and lacks a prefix.
-func TestGenerateRandomSHA256(t *testing.T) {
-	t.Parallel()
-
-	result := GenerateRandomSHA256()
-	assert.Len(t, result, 64)
-	assert.NotContains(t, result, "sha256:")
-}
-
-// TestGenerateRandomPrefixedSHA256 verifies that GenerateRandomPrefixedSHA256 produces a valid hash.
-// It ensures the result matches the expected SHA-256 prefixed format.
-func TestGenerateRandomPrefixedSHA256(t *testing.T) {
-	t.Parallel()
-
-	result := GenerateRandomPrefixedSHA256()
-	assert.Regexp(t, "sha256:[0-9|a-f]{64}", result)
-}
-
 // TestFormatDuration_Zero verifies that FormatDuration returns "0 seconds" for zero duration.
 func TestFormatDuration_Zero(t *testing.T) {
 	t.Parallel()

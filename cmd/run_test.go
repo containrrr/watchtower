@@ -11,6 +11,7 @@ import (
 	"testing/synctest"
 	"time"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -93,7 +94,7 @@ func setRunState(t *testing.T, state runTestState) {
 	currentWatchtowerContainerUnknown = false
 	sleepFunc = func(time.Duration) {}
 
-	notifier = notifications.NewNotifier(logging.NopLogger(), notifyConfig.Notify{Level: "info"})
+	notifier = notifications.NewNotifier(new(zerolog.Nop()), notifyConfig.Notify{Level: "info"})
 	t.Cleanup(notifier.Close)
 }
 
@@ -209,7 +210,7 @@ func runUntilCanceled(t *testing.T, args ...string) {
 
 // newRunProcess returns a process that logs nothing.
 func newRunProcess() *process {
-	return &process{log: logging.NopLogger()}
+	return &process{log: new(zerolog.Nop())}
 }
 
 // TestRun_RunOnce records the Docker calls of a run-once update with no

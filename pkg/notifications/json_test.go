@@ -2,14 +2,43 @@ package notifications
 
 import (
 	"encoding/json"
+	"strings"
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
+	"github.com/rs/zerolog"
+
+	dockerContainer "github.com/moby/moby/api/types/container"
+	dockerImage "github.com/moby/moby/api/types/image"
 
 	"github.com/nicholas-fedor/watchtower/pkg/container"
 	"github.com/nicholas-fedor/watchtower/pkg/session"
 	"github.com/nicholas-fedor/watchtower/pkg/types"
 )
+
+// updatedAppStatus returns the report status of an updated "app" container
+// running org/app:latest, built the way an update session builds it.
+//
+// Returns:
+//   - *session.ContainerStatus: Status in the updated state.
+func updatedAppStatus() *session.ContainerStatus {
+	log := new(zerolog.Nop())
+	app := container.NewContainer(nil,
+		&dockerContainer.InspectResponse{
+			ID:     strings.Repeat("a", 64),
+			Name:   "/app",
+			Image:  "sha256:" + strings.Repeat("b", 64),
+			Config: &dockerContainer.Config{Image: "org/app:latest"},
+		},
+		&dockerImage.InspectResponse{ID: "sha256:" + strings.Repeat("b", 64)},
+	)
+
+	progress := session.Progress{}
+	progress.AddScanned(log, app, types.ImageID("sha256:"+strings.Repeat("c", 64)), types.UpdateParams{})
+	progress.MarkForUpdate(log, app.ID())
+
+	return progress[app.ID()]
+}
 
 var _ = ginkgo.Describe("JSON template", func() {
 	ginkgo.When("using report templates", func() {
@@ -237,7 +266,7 @@ var _ = ginkgo.Describe("JSON template", func() {
 
 var _ = ginkgo.Describe("JSON Git and OCI report fields", func() {
 	ginkgo.It("includes populated Git and OCI fields", func() {
-		status := session.NewContainerStatus("app", "org/app:latest")
+		status := updatedAppStatus()
 		status.SetGitMetadata(container.ReportMeta{
 			GitRepo:         "https://github.com/org/app.git",
 			GitRef:          "main",
@@ -266,7 +295,7 @@ var _ = ginkgo.Describe("JSON Git and OCI report fields", func() {
 	})
 
 	ginkgo.It("omits empty Git and OCI fields", func() {
-		status := session.NewContainerStatus("app", "org/app:latest")
+		status := updatedAppStatus()
 		got := marshalReports([]types.ContainerReport{status})
 		gomega.Expect(got).To(gomega.HaveLen(1))
 		gomega.Expect(got[0]).NotTo(gomega.HaveKey("gitRepo"))
@@ -277,7 +306,7 @@ var _ = ginkgo.Describe("JSON Git and OCI report fields", func() {
 	})
 
 	ginkgo.It("marshals updated reports with Git fields", func() {
-		status := session.NewContainerStatus("app", "org/app:latest")
+		status := updatedAppStatus()
 		status.SetGitMetadata(container.ReportMeta{GitRepo: "https://github.com/org/app.git", GitRef: "main"})
 
 		raw, err := json.Marshal(notificationData{

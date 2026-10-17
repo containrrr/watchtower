@@ -40,13 +40,13 @@ func ConfigureWriter(format string, noColor bool) (io.Writer, error) {
 	case "pretty":
 		return newPrettyWriter(noColor), nil
 	case "logfmt":
-		return newLogfmtWriter(), nil
+		return LogfmtWriter(os.Stderr), nil
 	case "auto":
 		if usePrettyAuto(noColor) {
 			return newPrettyWriter(false), nil
 		}
 
-		return newLogfmtWriter(), nil
+		return LogfmtWriter(os.Stderr), nil
 	default:
 		return nil, fmt.Errorf("%w: %q", errInvalidLogFormat, format)
 	}
@@ -91,13 +91,16 @@ func newPrettyWriter(noColor bool) zerolog.ConsoleWriter {
 	}
 }
 
-// newLogfmtWriter builds a ConsoleWriter that emits key=value logfmt-style lines.
+// LogfmtWriter builds a ConsoleWriter that emits key=value logfmt-style lines to out.
+//
+// Parameters:
+//   - out: Destination for formatted log lines.
 //
 // Returns:
-//   - zerolog.ConsoleWriter: Logfmt-style console writer targeting stderr.
-func newLogfmtWriter() zerolog.ConsoleWriter {
+//   - zerolog.ConsoleWriter: Logfmt-style console writer writing to out.
+func LogfmtWriter(out io.Writer) zerolog.ConsoleWriter {
 	return zerolog.ConsoleWriter{
-		Out:        os.Stderr,
+		Out:        out,
 		NoColor:    true,
 		TimeFormat: time.RFC3339,
 		PartsOrder: []string{

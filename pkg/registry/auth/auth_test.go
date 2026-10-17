@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/distribution/reference"
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -21,6 +22,12 @@ import (
 	"github.com/nicholas-fedor/watchtower/pkg/types"
 	mockTypes "github.com/nicholas-fedor/watchtower/pkg/types/mocks"
 )
+
+// testLog returns a logger that discards every event, for tests that do not
+// assert on logs.
+func testLog() *zerolog.Logger {
+	return new(zerolog.Nop())
+}
 
 func Test_resolveChallengeScheme(t *testing.T) {
 	tests := []struct {

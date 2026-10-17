@@ -6,6 +6,7 @@ import (
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
+	"github.com/rs/zerolog"
 
 	dockerContainer "github.com/moby/moby/api/types/container"
 
@@ -13,6 +14,12 @@ import (
 	"github.com/nicholas-fedor/watchtower/pkg/types"
 	mockTypes "github.com/nicholas-fedor/watchtower/pkg/types/mocks"
 )
+
+// testLog returns a logger that discards every event, for tests that do not
+// assert on logs.
+func testLog() *zerolog.Logger {
+	return new(zerolog.Nop())
+}
 
 var _ = ginkgo.Describe("dependencySorter", func() {
 	ginkgo.Describe("Sort", func() {

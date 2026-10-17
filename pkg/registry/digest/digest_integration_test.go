@@ -17,6 +17,7 @@ import (
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
+	"github.com/rs/zerolog"
 
 	dockerImage "github.com/moby/moby/api/types/image"
 
@@ -29,6 +30,12 @@ import (
 	"github.com/nicholas-fedor/watchtower/pkg/registry/ratelimit"
 	"github.com/nicholas-fedor/watchtower/pkg/types"
 )
+
+// testLog returns a logger that discards every event, for tests that do not
+// assert on logs.
+func testLog() *zerolog.Logger {
+	return new(zerolog.Nop())
+}
 
 const (
 	httpScheme     = "http"
