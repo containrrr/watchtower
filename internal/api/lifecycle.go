@@ -51,14 +51,23 @@ func GetAPIAddr(host, port string) string {
 // returns after the listen socket is bound so scheduled updates can run
 // concurrently.
 //
+// The server shuts down gracefully when ctx is canceled, waiting up to five
+// seconds for the requests it is serving. The returned channel closes once that
+// shutdown attempt has finished, so a caller can wait for it before the process
+// exits. Requests still running when the five seconds expire may remain active
+// after the channel closes.
+//
 // Parameters:
 //   - ctx: Context for server lifecycle management.
 //   - opts: API configuration options. opts.Logger is required when any endpoint
 //     is enabled. Nil yields config.ErrMissingLogger.
 //
 // Returns:
+//   - <-chan struct{}: Closed once the server has stopped and its shutdown
+//     attempt has finished. It is already closed when no endpoint is enabled,
+//     and nil when err is non-nil.
 //   - error: Non-nil if route registration or server startup fails.
-func SetupAndStartAPI(ctx context.Context, opts config.Options) error {
+func SetupAndStartAPI(ctx context.Context, opts config.Options) (<-chan struct{}, error) {
 	if !opts.EnableUpdateAPI &&
 		!opts.EnableMetricsAPI &&
 		!opts.EnableContainersAPI &&
@@ -69,7 +78,7 @@ func SetupAndStartAPI(ctx context.Context, opts config.Options) error {
 		!opts.EnableImagesAPI &&
 		!opts.EnableConfigAPI &&
 		!opts.EnableEventsAPI {
-		return nil
+		return stoppedNow(), nil
 	}
 
 	address := GetAPIAddr(opts.Host, opts.Port)
@@ -85,15 +94,15 @@ func SetupAndStartAPI(ctx context.Context, opts config.Options) error {
 	shouldRequireEventsToken := opts.EnableEventsAPI
 
 	if shouldRequireToken && opts.Token == "" {
-		return config.ErrMissingAPIToken
+		return nil, config.ErrMissingAPIToken
 	}
 
 	if shouldRequireEventsToken && opts.EventsToken == "" {
-		return config.ErrMissingEventsAPIToken
+		return nil, config.ErrMissingEventsAPIToken
 	}
 
 	if opts.Logger == nil {
-		return config.ErrMissingLogger
+		return nil, config.ErrMissingLogger
 	}
 
 	log := opts.Logger
@@ -113,13 +122,13 @@ func SetupAndStartAPI(ctx context.Context, opts config.Options) error {
 
 	err := routes.ValidateAndRegister(ctx, app, authMiddleware, opts)
 	if err != nil {
-		return fmt.Errorf("route registration failed: %w", err)
+		return nil, fmt.Errorf("route registration failed: %w", err)
 	}
 
 	tlsCertPath, tlsKeyPath := opts.TLSCertPath, opts.TLSKeyPath
 
 	if (tlsCertPath == "") != (tlsKeyPath == "") {
-		return config.ErrMissingTLSConfig
+		return nil, config.ErrMissingTLSConfig
 	}
 
 	// Block only in API-only update mode.
@@ -224,6 +233,9 @@ func handleUnexpectedServerStop(log *zerolog.Logger, err error, addr string, onU
 //   - onUnexpectedStop: Optional callback when the server exits unexpectedly in non-blocking mode.
 //
 // Returns:
+//   - <-chan struct{}: Closed once the server has stopped, its shutdown attempt
+//     has finished, and any unexpected stop has been handled. Nil when err is
+//     non-nil.
 //   - error: Non-nil if the server fails to start or exits with an unexpected error while blocking.
 func runServer(
 	ctx context.Context,
@@ -234,23 +246,23 @@ func runServer(
 	block bool,
 	onBound func(),
 	onUnexpectedStop func(error),
-) error {
+) (<-chan struct{}, error) {
 	//nolint:nilerr // Intentionally return nil: skip socket binding when context is already canceled.
 	if ctx.Err() != nil {
-		return nil
+		return stoppedNow(), nil
 	}
 
 	listener, err := listen(ctx, address, tlsCertPath, tlsKeyPath)
 	if err != nil {
 		// A cancellation during the bind is a shutdown, not a failure.
 		if ctx.Err() != nil {
-			return nil //nolint:nilerr // The bind failed because the server is shutting down.
+			return stoppedNow(), nil //nolint:nilerr // The bind failed because the server is shutting down.
 		}
 
 		log.Error().Err(err).Str("addr", address).
 			Msg("HTTP server failed to start")
 
-		return fmt.Errorf("failed to start HTTP server: %w", err)
+		return nil, fmt.Errorf("failed to start HTTP server: %w", err)
 	}
 
 	if onBound != nil {
@@ -280,12 +292,17 @@ func runServer(
 	}()
 
 	if !block {
+		done := make(chan struct{})
+
 		go func() {
+			defer close(done)
+
 			<-served
 			handleUnexpectedServerStop(log, serveErr, address, onUnexpectedStop)
+			<-stopped
 		}()
 
-		return nil
+		return done, nil
 	}
 
 	// Blocking mode: wait until the server stops and any shutdown has drained.
@@ -296,10 +313,22 @@ func runServer(
 		log.Error().Err(serveErr).Str("addr", address).
 			Msg("HTTP server failed")
 
-		return fmt.Errorf("HTTP server failed: %w", serveErr)
+		return nil, fmt.Errorf("HTTP server failed: %w", serveErr)
 	}
 
-	return nil
+	return stoppedNow(), nil
+}
+
+// stoppedNow returns a closed channel, for a server that has already stopped
+// or never started.
+//
+// Returns:
+//   - <-chan struct{}: A closed channel.
+func stoppedNow() <-chan struct{} {
+	stopped := make(chan struct{})
+	close(stopped)
+
+	return stopped
 }
 
 // listen binds the API socket, wrapping it in TLS when a certificate is set.

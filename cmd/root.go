@@ -792,7 +792,7 @@ func (p *process) runMain(cfg types.RunConfig) int {
 	// API request/auth logs must not fan into notification hooks.
 	apiLog := p.log.With().Str("notify", "no").Logger()
 
-	err = api.SetupAndStartAPI(
+	apiStopped, err := api.SetupAndStartAPI(
 		ctx,
 		config.Options{
 			Logger:                       &apiLog,
@@ -887,6 +887,12 @@ func (p *process) runMain(cfg types.RunConfig) int {
 		StartupMessageSent:         startupMessageSent,
 		BaseParams:                 sharedBase,
 	})
+
+	// Stop the HTTP API and give it its shutdown grace period to finish the
+	// requests it is serving before the process exits.
+	stop()
+	<-apiStopped
+
 	if err != nil {
 		p.logNotify("Scheduled upgrades failed", err)
 
