@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Update the compose image label when recreating containers by @nicholas-fedor in [#2915](https://github.com/nicholas-fedor/watchtower/pull/2915)
 - Wait for the HTTP API to drain before exiting by @nicholas-fedor in [#2907](https://github.com/nicholas-fedor/watchtower/pull/2907)
 - Replace the update lock channel with a lock type by @nicholas-fedor in [#2869](https://github.com/nicholas-fedor/watchtower/pull/2869)
 - Pass registry settings explicitly by @nicholas-fedor in [#2867](https://github.com/nicholas-fedor/watchtower/pull/2867)
