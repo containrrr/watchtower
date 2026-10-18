@@ -544,4 +544,145 @@ var _ = ginkgo.Describe("Target Container Operations", func() {
 			gomega.Expect(logOutput.String()).ToNot(gomega.ContainSubstring("Attaching additional network"))
 		})
 	})
+
+	ginkgo.Describe("syncComposeImageLabel", func() {
+		const (
+			oldImageID = "sha256:old-index"
+			newImageID = "sha256:new-index"
+			oldAmd64   = "sha256:old-amd64"
+			newAmd64   = "sha256:new-amd64"
+			imageRef   = "example/app:nightly"
+		)
+
+		var (
+			client        *MockClient
+			networkConfig *dockerNetwork.NetworkingConfig
+			createdConfig *dockerContainer.Config
+			inspectedRefs []string
+		)
+
+		// amd64Manifest builds an available linux/amd64 image manifest summary.
+		amd64Manifest := func(id string) dockerImage.ManifestSummary {
+			return dockerImage.ManifestSummary{
+				ID:        id,
+				Kind:      dockerImage.ManifestKindImage,
+				Available: true,
+				ImageData: &dockerImage.ImageProperties{
+					Platform: ocispec.Platform{OS: "linux", Architecture: "amd64"},
+				},
+			}
+		}
+
+		// composeContainer builds a source container running oldImageID with
+		// the given Compose image label.
+		composeContainer := func(label string, extra ...MockContainerUpdate) *Container {
+			updates := append([]MockContainerUpdate{
+				WithImageName(imageRef),
+				WithLabels(map[string]string{
+					"com.docker.compose.project": "stack",
+					"com.docker.compose.image":   label,
+				}),
+				func(c *dockerContainer.InspectResponse, _ *dockerImage.InspectResponse) {
+					c.Image = oldImageID
+				},
+			}, extra...)
+
+			return MockContainer(updates...)
+		}
+
+		// create runs createTargetContainer at the given API version and
+		// returns the label value sent to ContainerCreate.
+		create := func(source *Container, clientVersion string) string {
+			_, err := createTargetContainer(targetLog, context.Background(), client, source, networkConfig,
+				clientVersion, false, "auto", false,
+			)
+			gomega.Expect(err).ToNot(gomega.HaveOccurred())
+			gomega.Expect(createdConfig).ToNot(gomega.BeNil())
+
+			return createdConfig.Labels["com.docker.compose.image"]
+		}
+
+		ginkgo.BeforeEach(func() {
+			client = &MockClient{}
+			createdConfig = nil
+			inspectedRefs = nil
+			networkConfig = &dockerNetwork.NetworkingConfig{
+				EndpointsConfig: map[string]*dockerNetwork.EndpointSettings{},
+			}
+			client.createFunc = func(_ context.Context, config *dockerContainer.Config, _ *dockerContainer.HostConfig, _ *dockerNetwork.NetworkingConfig, _ *ocispec.Platform, _ string) (dockerClient.ContainerCreateResult, error) {
+				createdConfig = config
+
+				return dockerClient.ContainerCreateResult{ID: "new_container_id"}, nil
+			}
+
+			images := map[string]dockerImage.InspectResponse{
+				imageRef: {
+					ID:        newImageID,
+					Manifests: []dockerImage.ManifestSummary{amd64Manifest(newAmd64)},
+				},
+				oldImageID: {
+					ID:        oldImageID,
+					Manifests: []dockerImage.ManifestSummary{amd64Manifest(oldAmd64)},
+				},
+			}
+			client.imageInspectFunc = func(_ context.Context, ref string, withManifests bool) (dockerClient.ImageInspectResult, error) {
+				inspectedRefs = append(inspectedRefs, ref)
+
+				image, ok := images[ref]
+				if !ok {
+					return dockerClient.ImageInspectResult{}, cerrdefs.ErrNotFound
+				}
+
+				if !withManifests {
+					image.Manifests = nil
+				}
+
+				return dockerClient.ImageInspectResult{InspectResponse: image}, nil
+			}
+		})
+
+		ginkgo.It("should leave containers without the label untouched", func() {
+			source := MockContainer(WithImageName(imageRef))
+
+			gomega.Expect(create(source, "1.48")).To(gomega.BeEmpty())
+			gomega.Expect(createdConfig.Labels).ToNot(gomega.HaveKey("com.docker.compose.image"))
+			gomega.Expect(inspectedRefs).To(gomega.BeEmpty())
+		})
+
+		ginkgo.It("should create the container with the label pointing at the new image", func() {
+			gomega.Expect(create(composeContainer(oldImageID), "1.44")).To(gomega.Equal(newImageID))
+			gomega.Expect(logOutput.String()).To(gomega.ContainSubstring("Updated Compose image label"))
+		})
+
+		ginkgo.It("should pass the client API version through for manifest digest labels", func() {
+			gomega.Expect(create(composeContainer(oldAmd64), "1.48")).To(gomega.Equal(newAmd64))
+			gomega.Expect(create(composeContainer(oldAmd64), "1.47")).To(gomega.Equal(oldAmd64))
+		})
+
+		ginkgo.It("should keep a label with no matching value for the new image", func() {
+			gomega.Expect(create(composeContainer("sha256:unknown"), "1.48")).To(gomega.Equal("sha256:unknown"))
+			gomega.Expect(logOutput.String()).
+				To(gomega.ContainSubstring("Found no matching value for Compose image label, keeping it unchanged"))
+		})
+
+		ginkgo.It("should keep the label and still create the container when the image inspect fails", func() {
+			client.imageInspectFunc = func(context.Context, string, bool) (dockerClient.ImageInspectResult, error) {
+				return dockerClient.ImageInspectResult{}, cerrdefs.ErrNotFound
+			}
+
+			gomega.Expect(create(composeContainer(oldImageID), "1.48")).To(gomega.Equal(oldImageID))
+			gomega.Expect(logOutput.String()).
+				To(gomega.ContainSubstring("Failed to resolve Compose image label, keeping it unchanged"))
+		})
+
+		ginkgo.It("should not modify the source container's labels", func() {
+			source := composeContainer(oldImageID, func(_ *dockerContainer.InspectResponse, i *dockerImage.InspectResponse) {
+				i.Config = nil
+			})
+
+			gomega.Expect(create(source, "1.48")).To(gomega.Equal(newImageID))
+			gomega.Expect(source.ContainerInfo().Config.Labels).
+				To(gomega.HaveKeyWithValue("com.docker.compose.image", oldImageID))
+		})
+	})
 })

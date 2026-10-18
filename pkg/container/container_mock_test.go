@@ -460,6 +460,7 @@ type MockClient struct {
 	removeFunc        func(context.Context, string, dockerClient.ContainerRemoveOptions) (dockerClient.ContainerRemoveResult, error)
 	connectFunc       func(context.Context, string, string, *dockerNetwork.EndpointSettings) (dockerClient.NetworkConnectResult, error)
 	renameFunc        func(context.Context, string, string) (dockerClient.ContainerRenameResult, error)
+	imageInspectFunc  func(context.Context, string, bool) (dockerClient.ImageInspectResult, error)
 	removeFuncCalled  atomic.Bool
 	inspectFuncCalled atomic.Bool
 	createFuncCalled  atomic.Bool
@@ -619,6 +620,28 @@ func (m *MockClient) ContainerRename(
 	}
 
 	return dockerClient.ContainerRenameResult{}, nil
+}
+
+// ImageInspect mocks the inspection of an image.
+//
+// Parameters:
+//   - ctx: Context for the operation.
+//   - imageID: ID or reference of the image to inspect.
+//   - inspectOpts: Inspect options. Any option is taken as a request for manifests.
+//
+// Returns:
+//   - dockerClient.ImageInspectResult: Mocked image metadata.
+//   - error: Error if the mock image inspect function is set to fail, nil otherwise.
+func (m *MockClient) ImageInspect(
+	ctx context.Context,
+	imageID string,
+	inspectOpts ...dockerClient.ImageInspectOption,
+) (dockerClient.ImageInspectResult, error) {
+	if m.imageInspectFunc != nil {
+		return m.imageInspectFunc(ctx, imageID, len(inspectOpts) > 0)
+	}
+
+	return dockerClient.ImageInspectResult{}, nil
 }
 
 // APIVersionPingHandler returns a handler that responds to the Docker client's

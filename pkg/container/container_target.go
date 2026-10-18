@@ -3,15 +3,18 @@ package container
 import (
 	"context"
 	"fmt"
+	"maps"
 	"time"
 
 	"github.com/moby/moby/client/pkg/versions"
 	"github.com/rs/zerolog"
 
 	dockerContainer "github.com/moby/moby/api/types/container"
+	dockerImage "github.com/moby/moby/api/types/image"
 	dockerNetwork "github.com/moby/moby/api/types/network"
 	dockerClient "github.com/moby/moby/client"
 
+	"github.com/nicholas-fedor/watchtower/internal/compose"
 	"github.com/nicholas-fedor/watchtower/internal/flags"
 	"github.com/nicholas-fedor/watchtower/pkg/types"
 )
@@ -20,6 +23,10 @@ const (
 	// cleanupTimeout is the timeout for cleanup operations (e.g., container remove).
 	// Using a dedicated timeout ensures cleanup completes even if the parent context is canceled.
 	cleanupTimeout = 10 * time.Second
+
+	// manifestsMinAPIVersion is the first Docker API version whose image
+	// inspect reports the image's manifests.
+	manifestsMinAPIVersion = "1.48"
 )
 
 // startTargetContainer starts a container created from sourceContainer.
@@ -179,6 +186,8 @@ func createTargetContainer(log *zerolog.Logger,
 	config := sourceContainer.GetCreateConfig()
 	hostConfig := sourceContainer.GetCreateHostConfig()
 
+	syncComposeImageLabel(ctx, api, clog, sourceContainer, config, clientVersion)
+
 	// Set MemorySwappiness to nil for Podman compatibility if flag is enabled.
 	if disableMemorySwappiness {
 		hostConfig.MemorySwappiness = nil
@@ -323,6 +332,132 @@ func createTargetContainer(log *zerolog.Logger,
 	}
 
 	return createdContainerID, nil
+}
+
+// syncComposeImageLabel points the Compose image label in config at the
+// image the new container is created from.
+//
+// The label is copied from the source container, so after an update it still
+// names the old image, and Docker Compose would recreate the container on its
+// next deploy. The label is left unchanged when it is absent, when the new
+// image has no value in the same form, or when an image inspect fails.
+//
+// Parameters:
+//   - ctx: Context for cancellation and timeout control.
+//   - api: Interface for container operations (Operations).
+//   - clog: Logger with container context fields.
+//   - sourceContainer: Source container the new container replaces.
+//   - config: Creation config for the new container, updated in place.
+//   - clientVersion: Docker API version used by the client.
+func syncComposeImageLabel(
+	ctx context.Context,
+	api Operations,
+	clog *zerolog.Logger,
+	sourceContainer types.Container,
+	config *dockerContainer.Config,
+	clientVersion string,
+) {
+	label := config.Labels[compose.ComposeImageLabel]
+
+	info := sourceContainer.ContainerInfo()
+	if label == "" || info == nil {
+		return
+	}
+
+	value, ok, err := resolveComposeImageLabel(ctx, api, label, info.Image, config.Image, clientVersion)
+	if err != nil {
+		clog.Debug().
+			Err(err).
+			Msg("Failed to resolve Compose image label, keeping it unchanged")
+
+		return
+	}
+
+	if !ok {
+		clog.Debug().
+			Str("label_value", label).
+			Msg("Found no matching value for Compose image label, keeping it unchanged")
+
+		return
+	}
+
+	if value == label {
+		return
+	}
+
+	// Clone the labels, which may be shared with the source container's inspect data.
+	config.Labels = maps.Clone(config.Labels)
+	config.Labels[compose.ComposeImageLabel] = value
+
+	clog.Debug().
+		Str("old_value", label).
+		Str("new_value", value).
+		Msg("Updated Compose image label")
+}
+
+// resolveComposeImageLabel inspects the old and new images and returns the
+// Compose image label value for the new image.
+//
+// Parameters:
+//   - ctx: Context for cancellation and timeout control.
+//   - api: Interface for container operations (Operations).
+//   - label: Compose image label value recorded for the old image.
+//   - oldImageRef: ID of the image the source container runs.
+//   - newImageRef: Reference the new container is created from.
+//   - clientVersion: Docker API version used by the client.
+//
+// Returns:
+//   - string: Label value for the new image.
+//   - bool: False when the new image has no value in the same form as label.
+//   - error: Non-nil if an image inspect fails.
+func resolveComposeImageLabel(
+	ctx context.Context,
+	api Operations,
+	label, oldImageRef, newImageRef, clientVersion string,
+) (string, bool, error) {
+	oldImage, err := inspectImageWithManifests(ctx, api, oldImageRef, clientVersion)
+	if err != nil {
+		return "", false, err
+	}
+
+	newImage, err := inspectImageWithManifests(ctx, api, newImageRef, clientVersion)
+	if err != nil {
+		return "", false, err
+	}
+
+	value, ok := compose.ImageLabelValue(label, oldImage, newImage)
+
+	return value, ok, nil
+}
+
+// inspectImageWithManifests inspects an image on the local Docker daemon,
+// including its manifests when clientVersion reports them.
+//
+// Parameters:
+//   - ctx: Context for cancellation and timeout control.
+//   - api: Interface for container operations (Operations).
+//   - imageRef: Image ID or reference to inspect.
+//   - clientVersion: Docker API version used by the client.
+//
+// Returns:
+//   - *dockerImage.InspectResponse: Image metadata.
+//   - error: Non-nil if the inspect fails.
+func inspectImageWithManifests(
+	ctx context.Context,
+	api Operations,
+	imageRef, clientVersion string,
+) (*dockerImage.InspectResponse, error) {
+	var opts []dockerClient.ImageInspectOption
+	if versions.GreaterThanOrEqualTo(clientVersion, manifestsMinAPIVersion) {
+		opts = append(opts, dockerClient.ImageInspectWithManifests(true))
+	}
+
+	result, err := api.ImageInspect(ctx, imageRef, opts...)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %s: %w", errInspectImageFailed, imageRef, err)
+	}
+
+	return &result.InspectResponse, nil
 }
 
 // attachNetworks connects a container to additional networks for legacy Docker API versions (< 1.44).

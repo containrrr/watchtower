@@ -401,6 +401,87 @@ func (_c *MockOperations_ContainerStart_Call) RunAndReturn(run func(ctx context.
 	return _c
 }
 
+// ImageInspect provides a mock function for the type MockOperations
+func (_mock *MockOperations) ImageInspect(ctx context.Context, imageID string, inspectOpts ...client.ImageInspectOption) (client.ImageInspectResult, error) {
+	var tmpRet mock.Arguments
+	if len(inspectOpts) > 0 {
+		tmpRet = _mock.Called(ctx, imageID, inspectOpts)
+	} else {
+		tmpRet = _mock.Called(ctx, imageID)
+	}
+	ret := tmpRet
+
+	if len(ret) == 0 {
+		panic("no return value specified for ImageInspect")
+	}
+
+	var r0 client.ImageInspectResult
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, ...client.ImageInspectOption) (client.ImageInspectResult, error)); ok {
+		return returnFunc(ctx, imageID, inspectOpts...)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, ...client.ImageInspectOption) client.ImageInspectResult); ok {
+		r0 = returnFunc(ctx, imageID, inspectOpts...)
+	} else {
+		r0 = ret.Get(0).(client.ImageInspectResult)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, ...client.ImageInspectOption) error); ok {
+		r1 = returnFunc(ctx, imageID, inspectOpts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockOperations_ImageInspect_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ImageInspect'
+type MockOperations_ImageInspect_Call struct {
+	*mock.Call
+}
+
+// ImageInspect is a helper method to define mock.On call
+//   - ctx context.Context
+//   - imageID string
+//   - inspectOpts ...client.ImageInspectOption
+func (_e *MockOperations_Expecter) ImageInspect(ctx any, imageID any, inspectOpts ...any) *MockOperations_ImageInspect_Call {
+	return &MockOperations_ImageInspect_Call{Call: _e.mock.On("ImageInspect",
+		append([]any{ctx, imageID}, inspectOpts...)...)}
+}
+
+func (_c *MockOperations_ImageInspect_Call) Run(run func(ctx context.Context, imageID string, inspectOpts ...client.ImageInspectOption)) *MockOperations_ImageInspect_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 []client.ImageInspectOption
+		var variadicArgs []client.ImageInspectOption
+		if len(args) > 2 {
+			variadicArgs = args[2].([]client.ImageInspectOption)
+		}
+		arg2 = variadicArgs
+		run(
+			arg0,
+			arg1,
+			arg2...,
+		)
+	})
+	return _c
+}
+
+func (_c *MockOperations_ImageInspect_Call) Return(imageInspectResult client.ImageInspectResult, err error) *MockOperations_ImageInspect_Call {
+	_c.Call.Return(imageInspectResult, err)
+	return _c
+}
+
+func (_c *MockOperations_ImageInspect_Call) RunAndReturn(run func(ctx context.Context, imageID string, inspectOpts ...client.ImageInspectOption) (client.ImageInspectResult, error)) *MockOperations_ImageInspect_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // NetworkConnect provides a mock function for the type MockOperations
 func (_mock *MockOperations) NetworkConnect(ctx context.Context, networkID string, options client.NetworkConnectOptions) (client.NetworkConnectResult, error) {
 	ret := _mock.Called(ctx, networkID, options)

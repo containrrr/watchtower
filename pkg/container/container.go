@@ -56,6 +56,11 @@ type Operations interface {
 		containerID string,
 		options dockerClient.ContainerRenameOptions,
 	) (dockerClient.ContainerRenameResult, error)
+	ImageInspect(
+		ctx context.Context,
+		imageID string,
+		inspectOpts ...dockerClient.ImageInspectOption,
+	) (dockerClient.ImageInspectResult, error)
 }
 
 // nopLog returns a fresh discarded logger for optional construction and fallbacks.
