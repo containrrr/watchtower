@@ -123,6 +123,7 @@ func resolveCheckContainers(
 // executePreCheckCommand executes the pre-check hook for a container.
 //
 // Parameters:
+//   - log: Process logger.
 //   - ctx: Context for cancellation and timeout.
 //   - client: Container client for execution.
 //   - container: Container to process.
@@ -144,6 +145,7 @@ func executePreCheckCommand(log *zerolog.Logger, ctx context.Context, client con
 // executePostCheckCommand executes the post-check hook for a container.
 //
 // Parameters:
+//   - log: Process logger.
 //   - ctx: Context for cancellation and timeout.
 //   - client: Container client for execution.
 //   - container: Container to process.
@@ -234,6 +236,7 @@ func executeCheckCommand(
 // ExecutePreUpdateCommand executes the pre-update hook for a container.
 //
 // Parameters:
+//   - log: Process logger.
 //   - ctx: Context for cancellation and timeout.
 //   - client: Container client for execution.
 //   - container: Container to process.
@@ -241,8 +244,9 @@ func executeCheckCommand(
 //   - gid: GID to run command as.
 //
 // Returns:
-//   - bool: True if command ran, false if skipped.
-//   - error: Non-nil if execution fails, nil otherwise.
+//   - bool: True if the update should be skipped, because the command exited
+//     with code 75 or failed. False if the command succeeded or did not run.
+//   - error: Non-nil if the command failed, nil otherwise.
 func ExecutePreUpdateCommand(log *zerolog.Logger,
 	ctx context.Context,
 	client container.Client,
@@ -318,6 +322,7 @@ func ExecutePreUpdateCommand(log *zerolog.Logger,
 // ExecutePostUpdateCommand executes the post-update hook for a container.
 //
 // Parameters:
+//   - log: Process logger.
 //   - ctx: Context for cancellation and timeout.
 //   - client: Container client for execution.
 //   - newContainerID: ID of the updated container.

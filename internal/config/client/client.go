@@ -1,6 +1,4 @@
 // Package client holds Docker client construction options derived from flags.
-//
-// Projected into container.ClientOptions via config.ClientOptions.
 package client
 
 // Client holds options passed to container.NewClient.

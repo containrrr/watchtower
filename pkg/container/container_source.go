@@ -132,7 +132,7 @@ func listSourceContainers(log *zerolog.Logger,
 				continue
 			}
 
-			return nil, err // Logged in GetSourceContainer
+			return nil, err // Logged above and in getSourceContainer
 		}
 
 		if filter == nil || filter(container) {
@@ -679,7 +679,7 @@ func buildListFilterArgs(opts ClientOptions, isPodman bool) dockerClient.Filters
 //   - clientVersion: API version of the client.
 //
 // Returns:
-//   - *dockerNetworkType.NetworkingConfig: Sanitized network configuration.
+//   - *dockerNetwork.NetworkingConfig: Sanitized network configuration.
 func getNetworkConfig(log *zerolog.Logger,
 	sourceContainer types.Container,
 	clientVersion string,
@@ -767,7 +767,7 @@ func getNetworkConfig(log *zerolog.Logger,
 // newEmptyNetworkConfig creates an empty network configuration.
 //
 // Returns:
-//   - *dockerNetworkType.NetworkingConfig: Empty configuration with initialized EndpointsConfig.
+//   - *dockerNetwork.NetworkingConfig: Empty configuration with initialized EndpointsConfig.
 func newEmptyNetworkConfig() *dockerNetwork.NetworkingConfig {
 	return &dockerNetwork.NetworkingConfig{
 		EndpointsConfig: make(map[string]*dockerNetwork.EndpointSettings),

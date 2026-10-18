@@ -74,7 +74,7 @@ var (
 	}
 )
 
-// testAuthClient is a custom implementation of the AuthClient interface for testing.
+// testAuthClient is a custom implementation of the [auth.Client] interface for testing.
 type testAuthClient struct {
 	client *http.Client
 }
@@ -124,7 +124,7 @@ var _ = ginkgo.Describe("Digests", func() {
 		nil,
 	)
 
-	// newTestAuthClient creates a test AuthClient with optional TLS handshake timeout
+	// newTestAuthClient creates a test auth.Client with optional TLS handshake timeout.
 	newTestAuthClient := func(timeout ...time.Duration) auth.Client {
 		transport := &http.Transport{
 			TLSClientConfig:   &tls.Config{InsecureSkipVerify: true},

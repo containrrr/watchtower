@@ -1,8 +1,7 @@
-// Package logging provides zerolog construction and configuration helpers for Watchtower.
+// Package logging builds and configures Watchtower's zerolog loggers.
 //
-// This package holds no logger state. It does not expose a global logger, Global
-// accessor, InitLogger, or init-based setup. Callers construct a *zerolog.Logger
-// via New and related helpers and pass it explicitly to subsystems.
+// It holds no logger state. Callers create a logger and pass it to the
+// subsystems that use it.
 package logging
 
 import (

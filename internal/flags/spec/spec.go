@@ -1,6 +1,7 @@
-// Package spec defines shared flag metadata used by domain registration and Viper bind.
+// Package spec defines the flag metadata shared by the domain flag packages.
 //
-// Domain packages depend on this package only (no import of parent flags), avoiding cycles.
+// It imports none of them, so every domain package can use it without an import
+// cycle.
 package spec
 
 // ListParseKind selects how multi-value env/default strings become []string.

@@ -1,6 +1,3 @@
-// This file provides comprehensive tests for the registry authentication
-// functionality in Watchtower.
-
 package auth
 
 import (
@@ -28,7 +25,7 @@ import (
 	mockTypes "github.com/nicholas-fedor/watchtower/pkg/types/mocks"
 )
 
-// testAuthClient is a custom implementation of the AuthClient interface for testing.
+// testAuthClient is a custom implementation of the [Client] interface for testing.
 // It wraps an HTTP client with configurable TLS settings to bypass certificate
 // verification in test scenarios involving mock TLS servers.
 type testAuthClient struct {
@@ -64,7 +61,7 @@ func SkipIfCredentialsEmpty(credentials *types.RegistryCredentials, testFunc fun
 
 // Do executes an HTTP request using the underlying HTTP client.
 //
-// This method satisfies the AuthClient interface, delegating the request execution
+// This method satisfies the [Client] interface, delegating the request execution
 // to the embedded HTTP client.
 //
 // Parameters:
@@ -1069,12 +1066,12 @@ var _ = ginkgo.Describe("the auth module", func() {
 				server.URL(),
 			)
 
-			// Call getBearerToken directly to test processChallenge
+			// Call getBearerToken directly to test challenge parsing
 			token, err := getBearerToken(newNopLogger(), context.Background(), challenge, ref, "", client, testRegistry)
 
 			gomega.Expect(server.ReceivedRequests()).To(gomega.HaveLen(1))
 			gomega.Expect(err).
-				NotTo(gomega.HaveOccurred(), "Expected no error from GetBearerToken")
+				NotTo(gomega.HaveOccurred(), "Expected no error from getBearerToken")
 			gomega.Expect(token).
 				To(gomega.Equal("Bearer mock-token"), "Expected token to be 'Bearer mock-token'")
 		})
@@ -1401,9 +1398,8 @@ var _ = ginkgo.Describe("the auth module", func() {
 		})
 	})
 
-	// NewAuthClientCachingTests tests the HTTP client caching behavior using sync.Once.
-	// These tests verify that the cached client is properly initialized once and reused
-	// across multiple calls, ensuring thread-safety and efficient resource usage.
+	// NewAuthClient caching specs verify that calls with the same registry settings
+	// share one cached client, including under concurrent access.
 	ginkgo.Describe("NewAuthClient caching", func() {
 		// Test case: Verifies that multiple calls to NewAuthClient return the same
 		// client instance, ensuring proper caching behavior.

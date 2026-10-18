@@ -1,7 +1,4 @@
 // Package update holds container update policy settings.
-//
-// These values flow into types.UpdateParams via config.UpdateParams for every
-// run-once, scheduled, and HTTP API update path.
 package update
 
 import "time"

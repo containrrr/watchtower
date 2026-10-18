@@ -888,7 +888,8 @@ func removeOldImage(
 // creation, renaming, network attachment, and starting.
 //
 // StartContainer resolves the image from the source container's config
-// (GetCreateConfig().Image), not from the WT_ORCHESTRATOR_NEW_IMAGE env var.
+// (GetCreateConfig().Image), which orchestrateSelfUpdate pins to the
+// WT_ORCHESTRATOR_NEW_IMAGE reference beforehand.
 //
 // Parameters:
 //   - ctx: Context for cancellation and timeouts.

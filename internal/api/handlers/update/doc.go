@@ -1,14 +1,7 @@
-// Package update provides an HTTP API handler for triggering Watchtower container
-// updates. It manages update requests with concurrency control, image targeting,
-// and asynchronous execution.
+// Package update provides the handler for the /v1/update endpoint, which
+// updates every watched container or only the containers that use the requested
+// images.
 //
-// The handler supports:
-//   - Lock-based concurrency control (targeted updates block, full updates fail fast)
-//   - Targeted updates via ?image= query parameters (comma-separated, repeatable)
-//   - Full updates (scan all containers)
-//   - Async execution via ?async=true (returns 202 Accepted immediately)
-//   - Sync execution (returns 200 with JSON results)
-//
-// Shutdown is handled cooperatively — the handler listens on c.Context().Done()
-// and returns 503 when the request context is cancelled while waiting for the lock.
+// An update runs while the request waits or in the background, and only one
+// update runs at a time.
 package update

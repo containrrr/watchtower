@@ -21,7 +21,9 @@ const (
 	bodyLimit = 1 << 20
 
 	// readTimeout defines the maximum duration for reading the entire request,
-	// including the body.
+	// including the body. Graceful shutdown waits for open connections, so
+	// keep-alive connections need a read and an idle bound to close within
+	// shutdownGracePeriod.
 	readTimeout = 10 * time.Second
 
 	// idleTimeout defines the maximum amount of time to wait for the next
@@ -85,6 +87,9 @@ func newApp(
 		rateLimit = defaultRateLimitPerMinute
 	}
 
+	// WriteTimeout stays unset because a server-wide write deadline would cut
+	// off event streams and long synchronous updates. Route timeouts bound
+	// each handler instead.
 	fiberCfg := fiber.Config{
 		BodyLimit:     bodyLimit,
 		ReadTimeout:   readTimeout,

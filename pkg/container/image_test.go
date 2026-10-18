@@ -1413,7 +1413,7 @@ var _ = ginkgo.Describe("CheckContainerUpdate", func() {
 	})
 })
 
-// IsOutsideCooldown tests (white-box, early-out paths require no registry).
+// ExtractImageDigest specs cover choosing the RepoDigest that matches the image repository.
 var _ = ginkgo.Describe("ExtractImageDigest", func() {
 	ginkgo.When("RepoDigests is empty", func() {
 		ginkgo.It("returns an empty string", func() {

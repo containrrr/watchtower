@@ -201,7 +201,7 @@ func (c *Container) ToRestart() bool {
 // ContainerInfo returns the full Docker container metadata.
 //
 // Returns:
-//   - *dockerContainerType.InspectResponse: Container metadata.
+//   - *dockerContainer.InspectResponse: Container metadata.
 func (c *Container) ContainerInfo() *dockerContainer.InspectResponse {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
@@ -343,7 +343,7 @@ func (c *Container) HasImageInfo() bool {
 // ImageInfo returns the Docker image metadata.
 //
 // Returns:
-//   - *dockerImageType.InspectResponse: Image metadata or nil if unavailable.
+//   - *dockerImage.InspectResponse: Image metadata or nil if unavailable.
 func (c *Container) ImageInfo() *dockerImage.InspectResponse {
 	return c.imageInfo
 }
@@ -353,7 +353,7 @@ func (c *Container) ImageInfo() *dockerImage.InspectResponse {
 // It isolates runtime overrides from image defaults and sets the image name.
 //
 // Returns:
-//   - *dockerContainerType.Config: Configuration for container creation.
+//   - *dockerContainer.Config: Configuration for container creation.
 func (c *Container) GetCreateConfig() *dockerContainer.Config {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
@@ -483,7 +483,7 @@ func (c *Container) GetCreateConfig() *dockerContainer.Config {
 // must not alias inspect data.
 //
 // Returns:
-//   - *dockerContainerType.HostConfig: Host configuration for container creation.
+//   - *dockerContainer.HostConfig: Host configuration for container creation.
 func (c *Container) GetCreateHostConfig() *dockerContainer.HostConfig {
 	c.mu.RLock()
 	defer c.mu.RUnlock()

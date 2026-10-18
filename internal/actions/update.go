@@ -696,8 +696,8 @@ func update(
 				}
 			default:
 				// For fresh containers, set newestImage to current image ID for proper categorization.
-				// (Cooldown decision and any layer pull now happen inside pkg/container/image.go
-				// IsOutsideCooldown + guarded PullImage, after digest staleness and before layers.)
+				// (The cooldown decision happens in the image client's PullImage, after the
+				// digest staleness check and before any layer is pulled.)
 				if !stale {
 					newestImage = sourceContainer.ImageID()
 				}
@@ -1516,7 +1516,7 @@ func performRollingRestart(
 
 				if c.IsStale() && !renamed {
 					// Only collect cleaned image info for stale containers that were not renamed, as renamed
-					// containers (Watchtower self-updates) are cleaned up by CheckForMultipleWatchtowerInstances
+					// containers (Watchtower self-updates) are cleaned up by RemoveExcessWatchtowerInstances
 					// in the new container.
 					addCleanupImageInfo(
 						cleanupImageInfos,
@@ -1938,7 +1938,7 @@ func restartContainersInSortedOrder(
 				}
 				// Only collect cleaned image info for stale containers that were
 				// not renamed, as renamed containers (Watchtower self-updates)
-				// are cleaned up by CheckForMultipleWatchtowerInstances
+				// are cleaned up by RemoveExcessWatchtowerInstances
 				// in the new container.
 				if c.IsStale() && !renamedContainers[c.ID()] {
 					addCleanupImageInfo(

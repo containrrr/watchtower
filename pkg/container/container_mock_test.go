@@ -602,9 +602,10 @@ func (m *MockClient) NetworkConnect(
 // Parameters:
 //   - ctx: Context for the operation.
 //   - containerID: ID of the container to rename.
-//   - newContainerName: New name for the container.
+//   - options: Rename options carrying the new name.
 //
 // Returns:
+//   - dockerClient.ContainerRenameResult: Empty rename result.
 //   - error: Error if the mock rename function is set to fail, nil otherwise.
 func (m *MockClient) ContainerRename(
 	ctx context.Context,

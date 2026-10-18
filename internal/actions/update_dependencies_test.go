@@ -513,10 +513,10 @@ var _ = ginkgo.Describe("the update action", func() {
 			gomega.Expect(dependent.ToRestart()).To(gomega.BeTrue())
 		})
 
-		ginkgo.It("should allow replica matches for qualified links via hasExactOrReplica even without project label on dependent", func() {
+		ginkgo.It("should resolve a qualified link to a replica even without project label on dependent", func() {
 			// Dependent has no project label and a hyphenated link from compose depends_on.
-			// The restarting candidate is a replica. The link matcher hits the replica
-			// strategy so hasExactOrReplica is true and the qualified-link guard permits it.
+			// The restarting candidate is a replica, so the link resolves through the
+			// replica prefix match.
 			base := mockActions.CreateMockContainerWithConfig(
 				"project-base-1",
 				"/project-base-1",
@@ -556,7 +556,7 @@ var _ = ginkgo.Describe("the update action", func() {
 
 			actions.UpdateImplicitRestart(newNopLogger(), containers, containers, true)
 
-			// Replica matches for qualified links are permitted by the refined guard.
+			// The qualified link resolves to the restarting replica.
 			gomega.Expect(dependent.ToRestart()).To(gomega.BeTrue())
 		})
 

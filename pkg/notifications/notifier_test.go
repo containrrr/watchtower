@@ -137,7 +137,6 @@ var _ = ginkgo.Describe("notifications", func() {
 	//nolint:godox
 	// TODO: Remove legacy slack notifier tests when legacy notification types are removed.
 	ginkgo.Describe("the slack notifier", func() {
-		// builderFn := notifications.NewSlackNotifier
 		ginkgo.When("passing a discord url to the slack notifier", func() {
 			channel := "123456789"
 			token := "abvsihdbau"

@@ -437,7 +437,7 @@ func renameTargetContainer(log *zerolog.Logger,
 
 // handleCPUSettings applies CPU configuration based on the specified copy mode.
 //
-// It handles Podman compatibility by filtering NanoCpus when necessary.
+// It handles Podman compatibility by filtering NanoCPUs when necessary.
 // Modes: "auto" (detect Podman and filter), "full" (copy all), "none" (strip all).
 func handleCPUSettings(
 	hostConfig *dockerContainer.HostConfig,
@@ -460,7 +460,7 @@ func handleCPUSettings(
 		// Copy all CPU settings unchanged (default behavior)
 		clog.Debug().Msg("Copied all CPU settings unchanged")
 	case "auto":
-		// Use isPodman flag to filter NanoCpus if Podman
+		// Use isPodman flag to filter NanoCPUs if Podman
 		if isPodman {
 			hostConfig.NanoCPUs = 0
 

@@ -958,10 +958,9 @@ type stopContainersTestCase struct {
 	description         string // Human-readable description
 }
 
-// TestDetachedContextDeadline tests the detached context creation logic in restartStaleContainer.
-// These tests verify that the detached context is created correctly based on the Timeout config value:
-// - When Timeout > 0: context has a deadline derived from Timeout
-// - When Timeout <= 0: context has a fallback deadline to prevent indefinite blocking.
+// DetachedContext specs cover the detached context that restartStaleContainer creates
+// from the Timeout setting. A positive Timeout sets the deadline, and a zero or
+// negative Timeout falls back to a default deadline that prevents indefinite blocking.
 var _ = ginkgo.Describe("DetachedContext", func() {
 	// TestDetachedContextDeadlineCase represents a test case for detached context deadline behavior.
 	type TestDetachedContextDeadlineCase struct {
@@ -1454,12 +1453,11 @@ var _ = ginkgo.Describe("DetachedContext", func() {
 		})
 
 		ginkgo.It("restart policy update uses detached context after successful start", func() {
-			// This test verifies that UpdateContainer (restart policy update) uses
-			// the detached context, not the parent context. Since StartContainer
-			// uses the parent context, we cannot cancel it before calling
-			// restartStaleContainer. Instead, we verify that UpdateContainer is
-			// called after a successful start, demonstrating the detached context
-			// is properly created and used.
+			// This test verifies that SetRestartPolicy uses the detached context,
+			// not the parent context. Since StartContainer uses the parent context,
+			// we cannot cancel it before calling restartStaleContainer. Instead, we
+			// verify that SetRestartPolicy is called after a successful start,
+			// demonstrating the detached context is properly created and used.
 
 			// Create a mock client with a Watchtower container that succeeds.
 			client := mockActions.CreateMockClient(

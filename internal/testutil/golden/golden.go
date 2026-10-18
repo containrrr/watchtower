@@ -1,7 +1,5 @@
-// Package golden compares test output against golden files stored under testdata/.
-//
-// Set UPDATE_GOLDEN=1 to rewrite the golden files from the current output instead
-// of comparing against them.
+// Package golden compares test output against golden files stored under
+// testdata/.
 package golden
 
 import (

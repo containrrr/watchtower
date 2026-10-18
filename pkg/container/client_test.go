@@ -554,7 +554,7 @@ var _ = ginkgo.Describe("the client", func() {
 			ginkgo.It("should warn, naming the container and its image", func() {
 				// GetContainer is only reached for containers already being acted
 				// upon, so missing image metadata is worth a warning here even
-				// though GetSourceContainer logs it at debug level.
+				// though getSourceContainer logs it at debug level.
 				mockServer.AppendHandlers(missingImageHandlers(testContainerID)...)
 
 				log, logBuf := captureLog(zerolog.WarnLevel)
@@ -1157,7 +1157,7 @@ var _ = ginkgo.Describe("the client", func() {
 			})
 		})
 
-		ginkgo.When("ContainerExecCreate fails", func() {
+		ginkgo.When("ExecCreate fails", func() {
 			ginkgo.It("should return error containing 'failed to create exec'", func() {
 				client := &client{
 					log:           nopLog(),
@@ -1179,7 +1179,7 @@ var _ = ginkgo.Describe("the client", func() {
 			})
 		})
 
-		ginkgo.When("ContainerExecStart fails", func() {
+		ginkgo.When("ExecStart fails", func() {
 			ginkgo.It("should return error containing 'failed to start exec'", func() {
 				client := &client{
 					api:           docker,
@@ -2112,19 +2112,19 @@ func TestStopContainer_ContainerFailsToStopWithinTimeout(t *testing.T) {
 }
 
 // setupExecMockHandlers sets up mock handlers for ExecuteCommand tests.
-// It registers 5 handlers: ContainerInspect, ImageInspect, ContainerExecCreate,
-// ContainerExecStart, and ContainerExecInspect.
+// It registers 5 handlers: ContainerInspect, ImageInspect, ExecCreate,
+// ExecStart, and ExecInspect.
 //
 // Parameters:
 //   - mockServer: The test HTTP server
 //   - containerID: Container ID for ContainerInspect
-//   - execID: Exec ID returned by ContainerExecCreate
+//   - execID: Exec ID returned by ExecCreate
 //   - cmd: Command to execute
 //   - uid: UID value (negative values indicate no UID specified)
 //   - gid: GID value (negative values indicate no GID specified)
 //   - exitCode: Exit code to return (0 for success case)
-//   - execCreateError: If true, make ContainerExecCreate return 500 error
-//   - execStartError: If true, make ContainerExecStart return 500 error
+//   - execCreateError: If true, make ExecCreate return 500 error
+//   - execStartError: If true, make ExecStart return 500 error
 //
 // The uid/gid parameters use negative values as sentinels to indicate "no user specified".
 // This allows 0:0 (root) to be properly tested as a valid user specification.
@@ -2199,7 +2199,7 @@ func setupExecMockHandlers(
 	// Handle execCreateError case - only 3 handlers needed
 	if execCreateError {
 		mockServer.AppendHandlers(
-			// Handler for ContainerExecCreate - returns error
+			// Handler for ExecCreate - returns error
 			ghttp.CombineHandlers(
 				ghttp.VerifyRequest(
 					"POST",
@@ -2214,7 +2214,7 @@ func setupExecMockHandlers(
 		return
 	}
 
-	// ContainerExecCreate handler (success case)
+	// ExecCreate handler (success case)
 	mockServer.AppendHandlers(
 		ghttp.CombineHandlers(
 			ghttp.VerifyRequest(
@@ -2248,7 +2248,7 @@ func setupExecMockHandlers(
 	// Handle execStartError case
 	if execStartError {
 		mockServer.AppendHandlers(
-			// Handler for ContainerExecStart - returns error
+			// Handler for ExecStart - returns error
 			ghttp.CombineHandlers(
 				ghttp.VerifyRequest(
 					"POST",
@@ -2261,9 +2261,9 @@ func setupExecMockHandlers(
 		return
 	}
 
-	// ContainerExecStart and ContainerExecInspect handlers (success case)
+	// ExecStart and ExecInspect handlers (success case)
 	mockServer.AppendHandlers(
-		// Handler for ContainerExecStart
+		// Handler for ExecStart
 		ghttp.CombineHandlers(
 			ghttp.VerifyRequest(
 				"POST",
@@ -2275,7 +2275,7 @@ func setupExecMockHandlers(
 			}),
 			ghttp.RespondWith(http.StatusOK, nil),
 		),
-		// Handler for ContainerExecInspect
+		// Handler for ExecInspect
 		ghttp.CombineHandlers(
 			ghttp.VerifyRequest(
 				"GET",

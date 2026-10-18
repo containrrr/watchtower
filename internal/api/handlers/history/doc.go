@@ -1,4 +1,4 @@
-// Package history provides the /v1/history HTTP API endpoint, exposing
-// historical scan results from the in-memory ring buffer (up to 500 entries).
-// Results can be filtered by time range (?since=, ?until=) and limited by count (?limit=).
+// Package history provides the handler for the /v1/history endpoint, which
+// returns recent scan results, optionally filtered by time range and limited in
+// count.
 package history

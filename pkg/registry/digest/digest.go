@@ -1,8 +1,5 @@
-// Package digest provides functionality for retrieving and comparing Docker image digests in Watchtower.
-// It enables the update process by fetching digests from container registries using HTTP requests,
-// comparing them with local image digests, and handling authentication transformations to ensure compatibility
-// with various registry authentication schemes. This package is integral to determining whether a container's
-// image is stale and requires an update.
+// Package digest fetches image digests from container registries and compares
+// them with local image digests to decide whether a container's image is stale.
 package digest
 
 import (

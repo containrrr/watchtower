@@ -48,7 +48,7 @@ const (
 )
 
 // baseListRetryDelay is the base delay for exponential backoff between retries.
-// Actual delays are baseDelay * 2^attempt (5s, 10s).
+// Actual delays are baseListRetryDelay * 2^attempt (5s, 10s).
 var baseListRetryDelay = 5 * time.Second
 
 // Errors for container health operations.
@@ -896,11 +896,12 @@ func (c *client) StartContainer(ctx context.Context, container types.Container) 
 // Unlike StartContainer, this does not create a new container from a source
 // configuration. It directly starts an existing, already-created container
 // using the Docker API's ContainerStart method. Callers are responsible for
-// checking whether the container should be started (e.g., the reviveStopped
-// and noRestart checks in restartStaleContainer).
+// checking whether the container should be started (e.g., the ReviveStopped
+// and NoRestart checks in restartStaleContainer).
 //
-// This method is used by the ephemeral orchestrator to start the new container
-// after the old one has been stopped during the self-update sequence.
+// Callers use it to start a created replacement, to recover an orphaned
+// Watchtower container, and, in the ephemeral orchestrator, to start the new
+// container or restart the old one when a self-update fails.
 //
 // Parameters:
 //   - ctx: Context for cancellation and timeout control.

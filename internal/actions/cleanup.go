@@ -325,15 +325,22 @@ func getExcessContainers(log *zerolog.Logger, watchtowerScope string,
 	return excessContainers
 }
 
-// getFilteredContainers retrieves filtered containers excluding the current one if more than one exist.
+// getFilteredContainers returns the Watchtower containers in the given scope other
+// than the current one.
+//
+// When the current container is an old predecessor, the successor it hands off
+// to counts as the current one instead, when one exists. The successor is the
+// non-old container in the same scope whose chain label lists the predecessor's
+// ID, or else the first non-old container in that scope.
 //
 // Parameters:
+//   - log: Process logger.
 //   - scope: Scope UID to filter containers, empty for unscoped.
 //   - currentContainer: The current running Watchtower container (nil if not applicable).
 //   - allContainers: All containers to filter from.
 //
 // Returns:
-//   - []types.Container: Slice of excess containers to remove.
+//   - []types.Container: Excess containers to remove, empty when currentContainer is nil.
 func getFilteredContainers(log *zerolog.Logger, scope string,
 	currentContainer types.Container,
 	allContainers []types.Container,

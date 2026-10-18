@@ -1,18 +1,3 @@
-// Package filters provides filtering logic for Watchtower containers.
-// It defines functions to select containers by container names, image names, labels, and scopes.
-//
-// Key components:
-//   - Filter Functions: Select containers (e.g., FilterByNames, FilterByScope).
-//   - BuildFilter: Combines filters into a single function.
-//
-// Usage example:
-//
-//	filter, desc, err := filters.BuildFilter(log, names, disableNames, monitoredImageNamePatterns, skippedImageNamePatterns, enabledLabels, disabledLabels, true, "scope")
-//	if err != nil {
-//		return err
-//	}
-//	containers, _ := client.ListContainers(filter)
-//	log.Info().Msg(desc)
-//
-// The package uses zerolog for logging filter operations and integrates with container types.
+// Package filters selects the containers Watchtower watches by container name,
+// image name, label, and scope.
 package filters

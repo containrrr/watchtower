@@ -33,27 +33,6 @@ type latestImageMetadata struct {
 	digest string
 }
 
-// applyLatestImageMetadata records the new image's OCI metadata on a container
-// status so a notification can describe what the container is moving to.
-//
-// Reading the pulled image's annotations always happens. Confirming the exact
-// release tag does not: that costs registry requests, so it runs only when the
-// changelog feature is enabled for this container, and a failure only downgrades
-// the link to the unversioned release index.
-//
-// Parameters:
-//   - log: Process logger.
-//   - ctx: Context for the release tag lookup.
-//   - progress: Session progress map.
-//   - resolver: Release tag resolver shared across the session so sibling
-//     containers on one image only pay for a single lookup.
-//   - c: Container whose status should be updated.
-//   - config: Update parameters carrying the changelog enable gate.
-//   - latest: Annotations and manifest digest of the new image.
-//
-// Returns:
-//   - none.
-//
 // resolveLatestImageMeta computes the report metadata for a container's new
 // image without touching session state.
 //

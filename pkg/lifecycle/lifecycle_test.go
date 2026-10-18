@@ -242,7 +242,7 @@ func TestExecutePostChecks_EmptyListedDoesNotRelist(t *testing.T) {
 	client.AssertNotCalled(t, "ExecuteCommand", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything)
 }
 
-// TestExecutePreCheckCommand tests the ExecutePreCheckCommand function.
+// TestExecutePreCheckCommand tests the executePreCheckCommand function.
 func TestExecutePreCheckCommand(t *testing.T) {
 	tests := []struct {
 		name           string
@@ -309,7 +309,7 @@ func TestExecutePreCheckCommand(t *testing.T) {
 	}
 }
 
-// TestExecutePostCheckCommand tests the ExecutePostCheckCommand function.
+// TestExecutePostCheckCommand tests the executePostCheckCommand function.
 func TestExecutePostCheckCommand(t *testing.T) {
 	tests := []struct {
 		name           string

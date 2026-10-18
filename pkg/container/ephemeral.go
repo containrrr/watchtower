@@ -24,8 +24,7 @@ const (
 	// orchestratorOldIDEnv is the environment variable key for the old container ID.
 	orchestratorOldIDEnv = "WT_ORCHESTRATOR_OLD_ID"
 	// orchestratorNewImageEnv is the environment variable key for the new image reference.
-	// Note: StartContainer resolves the image from the source container's config, not this var.
-	// This env var is retained for debugging and future extensibility.
+	// The orchestrator pins the replacement's create config to this image.
 	orchestratorNewImageEnv = "WT_ORCHESTRATOR_NEW_IMAGE"
 	// orchestratorOriginalNameEnv is the environment variable key for the original container name.
 	orchestratorOriginalNameEnv = "WT_ORCHESTRATOR_ORIGINAL_NAME"

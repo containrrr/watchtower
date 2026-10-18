@@ -1,5 +1,3 @@
-// Package manifest_test provides tests for constructing manifest URLs in Watchtower.
-// It verifies the behavior of BuildManifestURLForImage across various image reference scenarios.
 package manifest_test
 
 import (

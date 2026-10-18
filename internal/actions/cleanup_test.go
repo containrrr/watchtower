@@ -20,7 +20,7 @@ import (
 	"github.com/nicholas-fedor/watchtower/pkg/types"
 )
 
-var _ = ginkgo.Describe("CheckForMultipleWatchtowerInstances", func() {
+var _ = ginkgo.Describe("RemoveExcessWatchtowerInstances", func() {
 	ginkgo.When("no scope is specified", func() {
 		ginkgo.It("should return nil when only one instance exists", func() {
 			mockClient := mockContainer.NewMockClient(ginkgo.GinkgoT())
@@ -1010,7 +1010,6 @@ var _ = ginkgo.Describe("CheckForMultipleWatchtowerInstances", func() {
 				StopAndRemoveContainer(mock.Anything, prodOldContainer, 10*time.Minute).
 				Return(nil).
 				Times(1)
-			// devOldContainer is not cleaned because unscoped filter excludes scoped containers
 
 			// Test cleanup without scope filter - should clean chained container only
 			// Note: unscoped filter excludes containers with scopes, so only chained container is cleaned

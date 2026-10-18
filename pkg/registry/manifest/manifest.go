@@ -1,6 +1,5 @@
-// Package manifest provides functionality for constructing URLs to access container
-// image manifests in Watchtower. It handles parsing image references and building
-// registry-specific manifest URLs for digest retrieval and other operations.
+// Package manifest builds the registry URLs of image manifests from image
+// references.
 package manifest
 
 import (

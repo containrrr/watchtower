@@ -1,15 +1,8 @@
-// Package auth implements the Docker Registry HTTP API V2 authentication protocol.
+// Package auth authenticates requests to container registries through the
+// registry HTTP API V2 challenge protocol.
 //
-// Flow:
-//  1. GET /v2/ → 401 + WWW-Authenticate header
-//  2. Parse challenge (realm, service, scope)
-//  3. Fetch bearer token from realm endpoint (with caching)
-//  4. Return token for use in subsequent requests
-//
-// Special cases:
-//   - lscr.io images are hosted on ghcr.io, so auth challenges are remapped
-//   - Docker Hub's docker.io maps to index.docker.io
-//   - Basic auth is supported when credentials are provided
-//   - Anonymous GHCR bearer tokens are reused across public images
-//   - A cached anonymous GHCR token skips the /v2/ challenge
+// It answers a registry's challenge with basic credentials or with a bearer
+// token fetched from the challenge's realm, and caches bearer tokens for reuse.
+// Anonymous GitHub Container Registry tokens are shared across public images,
+// and lscr.io images authenticate against ghcr.io, which hosts them.
 package auth

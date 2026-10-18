@@ -290,7 +290,7 @@ func TestUpdateLockSerialization(t *testing.T) {
 		// WaitGroup to synchronize test completion
 		var wg sync.WaitGroup
 
-		// Simulate the update function used in runMain and runUpgradesOnSchedule
+		// Simulate the update function used in runMain and RunUpgradesOnSchedule
 		updateFunc := func(id int) {
 			if !updateLock.TryLock() {
 				// Lock not available, skip update (same as in the actual code)
@@ -554,7 +554,7 @@ func TestUpdateOnStartTriggersImmediateUpdate(t *testing.T) {
 	// Create update lock
 	updateLock := scheduling.NewUpdateLock()
 
-	// Call runUpgradesOnSchedule with a filter that matches no containers
+	// Call RunUpgradesOnSchedule with a filter that matches no containers
 	filter := types.Filter(func(_ types.FilterableContainer) bool { return false })
 	// The function should trigger immediate update and then start scheduler
 	deps := testScheduleDeps(t, filter, updateLock, true)
@@ -615,7 +615,7 @@ func TestUpdateOnStartIntegratesWithCronScheduling(t *testing.T) {
 		// Create update lock
 		updateLock := scheduling.NewUpdateLock()
 
-		// Call runUpgradesOnSchedule
+		// Call RunUpgradesOnSchedule
 		filter := types.Filter(func(_ types.FilterableContainer) bool { return false })
 		startTime := time.Now()
 		deps := testScheduleDeps(t, filter, updateLock, true)
@@ -689,7 +689,7 @@ func TestUpdateOnStartLockingBehavior(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
 		defer cancel()
 
-		// Call runUpgradesOnSchedule
+		// Call RunUpgradesOnSchedule
 		filter := types.Filter(func(_ types.FilterableContainer) bool { return false })
 		deps := testScheduleDeps(t, filter, updateLock, false)
 		err = scheduling.RunUpgradesOnSchedule(ctx, deps)
@@ -742,7 +742,7 @@ func TestUpdateOnStartSelfUpdateScenario(t *testing.T) {
 		// Create update lock
 		updateLock := scheduling.NewUpdateLock()
 
-		// Call runUpgradesOnSchedule with a filter that includes containers
+		// Call RunUpgradesOnSchedule with a filter that includes containers
 		filter := types.Filter(func(_ types.FilterableContainer) bool { return true })
 		deps := testScheduleDeps(t, filter, updateLock, updateOnStart)
 		err = scheduling.RunUpgradesOnSchedule(ctx, deps)
@@ -892,7 +892,7 @@ func TestListContainersWithoutFilterIntegration(t *testing.T) {
 	mockContainer.AssertExpectations(t)
 }
 
-// TestRunUpgradesOnSchedule_ShutdownWaitsForRunningUpdate verifies that runUpgradesOnSchedule
+// TestRunUpgradesOnSchedule_ShutdownWaitsForRunningUpdate verifies that RunUpgradesOnSchedule
 // waits for any running update to complete before shutting down when receiving a shutdown signal.
 func TestRunUpgradesOnSchedule_ShutdownWaitsForRunningUpdate(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
@@ -926,7 +926,7 @@ func TestRunUpgradesOnSchedule_ShutdownWaitsForRunningUpdate(t *testing.T) {
 		// Create a cancelable context for shutdown
 		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 
-		// Start runUpgradesOnSchedule in a goroutine
+		// Start RunUpgradesOnSchedule in a goroutine
 		go func() {
 			filter := types.Filter(func(_ types.FilterableContainer) bool { return false })
 			// This should start and wait for context cancellation
@@ -1466,7 +1466,7 @@ func TestRootCommand_FlagParsing(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			// Hostnames parse as flag values but fail validateAPIHost at run time.
+			// Hostnames parse as flag values but fail ValidateAPIHost at run time.
 			name:    "http-api-host hostname parses as flag",
 			args:    []string{"--http-api-host", "localhost"},
 			wantErr: false,
