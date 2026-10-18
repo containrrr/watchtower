@@ -56,6 +56,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Document the digest choice for container details by @nicholas-fedor in [#2807](https://github.com/nicholas-fedor/watchtower/pull/2807)
 
+### Tests
+
+- Write test logs to the test that produced them by @nicholas-fedor in [#2909](https://github.com/nicholas-fedor/watchtower/pull/2909)
+
 ### Build
 
 - Remove orphaned generated mocks by @nicholas-fedor in [#2895](https://github.com/nicholas-fedor/watchtower/pull/2895)
