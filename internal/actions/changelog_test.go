@@ -74,8 +74,8 @@ func newProgressWithContainer(t *testing.T, c *container.Container) *session.Pro
 	t.Helper()
 
 	progress := session.Progress{}
-	progress.AddScanned(testLogger(), c, c.ImageID(), types.UpdateParams{})
-	progress.MarkForUpdate(testLogger(), c.ID())
+	progress.AddScanned(newTestLogger(t), c, c.ImageID(), types.UpdateParams{})
+	progress.MarkForUpdate(newTestLogger(t), c.ID())
 
 	return &progress
 }
@@ -123,14 +123,14 @@ func TestApplyLatestImageMetadataRecordsVersionWithoutEnabledFeature(t *testing.
 	client := stubClient{annotations: oci.Annotations{Version: "1.2.3", Revision: "newrev"}}
 
 	vars, anns := resolveLatestImageMeta(
-		testLogger(),
+		newTestLogger(t),
 		context.Background(),
 		release.NewResolver(panickingFetcher{t}),
 		c,
 		types.UpdateParams{},
 		latestImageMetadata{annotations: client.annotations, digest: newDigest},
 	)
-	applyLatestImageMeta(testLogger(), progress, c, types.UpdateParams{}, vars, anns)
+	applyLatestImageMeta(newTestLogger(t), progress, c, types.UpdateParams{}, vars, anns)
 
 	status := (*progress)[c.ID()]
 	assert.Equal(t, "1.2.2", status.CurrentImageVersion())
@@ -153,14 +153,14 @@ func TestApplyLatestImageMetadataChangelogLabelDoesNotEnableProbe(t *testing.T) 
 	client := stubClient{annotations: oci.Annotations{Version: "1.2.3"}}
 
 	vars, anns := resolveLatestImageMeta(
-		testLogger(),
+		newTestLogger(t),
 		context.Background(),
 		release.NewResolver(panickingFetcher{t}),
 		c,
 		types.UpdateParams{},
 		latestImageMetadata{annotations: client.annotations, digest: newDigest},
 	)
-	applyLatestImageMeta(testLogger(), progress, c, types.UpdateParams{}, vars, anns)
+	applyLatestImageMeta(newTestLogger(t), progress, c, types.UpdateParams{}, vars, anns)
 
 	status := (*progress)[c.ID()]
 	// The label still populates the changelog. An unfilled {tag} placeholder is
@@ -180,14 +180,14 @@ func TestApplyLatestImageMetadataResolvesVersionedChangelogWhenEnabled(t *testin
 	client := stubClient{annotations: oci.Annotations{Version: "1.2.3"}}
 
 	vars, anns := resolveLatestImageMeta(
-		testLogger(),
+		newTestLogger(t),
 		context.Background(),
 		release.NewResolver(fetcher),
 		c,
 		types.UpdateParams{EnableChangelog: true},
 		latestImageMetadata{annotations: client.annotations, digest: newDigest},
 	)
-	applyLatestImageMeta(testLogger(), progress, c, types.UpdateParams{EnableChangelog: true}, vars, anns)
+	applyLatestImageMeta(newTestLogger(t), progress, c, types.UpdateParams{EnableChangelog: true}, vars, anns)
 
 	status := (*progress)[c.ID()]
 	assert.Equal(t, "https://github.com/org/app/releases/tag/v1.2.3", status.Changelog())
@@ -208,14 +208,14 @@ func TestApplyLatestImageMetadataEnabledByLabel(t *testing.T) {
 	client := stubClient{annotations: oci.Annotations{Version: "1.2.3"}}
 
 	vars, anns := resolveLatestImageMeta(
-		testLogger(),
+		newTestLogger(t),
 		context.Background(),
 		release.NewResolver(fetcher),
 		c,
 		types.UpdateParams{},
 		latestImageMetadata{annotations: client.annotations, digest: newDigest},
 	)
-	applyLatestImageMeta(testLogger(), progress, c, types.UpdateParams{}, vars, anns)
+	applyLatestImageMeta(newTestLogger(t), progress, c, types.UpdateParams{}, vars, anns)
 
 	assert.Equal(
 		t,
@@ -236,14 +236,14 @@ func TestApplyLatestImageMetadataFallsBackWhenProbeMisses(t *testing.T) {
 	client := stubClient{annotations: oci.Annotations{Version: "1.2.3"}}
 
 	vars, anns := resolveLatestImageMeta(
-		testLogger(),
+		newTestLogger(t),
 		context.Background(),
 		release.NewResolver(&missFetcher{}),
 		c,
 		types.UpdateParams{EnableChangelog: true},
 		latestImageMetadata{annotations: client.annotations, digest: newDigest},
 	)
-	applyLatestImageMeta(testLogger(), progress, c, types.UpdateParams{EnableChangelog: true}, vars, anns)
+	applyLatestImageMeta(newTestLogger(t), progress, c, types.UpdateParams{EnableChangelog: true}, vars, anns)
 
 	assert.Equal(t, "https://github.com/org/app/releases", (*progress)[c.ID()].Changelog())
 }
@@ -349,7 +349,7 @@ func TestGitRebuildEmitsExactlyOneChangelogEntry(t *testing.T) {
 
 	log := zerolog.New(&buf)
 
-	sess := newGitSession(internalGit.New(testLogger(), internalGit.Options{Timeout: time.Second}))
+	sess := newGitSession(internalGit.New(newTestLogger(t), internalGit.Options{Timeout: time.Second}))
 	docker := mockActions.CreateMockClient(&mockActions.TestData{}, false, false)
 
 	err := sess.buildOne(

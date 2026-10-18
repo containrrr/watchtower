@@ -59,7 +59,7 @@ func TestWarnOnAPIConsumption(t *testing.T) {
 			container.EXPECT().Name().Return("test-container").Maybe()
 			container.EXPECT().ImageName().Return(tt.imageName)
 
-			got := WarnOnAPIConsumption(testLog(), container)
+			got := WarnOnAPIConsumption(newTestLogger(t), container)
 			assert.Equal(t, tt.want, got)
 		})
 	}

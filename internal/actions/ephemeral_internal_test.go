@@ -96,7 +96,7 @@ var _ = ginkgo.Describe("orchestrateSelfUpdate handoff", func() {
 			false,
 		)
 
-		err := orchestrateSelfUpdate(testLogger(),
+		err := orchestrateSelfUpdate(newNopLogger(),
 			context.Background(),
 			client,
 			"wt-old-id-ok",
@@ -148,7 +148,7 @@ var _ = ginkgo.Describe("orchestrateSelfUpdate handoff", func() {
 			false,
 		)
 
-		err := orchestrateSelfUpdate(testLogger(),
+		err := orchestrateSelfUpdate(newNopLogger(),
 			context.Background(),
 			client,
 			"wt-old-ports",
@@ -181,7 +181,7 @@ var _ = ginkgo.Describe("orchestrateSelfUpdate handoff", func() {
 			false,
 		)
 
-		err := orchestrateSelfUpdate(testLogger(),
+		err := orchestrateSelfUpdate(newNopLogger(),
 			context.Background(),
 			client,
 			"wt-old-stop-fail",
@@ -211,7 +211,7 @@ var _ = ginkgo.Describe("orchestrateSelfUpdate handoff", func() {
 			false,
 		)
 
-		err := orchestrateSelfUpdate(testLogger(),
+		err := orchestrateSelfUpdate(newNopLogger(),
 			context.Background(),
 			client,
 			"wt-old-create-fail",
@@ -256,7 +256,7 @@ var _ = ginkgo.Describe("orchestrateSelfUpdate handoff", func() {
 			false,
 		)
 
-		err := orchestrateSelfUpdate(testLogger(),
+		err := orchestrateSelfUpdate(newNopLogger(),
 			context.Background(),
 			client,
 			"wt-old-pin",
@@ -283,7 +283,7 @@ var _ = ginkgo.Describe("orchestrateSelfUpdate handoff", func() {
 		)
 
 		chain := "prev-id,wt-old-chain"
-		err := orchestrateSelfUpdate(testLogger(),
+		err := orchestrateSelfUpdate(newNopLogger(),
 			context.Background(),
 			client,
 			"wt-old-chain",
@@ -312,7 +312,7 @@ var _ = ginkgo.Describe("orchestrateSelfUpdate handoff", func() {
 			false,
 		)
 
-		err := orchestrateSelfUpdate(testLogger(),
+		err := orchestrateSelfUpdate(newNopLogger(),
 			context.Background(),
 			client,
 			"wt-old-cleanup",
@@ -338,7 +338,7 @@ var _ = ginkgo.Describe("orchestrateSelfUpdate handoff", func() {
 			false,
 		)
 
-		err := orchestrateSelfUpdate(testLogger(),
+		err := orchestrateSelfUpdate(newNopLogger(),
 			context.Background(),
 			client,
 			"wt-old-no-cleanup",
@@ -365,7 +365,7 @@ var _ = ginkgo.Describe("orchestrateSelfUpdate handoff", func() {
 			false,
 		)
 
-		err := orchestrateSelfUpdate(testLogger(),
+		err := orchestrateSelfUpdate(newNopLogger(),
 			context.Background(),
 			client,
 			"wt-old-in-use",
@@ -392,7 +392,7 @@ var _ = ginkgo.Describe("orchestrateSelfUpdate handoff", func() {
 			false,
 		)
 
-		err := orchestrateSelfUpdate(testLogger(),
+		err := orchestrateSelfUpdate(newNopLogger(),
 			context.Background(),
 			client,
 			"wt-old-missing-image",

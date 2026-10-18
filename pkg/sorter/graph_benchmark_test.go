@@ -51,7 +51,7 @@ func BenchmarkNewDependencyGraph(b *testing.B) {
 	for _, tc := range cycleBenchmarkCases() {
 		b.Run(tc.name, func(b *testing.B) {
 			containers := tc.containers()
-			benchLog := testLog()
+			benchLog := newNopLogger()
 
 			b.ReportAllocs()
 
@@ -70,7 +70,7 @@ func BenchmarkNewDependencyGraph(b *testing.B) {
 func BenchmarkDependencyGraph_CycleMembers(b *testing.B) {
 	for _, tc := range cycleBenchmarkCases() {
 		b.Run(tc.name, func(b *testing.B) {
-			graph, err := NewDependencyGraph(testLog(), tc.containers(), nil, true)
+			graph, err := NewDependencyGraph(newNopLogger(), tc.containers(), nil, true)
 			if err != nil {
 				b.Fatalf("NewDependencyGraph: %v", err)
 			}
@@ -103,7 +103,7 @@ func BenchmarkDependencyGraph_Sort(b *testing.B) {
 		}
 
 		b.Run(tc.name+"/Graph", func(b *testing.B) {
-			benchLog := testLog()
+			benchLog := newNopLogger()
 			sorted := make([]types.Container, len(subset))
 
 			graph, err := NewDependencyGraph(benchLog, all, nil, true)
@@ -124,7 +124,7 @@ func BenchmarkDependencyGraph_Sort(b *testing.B) {
 		})
 
 		b.Run(tc.name+"/Alone", func(b *testing.B) {
-			benchLog := testLog()
+			benchLog := newNopLogger()
 			sorted := make([]types.Container, len(subset))
 
 			b.ReportAllocs()
@@ -200,7 +200,7 @@ func BenchmarkScanOrdering(b *testing.B) {
 		}
 
 		b.Run(fmt.Sprintf("Containers_%d", len(all)), func(b *testing.B) {
-			benchLog := testLog()
+			benchLog := newNopLogger()
 			sorted := make([]types.Container, len(all))
 			restartSorted := make([]types.Container, len(restart))
 

@@ -25,8 +25,21 @@ func (m *mockDigested) Digest() digest.Digest {
 	return m.digest
 }
 
-func testLog() *zerolog.Logger {
-	return new(zerolog.Nop())
+// newTestLogger returns a logger that writes each event to the test's log, so a
+// failing test shows what it logged.
+//
+// Parameters:
+//   - t: Test that receives the log lines.
+//
+// Returns:
+//   - *zerolog.Logger: Logger writing to t.
+func newTestLogger(t *testing.T) *zerolog.Logger {
+	t.Helper()
+
+	// Frame 4 skips zerolog's write path, so each line names the log call.
+	w := zerolog.TestWriter{T: t, Frame: 4}
+
+	return new(zerolog.New(w))
 }
 
 func TestParseImageRef(t *testing.T) {
@@ -104,7 +117,7 @@ func TestResolveRegistryHost(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := resolveRegistryHost(testLog(), tt.input)
+			result := resolveRegistryHost(newTestLogger(t), tt.input)
 			assert.Equal(t, tt.expected, result)
 		})
 	}
@@ -272,7 +285,7 @@ func TestBuildTaggedManifestURL(t *testing.T) {
 		"image":     "ghcr.io/org/image:mytag",
 	}
 
-	url, err := buildTaggedManifestURL(testLog(), fields, tagged, "https")
+	url, err := buildTaggedManifestURL(newTestLogger(t), fields, tagged, "https")
 	require.NoError(t, err)
 
 	expected := "https://ghcr.io/v2/org/image/manifests/mytag"
@@ -291,7 +304,7 @@ func TestBuildDigestedManifestURL(t *testing.T) {
 		"image":     "registry.example.com/org/image@sha256:daf7034c5c89775afe3008393ae033529913548243b84926931d7c84398ecda7",
 	}
 
-	url, err := buildDigestedManifestURL(testLog(), fields, digested, "https")
+	url, err := buildDigestedManifestURL(newTestLogger(t), fields, digested, "https")
 	require.NoError(t, err)
 
 	expected := "https://registry.example.com/v2/org/image/manifests/sha256:daf7034c5c89775afe3008393ae033529913548243b84926931d7c84398ecda7"
@@ -313,7 +326,7 @@ func TestBuildDigestedManifestURLInvalidComponents(t *testing.T) {
 		"image":     "invalid",
 	}
 
-	url, err := buildDigestedManifestURL(testLog(), fields, mock, "https")
+	url, err := buildDigestedManifestURL(newTestLogger(t), fields, mock, "https")
 	require.Error(t, err)
 	assert.Empty(t, url)
 }

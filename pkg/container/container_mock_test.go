@@ -222,7 +222,7 @@ func WithNetworkMode(mode string) MockContainerUpdate {
 		}
 
 		c.HostConfig.NetworkMode = dockerContainer.NetworkMode(mode)
-		testLog().Debug().
+		nopLog().Debug().
 			Str("mode", mode).
 			Bool("is_host", mode == "host").
 			Msg("MockContainer set NetworkMode")
@@ -313,7 +313,7 @@ func WithNetworks(networkNames ...string) MockContainerUpdate {
 				NetworkID: fmt.Sprintf("network_%s_id", name),
 				Aliases:   []string{c.Name},
 			}
-			testLog().Debug().
+			nopLog().Debug().
 				Str("container", c.Name).
 				Str("network", name).
 				Msg("MockContainer added network")

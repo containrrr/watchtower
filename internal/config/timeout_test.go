@@ -59,7 +59,7 @@ func TestStopTimeout_LegacyBareNumberAsSeconds(t *testing.T) {
 			flags.RegisterAll(cmd)
 			require.NoError(t, cmd.ParseFlags([]string{}))
 
-			cfg, err := Load(testLogger(), cmd, nil)
+			cfg, err := Load(newTestLogger(t), cmd, nil)
 			if tc.wantError {
 				require.Error(t, err)
 

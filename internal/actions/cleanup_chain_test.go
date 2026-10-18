@@ -108,7 +108,7 @@ func TestGetChainedContainers(t *testing.T) {
 
 			current, all := chainTestContainers(tt.chain)
 
-			got := getChainedContainers(testLogger(), all, current)
+			got := getChainedContainers(newTestLogger(t), all, current)
 
 			assert.Equal(t, tt.want, containerIDs(got))
 		})
@@ -133,7 +133,7 @@ func TestRemoveExcessWatchtowerInstances_ChainKeepsOtherContainers(t *testing.T)
 	client.EXPECT().ListContainers(mock.Anything, mock.Anything).Return([]types.Container{current, oldA, app}, nil)
 	client.EXPECT().StopAndRemoveContainer(mock.Anything, oldA, mock.Anything).Return(nil).Once()
 
-	removed, err := RemoveExcessWatchtowerInstances(testLogger(), t.Context(), client, false, "", nil, current)
+	removed, err := RemoveExcessWatchtowerInstances(newTestLogger(t), t.Context(), client, false, "", nil, current)
 	require.NoError(t, err)
 	assert.Equal(t, 1, removed)
 }

@@ -35,7 +35,7 @@ func FuzzCycleMembers(f *testing.F) {
 		containers := parseFuzzDependencyData(data)
 
 		for _, useComposeDependsOn := range []bool{true, false} {
-			graph, err := NewDependencyGraph(testLog(), containers, nil, useComposeDependsOn)
+			graph, err := NewDependencyGraph(newNopLogger(), containers, nil, useComposeDependsOn)
 			if err != nil {
 				if !errors.Is(err, errIdentifierCollision) {
 					t.Fatalf("unexpected error: %v", err)
@@ -77,7 +77,7 @@ func FuzzCycleMembers(f *testing.F) {
 			}
 
 			for _, sorted := range [][]types.Container{rest, subset} {
-				err = graph.Sort(testLog(), sorted)
+				err = graph.Sort(newNopLogger(), sorted)
 				if errors.Is(err, errCircularReference) {
 					t.Fatalf("containers outside the reported cycles do not sort: %v", err)
 				}
@@ -116,7 +116,7 @@ func selfReachable(
 ) map[types.ContainerID]bool {
 	t.Helper()
 
-	containerMap, _, adjacency, _, err := buildDependencyGraph(testLog(), containers, useComposeDependsOn)
+	containerMap, _, adjacency, _, err := buildDependencyGraph(newNopLogger(), containers, useComposeDependsOn)
 	if err != nil {
 		t.Fatalf("building the graph: %v", err)
 	}
@@ -305,7 +305,7 @@ func FuzzDeploymentGraphs(f *testing.F) {
 		}
 
 		for _, useComposeDependsOn := range []bool{true, false} {
-			graph, err := NewDependencyGraph(testLog(), monitored, unmonitored, useComposeDependsOn)
+			graph, err := NewDependencyGraph(newNopLogger(), monitored, unmonitored, useComposeDependsOn)
 			if err != nil {
 				if !errors.Is(err, errIdentifierCollision) {
 					t.Fatalf("unexpected error: %v", err)
@@ -354,7 +354,7 @@ func FuzzDeploymentGraphs(f *testing.F) {
 			for _, toSort := range [][]types.Container{rest, subset} {
 				sorted := slices.Clone(toSort)
 
-				err := graph.Sort(testLog(), sorted)
+				err := graph.Sort(newNopLogger(), sorted)
 				if err != nil {
 					t.Fatalf("sorting %v with the graph: %v", containerNames(toSort), err)
 				}
@@ -368,8 +368,8 @@ func FuzzDeploymentGraphs(f *testing.F) {
 				legacy := slices.Clone(containers)
 				fromGraph := slices.Clone(containers)
 
-				legacyErr := SortByDependencies(testLog(), legacy, useComposeDependsOn)
-				graphErr := graph.Sort(testLog(), fromGraph)
+				legacyErr := SortByDependencies(newNopLogger(), legacy, useComposeDependsOn)
+				graphErr := graph.Sort(newNopLogger(), fromGraph)
 
 				if (legacyErr == nil) != (graphErr == nil) {
 					t.Fatalf("SortByDependencies error %v, graph sort error %v", legacyErr, graphErr)

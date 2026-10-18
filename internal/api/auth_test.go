@@ -79,7 +79,7 @@ func TestNewAPIAuthMiddleware(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			middleware := newAPIAuthMiddleware(testLogger(), tt.token)
+			middleware := newAPIAuthMiddleware(newTestLogger(t), tt.token)
 
 			app := fiber.New(fiber.Config{})
 			app.Get("/test", middleware, func(c fiber.Ctx) error {
@@ -114,7 +114,7 @@ func TestNewAPIAuthMiddleware(t *testing.T) {
 func TestNewAPIAuthMiddleware_HashComputation(t *testing.T) {
 	const testToken = "hash-test-token"
 
-	middleware := newAPIAuthMiddleware(testLogger(), testToken)
+	middleware := newAPIAuthMiddleware(newTestLogger(t), testToken)
 
 	app := fiber.New(fiber.Config{})
 	app.Get("/test", middleware, func(c fiber.Ctx) error {

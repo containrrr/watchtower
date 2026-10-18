@@ -18,7 +18,7 @@ var _ = ginkgo.Describe("image disk space gate", func() {
 		client := mockActions.CreateMockClient(&mockActions.TestData{}, false, false)
 
 		_, _, err := update(
-			testLogger(),
+			newNopLogger(),
 			context.Background(),
 			client,
 			defaultTestUpdateParams(filters.NoFilter),
@@ -38,7 +38,7 @@ var _ = ginkgo.Describe("image disk space gate", func() {
 		params.DiskSpaceMax = 10_000
 		params.DiskSpaceWarn = 8_000
 
-		_, _, err := update(testLogger(), context.Background(), client, params, ratelimit.New())
+		_, _, err := update(newNopLogger(), context.Background(), client, params, ratelimit.New())
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 		gomega.Expect(client.TestData.GetImageDiskUsageCount.Load()).To(gomega.Equal(int32(1)))
 		gomega.Expect(client.TestData.ListContainersCount.Load()).To(gomega.BeNumerically(">", 0))
@@ -53,7 +53,7 @@ var _ = ginkgo.Describe("image disk space gate", func() {
 		params.DiskSpaceMax = 10_000
 		params.DiskSpaceWarn = 8_000
 
-		_, _, err := update(testLogger(), context.Background(), client, params, ratelimit.New())
+		_, _, err := update(newNopLogger(), context.Background(), client, params, ratelimit.New())
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 		gomega.Expect(client.TestData.ListContainersCount.Load()).To(gomega.BeNumerically(">", 0))
 	})
@@ -66,7 +66,7 @@ var _ = ginkgo.Describe("image disk space gate", func() {
 		params := defaultTestUpdateParams(filters.NoFilter)
 		params.DiskSpaceWarn = 1_000
 
-		_, _, err := update(testLogger(), context.Background(), client, params, ratelimit.New())
+		_, _, err := update(newNopLogger(), context.Background(), client, params, ratelimit.New())
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 		gomega.Expect(client.TestData.ListContainersCount.Load()).To(gomega.BeNumerically(">", 0))
 	})
@@ -84,7 +84,7 @@ var _ = ginkgo.Describe("image disk space gate", func() {
 		params.DiskSpaceMax = 10_000
 		params.DiskSpaceWarn = 8_000
 
-		_, _, err := update(testLogger(), context.Background(), client, params, ratelimit.New())
+		_, _, err := update(newNopLogger(), context.Background(), client, params, ratelimit.New())
 		gomega.Expect(err).To(gomega.MatchError(errImageDiskSpaceExceeded))
 		gomega.Expect(client.TestData.ListContainersCount.Load()).To(gomega.Equal(int32(0)))
 	})
@@ -97,7 +97,7 @@ var _ = ginkgo.Describe("image disk space gate", func() {
 		params := defaultTestUpdateParams(filters.NoFilter)
 		params.DiskSpaceMax = 10_000
 
-		_, _, err := update(testLogger(), context.Background(), client, params, ratelimit.New())
+		_, _, err := update(newNopLogger(), context.Background(), client, params, ratelimit.New())
 		gomega.Expect(err).To(gomega.MatchError(errImageDiskUsageFailed))
 		gomega.Expect(client.TestData.ListContainersCount.Load()).To(gomega.Equal(int32(0)))
 	})

@@ -50,7 +50,7 @@ var _ = ginkgo.Describe("the update action", func() {
 				},
 				Stopped: make(map[string]bool),
 			}
-			report, cleanupImageInfos, err := actions.Update(testLogger(),
+			report, cleanupImageInfos, err := actions.Update(newNopLogger(),
 				context.Background(),
 				client,
 				config,
@@ -83,7 +83,7 @@ var _ = ginkgo.Describe("the update action", func() {
 				},
 				Stopped: make(map[string]bool),
 			}
-			report, cleanupImageInfos, err := actions.Update(testLogger(),
+			report, cleanupImageInfos, err := actions.Update(newNopLogger(),
 				context.Background(),
 				client,
 				config,
@@ -116,7 +116,7 @@ var _ = ginkgo.Describe("the update action", func() {
 				},
 				Stopped: make(map[string]bool),
 			}
-			report, cleanupImageInfos, err := actions.Update(testLogger(),
+			report, cleanupImageInfos, err := actions.Update(newNopLogger(),
 				context.Background(),
 				client,
 				config,
@@ -151,7 +151,7 @@ var _ = ginkgo.Describe("the update action", func() {
 				},
 				Stopped: make(map[string]bool),
 			}
-			report, cleanupImageInfos, err := actions.Update(testLogger(),
+			report, cleanupImageInfos, err := actions.Update(newNopLogger(),
 				context.Background(),
 				client,
 				config,
@@ -185,7 +185,7 @@ var _ = ginkgo.Describe("the update action", func() {
 					},
 					Stopped: make(map[string]bool),
 				}
-				report, cleanupImageInfos, err := actions.Update(testLogger(),
+				report, cleanupImageInfos, err := actions.Update(newNopLogger(),
 					context.Background(),
 					client,
 					config,
@@ -221,7 +221,7 @@ var _ = ginkgo.Describe("the update action", func() {
 				},
 				Stopped: make(map[string]bool),
 			}
-			report, cleanupImageInfos, err := actions.Update(testLogger(),
+			report, cleanupImageInfos, err := actions.Update(newNopLogger(),
 				context.Background(),
 				client,
 				config,
@@ -257,7 +257,7 @@ var _ = ginkgo.Describe("the update action", func() {
 					},
 					Stopped: make(map[string]bool),
 				}
-				report, cleanupImageInfos, err := actions.Update(testLogger(),
+				report, cleanupImageInfos, err := actions.Update(newNopLogger(),
 					context.Background(),
 					client,
 					config,
@@ -299,7 +299,7 @@ var _ = ginkgo.Describe("the update action", func() {
 				},
 				Stopped: make(map[string]bool),
 			}
-			report, cleanupImageInfos, err := actions.Update(testLogger(),
+			report, cleanupImageInfos, err := actions.Update(newNopLogger(),
 				context.Background(),
 				client,
 				config,
@@ -353,7 +353,7 @@ var _ = ginkgo.Describe("the update action", func() {
 			}
 			client.TestData.IsContainerStaleError = errors.New("stale check failed")
 
-			report, cleanupImageInfos, err := actions.Update(testLogger(),
+			report, cleanupImageInfos, err := actions.Update(newNopLogger(),
 				context.Background(),
 				client,
 				config,
@@ -395,7 +395,7 @@ var _ = ginkgo.Describe("the update action", func() {
 				Host:          "ghcr.io",
 			}
 
-			report, cleanupImageInfos, err := actions.Update(testLogger(),
+			report, cleanupImageInfos, err := actions.Update(newNopLogger(),
 				context.Background(),
 				client,
 				config,

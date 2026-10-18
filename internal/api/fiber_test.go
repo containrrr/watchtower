@@ -19,15 +19,35 @@ import (
 	"github.com/nicholas-fedor/watchtower/internal/api/config"
 )
 
-// testLogger returns a logger that discards every event, for tests that do not
-// assert on logs.
-func testLogger() *zerolog.Logger {
+// newTestLogger returns a logger that writes each event to the test's log, so a
+// failing test shows what it logged.
+//
+// Parameters:
+//   - t: Test that receives the log lines.
+//
+// Returns:
+//   - *zerolog.Logger: Logger writing to t.
+func newTestLogger(t *testing.T) *zerolog.Logger {
+	t.Helper()
+
+	// Frame 4 skips zerolog's write path, so each line names the log call.
+	w := zerolog.TestWriter{T: t, Frame: 4}
+
+	return new(zerolog.New(w))
+}
+
+// newNopLogger returns a logger that discards every event, for Ginkgo specs,
+// benchmarks, and fuzz targets.
+//
+// Returns:
+//   - *zerolog.Logger: Logger that discards all events.
+func newNopLogger() *zerolog.Logger {
 	return new(zerolog.Nop())
 }
 
 func TestNew_ProxyConfig(t *testing.T) {
 	app := newApp(
-		testLogger(),
+		newTestLogger(t),
 		60,
 		proxyConfig{
 			TrustedProxies: []string{"127.0.0.1"},
@@ -39,7 +59,7 @@ func TestNew_ProxyConfig(t *testing.T) {
 	assert.NotNil(t, app)
 
 	app2 := newApp(
-		testLogger(),
+		newTestLogger(t),
 		60,
 		proxyConfig{
 			TrustedProxies: []string{"10.0.0.0/8"},
@@ -52,7 +72,7 @@ func TestNew_ProxyConfig(t *testing.T) {
 
 func TestNew_CORSConfig(t *testing.T) {
 	app := newApp(
-		testLogger(),
+		newTestLogger(t),
 		60,
 		proxyConfig{},
 		corsConfig{
@@ -82,7 +102,7 @@ func TestNew_CORSConfig(t *testing.T) {
 
 func TestNew_CORSWildcard(t *testing.T) {
 	app := newApp(
-		testLogger(),
+		newTestLogger(t),
 		60,
 		proxyConfig{},
 		corsConfig{
@@ -116,7 +136,7 @@ func TestNew_CORSWildcard(t *testing.T) {
 
 func TestNew_CORSCustomMethodsHeaders(t *testing.T) {
 	app := newApp(
-		testLogger(),
+		newTestLogger(t),
 		60,
 		proxyConfig{},
 		corsConfig{
@@ -153,7 +173,7 @@ func TestNew_CORSCustomMethodsHeaders(t *testing.T) {
 
 func TestNew_NoCORSWhenNoOrigins(t *testing.T) {
 	app := newApp(
-		testLogger(),
+		newTestLogger(t),
 		60,
 		proxyConfig{},
 		corsConfig{},
@@ -187,25 +207,25 @@ func TestNew(t *testing.T) {
 	}{
 		{
 			name:               "default rate limit",
-			log:                testLogger(),
+			log:                newTestLogger(t),
 			rateLimitPerMinute: 60,
 			wantNil:            false,
 		},
 		{
 			name:               "zero rate limit falls back to default",
-			log:                testLogger(),
+			log:                newTestLogger(t),
 			rateLimitPerMinute: 0,
 			wantNil:            false,
 		},
 		{
 			name:               "negative rate limit falls back to default",
-			log:                testLogger(),
+			log:                newTestLogger(t),
 			rateLimitPerMinute: -1,
 			wantNil:            false,
 		},
 		{
 			name:               "custom rate limit",
-			log:                testLogger(),
+			log:                newTestLogger(t),
 			rateLimitPerMinute: 120,
 			wantNil:            false,
 		},

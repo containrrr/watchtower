@@ -66,10 +66,21 @@ func (f *spyFetcher) callCount() int {
 	return len(f.calls)
 }
 
-func testLog() *zerolog.Logger {
-	n := zerolog.Nop()
+// newTestLogger returns a logger that writes each event to the test's log, so a
+// failing test shows what it logged.
+//
+// Parameters:
+//   - t: Test that receives the log lines.
+//
+// Returns:
+//   - *zerolog.Logger: Logger writing to t.
+func newTestLogger(t *testing.T) *zerolog.Logger {
+	t.Helper()
 
-	return &n
+	// Frame 4 skips zerolog's write path, so each line names the log call.
+	w := zerolog.TestWriter{T: t, Frame: 4}
+
+	return new(zerolog.New(w))
 }
 
 // transientThenOKFetcher fails its first sweep, then behaves like a registry
@@ -141,7 +152,7 @@ func TestResolveTagPrefersFirstCandidate(t *testing.T) {
 	}}
 
 	r := NewResolver(fetcher)
-	got := r.ResolveTag(testLog(), context.Background(), testContainer(), "", "1.2.3", testDigest)
+	got := r.ResolveTag(newTestLogger(t), context.Background(), testContainer(), "", "1.2.3", testDigest)
 
 	assert.Equal(t, "v1.2.3", got)
 	assert.Equal(t, []string{"v1.2.3"}, fetcher.calls, "the first match must end the probe")
@@ -154,7 +165,7 @@ func TestResolveTagFallsBackToSecondCandidate(t *testing.T) {
 	fetcher := &spyFetcher{digests: map[string]string{"1.2.3": testDigest}}
 
 	r := NewResolver(fetcher)
-	got := r.ResolveTag(testLog(), context.Background(), testContainer(), "", "1.2.3", testDigest)
+	got := r.ResolveTag(newTestLogger(t), context.Background(), testContainer(), "", "1.2.3", testDigest)
 
 	assert.Equal(t, "1.2.3", got)
 	assert.Equal(t, []string{"v1.2.3", "1.2.3"}, fetcher.calls)
@@ -169,7 +180,7 @@ func TestResolveTagNoMatch(t *testing.T) {
 	}}
 
 	r := NewResolver(fetcher)
-	got := r.ResolveTag(testLog(), context.Background(), testContainer(), "", "1.2.3", testDigest)
+	got := r.ResolveTag(newTestLogger(t), context.Background(), testContainer(), "", "1.2.3", testDigest)
 
 	assert.Empty(t, got)
 	assert.Equal(t, []string{"v1.2.3", "1.2.3"}, fetcher.calls)
@@ -182,7 +193,7 @@ func TestResolveTagEmptyRegistry(t *testing.T) {
 	fetcher := &spyFetcher{digests: map[string]string{}}
 
 	r := NewResolver(fetcher)
-	got := r.ResolveTag(testLog(), context.Background(), testContainer(), "", "1.2.3", testDigest)
+	got := r.ResolveTag(newTestLogger(t), context.Background(), testContainer(), "", "1.2.3", testDigest)
 
 	assert.Empty(t, got)
 	assert.Equal(t, []string{"v1.2.3", "1.2.3"}, fetcher.calls)
@@ -197,8 +208,8 @@ func TestResolveTagCachesDefinitiveMiss(t *testing.T) {
 	r := NewResolver(fetcher)
 	ctx := context.Background()
 
-	assert.Empty(t, r.ResolveTag(testLog(), ctx, testContainer(), "", "1.2.3", testDigest))
-	assert.Empty(t, r.ResolveTag(testLog(), ctx, testContainer(), "", "1.2.3", testDigest))
+	assert.Empty(t, r.ResolveTag(newTestLogger(t), ctx, testContainer(), "", "1.2.3", testDigest))
+	assert.Empty(t, r.ResolveTag(newTestLogger(t), ctx, testContainer(), "", "1.2.3", testDigest))
 	assert.Len(t, fetcher.calls, 2, "only the first attempt should reach the registry")
 }
 
@@ -213,10 +224,10 @@ func TestResolveTagDoesNotCacheTransientFailure(t *testing.T) {
 	ctx := context.Background()
 
 	// The first sweep is inconclusive, so it returns empty and caches nothing.
-	assert.Empty(t, r.ResolveTag(testLog(), ctx, testContainer(), "", "1.2.3", testDigest))
+	assert.Empty(t, r.ResolveTag(newTestLogger(t), ctx, testContainer(), "", "1.2.3", testDigest))
 
 	// A sibling container must still get a real attempt, which now succeeds.
-	assert.Equal(t, "v1.2.3", r.ResolveTag(testLog(), ctx, testContainer(), "", "1.2.3", testDigest))
+	assert.Equal(t, "v1.2.3", r.ResolveTag(newTestLogger(t), ctx, testContainer(), "", "1.2.3", testDigest))
 }
 
 // A rate limit is a statement about the whole host, so it is remembered briefly
@@ -232,11 +243,11 @@ func TestResolveTagRateLimitIsNegativelyCachedForTheTTL(t *testing.T) {
 
 	ctx := context.Background()
 
-	assert.Empty(t, r.ResolveTag(testLog(), ctx, testContainer(), "", "1.2.3", testDigest))
+	assert.Empty(t, r.ResolveTag(newTestLogger(t), ctx, testContainer(), "", "1.2.3", testDigest))
 
 	// Siblings inside the TTL must not re-probe a host that just refused.
 	for range 3 {
-		assert.Empty(t, r.ResolveTag(testLog(), ctx, testContainer(), "", "1.2.3", testDigest))
+		assert.Empty(t, r.ResolveTag(newTestLogger(t), ctx, testContainer(), "", "1.2.3", testDigest))
 	}
 
 	assert.Equal(t, 1, fetcher.calls, "the refusal must be cached, not retried per sibling")
@@ -244,7 +255,7 @@ func TestResolveTagRateLimitIsNegativelyCachedForTheTTL(t *testing.T) {
 	// Once the TTL lapses the next container gets a real attempt, which succeeds.
 	now = now.Add(rateLimitCacheTTL + time.Second)
 
-	assert.Equal(t, "v1.2.3", r.ResolveTag(testLog(), ctx, testContainer(), "", "1.2.3", testDigest))
+	assert.Equal(t, "v1.2.3", r.ResolveTag(newTestLogger(t), ctx, testContainer(), "", "1.2.3", testDigest))
 }
 
 // A rate limit must abandon the probe rather than spend a second refused request.
@@ -257,7 +268,7 @@ func TestResolveTagAbandonsSecondCandidateAfterRateLimit(t *testing.T) {
 	}
 
 	r := NewResolver(fetcher)
-	got := r.ResolveTag(testLog(), context.Background(), testContainer(), "", "1.2.3", testDigest)
+	got := r.ResolveTag(newTestLogger(t), context.Background(), testContainer(), "", "1.2.3", testDigest)
 
 	assert.Empty(t, got)
 	assert.Equal(t, []string{"v1.2.3"}, fetcher.calls)
@@ -273,7 +284,7 @@ func TestResolveTagContinuesAfterOrdinaryError(t *testing.T) {
 	}
 
 	r := NewResolver(fetcher)
-	got := r.ResolveTag(testLog(), context.Background(), testContainer(), "", "1.2.3", testDigest)
+	got := r.ResolveTag(newTestLogger(t), context.Background(), testContainer(), "", "1.2.3", testDigest)
 
 	assert.Equal(t, "1.2.3", got)
 	assert.Equal(t, []string{"v1.2.3", "1.2.3"}, fetcher.calls)
@@ -301,7 +312,7 @@ func TestResolveTagSkipsWhenNotWorthProbing(t *testing.T) {
 			fetcher := &spyFetcher{digests: map[string]string{"v1.2.3": testDigest}}
 
 			r := NewResolver(fetcher)
-			got := r.ResolveTag(testLog(), context.Background(), tt.container, "", tt.version, tt.digest)
+			got := r.ResolveTag(newTestLogger(t), context.Background(), tt.container, "", tt.version, tt.digest)
 
 			assert.Empty(t, got)
 			assert.Empty(t, fetcher.calls, "no candidate may be requested")
@@ -318,8 +329,8 @@ func TestResolveTagCachesAcrossContainers(t *testing.T) {
 	r := NewResolver(fetcher)
 	ctx := context.Background()
 
-	first := r.ResolveTag(testLog(), ctx, testContainer(), "", "1.2.3", testDigest)
-	second := r.ResolveTag(testLog(), ctx, testContainer(), "", "1.2.3", testDigest)
+	first := r.ResolveTag(newTestLogger(t), ctx, testContainer(), "", "1.2.3", testDigest)
+	second := r.ResolveTag(newTestLogger(t), ctx, testContainer(), "", "1.2.3", testDigest)
 
 	assert.Equal(t, "v1.2.3", first)
 	assert.Equal(t, "v1.2.3", second)
@@ -338,12 +349,12 @@ func TestResolveTagCacheKeysOnDigest(t *testing.T) {
 	r := NewResolver(fetcher)
 	ctx := context.Background()
 
-	assert.Equal(t, "v1.2.3", r.ResolveTag(testLog(), ctx, testContainer(), "", "1.2.3", testDigest))
+	assert.Equal(t, "v1.2.3", r.ResolveTag(newTestLogger(t), ctx, testContainer(), "", "1.2.3", testDigest))
 	assert.Equal(
 		t,
 		"v1.3.0",
 		r.ResolveTag(
-			testLog(),
+			newTestLogger(t),
 			ctx,
 			testContainer(),
 			"",
@@ -361,7 +372,7 @@ func TestResolveTagNilFetcher(t *testing.T) {
 	r := NewResolver(nil)
 
 	assert.NotPanics(t, func() {
-		assert.Empty(t, r.ResolveTag(testLog(), context.Background(), testContainer(), "", "1.2.3", testDigest))
+		assert.Empty(t, r.ResolveTag(newTestLogger(t), context.Background(), testContainer(), "", "1.2.3", testDigest))
 	})
 }
 
@@ -370,7 +381,7 @@ func TestResolveTagNilResolver(t *testing.T) {
 
 	var r *Resolver
 
-	assert.Empty(t, r.ResolveTag(testLog(), context.Background(), testContainer(), "", "1.2.3", testDigest))
+	assert.Empty(t, r.ResolveTag(newTestLogger(t), context.Background(), testContainer(), "", "1.2.3", testDigest))
 }
 
 // One resolver is shared by every parallel staleness worker, so the cache must
@@ -387,7 +398,7 @@ func TestResolveTagIsSafeForConcurrentUse(t *testing.T) {
 
 	for range 32 {
 		wg.Go(func() {
-			assert.Equal(t, "v1.2.3", r.ResolveTag(testLog(), ctx, testContainer(), "", "1.2.3", testDigest))
+			assert.Equal(t, "v1.2.3", r.ResolveTag(newTestLogger(t), ctx, testContainer(), "", "1.2.3", testDigest))
 		})
 	}
 
@@ -418,8 +429,8 @@ func TestResolveTagConcurrentDistinctDigests(t *testing.T) {
 
 	for range 16 {
 		wg.Go(func() {
-			assert.Equal(t, "v1.2.3", r.ResolveTag(testLog(), ctx, testContainer(), "", "1.2.3", testDigest))
-			assert.Equal(t, "v2.0.0", r.ResolveTag(testLog(), ctx, testContainer(), "", "2.0.0", second))
+			assert.Equal(t, "v1.2.3", r.ResolveTag(newTestLogger(t), ctx, testContainer(), "", "1.2.3", testDigest))
+			assert.Equal(t, "v2.0.0", r.ResolveTag(newTestLogger(t), ctx, testContainer(), "", "2.0.0", second))
 		})
 	}
 
@@ -448,11 +459,11 @@ func TestDigestFetcherUsesItsSettings(t *testing.T) {
 	container := stubContainer{imageName: strings.TrimPrefix(server.URL, "http://") + "/org/app:1.2.3"}
 
 	got, err := NewDigestFetcher(registryConfig.Registry{TLSSkip: true}, ratelimit.New()).
-		FetchDigestForTag(testLog(), t.Context(), container, "", "v1.2.3")
+		FetchDigestForTag(newTestLogger(t), t.Context(), container, "", "v1.2.3")
 	require.NoError(t, err)
 	assert.Equal(t, strings.TrimPrefix(testDigest, "sha256:"), got)
 
 	_, err = NewDigestFetcher(registryConfig.Registry{}, ratelimit.New()).
-		FetchDigestForTag(testLog(), t.Context(), container, "", "v1.2.3")
+		FetchDigestForTag(newTestLogger(t), t.Context(), container, "", "v1.2.3")
 	require.Error(t, err, "an HTTPS request reached the plain HTTP registry")
 }

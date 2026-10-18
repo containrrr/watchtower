@@ -30,7 +30,7 @@ var _ = ginkgo.Describe("ValidateRollingRestartDependencies", func() {
 			expectedErr := errors.New("list containers failed")
 			mockClient.EXPECT().ListContainers(mock.Anything, mock.Anything).Return(nil, expectedErr)
 
-			err := ValidateRollingRestartDependencies(testLogger(), context.Background(), mockClient, filter, true)
+			err := ValidateRollingRestartDependencies(newNopLogger(), context.Background(), mockClient, filter, true)
 
 			gomega.Expect(err).To(gomega.HaveOccurred())
 			gomega.Expect(err).
@@ -42,7 +42,7 @@ var _ = ginkgo.Describe("ValidateRollingRestartDependencies", func() {
 		ginkgo.It("should return nil", func() {
 			mockClient.EXPECT().ListContainers(mock.Anything, mock.Anything).Return([]types.Container{}, nil)
 
-			err := ValidateRollingRestartDependencies(testLogger(), context.Background(), mockClient, filter, true)
+			err := ValidateRollingRestartDependencies(newNopLogger(), context.Background(), mockClient, filter, true)
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 		})
@@ -61,7 +61,7 @@ var _ = ginkgo.Describe("ValidateRollingRestartDependencies", func() {
 				mockContainer2,
 			}, nil)
 
-			err := ValidateRollingRestartDependencies(testLogger(), context.Background(), mockClient, filter, true)
+			err := ValidateRollingRestartDependencies(newNopLogger(), context.Background(), mockClient, filter, true)
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 		})
@@ -81,7 +81,7 @@ var _ = ginkgo.Describe("ValidateRollingRestartDependencies", func() {
 				mockContainer2,
 			}, nil)
 
-			err := ValidateRollingRestartDependencies(testLogger(), context.Background(), mockClient, filter, true)
+			err := ValidateRollingRestartDependencies(newNopLogger(), context.Background(), mockClient, filter, true)
 
 			gomega.Expect(err).To(gomega.HaveOccurred())
 			gomega.Expect(err.Error()).
@@ -119,7 +119,7 @@ var _ = ginkgo.Describe("Scope Validation Error Cases", func() {
 				return false
 			}
 
-			err := ValidateRollingRestartDependencies(testLogger(), context.Background(), mockClient, filter, true)
+			err := ValidateRollingRestartDependencies(newNopLogger(), context.Background(), mockClient, filter, true)
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 		})
@@ -148,7 +148,7 @@ var _ = ginkgo.Describe("Scope Validation Error Cases", func() {
 				return scope == "invalid$scope@123"
 			}
 
-			err := ValidateRollingRestartDependencies(testLogger(), context.Background(), mockClient, filter, true)
+			err := ValidateRollingRestartDependencies(newNopLogger(), context.Background(), mockClient, filter, true)
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 		})
@@ -175,7 +175,7 @@ var _ = ginkgo.Describe("Scope Validation Error Cases", func() {
 				return scope == "  spaced scope  " // Exact match including spaces
 			}
 
-			err := ValidateRollingRestartDependencies(testLogger(), context.Background(), mockClient, filter, true)
+			err := ValidateRollingRestartDependencies(newNopLogger(), context.Background(), mockClient, filter, true)
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 		})
@@ -201,7 +201,7 @@ var _ = ginkgo.Describe("Scope Validation Error Cases", func() {
 				return !hasScope // Include containers without scope labels
 			}
 
-			err := ValidateRollingRestartDependencies(testLogger(), context.Background(), mockClient, filter, true)
+			err := ValidateRollingRestartDependencies(newNopLogger(), context.Background(), mockClient, filter, true)
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 		})
@@ -230,7 +230,7 @@ var _ = ginkgo.Describe("Scope Validation Error Cases", func() {
 				return hasScope && scope == "consistent-scope"
 			}
 
-			err := ValidateRollingRestartDependencies(testLogger(), context.Background(), mockClient, filter, true)
+			err := ValidateRollingRestartDependencies(newNopLogger(), context.Background(), mockClient, filter, true)
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 		})
@@ -255,7 +255,7 @@ var _ = ginkgo.Describe("Scope Validation Error Cases", func() {
 				return hasScope && scope == "" // Allow empty scoped containers
 			}
 
-			err := ValidateRollingRestartDependencies(testLogger(), context.Background(), mockClient, filter, true)
+			err := ValidateRollingRestartDependencies(newNopLogger(), context.Background(), mockClient, filter, true)
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 		})

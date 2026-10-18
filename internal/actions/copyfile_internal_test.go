@@ -87,7 +87,7 @@ var _ = ginkgo.Describe("stopStaleContainer copy-file", func() {
 			Return(nil)
 
 		stopped, err := stopStaleContainer(
-			testLogger(),
+			newNopLogger(),
 			context.Background(),
 			source,
 			client,
@@ -105,7 +105,7 @@ var _ = ginkgo.Describe("stopStaleContainer copy-file", func() {
 			Return(errors.New("denied"))
 
 		_, err := stopStaleContainer(
-			testLogger(),
+			newNopLogger(),
 			context.Background(),
 			source,
 			client,
@@ -126,7 +126,7 @@ var _ = ginkgo.Describe("stopStaleContainer copy-file", func() {
 		mockStore.EXPECT().DiscardCopyFiles(source.ID())
 
 		_, err := stopStaleContainer(
-			testLogger(),
+			newNopLogger(),
 			context.Background(),
 			source,
 			client,
@@ -147,7 +147,7 @@ var _ = ginkgo.Describe("stopStaleContainer copy-file", func() {
 		mockStore.EXPECT().DiscardCopyFiles(source.ID())
 
 		stopped, err := stopStaleContainer(
-			testLogger(),
+			newNopLogger(),
 			context.Background(),
 			source,
 			client,

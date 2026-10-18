@@ -824,7 +824,7 @@ func TestNewReport(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := newReport(testLog(), tt.args.progress)
+			got := newReport(newTestLogger(t), tt.args.progress)
 			if !compareReports(got.(*report), tt.want.(*report)) {
 				t.Errorf("newReport(testLog(), ) = %+v, want %+v", got, tt.want)
 			}
@@ -1030,7 +1030,7 @@ func Test_categorizeContainer(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			categorizeContainer(testLog(), tt.args.r, tt.args.update)
+			categorizeContainer(newTestLogger(t), tt.args.r, tt.args.update)
 
 			if !compareReports(tt.args.r, tt.want) {
 				t.Errorf("categorizeContainer(testLog(), ) resulted in %v, want %v", tt.args.r, tt.want)

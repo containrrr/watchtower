@@ -121,9 +121,11 @@ task test
 This will run the `go test` command with the following flags:
 
 * `-timeout 30s` - sets the timeout for the tests to 30 seconds
-* `-v` - enables verbose output
 * `-coverprofile coverage.out` - generates a coverage profile
 * `-covermode atomic` - sets the cover mode to atomic
+
+Tests written with the standard `testing` package send Watchtower's log output to the test that produced it, so a failing test prints what it logged.
+Add `-v` to a `go test` command to see the output of passing tests too.
 
 Two further tasks help catch concurrency and test-isolation bugs:
 
@@ -152,7 +154,7 @@ After changing a built-in template, the container report, or the JSON output, re
 
 ```bash
 go build                               # compiles and packages an executable binary, watchtower
-go test ./... -v                       # runs tests with verbose output
+go test ./...                          # runs the tests
 ./watchtower                           # runs the application (outside of a container)
 ```
 

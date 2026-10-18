@@ -65,7 +65,7 @@ func TestTransformAuth(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := TransformAuth(testLog(), tt.registryAuth)
+			got := TransformAuth(newTestLogger(t), tt.registryAuth)
 			assert.Equal(t, tt.want, got)
 		})
 	}
@@ -85,7 +85,7 @@ func TestTransformAuthURLEncodedJSONCredentials(t *testing.T) {
 	_, stdErr := base64.StdEncoding.DecodeString(urlEncoded)
 	require.Error(t, stdErr, "fixture must fail StdEncoding so the URL path is exercised")
 
-	got := TransformAuth(testLog(), urlEncoded)
+	got := TransformAuth(newTestLogger(t), urlEncoded)
 	decoded, err := base64.StdEncoding.DecodeString(got)
 	require.NoError(t, err)
 	assert.Equal(t, "u:"+strings.Repeat("?", 8), string(decoded))
@@ -99,7 +99,7 @@ func TestTransformAuthIdentityToken(t *testing.T) {
 	require.NoError(t, err)
 
 	encoded := base64.StdEncoding.EncodeToString(buf)
-	got := TransformAuth(testLog(), encoded)
+	got := TransformAuth(newTestLogger(t), encoded)
 	decoded, err := base64.StdEncoding.DecodeString(got)
 	require.NoError(t, err)
 	assert.Equal(t, ":ecr-session-token", string(decoded))
@@ -113,7 +113,7 @@ func TestTransformAuthPasswordOnly(t *testing.T) {
 	require.NoError(t, err)
 
 	encoded := base64.StdEncoding.EncodeToString(buf)
-	got := TransformAuth(testLog(), encoded)
+	got := TransformAuth(newTestLogger(t), encoded)
 	decoded, err := base64.StdEncoding.DecodeString(got)
 	require.NoError(t, err)
 	assert.Equal(t, ":ghcr-pat-token", string(decoded))

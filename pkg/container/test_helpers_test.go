@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"testing"
 	"time"
 
 	"github.com/onsi/gomega"
@@ -20,9 +21,21 @@ import (
 	"github.com/nicholas-fedor/watchtower/internal/logging"
 )
 
-// testLog returns a discarded zerolog logger for tests that do not assert on output.
-func testLog() *zerolog.Logger {
-	return new(zerolog.Nop())
+// newTestLogger returns a logger that writes each event to the test's log, so a
+// failing test shows what it logged.
+//
+// Parameters:
+//   - t: Test that receives the log lines.
+//
+// Returns:
+//   - *zerolog.Logger: Logger writing to t.
+func newTestLogger(t *testing.T) *zerolog.Logger {
+	t.Helper()
+
+	// Frame 4 skips zerolog's write path, so each line names the log call.
+	w := zerolog.TestWriter{T: t, Frame: 4}
+
+	return new(zerolog.New(w))
 }
 
 // randomSHA256 returns 64 random hex characters, the form of a SHA-256 digest

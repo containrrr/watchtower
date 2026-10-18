@@ -49,7 +49,7 @@ func BenchmarkTransformAuth(b *testing.B) {
 	authWithCredentials := "eyJ1c2VybmFtZSI6InRlc3QiLCJwYXNzd29yZCI6InRlc3RwYXNzIn0=" // {"username":"test","password":"testpass"}
 
 	for b.Loop() {
-		_ = TransformAuth(testLog(), authWithCredentials)
+		_ = TransformAuth(newNopLogger(), authWithCredentials)
 	}
 }
 
@@ -59,7 +59,7 @@ func BenchmarkTransformAuthNoCredentials(b *testing.B) {
 	emptyAuth := ""
 
 	for b.Loop() {
-		_ = TransformAuth(testLog(), emptyAuth)
+		_ = TransformAuth(newNopLogger(), emptyAuth)
 	}
 }
 
@@ -69,7 +69,7 @@ func BenchmarkTransformAuthInvalid(b *testing.B) {
 	invalidAuth := "not-valid-base64!!!"
 
 	for b.Loop() {
-		_ = TransformAuth(testLog(), invalidAuth)
+		_ = TransformAuth(newNopLogger(), invalidAuth)
 	}
 }
 
@@ -86,7 +86,7 @@ func BenchmarkGetRegistryAddress(b *testing.B) {
 
 	for b.Loop() {
 		for _, img := range testImages {
-			_, _ = GetRegistryAddress(testLog(), img)
+			_, _ = GetRegistryAddress(newNopLogger(), img)
 		}
 	}
 }
@@ -106,7 +106,7 @@ func BenchmarkGetChallengeURL(b *testing.B) {
 
 	for b.Loop() {
 		for _, ref := range refs {
-			_ = getChallengeURL(testLog(), ref, registryConfig.Registry{}, "")
+			_ = getChallengeURL(newNopLogger(), ref, registryConfig.Registry{}, "")
 		}
 	}
 }
@@ -117,7 +117,7 @@ func BenchmarkGetAuthURL(b *testing.B) {
 	ref, _ := reference.ParseNormalizedNamed("ghcr.io/user/repo:latest")
 
 	for b.Loop() {
-		_, _ = getAuthURL(testLog(), challenge, ref, "", registryConfig.Registry{})
+		_, _ = getAuthURL(newNopLogger(), challenge, ref, "", registryConfig.Registry{})
 	}
 }
 
@@ -201,7 +201,7 @@ func BenchmarkConcurrentAuthRequests(b *testing.B) {
 				_ = NewAuthClient(nil, registryConfig.Registry{})
 
 				// Simulate registry address lookup
-				_, _ = GetRegistryAddress(testLog(), testImages[i])
+				_, _ = GetRegistryAddress(newNopLogger(), testImages[i])
 			}
 		}
 	})
@@ -227,7 +227,7 @@ func BenchmarkAuthWithMultipleRegistries(b *testing.B) {
 			_ = NewAuthClient(nil, registryConfig.Registry{})
 
 			// Get registry address
-			_, _ = GetRegistryAddress(testLog(), reg.image)
+			_, _ = GetRegistryAddress(newNopLogger(), reg.image)
 
 			// Process challenge (simulated)
 			_ = strings.ToLower(reg.image)

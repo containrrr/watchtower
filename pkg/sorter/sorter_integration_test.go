@@ -38,7 +38,7 @@ var _ = ginkgo.Describe("Container Sorting", func() {
 					},
 				})
 				containers := []types.Container{c1, c2}
-				err := sorter.SortByDependencies(testLog(), containers, true)
+				err := sorter.SortByDependencies(newNopLogger(), containers, true)
 				gomega.Expect(err).ToNot(gomega.HaveOccurred())
 				gomega.Expect(containers).To(gomega.HaveLen(2))
 				gomega.Expect(containers[0].Name()).To(gomega.Equal("c2")) // No links
@@ -79,7 +79,7 @@ var _ = ginkgo.Describe("Container Sorting", func() {
 					},
 				})
 				containers := []types.Container{c1, c2, c3}
-				err := sorter.SortByDependencies(testLog(), containers, true)
+				err := sorter.SortByDependencies(newNopLogger(), containers, true)
 				gomega.Expect(err).ToNot(gomega.HaveOccurred())
 				gomega.Expect(containers).To(gomega.HaveLen(3))
 				gomega.Expect(containers[0].Name()).To(gomega.Equal("c3")) // No links
@@ -110,7 +110,7 @@ var _ = ginkgo.Describe("Container Sorting", func() {
 					},
 				})
 				containers := []types.Container{c1, c2}
-				err := sorter.SortByDependencies(testLog(), containers, true)
+				err := sorter.SortByDependencies(newNopLogger(), containers, true)
 				gomega.Expect(err).To(gomega.HaveOccurred())
 				gomega.Expect(err.Error()).
 					To(gomega.ContainSubstring("circular reference detected"))
@@ -140,7 +140,7 @@ var _ = ginkgo.Describe("Container Sorting", func() {
 					},
 				})
 				containers := []types.Container{c1, c3}
-				err := sorter.SortByDependencies(testLog(), containers, true)
+				err := sorter.SortByDependencies(newNopLogger(), containers, true)
 				gomega.Expect(err).ToNot(gomega.HaveOccurred())
 				gomega.Expect(containers).To(gomega.HaveLen(2))
 				gomega.Expect(containers[0].Name()).To(gomega.Equal("c3")) // No links
@@ -149,7 +149,7 @@ var _ = ginkgo.Describe("Container Sorting", func() {
 
 			ginkgo.It("handles empty list", func() {
 				containers := []types.Container{}
-				err := sorter.SortByDependencies(testLog(), containers, true)
+				err := sorter.SortByDependencies(newNopLogger(), containers, true)
 				gomega.Expect(err).ToNot(gomega.HaveOccurred())
 				gomega.Expect(containers).To(gomega.BeEmpty())
 			})
@@ -181,7 +181,7 @@ var _ = ginkgo.Describe("Container Sorting", func() {
 					},
 				})
 				containers := []types.Container{watchtower, c1, c2}
-				err := sorter.SortByDependencies(testLog(), containers, true)
+				err := sorter.SortByDependencies(newNopLogger(), containers, true)
 				gomega.Expect(err).ToNot(gomega.HaveOccurred())
 				gomega.Expect(containers).To(gomega.HaveLen(3))
 				gomega.Expect(containers[0].Name()).To(gomega.Equal("c2")) // No links
@@ -222,7 +222,7 @@ var _ = ginkgo.Describe("Container Sorting", func() {
 					},
 				})
 				containers := []types.Container{watchtower1, c1, watchtower2, c2}
-				err := sorter.SortByDependencies(testLog(), containers, true)
+				err := sorter.SortByDependencies(newNopLogger(), containers, true)
 				gomega.Expect(err).ToNot(gomega.HaveOccurred())
 				gomega.Expect(containers).To(gomega.HaveLen(4))
 				gomega.Expect(containers[0].Name()).To(gomega.Equal("c2")) // No links
@@ -325,7 +325,7 @@ var _ = ginkgo.Describe("Container Sorting", func() {
 				for _, tc := range testCases {
 					ginkgo.By(tc.name, func() {
 						containers := tc.containers()
-						err := sorter.SortByDependencies(testLog(), containers, true)
+						err := sorter.SortByDependencies(newNopLogger(), containers, true)
 						gomega.Expect(err).ToNot(gomega.HaveOccurred())
 						gomega.Expect(containers).To(gomega.HaveLen(len(tc.expectedOrder)))
 						// For diamond, check that D is first, A is last, and B/C are in middle
@@ -347,6 +347,11 @@ var _ = ginkgo.Describe("Container Sorting", func() {
 	})
 })
 
-func testLog() *zerolog.Logger {
+// newNopLogger returns a logger that discards every event, for Ginkgo specs,
+// benchmarks, and fuzz targets.
+//
+// Returns:
+//   - *zerolog.Logger: Logger that discards all events.
+func newNopLogger() *zerolog.Logger {
 	return new(zerolog.Nop())
 }

@@ -388,7 +388,7 @@ var _ = ginkgo.Describe("Container", func() {
 			})
 
 			ginkgo.It("pins a tagged name on config and cache", func() {
-				container = NewContainer(testLog(), &dockerContainer.InspectResponse{
+				container = NewContainer(nopLog(), &dockerContainer.InspectResponse{
 					Name: "/app",
 					Config: &dockerContainer.Config{
 						Image: "app:v1",
@@ -403,7 +403,7 @@ var _ = ginkgo.Describe("Container", func() {
 			})
 
 			ginkgo.It("appends latest when the pinned name is untagged", func() {
-				container = NewContainer(testLog(), &dockerContainer.InspectResponse{
+				container = NewContainer(nopLog(), &dockerContainer.InspectResponse{
 					Name: "/app",
 					Config: &dockerContainer.Config{
 						Image: "app:v1",
@@ -417,7 +417,7 @@ var _ = ginkgo.Describe("Container", func() {
 			})
 
 			ginkgo.It("appends latest without treating a registry port as a tag", func() {
-				container = NewContainer(testLog(), &dockerContainer.InspectResponse{
+				container = NewContainer(nopLog(), &dockerContainer.InspectResponse{
 					Name: "/app",
 					Config: &dockerContainer.Config{
 						Image: "app:v1",

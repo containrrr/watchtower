@@ -32,9 +32,21 @@ const processFlagAliasesHelperEnv = "WATCHTOWER_FLAGS_PROCESS_ALIASES_HELPER"
 
 var errSetFailed = errors.New("set failed")
 
-// testLogger returns a discard logger for tests that do not assert on log output.
-func testLogger() *zerolog.Logger {
-	return logging.New(io.Discard, logging.InfoLevel)
+// newTestLogger returns an info-level logger that writes each event to the test's
+// log, so a failing test shows what it logged.
+//
+// Parameters:
+//   - t: Test that receives the log lines.
+//
+// Returns:
+//   - *zerolog.Logger: Logger writing to t.
+func newTestLogger(t *testing.T) *zerolog.Logger {
+	t.Helper()
+
+	// Frame 4 skips zerolog's write path, so each line names the log call.
+	w := zerolog.TestWriter{T: t, Frame: 4}
+
+	return new(zerolog.New(w).Level(zerolog.InfoLevel))
 }
 
 // testLoggerAt returns a logger writing to w at the given level.
@@ -700,7 +712,7 @@ func TestProcessFlagAliases(t *testing.T) {
 
 			cmd := newTestCommand()
 			require.NoError(t, cmd.ParseFlags(tc.flags))
-			ProcessFlagAliases(testLogger(), cmd.Flags())
+			ProcessFlagAliases(newTestLogger(t), cmd.Flags())
 
 			if tc.checks != nil {
 				tc.checks(t, cmd.Flags())
@@ -891,7 +903,7 @@ func TestSetupLogging(t *testing.T) {
 			cmd := newTestCommand()
 			require.NoError(t, cmd.ParseFlags(tc.flags))
 
-			log, err := SetupLogging(testLogger(), cmd.Flags())
+			log, err := SetupLogging(newTestLogger(t), cmd.Flags())
 
 			if tc.expectError {
 				require.Error(t, err)
@@ -984,7 +996,7 @@ func TestFlagsArePresentInDocumentation(t *testing.T) {
 func TestSetEnvOptStr_Error(t *testing.T) {
 	// Mocking os.Setenv is complex without dependency injection; test assumes rare failure case
 	// For coverage, ensure environment is writable and check logic
-	err := setEnvOptStr(testLogger(), "TEST_ENV", "value")
+	err := setEnvOptStr(newTestLogger(t), "TEST_ENV", "value")
 	assert.NoError(t, err) // Normally succeeds; mock needed for failure
 	// To truly test setenv failure, use a system where Setenv fails (e.g., read-only env)
 }
@@ -1012,7 +1024,7 @@ func TestGetSecretFromFile_SkipCommentsAndEmptyLines(t *testing.T) {
 	err = cmd.ParseFlags([]string{"--notification-url", file.Name()})
 	require.NoError(t, err)
 
-	err = getSecretFromFile(testLogger(), cmd.PersistentFlags(), "notification-url")
+	err = getSecretFromFile(newTestLogger(t), cmd.PersistentFlags(), "notification-url")
 	require.NoError(t, err)
 
 	urls, err := cmd.PersistentFlags().GetStringArray("notification-url")
@@ -1043,7 +1055,7 @@ func TestGetSecretFromFile_InvalidSecretURL(t *testing.T) {
 	err = cmd.ParseFlags([]string{"--notification-url", file.Name()})
 	require.NoError(t, err)
 
-	err = getSecretFromFile(testLogger(), cmd.PersistentFlags(), "notification-url")
+	err = getSecretFromFile(newTestLogger(t), cmd.PersistentFlags(), "notification-url")
 	require.Error(t, err)
 	require.ErrorIs(t, err, errInvalidSecretURL)
 }
@@ -1068,7 +1080,7 @@ func TestGetSecretFromFile_ParameterlessLoggerAndMockURLs(t *testing.T) {
 	err = cmd.ParseFlags([]string{"--notification-url", file.Name()})
 	require.NoError(t, err)
 
-	err = getSecretFromFile(testLogger(), cmd.PersistentFlags(), "notification-url")
+	err = getSecretFromFile(newTestLogger(t), cmd.PersistentFlags(), "notification-url")
 	require.NoError(t, err)
 
 	urls, err := cmd.PersistentFlags().GetStringArray("notification-url")
@@ -1090,7 +1102,7 @@ func TestGetSecretFromFile_CloseError(t *testing.T) {
 	// Close file early to simulate potential issues
 	file.Close()
 
-	err = getSecretFromFile(testLogger(), cmd.PersistentFlags(), "notification-email-server-password")
+	err = getSecretFromFile(newTestLogger(t), cmd.PersistentFlags(), "notification-email-server-password")
 	assert.NoError(t, err) // Still succeeds unless Close failure is mocked
 	// Full coverage requires mocking os.File.Close to fail
 }
@@ -1108,7 +1120,7 @@ func TestGetSecretFromFile_StringPathStillMarksChanged(t *testing.T) {
 	err = cmd.ParseFlags([]string{"--notification-email-server-password", file.Name()})
 	require.NoError(t, err)
 
-	err = getSecretFromFile(testLogger(), cmd.PersistentFlags(), "notification-email-server-password")
+	err = getSecretFromFile(newTestLogger(t), cmd.PersistentFlags(), "notification-email-server-password")
 	require.NoError(t, err)
 
 	flag := cmd.PersistentFlags().Lookup("notification-email-server-password")
@@ -1135,7 +1147,7 @@ func TestGetSecretFromFile_SlicePath_MarksChangedAfterReplace(t *testing.T) {
 	flag := cmd.PersistentFlags().Lookup("notification-url")
 	require.NotNil(t, flag)
 
-	err = getSecretFromFile(testLogger(), cmd.PersistentFlags(), "notification-url")
+	err = getSecretFromFile(newTestLogger(t), cmd.PersistentFlags(), "notification-url")
 	require.NoError(t, err)
 
 	urls, err := cmd.PersistentFlags().GetStringArray("notification-url")
@@ -1158,7 +1170,7 @@ func TestGetSecretFromFile_SlicePath_MultiLineFile(t *testing.T) {
 	require.NoError(t, err)
 	parseWithEnv(t, cmd)
 
-	err = getSecretFromFile(testLogger(), cmd.PersistentFlags(), "notification-url")
+	err = getSecretFromFile(newTestLogger(t), cmd.PersistentFlags(), "notification-url")
 	require.NoError(t, err)
 
 	urls, err := cmd.PersistentFlags().GetStringArray("notification-url")
@@ -1185,7 +1197,7 @@ func TestGetSecretFromFile_SlicePath_LiteralURLsUnchanged(t *testing.T) {
 	flag := cmd.PersistentFlags().Lookup("notification-url")
 	require.NotNil(t, flag)
 
-	err = getSecretFromFile(testLogger(), cmd.PersistentFlags(), "notification-url")
+	err = getSecretFromFile(newTestLogger(t), cmd.PersistentFlags(), "notification-url")
 	require.NoError(t, err)
 
 	urls, err := cmd.PersistentFlags().GetStringArray("notification-url")
@@ -1215,13 +1227,13 @@ func TestGetSecretsFromFile_PorcelainAppendPreservedWithSecret(t *testing.T) {
 		"--porcelain", "v1",
 	})
 	require.NoError(t, err)
-	ProcessFlagAliases(testLogger(), cmd.PersistentFlags())
+	ProcessFlagAliases(newTestLogger(t), cmd.PersistentFlags())
 
 	urls, err := cmd.PersistentFlags().GetStringArray("notification-url")
 	require.NoError(t, err)
 	assert.Contains(t, urls, "logger://", "porcelain value must survive secret expansion")
 
-	err = getSecretFromFile(testLogger(), cmd.PersistentFlags(), "notification-url")
+	err = getSecretFromFile(newTestLogger(t), cmd.PersistentFlags(), "notification-url")
 	require.NoError(t, err)
 
 	urls, err = cmd.PersistentFlags().GetStringArray("notification-url")
@@ -1256,7 +1268,7 @@ func TestApplyEnvToFlags_DoesNotReBrideExpandedSecret(t *testing.T) {
 	assert.False(t, flag.Changed, "env bridge must leave Changed=false")
 
 	// Step 2: secret expansion replaces content and marks Changed=true
-	err = getSecretFromFile(testLogger(), cmd.PersistentFlags(), "notification-url")
+	err = getSecretFromFile(newTestLogger(t), cmd.PersistentFlags(), "notification-url")
 	require.NoError(t, err)
 
 	urls, err := cmd.PersistentFlags().GetStringArray("notification-url")
@@ -1318,7 +1330,7 @@ func TestSetupLogging_FlagErrors(t *testing.T) {
 	cmd := new(cobra.Command)
 
 	// Don't register flags to force retrieval errors
-	_, err := SetupLogging(testLogger(), cmd.Flags())
+	_, err := SetupLogging(newTestLogger(t), cmd.Flags())
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to set flag value")
 }
@@ -1332,7 +1344,7 @@ func testGetSecretsFromFiles(t *testing.T, flagName, expected string, args ...st
 
 	RegisterAll(cmd)
 	parseWithEnv(t, cmd, args...)
-	GetSecretsFromFiles(testLogger(), cmd)
+	GetSecretsFromFiles(newTestLogger(t), cmd)
 	flag := cmd.PersistentFlags().Lookup(flagName)
 	require.NotNil(t, flag)
 	value := flag.Value.String()
@@ -1684,7 +1696,7 @@ func TestGetSecretsFromFilesReadErrors(t *testing.T) {
 	require.NoError(t, err)
 
 	// This should log an error but not panic
-	err = getSecretFromFile(testLogger(), cmd.PersistentFlags(), "notification-email-server-password")
+	err = getSecretFromFile(newTestLogger(t), cmd.PersistentFlags(), "notification-email-server-password")
 	require.NoError(t, err) // Since not a file path, no error
 
 	password, err := cmd.PersistentFlags().GetString("notification-email-server-password")

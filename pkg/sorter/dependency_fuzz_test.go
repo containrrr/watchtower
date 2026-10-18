@@ -52,7 +52,7 @@ func FuzzDependencySort(f *testing.F) {
 			copy(testContainers, containers)
 
 			// This should not panic
-			err := ds.Sort(testLog(), testContainers, useComposeDependsOn)
+			err := ds.Sort(newNopLogger(), testContainers, useComposeDependsOn)
 			// If there's an error, it should be a circularReferenceError or identifierCollisionError
 			if err != nil {
 				var (
@@ -108,7 +108,7 @@ func FuzzCycleDetection(f *testing.F) {
 			copy(testContainers, containers)
 
 			// This should not panic
-			err := ds.Sort(testLog(), testContainers, useComposeDependsOn)
+			err := ds.Sort(newNopLogger(), testContainers, useComposeDependsOn)
 			// Error should either be nil, circularReferenceError, or identifierCollisionError
 			if err != nil {
 				var (
@@ -218,7 +218,7 @@ func FuzzSortByDependencies(f *testing.F) {
 		// Test with both useComposeDependsOn values
 		for _, useComposeDependsOn := range []bool{true, false} {
 			// This should not panic
-			sorted, err := sortByDependencies(testLog(), containers, useComposeDependsOn)
+			sorted, err := sortByDependencies(newNopLogger(), containers, useComposeDependsOn)
 			// If there's an error, it should be a circularReferenceError or identifierCollisionError
 			if err != nil {
 				var (
@@ -714,7 +714,7 @@ func FuzzIdentifierCollisions(f *testing.F) {
 			copy(testContainers, containers)
 
 			// This should not panic and should not detect false cycles
-			err := ds.Sort(testLog(), testContainers, useComposeDependsOn)
+			err := ds.Sort(newNopLogger(), testContainers, useComposeDependsOn)
 			// Error should either be nil, circularReferenceError, or identifierCollisionError
 			if err != nil {
 				var (
@@ -764,7 +764,7 @@ func FuzzMalformedLabels(f *testing.F) {
 			copy(testContainers, containers)
 
 			// This should not panic
-			err := ds.Sort(testLog(), testContainers, useComposeDependsOn)
+			err := ds.Sort(newNopLogger(), testContainers, useComposeDependsOn)
 			// Error should either be nil, circularReferenceError, or identifierCollisionError
 			if err != nil {
 				var (
@@ -807,7 +807,7 @@ func FuzzLinkNormalization(f *testing.F) {
 			copy(testContainers, containers)
 
 			// This should not panic
-			err := ds.Sort(testLog(), testContainers, useComposeDependsOn)
+			err := ds.Sort(newNopLogger(), testContainers, useComposeDependsOn)
 			// Error should either be nil, circularReferenceError, or identifierCollisionError
 			if err != nil {
 				var (
@@ -849,7 +849,7 @@ func FuzzEmptyIdentifiers(f *testing.F) {
 			copy(testContainers, containers)
 
 			// This should not panic
-			err := ds.Sort(testLog(), testContainers, useComposeDependsOn)
+			err := ds.Sort(newNopLogger(), testContainers, useComposeDependsOn)
 			// Error should either be nil, circularReferenceError, or identifierCollisionError
 			if err != nil {
 				var (

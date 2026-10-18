@@ -114,7 +114,7 @@ func TestImageClientImageAnnotations(t *testing.T) {
 			},
 		})
 
-		got := newImageClient(newInspectClient(t, srv), testLog(), registryConfig.Registry{}, ratelimit.New()).
+		got := newImageClient(newInspectClient(t, srv), newTestLogger(t), registryConfig.Registry{}, ratelimit.New()).
 			GetImageAnnotations(t.Context(), "app:latest")
 
 		assert.Equal(t, "https://github.com/org/app.git", got.Source)
@@ -131,7 +131,7 @@ func TestImageClientImageAnnotations(t *testing.T) {
 			Labels: map[string]string{"com.centurylinklabs.watchtower": "true"},
 		})
 
-		got := newImageClient(newInspectClient(t, srv), testLog(), registryConfig.Registry{}, ratelimit.New()).
+		got := newImageClient(newInspectClient(t, srv), newTestLogger(t), registryConfig.Registry{}, ratelimit.New()).
 			GetImageAnnotations(t.Context(), "app:latest")
 
 		assert.Equal(t, oci.Annotations{}, got)
@@ -142,7 +142,7 @@ func TestImageClientImageAnnotations(t *testing.T) {
 
 		srv := newInspectServer(t, nil)
 
-		got := newImageClient(newInspectClient(t, srv), testLog(), registryConfig.Registry{}, ratelimit.New()).
+		got := newImageClient(newInspectClient(t, srv), newTestLogger(t), registryConfig.Registry{}, ratelimit.New()).
 			GetImageAnnotations(t.Context(), "app:latest")
 
 		assert.Equal(t, oci.Annotations{}, got)
@@ -155,7 +155,7 @@ func TestImageClientImageAnnotations(t *testing.T) {
 			Labels: map[string]string{oci.VersionLabel: "1.2.3"},
 		})
 
-		got := newImageClient(newInspectClient(t, srv), testLog(), registryConfig.Registry{}, ratelimit.New()).
+		got := newImageClient(newInspectClient(t, srv), newTestLogger(t), registryConfig.Registry{}, ratelimit.New()).
 			GetImageAnnotations(t.Context(), "")
 
 		assert.Equal(t, oci.Annotations{}, got)
@@ -167,7 +167,7 @@ func TestImageClientImageAnnotations(t *testing.T) {
 
 		srv := newNotFoundInspectServer(t)
 
-		got := newImageClient(newInspectClient(t, srv), testLog(), registryConfig.Registry{}, ratelimit.New()).
+		got := newImageClient(newInspectClient(t, srv), newTestLogger(t), registryConfig.Registry{}, ratelimit.New()).
 			GetImageAnnotations(t.Context(), "missing:latest")
 
 		assert.Equal(t, oci.Annotations{}, got)
@@ -183,7 +183,7 @@ func TestClientImageAnnotationsDelegates(t *testing.T) {
 		Labels: map[string]string{oci.VersionLabel: "1.2.3"},
 	})
 
-	got := (&client{api: newInspectClient(t, srv), log: testLog()}).
+	got := (&client{api: newInspectClient(t, srv), log: newTestLogger(t)}).
 		GetImageAnnotations(t.Context(), "app:latest")
 
 	assert.Equal(t, "1.2.3", got.Version)

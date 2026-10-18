@@ -104,7 +104,7 @@ func TestGetSecretFromFile_FileErrors(t *testing.T) {
 			cmd := newSecretsCommand(t, "--"+tt.flag, tt.value)
 			flags := cmd.PersistentFlags()
 
-			err := getSecretFromFile(testLogger(), flags, tt.flag)
+			err := getSecretFromFile(newTestLogger(t), flags, tt.flag)
 			require.ErrorIs(t, err, tt.wantErr)
 
 			flag := flags.Lookup(tt.flag)
@@ -159,7 +159,7 @@ func TestGetSecretFromFile_ClosesEachListFile(t *testing.T) {
 	done := make(chan error, 1)
 
 	go func() {
-		done <- getSecretFromFile(testLogger(), flags, "notification-url")
+		done <- getSecretFromFile(newTestLogger(t), flags, "notification-url")
 	}()
 
 	// A non-blocking open for writing succeeds only once the FIFO is opened
@@ -222,7 +222,7 @@ func TestGetSecretFromFile_NotificationURLRules(t *testing.T) {
 			path := writeSecretFile(t, content)
 			cmd := newSecretsCommand(t, "--notification-url", path)
 
-			err := getSecretFromFile(testLogger(), cmd.PersistentFlags(), "notification-url")
+			err := getSecretFromFile(newTestLogger(t), cmd.PersistentFlags(), "notification-url")
 
 			urls, getErr := cmd.PersistentFlags().GetStringArray("notification-url")
 			require.NoError(t, getErr)
@@ -299,7 +299,7 @@ func TestGetSecretFromFile_StringSecrets(t *testing.T) {
 			cmd := newSecretsCommand(t, "--"+tt.flag, value)
 			flags := cmd.PersistentFlags()
 
-			require.NoError(t, getSecretFromFile(testLogger(), flags, tt.flag))
+			require.NoError(t, getSecretFromFile(newTestLogger(t), flags, tt.flag))
 			assert.Equal(t, tt.want, flags.Lookup(tt.flag).Value.String())
 		})
 	}
@@ -345,7 +345,7 @@ func TestGetSecretFromFile_ChangedState(t *testing.T) {
 			cmd := newSecretsCommand(t, tt.args...)
 			flags := cmd.PersistentFlags()
 
-			require.NoError(t, getSecretFromFile(testLogger(), flags, tt.flag))
+			require.NoError(t, getSecretFromFile(newTestLogger(t), flags, tt.flag))
 			assert.Equal(t, tt.wantChanged, flags.Lookup(tt.flag).Changed)
 		})
 	}
@@ -391,7 +391,7 @@ func TestGetSecretsFromFiles_ReadsEverySecret(t *testing.T) {
 		require.NoError(t, flags.Set(flag.Name, writeSecretFile(t, content+"\n")))
 	})
 
-	GetSecretsFromFiles(testLogger(), cmd)
+	GetSecretsFromFiles(newTestLogger(t), cmd)
 
 	var read []string
 

@@ -143,7 +143,7 @@ var _ = ginkgo.Describe("listSourceContainers", func() {
 			)
 			mockServer.AppendHandlers(mockInspects(testContainerID)...)
 
-			containers, err := listSourceContainers(testLog(), context.Background(),
+			containers, err := listSourceContainers(nopLog(), context.Background(),
 				docker,
 				ClientOptions{},
 				nil,
@@ -160,7 +160,7 @@ var _ = ginkgo.Describe("listSourceContainers", func() {
 			)
 			mockServer.AppendHandlers(mockInspects(testContainerID)...)
 
-			containers, err := listSourceContainers(testLog(), context.Background(),
+			containers, err := listSourceContainers(nopLog(), context.Background(),
 				docker,
 				ClientOptions{IncludeStopped: true},
 				nil,
@@ -177,7 +177,7 @@ var _ = ginkgo.Describe("listSourceContainers", func() {
 			)
 			mockServer.AppendHandlers(mockInspects(testContainerID)...)
 
-			containers, err := listSourceContainers(testLog(), context.Background(),
+			containers, err := listSourceContainers(nopLog(), context.Background(),
 				docker,
 				ClientOptions{IncludeRestarting: true},
 				nil,
@@ -194,7 +194,7 @@ var _ = ginkgo.Describe("listSourceContainers", func() {
 			)
 			mockServer.AppendHandlers(mockInspects(testContainerID)...)
 
-			containers, err := listSourceContainers(testLog(), context.Background(),
+			containers, err := listSourceContainers(nopLog(), context.Background(),
 				docker,
 				ClientOptions{},
 				filters.NoFilter,
@@ -216,7 +216,7 @@ var _ = ginkgo.Describe("listSourceContainers", func() {
 				),
 			)
 
-			containers, err := listSourceContainers(testLog(), context.Background(),
+			containers, err := listSourceContainers(nopLog(), context.Background(),
 				docker,
 				ClientOptions{},
 				nil,
@@ -415,7 +415,7 @@ var _ = ginkgo.Describe("GetSourceContainer", func() {
 				),
 			)
 
-			container, err := getSourceContainer(testLog(), context.Background(),
+			container, err := getSourceContainer(nopLog(), context.Background(),
 				docker,
 				types.ContainerID(containerID),
 				nil,
@@ -465,7 +465,7 @@ var _ = ginkgo.Describe("GetSourceContainer", func() {
 				),
 			)
 
-			container, err := getSourceContainer(testLog(), context.Background(),
+			container, err := getSourceContainer(nopLog(), context.Background(),
 				docker,
 				types.ContainerID(containerID),
 				nil,
@@ -528,7 +528,7 @@ var _ = ginkgo.Describe("GetSourceContainer", func() {
 				),
 			)
 
-			container, err := getSourceContainer(testLog(), context.Background(),
+			container, err := getSourceContainer(nopLog(), context.Background(),
 				docker,
 				types.ContainerID(containerID),
 				nil,
@@ -591,7 +591,7 @@ var _ = ginkgo.Describe("GetSourceContainer", func() {
 				),
 			)
 
-			container, err := getSourceContainer(testLog(), context.Background(),
+			container, err := getSourceContainer(nopLog(), context.Background(),
 				docker,
 				types.ContainerID(containerID),
 				nil,
@@ -650,7 +650,7 @@ var _ = ginkgo.Describe("GetSourceContainer", func() {
 				),
 			)
 
-			container, err := getSourceContainer(testLog(), context.Background(),
+			container, err := getSourceContainer(nopLog(), context.Background(),
 				docker,
 				types.ContainerID(containerID),
 				nil,
@@ -710,7 +710,7 @@ var _ = ginkgo.Describe("GetSourceContainer", func() {
 				),
 			)
 
-			container, err := getSourceContainer(testLog(), context.Background(),
+			container, err := getSourceContainer(nopLog(), context.Background(),
 				docker,
 				types.ContainerID(containerID),
 				nil,
@@ -783,7 +783,7 @@ var _ = ginkgo.Describe("GetSourceContainer", func() {
 				),
 			)
 
-			container, err := getSourceContainer(testLog(), context.Background(),
+			container, err := getSourceContainer(nopLog(), context.Background(),
 				docker,
 				types.ContainerID(containerID),
 				nil,
@@ -853,7 +853,7 @@ var _ = ginkgo.Describe("GetSourceContainer", func() {
 				),
 			)
 
-			container, err := getSourceContainer(testLog(), context.Background(),
+			container, err := getSourceContainer(nopLog(), context.Background(),
 				docker,
 				types.ContainerID(containerID),
 				nil,
@@ -879,7 +879,7 @@ var _ = ginkgo.Describe("GetSourceContainer", func() {
 				),
 			)
 
-			container, err := getSourceContainer(testLog(), context.Background(),
+			container, err := getSourceContainer(nopLog(), context.Background(),
 				docker,
 				types.ContainerID(containerID),
 				nil,
@@ -905,7 +905,7 @@ var _ = ginkgo.Describe("GetSourceContainer", func() {
 				),
 			)
 
-			container, err := getSourceContainer(testLog(), context.Background(),
+			container, err := getSourceContainer(nopLog(), context.Background(),
 				docker,
 				types.ContainerID(containerID),
 				nil,
@@ -931,7 +931,7 @@ var _ = ginkgo.Describe("GetSourceContainer", func() {
 				),
 			)
 
-			container, err := getSourceContainer(testLog(), context.Background(),
+			container, err := getSourceContainer(nopLog(), context.Background(),
 				docker,
 				types.ContainerID(containerID),
 				nil,
@@ -1000,7 +1000,7 @@ var _ = ginkgo.Describe("stopAndRemoveSourceContainer", func() {
 					),
 				)
 
-				err := stopAndRemoveSourceContainer(testLog(), context.Background(),
+				err := stopAndRemoveSourceContainer(nopLog(), context.Background(),
 					docker,
 					container,
 					10*time.Second,
@@ -1044,7 +1044,7 @@ var _ = ginkgo.Describe("stopAndRemoveSourceContainer", func() {
 					),
 				)
 
-				err := stopAndRemoveSourceContainer(testLog(), context.Background(),
+				err := stopAndRemoveSourceContainer(nopLog(), context.Background(),
 					docker,
 					container,
 					10*time.Second,
@@ -1072,7 +1072,7 @@ var _ = ginkgo.Describe("stopAndRemoveSourceContainer", func() {
 				),
 			)
 
-			err := stopAndRemoveSourceContainer(testLog(), context.Background(),
+			err := stopAndRemoveSourceContainer(nopLog(), context.Background(),
 				docker,
 				container,
 				10*time.Second,
@@ -1110,7 +1110,7 @@ var _ = ginkgo.Describe("stopAndRemoveSourceContainer", func() {
 				),
 			)
 
-			err := stopAndRemoveSourceContainer(testLog(), context.Background(),
+			err := stopAndRemoveSourceContainer(nopLog(), context.Background(),
 				docker,
 				container,
 				10*time.Second,
@@ -1139,7 +1139,7 @@ var _ = ginkgo.Describe("stopAndRemoveSourceContainer", func() {
 				),
 			)
 
-			err := stopAndRemoveSourceContainer(testLog(), context.Background(),
+			err := stopAndRemoveSourceContainer(nopLog(), context.Background(),
 				docker,
 				container,
 				10*time.Second,
@@ -1170,7 +1170,7 @@ var _ = ginkgo.Describe("stopAndRemoveSourceContainer", func() {
 				),
 			)
 
-			err := stopAndRemoveSourceContainer(testLog(), context.Background(),
+			err := stopAndRemoveSourceContainer(nopLog(), context.Background(),
 				docker,
 				container,
 				10*time.Second,
@@ -1209,7 +1209,7 @@ var _ = ginkgo.Describe("stopAndRemoveSourceContainer", func() {
 				),
 			)
 
-			err := stopAndRemoveSourceContainer(testLog(), context.Background(),
+			err := stopAndRemoveSourceContainer(nopLog(), context.Background(),
 				docker,
 				container,
 				10*time.Second,
@@ -1243,7 +1243,7 @@ var _ = ginkgo.Describe("stopAndRemoveSourceContainer", func() {
 				),
 			)
 
-			err := stopAndRemoveSourceContainer(testLog(), context.Background(),
+			err := stopAndRemoveSourceContainer(nopLog(), context.Background(),
 				docker,
 				container,
 				10*time.Second,
@@ -1286,7 +1286,7 @@ var _ = ginkgo.Describe("stopAndRemoveSourceContainer", func() {
 				),
 			)
 
-			err := stopAndRemoveSourceContainer(testLog(), context.Background(),
+			err := stopAndRemoveSourceContainer(nopLog(), context.Background(),
 				docker,
 				container,
 				timeout,
@@ -1320,7 +1320,7 @@ var _ = ginkgo.Describe("stopAndRemoveSourceContainer", func() {
 				),
 			)
 
-			err := stopAndRemoveSourceContainer(testLog(), context.Background(),
+			err := stopAndRemoveSourceContainer(nopLog(), context.Background(),
 				docker,
 				container,
 				10*time.Second,
@@ -1347,7 +1347,7 @@ var _ = ginkgo.Describe("stopAndRemoveSourceContainer", func() {
 				),
 			)
 
-			err := stopAndRemoveSourceContainer(testLog(), context.Background(),
+			err := stopAndRemoveSourceContainer(nopLog(), context.Background(),
 				docker,
 				container,
 				10*time.Second,
@@ -1378,7 +1378,7 @@ var _ = ginkgo.Describe("getNetworkConfig", func() {
 				}),
 			)
 
-			config := getNetworkConfig(testLog(), container, "1.50")
+			config := getNetworkConfig(nopLog(), container, "1.50")
 
 			gomega.Expect(config).ToNot(gomega.BeNil())
 			gomega.Expect(config.EndpointsConfig).To(gomega.HaveKey("bridge"))
@@ -1404,7 +1404,7 @@ var _ = ginkgo.Describe("getNetworkConfig", func() {
 				WithNetworks("bridge", "custom_network"),
 			)
 
-			config := getNetworkConfig(testLog(), container, "1.50")
+			config := getNetworkConfig(nopLog(), container, "1.50")
 
 			gomega.Expect(config.EndpointsConfig).To(gomega.HaveLen(2))
 			gomega.Expect(config.EndpointsConfig).To(gomega.HaveKey("bridge"))
@@ -1424,7 +1424,7 @@ var _ = ginkgo.Describe("getNetworkConfig", func() {
 				}),
 			)
 
-			config := getNetworkConfig(testLog(), container, "1.50")
+			config := getNetworkConfig(nopLog(), container, "1.50")
 
 			gomega.Expect(config).ToNot(gomega.BeNil())
 			gomega.Expect(config.EndpointsConfig).To(gomega.HaveKey("bridge"))
@@ -1450,7 +1450,7 @@ var _ = ginkgo.Describe("getNetworkConfig", func() {
 				}),
 			)
 
-			config := getNetworkConfig(testLog(), container, "1.50")
+			config := getNetworkConfig(nopLog(), container, "1.50")
 
 			gomega.Expect(config.EndpointsConfig).To(gomega.HaveKey("host"))
 			endpoint := config.EndpointsConfig["host"]
@@ -1474,7 +1474,7 @@ var _ = ginkgo.Describe("getNetworkConfig", func() {
 				}),
 			)
 
-			config := getNetworkConfig(testLog(), container, "1.40")
+			config := getNetworkConfig(nopLog(), container, "1.40")
 
 			endpoint := config.EndpointsConfig["bridge"]
 			gomega.Expect(endpoint.MacAddress).To(gomega.Equal(dockerNetwork.HardwareAddr{}))
@@ -1491,7 +1491,7 @@ var _ = ginkgo.Describe("getNetworkConfig", func() {
 				},
 			)
 
-			config := getNetworkConfig(testLog(), container, "1.50")
+			config := getNetworkConfig(nopLog(), container, "1.50")
 
 			gomega.Expect(config).ToNot(gomega.BeNil())
 			gomega.Expect(config.EndpointsConfig).To(gomega.BeEmpty())
@@ -1509,7 +1509,7 @@ var _ = ginkgo.Describe("getNetworkConfig", func() {
 				}),
 			)
 
-			config := getNetworkConfig(testLog(), container, "1.50")
+			config := getNetworkConfig(nopLog(), container, "1.50")
 
 			gomega.Expect(config).ToNot(gomega.BeNil())
 			gomega.Expect(config.EndpointsConfig).To(gomega.HaveKey("bridge"))
@@ -1530,7 +1530,7 @@ var _ = ginkgo.Describe("getNetworkConfig", func() {
 				}),
 			)
 
-			config := getNetworkConfig(testLog(), container, "1.50")
+			config := getNetworkConfig(nopLog(), container, "1.50")
 
 			endpoint := config.EndpointsConfig["my_custom_network"]
 			gomega.Expect(endpoint.NetworkID).To(gomega.Equal("custom_net_id"))
@@ -1556,7 +1556,7 @@ var _ = ginkgo.Describe("getNetworkConfig", func() {
 			)
 
 			// Test with Podman version format
-			config := getNetworkConfig(testLog(), container, "4.0.0")
+			config := getNetworkConfig(nopLog(), container, "4.0.0")
 
 			endpoint := config.EndpointsConfig["bridge"]
 			// Should preserve MAC for modern versions
@@ -1575,7 +1575,7 @@ var _ = ginkgo.Describe("getNetworkConfig", func() {
 				}),
 			)
 
-			config := getNetworkConfig(testLog(), container, "1.50")
+			config := getNetworkConfig(nopLog(), container, "1.50")
 
 			gomega.Expect(config.EndpointsConfig).To(gomega.HaveKey("valid_net"))
 			gomega.Expect(config.EndpointsConfig).ToNot(gomega.HaveKey("bridge"))
@@ -1635,7 +1635,7 @@ var _ = ginkgo.Describe("processEndpoint", func() {
 				}
 				containerID := types.ContainerID("container_id")
 
-				result, err := processEndpoint(testLog(), sourceEndpoint,
+				result, err := processEndpoint(nopLog(), sourceEndpoint,
 					containerID,
 					clientVersion,
 					isHostNetwork,
@@ -1666,7 +1666,7 @@ var _ = ginkgo.Describe("processEndpoint", func() {
 				}
 				containerID := types.ContainerID("container_id")
 
-				result, err := processEndpoint(testLog(), sourceEndpoint,
+				result, err := processEndpoint(nopLog(), sourceEndpoint,
 					containerID,
 					clientVersion,
 					isHostNetwork,
@@ -1684,7 +1684,7 @@ var _ = ginkgo.Describe("processEndpoint", func() {
 				}
 				containerID := types.ContainerID("container_id")
 
-				result, err := processEndpoint(testLog(), sourceEndpoint,
+				result, err := processEndpoint(nopLog(), sourceEndpoint,
 					containerID,
 					clientVersion,
 					isHostNetwork,
@@ -1704,7 +1704,7 @@ var _ = ginkgo.Describe("processEndpoint", func() {
 				}
 				containerID := types.ContainerID("container_id")
 
-				result, err := processEndpoint(testLog(), sourceEndpoint,
+				result, err := processEndpoint(nopLog(), sourceEndpoint,
 					containerID,
 					clientVersion,
 					isHostNetwork,
@@ -1724,7 +1724,7 @@ var _ = ginkgo.Describe("processEndpoint", func() {
 				}
 				containerID := types.ContainerID("container_id")
 
-				result, err := processEndpoint(testLog(), sourceEndpoint,
+				result, err := processEndpoint(nopLog(), sourceEndpoint,
 					containerID,
 					clientVersion,
 					isHostNetwork,
@@ -1744,7 +1744,7 @@ var _ = ginkgo.Describe("processEndpoint", func() {
 				}
 				containerID := types.ContainerID("container_id")
 
-				result, err := processEndpoint(testLog(), sourceEndpoint,
+				result, err := processEndpoint(nopLog(), sourceEndpoint,
 					containerID,
 					clientVersion,
 					isHostNetwork,
@@ -1764,7 +1764,7 @@ var _ = ginkgo.Describe("processEndpoint", func() {
 				}
 				containerID := types.ContainerID("container_id")
 
-				result, err := processEndpoint(testLog(), sourceEndpoint,
+				result, err := processEndpoint(nopLog(), sourceEndpoint,
 					containerID,
 					clientVersion,
 					isHostNetwork,
@@ -1782,7 +1782,7 @@ var _ = ginkgo.Describe("processEndpoint", func() {
 				}
 				containerID := types.ContainerID("container_id")
 
-				result, err := processEndpoint(testLog(), sourceEndpoint,
+				result, err := processEndpoint(nopLog(), sourceEndpoint,
 					containerID,
 					clientVersion,
 					isHostNetwork,
@@ -1808,7 +1808,7 @@ var _ = ginkgo.Describe("processEndpoint", func() {
 				}
 				containerID := types.ContainerID("container_id")
 
-				result, err := processEndpoint(testLog(), sourceEndpoint,
+				result, err := processEndpoint(nopLog(), sourceEndpoint,
 					containerID,
 					clientVersion,
 					isHostNetwork,
@@ -1835,7 +1835,7 @@ var _ = ginkgo.Describe("processEndpoint", func() {
 				}
 				containerID := types.ContainerID("test_container_id")
 
-				result, err := processEndpoint(testLog(), sourceEndpoint,
+				result, err := processEndpoint(nopLog(), sourceEndpoint,
 					containerID,
 					clientVersion,
 					isHostNetwork,
@@ -1853,7 +1853,7 @@ var _ = ginkgo.Describe("processEndpoint", func() {
 				}
 				containerID := types.ContainerID("test_container_id")
 
-				result, err := processEndpoint(testLog(), sourceEndpoint,
+				result, err := processEndpoint(nopLog(), sourceEndpoint,
 					containerID,
 					clientVersion,
 					isHostNetwork,
@@ -1887,7 +1887,7 @@ var _ = ginkgo.Describe("processEndpoint", func() {
 				}
 				containerID := types.ContainerID("container_id")
 
-				result, err := processEndpoint(testLog(), sourceEndpoint,
+				result, err := processEndpoint(nopLog(), sourceEndpoint,
 					containerID,
 					clientVersion,
 					isHostNetwork,
@@ -1916,7 +1916,7 @@ var _ = ginkgo.Describe("processEndpoint", func() {
 			}
 			containerID := types.ContainerID("test_container_id")
 
-			result, err := processEndpoint(testLog(), sourceEndpoint,
+			result, err := processEndpoint(nopLog(), sourceEndpoint,
 				containerID,
 				"1.50",
 				isHostNetwork,
@@ -1934,7 +1934,7 @@ var _ = ginkgo.Describe("processEndpoint", func() {
 			}
 			containerID := types.ContainerID("test_container_id")
 
-			result, err := processEndpoint(testLog(), sourceEndpoint,
+			result, err := processEndpoint(nopLog(), sourceEndpoint,
 				containerID,
 				"1.50",
 				isHostNetwork,
@@ -1952,7 +1952,7 @@ var _ = ginkgo.Describe("processEndpoint", func() {
 			}
 			containerID := types.ContainerID("test_container_id")
 
-			result, err := processEndpoint(testLog(), sourceEndpoint,
+			result, err := processEndpoint(nopLog(), sourceEndpoint,
 				containerID,
 				"1.50",
 				isHostNetwork,
@@ -1972,7 +1972,7 @@ var _ = ginkgo.Describe("processEndpoint", func() {
 			}
 			containerID := types.ContainerID("test_container_id")
 
-			result, err := processEndpoint(testLog(), sourceEndpoint,
+			result, err := processEndpoint(nopLog(), sourceEndpoint,
 				containerID,
 				"1.50",
 				false,
@@ -1988,7 +1988,7 @@ var _ = ginkgo.Describe("processEndpoint", func() {
 			}
 			containerID := types.ContainerID("test_container_id")
 
-			result, err := processEndpoint(testLog(), sourceEndpoint,
+			result, err := processEndpoint(nopLog(), sourceEndpoint,
 				containerID,
 				"1.50",
 				false,
@@ -2002,7 +2002,7 @@ var _ = ginkgo.Describe("processEndpoint", func() {
 			ginkgo.It("should return ErrNilSourceEndpoint when sourceEndpoint is nil", func() {
 				containerID := types.ContainerID("test_container_id")
 
-				result, err := processEndpoint(testLog(), nil,
+				result, err := processEndpoint(nopLog(), nil,
 					containerID,
 					"1.50",
 					false,
@@ -2208,7 +2208,7 @@ var _ = ginkgo.Describe("validateMacAddresses", func() {
 					},
 				}
 
-				err := validateMacAddresses(testLog(), config,
+				err := validateMacAddresses(nopLog(), config,
 					container.ID(),
 					clientVersion,
 					isHostNetwork,
@@ -2237,7 +2237,7 @@ var _ = ginkgo.Describe("validateMacAddresses", func() {
 					},
 				}
 
-				err := validateMacAddresses(testLog(), config,
+				err := validateMacAddresses(nopLog(), config,
 					container.ID(),
 					clientVersion,
 					isHostNetwork,
@@ -2276,7 +2276,7 @@ var _ = ginkgo.Describe("validateMacAddresses", func() {
 				},
 			}
 
-			err := validateMacAddresses(testLog(), config,
+			err := validateMacAddresses(nopLog(), config,
 				container.ID(),
 				"1.50",
 				isHostNetwork,
@@ -2306,7 +2306,7 @@ var _ = ginkgo.Describe("validateMacAddresses", func() {
 				},
 			}
 
-			err := validateMacAddresses(testLog(), config,
+			err := validateMacAddresses(nopLog(), config,
 				container.ID(),
 				"1.50",
 				isHostNetwork,
@@ -2345,7 +2345,7 @@ var _ = ginkgo.Describe("validateMacAddresses", func() {
 						},
 					}
 
-					err := validateMacAddresses(testLog(), config,
+					err := validateMacAddresses(nopLog(), config,
 						container.ID(),
 						clientVersion,
 						isHostNetwork,
@@ -2373,7 +2373,7 @@ var _ = ginkgo.Describe("validateMacAddresses", func() {
 						},
 					}
 
-					err := validateMacAddresses(testLog(), config,
+					err := validateMacAddresses(nopLog(), config,
 						container.ID(),
 						clientVersion,
 						isHostNetwork,
@@ -2415,7 +2415,7 @@ var _ = ginkgo.Describe("validateMacAddresses", func() {
 						},
 					}
 
-					err := validateMacAddresses(testLog(), config,
+					err := validateMacAddresses(nopLog(), config,
 						container.ID(),
 						clientVersion,
 						isHostNetwork,
@@ -2458,7 +2458,7 @@ var _ = ginkgo.Describe("validateMacAddresses", func() {
 							},
 						}
 
-						err := validateMacAddresses(testLog(), config,
+						err := validateMacAddresses(nopLog(), config,
 							container.ID(),
 							clientVersion,
 							isHostNetwork,
@@ -2491,7 +2491,7 @@ var _ = ginkgo.Describe("validateMacAddresses", func() {
 						},
 					}
 
-					err := validateMacAddresses(testLog(), config,
+					err := validateMacAddresses(nopLog(), config,
 						container.ID(),
 						clientVersion,
 						isHostNetwork,
@@ -2519,7 +2519,7 @@ var _ = ginkgo.Describe("validateMacAddresses", func() {
 						},
 					}
 
-					err := validateMacAddresses(testLog(), config,
+					err := validateMacAddresses(nopLog(), config,
 						container.ID(),
 						clientVersion,
 						isHostNetwork,
@@ -2540,7 +2540,7 @@ var _ = ginkgo.Describe("validateMacAddresses", func() {
 				EndpointsConfig: map[string]*dockerNetwork.EndpointSettings{},
 			}
 
-			err := validateMacAddresses(testLog(), config,
+			err := validateMacAddresses(nopLog(), config,
 				container.ID(),
 				"1.50",
 				false,
@@ -2555,7 +2555,7 @@ var _ = ginkgo.Describe("validateMacAddresses", func() {
 				WithContainerState(dockerContainer.State{Running: true, Status: "running"}),
 			)
 
-			err := validateMacAddresses(testLog(), nil,
+			err := validateMacAddresses(nopLog(), nil,
 				container.ID(),
 				"1.50",
 				false,
@@ -2707,7 +2707,7 @@ var _ = ginkgo.Describe("stopSourceContainer", func() {
 				),
 			)
 
-			err := stopSourceContainer(testLog(), context.Background(),
+			err := stopSourceContainer(nopLog(), context.Background(),
 				docker,
 				container,
 				10*time.Second,
@@ -2733,7 +2733,7 @@ var _ = ginkgo.Describe("stopSourceContainer", func() {
 				),
 			)
 
-			err := stopSourceContainer(testLog(), context.Background(),
+			err := stopSourceContainer(nopLog(), context.Background(),
 				docker,
 				container,
 				10*time.Second,
@@ -2770,7 +2770,7 @@ var _ = ginkgo.Describe("stopSourceContainer", func() {
 				),
 			)
 
-			err := stopSourceContainer(testLog(), context.Background(), docker, container, timeout)
+			err := stopSourceContainer(nopLog(), context.Background(), docker, container, timeout)
 			gomega.Expect(err).ToNot(gomega.HaveOccurred())
 		})
 	})
@@ -2781,7 +2781,7 @@ var _ = ginkgo.Describe("stopSourceContainer", func() {
 				WithContainerState(dockerContainer.State{Running: false}),
 			)
 
-			err := stopSourceContainer(testLog(), context.Background(),
+			err := stopSourceContainer(nopLog(), context.Background(),
 				docker,
 				container,
 				10*time.Second,
@@ -2808,7 +2808,7 @@ var _ = ginkgo.Describe("stopSourceContainer", func() {
 				),
 			)
 
-			err := stopSourceContainer(testLog(), context.Background(),
+			err := stopSourceContainer(nopLog(), context.Background(),
 				docker,
 				container,
 				10*time.Second,

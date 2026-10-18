@@ -60,7 +60,7 @@ func FuzzGetBearerToken(f *testing.F) {
 	)
 
 	f.Fuzz(func(t *testing.T, jsonData []byte) {
-		initTokenCache(testLog())
+		initTokenCache(newNopLogger())
 		tokenCache.InvalidateAll()
 
 		// Attempt to unmarshal the JSON data into a TokenResponse struct
@@ -80,7 +80,7 @@ func FuzzGetBearerToken(f *testing.F) {
 		challenge := `bearer realm="https://test.com/token",service="test.com"`
 		registryAuth := ""
 		client := &mockClient{body: jsonData}
-		_, _ = getBearerToken(testLog(), ctx, challenge, imageRef, registryAuth, client, registryConfig.Registry{})
+		_, _ = getBearerToken(newNopLogger(), ctx, challenge, imageRef, registryAuth, client, registryConfig.Registry{})
 	})
 }
 
@@ -112,7 +112,7 @@ func FuzzTransformAuth(f *testing.F) {
 	) // {"username":null, "password":"pass"}
 	f.Fuzz(func(_ *testing.T, input string) {
 		// Call TransformAuth because we don't care about the result, only that it doesn't panic
-		TransformAuth(testLog(), input)
+		TransformAuth(newNopLogger(), input)
 	})
 }
 
@@ -176,7 +176,7 @@ func FuzzGetAuthURL(f *testing.F) {
 
 	f.Fuzz(func(_ *testing.T, challenge string) {
 		// Call getAuthURL because we don't care about the result, only that it doesn't panic
-		_, _ = getAuthURL(testLog(), challenge, imageRef, "", registryConfig.Registry{})
+		_, _ = getAuthURL(newNopLogger(), challenge, imageRef, "", registryConfig.Registry{})
 	})
 }
 
@@ -197,7 +197,7 @@ func FuzzComputeTokenExpiry(f *testing.F) {
 
 		_ = json.Unmarshal(jsonData, &tokenResponse)
 
-		_ = computeTokenExpiry(testLog(), &tokenResponse)
+		_ = computeTokenExpiry(newNopLogger(), &tokenResponse)
 	})
 }
 
@@ -213,7 +213,7 @@ func FuzzReadBearerTokenWithExpiry(f *testing.F) {
 	f.Add([]byte(``))
 
 	f.Fuzz(func(_ *testing.T, jsonData []byte) {
-		_, _, _ = readBearerTokenWithExpiry(testLog(), bytes.NewReader(jsonData), "test/image")
+		_, _, _ = readBearerTokenWithExpiry(newNopLogger(), bytes.NewReader(jsonData), "test/image")
 	})
 }
 
@@ -242,6 +242,6 @@ func FuzzExtractChallengeHost(f *testing.F) {
 	f.Add("https://registry.example.com:5000/token")
 
 	f.Fuzz(func(_ *testing.T, realm string) {
-		_ = extractChallengeHost(testLog(), realm)
+		_ = extractChallengeHost(newNopLogger(), realm)
 	})
 }

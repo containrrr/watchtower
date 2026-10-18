@@ -155,7 +155,7 @@ func TestDependencyGraph_CycleMembers(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			graph, err := NewDependencyGraph(testLog(), tt.containers, nil, tt.useComposeDependsOn)
+			graph, err := NewDependencyGraph(newTestLogger(t), tt.containers, nil, tt.useComposeDependsOn)
 			require.NoError(t, err)
 			assert.Equal(t, tt.want, containerNames(graph.CycleMembers()))
 		})
@@ -172,7 +172,7 @@ func TestNewDependencyGraph_IdentifierCollision(t *testing.T) {
 		"com.docker.compose.service": "web",
 	}
 
-	_, err := NewDependencyGraph(testLog(), []types.Container{
+	_, err := NewDependencyGraph(newTestLogger(t), []types.Container{
 		cycleContainer("first", labels),
 		cycleContainer("second", labels),
 	}, nil, false)
@@ -320,7 +320,7 @@ func TestDependencyGraph_CycleMembersLinkSources(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			graph, err := NewDependencyGraph(testLog(), tt.containers, nil, tt.useComposeDependsOn)
+			graph, err := NewDependencyGraph(newTestLogger(t), tt.containers, nil, tt.useComposeDependsOn)
 			require.NoError(t, err)
 			assert.Equal(t, tt.want, containerNames(graph.CycleMembers()))
 		})
@@ -453,7 +453,7 @@ func graphEdges(t *testing.T, containers, all []types.Container, useComposeDepen
 		all = containers
 	}
 
-	graph, err := NewDependencyGraph(testLog(), all, nil, useComposeDependsOn)
+	graph, err := NewDependencyGraph(newTestLogger(t), all, nil, useComposeDependsOn)
 	require.NoError(t, err)
 
 	containerMap, _, adjacency, _, err := graph.subgraph(containers)
@@ -487,7 +487,7 @@ func TestDependencyGraph_Sort(t *testing.T) {
 		deployed{name: "c", dependsOn: "db"},
 	)
 
-	graph, err := NewDependencyGraph(testLog(), all, nil, false)
+	graph, err := NewDependencyGraph(newTestLogger(t), all, nil, false)
 	require.NoError(t, err)
 
 	tests := []struct {
@@ -507,7 +507,7 @@ func TestDependencyGraph_Sort(t *testing.T) {
 			t.Parallel()
 
 			containers := pick(all, tt.sort...)
-			require.NoError(t, graph.Sort(testLog(), containers))
+			require.NoError(t, graph.Sort(newTestLogger(t), containers))
 			assert.Equal(t, tt.want, containerNames(containers))
 		})
 	}
@@ -516,7 +516,7 @@ func TestDependencyGraph_Sort(t *testing.T) {
 		t.Parallel()
 
 		containers := append(pick(all, "app"), deployed{name: "other"}.container())
-		require.ErrorIs(t, graph.Sort(testLog(), containers), errNotInGraph)
+		require.ErrorIs(t, graph.Sort(newTestLogger(t), containers), errNotInGraph)
 	})
 }
 
@@ -816,7 +816,7 @@ func TestDependencyGraph_Dependents(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			graph, err := NewDependencyGraph(testLog(), tt.monitored, tt.unmonitored, tt.useComposeDependsOn)
+			graph, err := NewDependencyGraph(newTestLogger(t), tt.monitored, tt.unmonitored, tt.useComposeDependsOn)
 			require.NoError(t, err)
 
 			of := pick(tt.monitored, tt.of)
@@ -865,7 +865,7 @@ func TestDependencyGraph_UnresolvedDependsOn(t *testing.T) {
 		deployed{name: "x-store-1", project: "x", service: "store", number: "1"},
 	)
 
-	graph, err := NewDependencyGraph(testLog(), monitored, unmonitored, false)
+	graph, err := NewDependencyGraph(newTestLogger(t), monitored, unmonitored, false)
 	require.NoError(t, err)
 
 	unresolved := graph.UnresolvedDependsOn()

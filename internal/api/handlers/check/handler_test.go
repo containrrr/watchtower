@@ -32,7 +32,7 @@ func TestNew(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			h := New(testLogger(), tt.check, 5*time.Minute, nil, false, nil, events.ScanStartedData{})
+			h := New(newTestLogger(t), tt.check, 5*time.Minute, nil, false, nil, events.ScanStartedData{})
 			require.NotNil(t, h)
 			assert.Equal(t, "/v1/check", h.Path)
 		})
@@ -72,7 +72,7 @@ func TestHandler_Handle(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			h := New(testLogger(), tt.checkFunc, 5*time.Minute, nil, false, nil, events.ScanStartedData{})
+			h := New(newTestLogger(t), tt.checkFunc, 5*time.Minute, nil, false, nil, events.ScanStartedData{})
 			app := fiber.New(fiber.Config{})
 			app.Post("/v1/check", h.Handle)
 
@@ -132,7 +132,7 @@ func TestHandler_Handle_WithFilters(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var capturedImages, capturedNames []string
 
-			h := New(testLogger(), func(ctx context.Context, images, names []string) ([]ContainerCheck, error) {
+			h := New(newTestLogger(t), func(ctx context.Context, images, names []string) ([]ContainerCheck, error) {
 				capturedImages = images
 				capturedNames = names
 
@@ -162,7 +162,7 @@ func TestHandler_Handle_WithFilters(t *testing.T) {
 
 func TestHandler_Handle_TimeoutOverride(t *testing.T) {
 	t.Run("valid timeout is applied", func(t *testing.T) {
-		h := New(testLogger(), func(ctx context.Context, _, _ []string) ([]ContainerCheck, error) {
+		h := New(newTestLogger(t), func(ctx context.Context, _, _ []string) ([]ContainerCheck, error) {
 			return []ContainerCheck{}, nil
 		}, 5*time.Minute, nil, false, nil, events.ScanStartedData{})
 		app := fiber.New(fiber.Config{})
@@ -178,7 +178,7 @@ func TestHandler_Handle_TimeoutOverride(t *testing.T) {
 	})
 
 	t.Run("timeout exceeding max is clamped", func(t *testing.T) {
-		h := New(testLogger(), func(ctx context.Context, _, _ []string) ([]ContainerCheck, error) {
+		h := New(newTestLogger(t), func(ctx context.Context, _, _ []string) ([]ContainerCheck, error) {
 			return []ContainerCheck{}, nil
 		}, 2*time.Minute, nil, false, nil, events.ScanStartedData{})
 		app := fiber.New(fiber.Config{})
@@ -194,7 +194,7 @@ func TestHandler_Handle_TimeoutOverride(t *testing.T) {
 	})
 
 	t.Run("invalid timeout is ignored", func(t *testing.T) {
-		h := New(testLogger(), func(ctx context.Context, _, _ []string) ([]ContainerCheck, error) {
+		h := New(newTestLogger(t), func(ctx context.Context, _, _ []string) ([]ContainerCheck, error) {
 			return []ContainerCheck{}, nil
 		}, 5*time.Minute, nil, false, nil, events.ScanStartedData{})
 		app := fiber.New(fiber.Config{})
@@ -231,7 +231,7 @@ func TestHandler_Handle_EmitsEvents(t *testing.T) {
 		ch, _ := b.SubscribeWithDone()
 		require.NotNil(t, ch)
 
-		h := New(testLogger(),
+		h := New(newTestLogger(t),
 			func(_ context.Context, _, _ []string) ([]ContainerCheck, error) {
 				return []ContainerCheck{
 					{Name: "c1", Image: "nginx:latest", ImageID: "sha256:abc", UpdateAvailable: true},
@@ -283,7 +283,7 @@ func TestHandler_Handle_EmitsEvents(t *testing.T) {
 		ch, _ := b.SubscribeWithDone()
 		require.NotNil(t, ch)
 
-		h := New(testLogger(),
+		h := New(newTestLogger(t),
 			func(_ context.Context, _, _ []string) ([]ContainerCheck, error) {
 				return nil, errors.New("docker api error")
 			},
@@ -323,7 +323,7 @@ func TestHandler_Handle_EmitsEvents(t *testing.T) {
 	})
 
 	t.Run("nil broadcaster emits no events", func(t *testing.T) {
-		h := New(testLogger(),
+		h := New(newTestLogger(t),
 			func(_ context.Context, _, _ []string) ([]ContainerCheck, error) {
 				return []ContainerCheck{{Name: "c1"}}, nil
 			},

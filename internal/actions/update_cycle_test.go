@@ -67,7 +67,7 @@ var _ = ginkgo.Describe("updating a stale container beside a dependency cycle", 
 			false,
 		)
 
-		report, _, err := actions.Update(testLogger(),
+		report, _, err := actions.Update(newNopLogger(),
 			context.Background(),
 			client,
 			types.UpdateParams{Cleanup: true},

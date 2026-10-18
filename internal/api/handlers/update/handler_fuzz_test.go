@@ -31,7 +31,7 @@ func FuzzExtractImagesHandler(f *testing.F) {
 	f.Add("registry.com/org/image:v1.2.3")
 
 	f.Fuzz(func(t *testing.T, raw string) {
-		h := New(testLogger(), func(_ context.Context, _, _ []string) *metrics.Metric {
+		h := New(newNopLogger(), func(_ context.Context, _, _ []string) *metrics.Metric {
 			return &metrics.Metric{}
 		}, nil, testMaxTimeout)
 
@@ -80,7 +80,7 @@ func FuzzExtractContainersHandler(f *testing.F) {
 	f.Add(strings.Repeat("a,", 50))
 
 	f.Fuzz(func(t *testing.T, raw string) {
-		h := New(testLogger(), func(_ context.Context, _, _ []string) *metrics.Metric {
+		h := New(newNopLogger(), func(_ context.Context, _, _ []string) *metrics.Metric {
 			return &metrics.Metric{}
 		}, nil, testMaxTimeout)
 
@@ -129,7 +129,7 @@ func FuzzHandlerNew(f *testing.F) {
 			lock = scheduling.NewUpdateLock()
 		}
 
-		h := New(testLogger(), func(_ context.Context, _, _ []string) *metrics.Metric {
+		h := New(newNopLogger(), func(_ context.Context, _, _ []string) *metrics.Metric {
 			return &metrics.Metric{}
 		}, lock, testMaxTimeout)
 

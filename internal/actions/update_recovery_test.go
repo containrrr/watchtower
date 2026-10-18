@@ -28,7 +28,7 @@ var _ = ginkgo.Describe("TryRecoverOrphanedContainer", func() {
 				time.Now(),
 			)
 
-			recovered, ok := actions.TryRecoverOrphanedContainer(testLogger(),
+			recovered, ok := actions.TryRecoverOrphanedContainer(newNopLogger(),
 				context.Background(),
 				client,
 				current,
@@ -64,7 +64,7 @@ var _ = ginkgo.Describe("TryRecoverOrphanedContainer", func() {
 				Containers: []types.Container{oldContainer, current},
 			}, false, false)
 
-			recovered, ok := actions.TryRecoverOrphanedContainer(testLogger(),
+			recovered, ok := actions.TryRecoverOrphanedContainer(newNopLogger(),
 				context.Background(),
 				client,
 				current,
@@ -106,7 +106,7 @@ var _ = ginkgo.Describe("TryRecoverOrphanedContainer", func() {
 				Containers: []types.Container{orphaned, current},
 			}, false, false)
 
-			recovered, ok := actions.TryRecoverOrphanedContainer(testLogger(),
+			recovered, ok := actions.TryRecoverOrphanedContainer(newNopLogger(),
 				context.Background(),
 				client,
 				current,
@@ -151,7 +151,7 @@ var _ = ginkgo.Describe("TryRecoverOrphanedContainer", func() {
 				StartContainerByIDError: context.DeadlineExceeded,
 			}, false, false)
 
-			recovered, ok := actions.TryRecoverOrphanedContainer(testLogger(),
+			recovered, ok := actions.TryRecoverOrphanedContainer(newNopLogger(),
 				context.Background(),
 				client,
 				current,
@@ -168,14 +168,14 @@ var _ = ginkgo.Describe("TryRecoverOrphanedContainer", func() {
 			client := mockActions.CreateMockClient(&mockActions.TestData{}, false, false)
 
 			gomega.Expect(func() {
-				actions.TryRecoverOrphanedContainer(testLogger(),
+				actions.TryRecoverOrphanedContainer(newNopLogger(),
 					context.Background(),
 					client,
 					nil,
 				)
 			}).NotTo(gomega.Panic())
 
-			recovered, ok := actions.TryRecoverOrphanedContainer(testLogger(),
+			recovered, ok := actions.TryRecoverOrphanedContainer(newNopLogger(),
 				context.Background(),
 				client,
 				nil,
@@ -225,7 +225,7 @@ var _ = ginkgo.Describe("TryRecoverOrphanedContainer", func() {
 				Containers: []types.Container{orphaned, current},
 			}, false, false)
 
-			recovered, ok := actions.TryRecoverOrphanedContainer(testLogger(),
+			recovered, ok := actions.TryRecoverOrphanedContainer(newNopLogger(),
 				context.Background(),
 				client,
 				current,
@@ -275,7 +275,7 @@ var _ = ginkgo.Describe("TryRecoverOrphanedContainer", func() {
 				Containers: []types.Container{orphaned, current},
 			}, false, false)
 
-			recovered, ok := actions.TryRecoverOrphanedContainer(testLogger(),
+			recovered, ok := actions.TryRecoverOrphanedContainer(newNopLogger(),
 				context.Background(),
 				client,
 				current,

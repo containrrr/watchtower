@@ -151,10 +151,10 @@ var _ = ginkgo.Describe("the auth module", func() {
 		defer func() { testRegistry.TLSSkip = originalTLSSkip }()
 
 		// Transform credentials to base64-encoded format as production code does.
-		registryAuth := TransformAuth(testLog(), creds)
+		registryAuth := TransformAuth(newNopLogger(), creds)
 
 		// Execute GetToken and verify the result.
-		result, err := GetToken(testLog(), context.Background(),
+		result, err := GetToken(newNopLogger(), context.Background(),
 			containerInstance,
 			registryAuth,
 			client,
@@ -183,7 +183,7 @@ var _ = ginkgo.Describe("the auth module", func() {
 	// that use a mock HTTPS server to simulate bearer token retrieval.
 	runBearerHeaderTest := func(creds, expectedToken string, expectAuthFailure bool) {
 		// Transform credentials to base64-encoded format as production code does.
-		registryAuth := TransformAuth(testLog(), creds)
+		registryAuth := TransformAuth(newNopLogger(), creds)
 
 		// Create a TLS test server to simulate the registry.
 		server := ghttp.NewTLSServer()
@@ -225,7 +225,7 @@ var _ = ginkgo.Describe("the auth module", func() {
 		ref, _ := reference.ParseNormalizedNamed("test/image")
 
 		// Execute getBearerToken and verify the result.
-		token, err := getBearerToken(testLog(), context.Background(), challenge, ref, registryAuth, client, testRegistry)
+		token, err := getBearerToken(newNopLogger(), context.Background(), challenge, ref, registryAuth, client, testRegistry)
 
 		gomega.Expect(server.ReceivedRequests()).To(gomega.HaveLen(1))
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
@@ -243,9 +243,9 @@ var _ = ginkgo.Describe("the auth module", func() {
 				mockContainerInstance.On("ImageName").Return(mockImage).Maybe()
 
 				client := NewAuthClient(nil, testRegistry)
-				result, err := GetToken(testLog(), context.Background(),
+				result, err := GetToken(newNopLogger(), context.Background(),
 					mockContainerInstance,
-					TransformAuth(testLog(), base64.StdEncoding.EncodeToString([]byte(creds))),
+					TransformAuth(newNopLogger(), base64.StdEncoding.EncodeToString([]byte(creds))),
 					client,
 					testRegistry,
 					"",
@@ -298,7 +298,7 @@ var _ = ginkgo.Describe("the auth module", func() {
 			containerInstance.On("ImageName").Return("nonexistent.local/test/image").Maybe()
 
 			client := NewAuthClient(nil, testRegistry)
-			result, err := GetToken(testLog(), context.Background(),
+			result, err := GetToken(newNopLogger(), context.Background(),
 				containerInstance,
 				"user:pass",
 				client,
@@ -347,7 +347,7 @@ var _ = ginkgo.Describe("the auth module", func() {
 				}
 
 				// Execute GetToken and verify the result.
-				result, err := GetToken(testLog(), context.Background(),
+				result, err := GetToken(newNopLogger(), context.Background(),
 					containerInstance,
 					"",
 					client,
@@ -389,7 +389,7 @@ var _ = ginkgo.Describe("the auth module", func() {
 			client := NewAuthClient(nil, testRegistry)
 
 			// Execute GetToken and verify the expected failure.
-			result, err := GetToken(testLog(), context.Background(),
+			result, err := GetToken(newNopLogger(), context.Background(),
 				containerInstance,
 				"",
 				client,
@@ -440,7 +440,7 @@ var _ = ginkgo.Describe("the auth module", func() {
 			defer func() { testRegistry.TLSSkip = false }()
 
 			// Execute GetToken and verify the result.
-			_, err := GetToken(testLog(), context.Background(),
+			_, err := GetToken(newNopLogger(), context.Background(),
 				containerInstance,
 				"",
 				client,
@@ -486,7 +486,7 @@ var _ = ginkgo.Describe("the auth module", func() {
 			testRegistry.TLSSkip = false
 
 			// Execute GetToken and verify the result.
-			result, err := GetToken(testLog(), context.Background(), containerInstance, "", client, testRegistry, "")
+			result, err := GetToken(newNopLogger(), context.Background(), containerInstance, "", client, testRegistry, "")
 			token := result.Token
 
 			gomega.Expect(server.ReceivedRequests()).To(gomega.HaveLen(1))
@@ -537,7 +537,7 @@ var _ = ginkgo.Describe("the auth module", func() {
 			}
 
 			// Execute GetToken and verify the expected failure.
-			result, err := GetToken(testLog(), context.Background(),
+			result, err := GetToken(newNopLogger(), context.Background(),
 				containerInstance,
 				"",
 				client,
@@ -602,7 +602,7 @@ var _ = ginkgo.Describe("the auth module", func() {
 			testRegistry.TLSSkip = false
 			defer func() { testRegistry.TLSSkip = false }()
 
-			result, err := GetToken(testLog(), context.Background(),
+			result, err := GetToken(newNopLogger(), context.Background(),
 				containerInstance,
 				"",
 				client,
@@ -664,7 +664,7 @@ var _ = ginkgo.Describe("the auth module", func() {
 			testRegistry.TLSSkip = false
 			defer func() { testRegistry.TLSSkip = false }()
 
-			result, err := GetToken(testLog(), context.Background(),
+			result, err := GetToken(newNopLogger(), context.Background(),
 				containerInstance,
 				"",
 				client,
@@ -721,7 +721,7 @@ var _ = ginkgo.Describe("the auth module", func() {
 			testRegistry.TLSSkip = false
 			defer func() { testRegistry.TLSSkip = false }()
 
-			result, err := GetToken(testLog(), context.Background(),
+			result, err := GetToken(newNopLogger(), context.Background(),
 				containerInstance,
 				"",
 				client,
@@ -801,7 +801,7 @@ var _ = ginkgo.Describe("the auth module", func() {
 			testRegistry.TLSSkip = false
 			defer func() { testRegistry.TLSSkip = false }()
 
-			result, err := GetToken(testLog(), context.Background(),
+			result, err := GetToken(newNopLogger(), context.Background(),
 				containerInstance,
 				"",
 				client,
@@ -889,7 +889,7 @@ var _ = ginkgo.Describe("the auth module", func() {
 			defer func() { testRegistry.TLSSkip = false }()
 
 			// Execute GetToken and verify failure due to too many redirects
-			result, err := GetToken(testLog(), context.Background(),
+			result, err := GetToken(newNopLogger(), context.Background(),
 				containerInstance,
 				"",
 				client,
@@ -920,7 +920,7 @@ var _ = ginkgo.Describe("the auth module", func() {
 				Host:   "example.com",
 				Path:   "/v2/",
 			}
-			req, err := getChallengeRequest(testLog(), context.Background(), url)
+			req, err := getChallengeRequest(newNopLogger(), context.Background(), url)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			gomega.Expect(req.Method).To(gomega.Equal(http.MethodGet))
 			gomega.Expect(req.URL.String()).To(gomega.Equal("https://example.com/v2/"))
@@ -936,7 +936,7 @@ var _ = ginkgo.Describe("the auth module", func() {
 				Scheme: "://", // Invalid scheme
 				Host:   "example.com",
 			}
-			req, err := getChallengeRequest(testLog(), context.Background(), url)
+			req, err := getChallengeRequest(newNopLogger(), context.Background(), url)
 			gomega.Expect(err).To(gomega.HaveOccurred())
 			gomega.Expect(req).To(gomega.BeNil())
 		})
@@ -971,7 +971,7 @@ var _ = ginkgo.Describe("the auth module", func() {
 			}
 			challenge := `bearer realm="http://nonexistent.local/token",service="test-service",scope="repository:test/image:pull"`
 			ref, _ := reference.ParseNormalizedNamed("test/image")
-			token, err := getBearerToken(testLog(), context.Background(), challenge, ref, "", client, testRegistry)
+			token, err := getBearerToken(newNopLogger(), context.Background(), challenge, ref, "", client, testRegistry)
 			gomega.Expect(err).To(gomega.HaveOccurred())
 			gomega.Expect(token).To(gomega.Equal(""))
 		})
@@ -1009,7 +1009,7 @@ var _ = ginkgo.Describe("the auth module", func() {
 			ref, _ := reference.ParseNormalizedNamed("test/image")
 
 			// Execute getBearerToken and verify the failure.
-			token, err := getBearerToken(testLog(), context.Background(), challenge, ref, "", client, testRegistry)
+			token, err := getBearerToken(newNopLogger(), context.Background(), challenge, ref, "", client, testRegistry)
 
 			gomega.Expect(server.ReceivedRequests()).To(gomega.HaveLen(1))
 			gomega.Expect(err).To(gomega.HaveOccurred())
@@ -1070,7 +1070,7 @@ var _ = ginkgo.Describe("the auth module", func() {
 			)
 
 			// Call getBearerToken directly to test processChallenge
-			token, err := getBearerToken(testLog(), context.Background(), challenge, ref, "", client, testRegistry)
+			token, err := getBearerToken(newNopLogger(), context.Background(), challenge, ref, "", client, testRegistry)
 
 			gomega.Expect(server.ReceivedRequests()).To(gomega.HaveLen(1))
 			gomega.Expect(err).
@@ -1097,7 +1097,7 @@ var _ = ginkgo.Describe("the auth module", func() {
 					RawQuery: "scope=repository%3Anicholas-fedor%2Fwatchtower%3Apull&service=ghcr.io",
 				}
 
-				URL, err := getAuthURL(testLog(), challenge, imageRef, "", testRegistry)
+				URL, err := getAuthURL(newNopLogger(), challenge, imageRef, "", testRegistry)
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
 				gomega.Expect(URL).To(gomega.Equal(expected))
 			},
@@ -1108,7 +1108,7 @@ var _ = ginkgo.Describe("the auth module", func() {
 				challenge := `bearer service="ghcr.io"`
 				imageRef, err := reference.ParseNormalizedNamed("nicholas-fedor/watchtower")
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
-				URL, err := getAuthURL(testLog(), challenge, imageRef, "", testRegistry)
+				URL, err := getAuthURL(newNopLogger(), challenge, imageRef, "", testRegistry)
 				gomega.Expect(err).To(gomega.HaveOccurred())
 				gomega.Expect(URL).To(gomega.BeNil())
 			})
@@ -1119,7 +1119,7 @@ var _ = ginkgo.Describe("the auth module", func() {
 			imageRef, err := reference.ParseNormalizedNamed("registry.example.com/test/image:latest")
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			URL, err := getAuthURL(testLog(), challenge, imageRef, "", testRegistry)
+			URL, err := getAuthURL(newNopLogger(), challenge, imageRef, "", testRegistry)
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			gomega.Expect(URL.String()).
@@ -1131,7 +1131,7 @@ var _ = ginkgo.Describe("the auth module", func() {
 			imageRef, err := reference.ParseNormalizedNamed("registry.example.com/test/image:latest")
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			URL, err := getAuthURL(testLog(), challenge, imageRef, "", testRegistry)
+			URL, err := getAuthURL(newNopLogger(), challenge, imageRef, "", testRegistry)
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			gomega.Expect(URL.String()).
@@ -1143,7 +1143,7 @@ var _ = ginkgo.Describe("the auth module", func() {
 			imageRef, err := reference.ParseNormalizedNamed("localhost:5000/test/image:latest")
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			URL, err := getAuthURL(testLog(), challenge, imageRef, "", testRegistry)
+			URL, err := getAuthURL(newNopLogger(), challenge, imageRef, "", testRegistry)
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			gomega.Expect(URL.String()).
@@ -1155,7 +1155,7 @@ var _ = ginkgo.Describe("the auth module", func() {
 			imageRef, err := reference.ParseNormalizedNamed("registry.example.com/test/image:latest")
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			URL, err := getAuthURL(testLog(), challenge, imageRef, "", testRegistry)
+			URL, err := getAuthURL(newNopLogger(), challenge, imageRef, "", testRegistry)
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			gomega.Expect(URL.String()).
@@ -1167,7 +1167,7 @@ var _ = ginkgo.Describe("the auth module", func() {
 			imageRef, err := reference.ParseNormalizedNamed("registry.example.com/test/image:latest")
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			URL, err := getAuthURL(testLog(), challenge, imageRef, "", testRegistry)
+			URL, err := getAuthURL(newNopLogger(), challenge, imageRef, "", testRegistry)
 
 			gomega.Expect(err).To(gomega.HaveOccurred())
 			gomega.Expect(URL).To(gomega.BeNil())
@@ -1208,7 +1208,7 @@ var _ = ginkgo.Describe("the auth module", func() {
 			input := `bearer realm="https://ghcr.io/token",service="ghcr.io",scope="repository:user/image:pull",`
 			imageRef, err := reference.ParseNormalizedNamed("nicholas-fedor/watchtower")
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-			res, err := getAuthURL(testLog(), input, imageRef, "", testRegistry)
+			res, err := getAuthURL(newNopLogger(), input, imageRef, "", testRegistry)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			gomega.Expect(res).NotTo(gomega.BeNil())
 		})
@@ -1219,7 +1219,7 @@ var _ = ginkgo.Describe("the auth module", func() {
 			input := `bearer realm="https://ghcr.io/token",service="ghcr.io",scope="repository:user/image:pull",valuelesskey`
 			imageRef, err := reference.ParseNormalizedNamed("nicholas-fedor/watchtower")
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-			res, err := getAuthURL(testLog(), input, imageRef, "", testRegistry)
+			res, err := getAuthURL(newNopLogger(), input, imageRef, "", testRegistry)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			gomega.Expect(res).NotTo(gomega.BeNil())
 		})
@@ -1235,7 +1235,7 @@ var _ = ginkgo.Describe("the auth module", func() {
 				imageRef, _ := reference.ParseNormalizedNamed(
 					"ghcr.io/nicholas-fedor/watchtower:latest",
 				)
-				gomega.Expect(getChallengeURL(testLog(), imageRef, testRegistry, "")).To(gomega.Equal(expected))
+				gomega.Expect(getChallengeURL(newNopLogger(), imageRef, testRegistry, "")).To(gomega.Equal(expected))
 			},
 		)
 
@@ -1244,7 +1244,7 @@ var _ = ginkgo.Describe("the auth module", func() {
 		ginkgo.It("should assume Docker Hub for image refs with no explicit registry", func() {
 			expected := url.URL{Host: "index.docker.io", Scheme: "https", Path: "/v2/"}
 			imageRef, _ := reference.ParseNormalizedNamed("nickfedor/watchtower:latest")
-			gomega.Expect(getChallengeURL(testLog(), imageRef, testRegistry, "")).To(gomega.Equal(expected))
+			gomega.Expect(getChallengeURL(newNopLogger(), imageRef, testRegistry, "")).To(gomega.Equal(expected))
 		})
 
 		// Test case: Confirms getChallengeURL uses "index.docker.io" for "docker.io" registry
@@ -1252,77 +1252,77 @@ var _ = ginkgo.Describe("the auth module", func() {
 		ginkgo.It("should use index.docker.io if the image ref specifies docker.io", func() {
 			expected := url.URL{Host: "index.docker.io", Scheme: "https", Path: "/v2/"}
 			imageRef, _ := reference.ParseNormalizedNamed("docker.io/nickfedor/watchtower:latest")
-			gomega.Expect(getChallengeURL(testLog(), imageRef, testRegistry, "")).To(gomega.Equal(expected))
+			gomega.Expect(getChallengeURL(newNopLogger(), imageRef, testRegistry, "")).To(gomega.Equal(expected))
 		})
 
 		// Test case: Verifies getChallengeURL uses the endpoint host when provided.
 		ginkgo.It("should use endpoint host and scheme when provided", func() {
 			expected := url.URL{Host: "mirror.example.com", Scheme: "https", Path: "/v2/"}
 			imageRef, _ := reference.ParseNormalizedNamed("docker.io/library/nginx:latest")
-			gomega.Expect(getChallengeURL(testLog(), imageRef, testRegistry, "https://mirror.example.com")).To(gomega.Equal(expected))
+			gomega.Expect(getChallengeURL(newNopLogger(), imageRef, testRegistry, "https://mirror.example.com")).To(gomega.Equal(expected))
 		})
 
 		// Test case: Verifies getChallengeURL uses default https scheme for a bare endpoint.
 		ginkgo.It("should use default https scheme for bare endpoint", func() {
 			expected := url.URL{Host: "mirror.example.com", Scheme: "https", Path: "/v2/"}
 			imageRef, _ := reference.ParseNormalizedNamed("docker.io/library/nginx:latest")
-			gomega.Expect(getChallengeURL(testLog(), imageRef, testRegistry, "mirror.example.com")).To(gomega.Equal(expected))
+			gomega.Expect(getChallengeURL(newNopLogger(), imageRef, testRegistry, "mirror.example.com")).To(gomega.Equal(expected))
 		})
 
 		// Test case: Verifies getChallengeURL preserves http scheme when endpoint specifies it.
 		ginkgo.It("should use http scheme when endpoint specifies http", func() {
 			expected := url.URL{Host: "mirror.example.com", Scheme: "http", Path: "/v2/"}
 			imageRef, _ := reference.ParseNormalizedNamed("docker.io/library/nginx:latest")
-			gomega.Expect(getChallengeURL(testLog(), imageRef, testRegistry, "http://mirror.example.com")).To(gomega.Equal(expected))
+			gomega.Expect(getChallengeURL(newNopLogger(), imageRef, testRegistry, "http://mirror.example.com")).To(gomega.Equal(expected))
 		})
 
 		// Test case: Verifies getChallengeURL preserves port from endpoint.
 		ginkgo.It("should preserve port from endpoint", func() {
 			expected := url.URL{Host: "mirror.example.com:5000", Scheme: "https", Path: "/v2/"}
 			imageRef, _ := reference.ParseNormalizedNamed("docker.io/library/nginx:latest")
-			gomega.Expect(getChallengeURL(testLog(), imageRef, testRegistry, "https://mirror.example.com:5000")).To(gomega.Equal(expected))
+			gomega.Expect(getChallengeURL(newNopLogger(), imageRef, testRegistry, "https://mirror.example.com:5000")).To(gomega.Equal(expected))
 		})
 
 		// Test case: Verifies getChallengeURL uses endpoint as bare host when URL parsing fails.
 		ginkgo.It("should use endpoint as bare host when URL parsing fails", func() {
 			expected := url.URL{Host: "invalid url with spaces", Scheme: "https", Path: "/v2/"}
 			imageRef, _ := reference.ParseNormalizedNamed("docker.io/library/nginx:latest")
-			gomega.Expect(getChallengeURL(testLog(), imageRef, testRegistry, "invalid url with spaces")).To(gomega.Equal(expected))
+			gomega.Expect(getChallengeURL(newNopLogger(), imageRef, testRegistry, "invalid url with spaces")).To(gomega.Equal(expected))
 		})
 
 		// Test case: Verifies endpoint takes precedence over lscr.io special handling.
 		ginkgo.It("should use endpoint even for lscr.io images", func() {
 			expected := url.URL{Host: "mirror.example.com", Scheme: "https", Path: "/v2/"}
 			imageRef, _ := reference.ParseNormalizedNamed("lscr.io/library/nginx:latest")
-			gomega.Expect(getChallengeURL(testLog(), imageRef, testRegistry, "https://mirror.example.com")).To(gomega.Equal(expected))
+			gomega.Expect(getChallengeURL(newNopLogger(), imageRef, testRegistry, "https://mirror.example.com")).To(gomega.Equal(expected))
 		})
 	})
 
 	ginkgo.Describe("GetRegistryAddress", func() {
 		ginkgo.It("should return error if passed empty string", func() {
-			_, err := GetRegistryAddress(testLog(), "")
+			_, err := GetRegistryAddress(newNopLogger(), "")
 			gomega.Expect(err).To(gomega.HaveOccurred())
 		})
 		ginkgo.It("should return index.docker.io for image refs with no explicit registry", func() {
-			gomega.Expect(GetRegistryAddress(testLog(), "watchtower")).To(gomega.Equal("index.docker.io"))
-			gomega.Expect(GetRegistryAddress(testLog(), "nickfedor/watchtower")).
+			gomega.Expect(GetRegistryAddress(newNopLogger(), "watchtower")).To(gomega.Equal("index.docker.io"))
+			gomega.Expect(GetRegistryAddress(newNopLogger(), "nickfedor/watchtower")).
 				To(gomega.Equal("index.docker.io"))
 		})
 		ginkgo.It("should return index.docker.io for image refs with docker.io domain", func() {
-			gomega.Expect(GetRegistryAddress(testLog(), "docker.io/watchtower")).
+			gomega.Expect(GetRegistryAddress(newNopLogger(), "docker.io/watchtower")).
 				To(gomega.Equal("index.docker.io"))
-			gomega.Expect(GetRegistryAddress(testLog(), "docker.io/nickfedor/watchtower")).
+			gomega.Expect(GetRegistryAddress(newNopLogger(), "docker.io/nickfedor/watchtower")).
 				To(gomega.Equal("index.docker.io"))
 		})
 		ginkgo.It("should return the host if passed an image name containing a local host", func() {
-			gomega.Expect(GetRegistryAddress(testLog(), "henk:80/watchtower")).To(gomega.Equal("henk:80"))
-			gomega.Expect(GetRegistryAddress(testLog(), "localhost/watchtower")).
+			gomega.Expect(GetRegistryAddress(newNopLogger(), "henk:80/watchtower")).To(gomega.Equal("henk:80"))
+			gomega.Expect(GetRegistryAddress(newNopLogger(), "localhost/watchtower")).
 				To(gomega.Equal("localhost"))
 		})
 		ginkgo.It(
 			"should return the server address if passed a fully qualified image name",
 			func() {
-				gomega.Expect(GetRegistryAddress(testLog(), "github.com/nicholas-fedor/config")).
+				gomega.Expect(GetRegistryAddress(newNopLogger(), "github.com/nicholas-fedor/config")).
 					To(gomega.Equal("github.com"))
 			},
 		)
@@ -1340,14 +1340,14 @@ var _ = ginkgo.Describe("the auth module", func() {
 			jsonData, _ := json.Marshal(creds)
 			inputAuth := base64.StdEncoding.EncodeToString(jsonData)
 
-			result := TransformAuth(testLog(), inputAuth)
+			result := TransformAuth(newNopLogger(), inputAuth)
 			expected := base64.StdEncoding.EncodeToString([]byte("testuser:testpass"))
 			gomega.Expect(result).To(gomega.Equal(expected))
 		})
 
 		ginkgo.It("should return original input if decoding fails", func() {
 			inputAuth := "invalid-base64-string"
-			result := TransformAuth(testLog(), inputAuth)
+			result := TransformAuth(newNopLogger(), inputAuth)
 			gomega.Expect(result).To(gomega.Equal(inputAuth))
 		})
 
@@ -1362,13 +1362,13 @@ var _ = ginkgo.Describe("the auth module", func() {
 			jsonData, _ := json.Marshal(creds)
 			inputAuth := base64.StdEncoding.EncodeToString(jsonData)
 
-			result := TransformAuth(testLog(), inputAuth)
+			result := TransformAuth(newNopLogger(), inputAuth)
 			gomega.Expect(result).To(gomega.Equal(inputAuth))
 		})
 
 		ginkgo.It("should handle malformed JSON", func() {
 			inputAuth := base64.StdEncoding.EncodeToString([]byte("invalid json"))
-			result := TransformAuth(testLog(), inputAuth)
+			result := TransformAuth(newNopLogger(), inputAuth)
 			gomega.Expect(result).To(gomega.Equal(inputAuth))
 		})
 
@@ -1381,7 +1381,7 @@ var _ = ginkgo.Describe("the auth module", func() {
 			jsonData, _ := json.Marshal(creds)
 			inputAuth := base64.StdEncoding.EncodeToString(jsonData)
 
-			result := TransformAuth(testLog(), inputAuth)
+			result := TransformAuth(newNopLogger(), inputAuth)
 			gomega.Expect(result).To(gomega.Equal(inputAuth))
 		})
 
@@ -1394,7 +1394,7 @@ var _ = ginkgo.Describe("the auth module", func() {
 			jsonData, _ := json.Marshal(creds)
 			inputAuth := base64.StdEncoding.EncodeToString(jsonData)
 
-			result := TransformAuth(testLog(), inputAuth)
+			result := TransformAuth(newNopLogger(), inputAuth)
 			decoded, err := base64.StdEncoding.DecodeString(result)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			gomega.Expect(string(decoded)).To(gomega.Equal(":testpass"))
@@ -1487,7 +1487,7 @@ func getScopeFromImageAuthURL(imageName string) string {
 
 	challenge := `bearer realm="https://dummy.host/token",service="dummy.host"`
 
-	URL, err := getAuthURL(testLog(), challenge, normalizedRef, "", testRegistry)
+	URL, err := getAuthURL(newNopLogger(), challenge, normalizedRef, "", testRegistry)
 	if err != nil {
 		return "" // Return empty string on auth URL failure
 	}

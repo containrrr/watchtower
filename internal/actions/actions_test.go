@@ -42,7 +42,7 @@ var _ = ginkgo.Describe("Actions", func() {
 			ginkgo.It("should return a zero metric", func() {
 				err := errors.New("test error")
 
-				metric := handleUpdateResult(testLogger(), nil, err, nil)
+				metric := handleUpdateResult(newNopLogger(), nil, err, nil)
 				gomega.Expect(metric).NotTo(gomega.BeNil())
 				gomega.Expect(metric.Scanned).To(gomega.Equal(0))
 				gomega.Expect(metric.Updated).To(gomega.Equal(0))
@@ -52,7 +52,7 @@ var _ = ginkgo.Describe("Actions", func() {
 
 		ginkgo.When("given a nil result", func() {
 			ginkgo.It("should return a zero metric", func() {
-				metric := handleUpdateResult(testLogger(), nil, nil, nil)
+				metric := handleUpdateResult(newNopLogger(), nil, nil, nil)
 				gomega.Expect(metric).NotTo(gomega.BeNil())
 				gomega.Expect(metric.Scanned).To(gomega.Equal(0))
 				gomega.Expect(metric.Updated).To(gomega.Equal(0))
@@ -63,7 +63,7 @@ var _ = ginkgo.Describe("Actions", func() {
 		ginkgo.When("given a valid result with no error", func() {
 			ginkgo.It("should return nil", func() {
 				result := &mockTypes.MockReport{}
-				metric := handleUpdateResult(testLogger(), result, nil, nil)
+				metric := handleUpdateResult(newNopLogger(), result, nil, nil)
 				gomega.Expect(metric).To(gomega.BeNil())
 			})
 		})
@@ -91,7 +91,7 @@ var _ = ginkgo.Describe("Actions", func() {
 				)
 
 				params := RunUpdatesWithNotificationsParams{
-					Logger:                       testLogger(),
+					Logger:                       newNopLogger(),
 					Client:                       client,
 					Notifier:                     nil,
 					NotificationSplitByContainer: false,
@@ -131,7 +131,7 @@ var _ = ginkgo.Describe("Actions", func() {
 				notifier.EXPECT().SendNotification(mock.Anything).Return()
 
 				params := RunUpdatesWithNotificationsParams{
-					Logger:                       testLogger(),
+					Logger:                       newNopLogger(),
 					Client:                       client,
 					Notifier:                     notifier,
 					NotificationSplitByContainer: true,
@@ -157,7 +157,7 @@ var _ = ginkgo.Describe("Actions", func() {
 				)
 
 				params := RunUpdatesWithNotificationsParams{
-					Logger:                       testLogger(),
+					Logger:                       newNopLogger(),
 					Client:                       client,
 					Notifier:                     nil,
 					NotificationSplitByContainer: false,
@@ -221,7 +221,7 @@ var _ = ginkgo.Describe("Actions", func() {
 					update.CurrentContainerID = types.ContainerID("container1-id")
 
 					params := RunUpdatesWithNotificationsParams{
-						Logger:                       testLogger(),
+						Logger:                       newNopLogger(),
 						Client:                       client,
 						Notifier:                     nil,
 						NotificationSplitByContainer: false,
@@ -327,7 +327,7 @@ var _ = ginkgo.Describe("Actions", func() {
 			}
 
 			// Test that function can be called without panicking
-			result, cleanupImages, err := executeUpdate(testLogger(),
+			result, cleanupImages, err := executeUpdate(newNopLogger(),
 				context.Background(),
 				client,
 				config,
@@ -347,18 +347,18 @@ var _ = ginkgo.Describe("Actions", func() {
 		ginkgo.It("should start notification when notifier is provided", func() {
 			notifier := mockTypes.NewMockNotifier(ginkgo.GinkgoT())
 			notifier.EXPECT().StartNotification(false).Return()
-			startNotifications(testLogger(), notifier, false)
+			startNotifications(newNopLogger(), notifier, false)
 			notifier.AssertExpectations(ginkgo.GinkgoT())
 		})
 
 		ginkgo.It("should not panic when notifier is nil", func() {
-			startNotifications(testLogger(), nil, false)
+			startNotifications(newNopLogger(), nil, false)
 		})
 
 		ginkgo.It("should start notification with split enabled", func() {
 			notifier := mockTypes.NewMockNotifier(ginkgo.GinkgoT())
 			notifier.EXPECT().StartNotification(true).Return()
-			startNotifications(testLogger(), notifier, true)
+			startNotifications(newNopLogger(), notifier, true)
 			notifier.AssertExpectations(ginkgo.GinkgoT())
 		})
 	})
@@ -380,7 +380,7 @@ var _ = ginkgo.Describe("Actions", func() {
 			mockReport.EXPECT().Failed().Return([]types.ContainerReport{})
 
 			// Function just logs, so we verify it doesn't panic and calls expected methods
-			logUpdateReport(testLogger(), mockReport)
+			logUpdateReport(newNopLogger(), mockReport)
 		})
 
 		ginkgo.It("should handle reports with no updates", func() {
@@ -396,14 +396,14 @@ var _ = ginkgo.Describe("Actions", func() {
 			mockReport.EXPECT().Failed().Return([]types.ContainerReport{})
 
 			// Should handle empty updated containers gracefully
-			logUpdateReport(testLogger(), mockReport)
+			logUpdateReport(newNopLogger(), mockReport)
 		})
 	})
 
 	ginkgo.Describe("sendNotifications", func() {
 		ginkgo.It("should not send notifications when notifier is nil", func() {
 			mockReport := mockTypes.NewMockReport(ginkgo.GinkgoT())
-			sendNotifications(testLogger(), nil, false, false, mockReport, []types.RemovedImageInfo{})
+			sendNotifications(newNopLogger(), nil, false, false, mockReport, []types.RemovedImageInfo{})
 			// No expectations since notifier is nil
 		})
 
@@ -412,7 +412,7 @@ var _ = ginkgo.Describe("Actions", func() {
 			notifier := mockTypes.NewMockNotifier(ginkgo.GinkgoT())
 			notifier.EXPECT().ShouldSendNotification(mockReport).Return(true)
 			notifier.EXPECT().SendNotification(mockReport).Return()
-			sendNotifications(testLogger(), notifier, false, false, mockReport, []types.RemovedImageInfo{})
+			sendNotifications(newNopLogger(), notifier, false, false, mockReport, []types.RemovedImageInfo{})
 			notifier.AssertExpectations(ginkgo.GinkgoT())
 		})
 
@@ -429,7 +429,7 @@ var _ = ginkgo.Describe("Actions", func() {
 			mockReport.EXPECT().Skipped().Return([]types.ContainerReport{})
 			mockReport.EXPECT().Fresh().Return([]types.ContainerReport{})
 
-			sendNotifications(testLogger(), notifier, true, false, mockReport, []types.RemovedImageInfo{})
+			sendNotifications(newNopLogger(), notifier, true, false, mockReport, []types.RemovedImageInfo{})
 			notifier.AssertExpectations(ginkgo.GinkgoT())
 		})
 	})
@@ -458,7 +458,7 @@ var _ = ginkgo.Describe("Actions", func() {
 				notifier.EXPECT().ShouldSendNotification(mock.Anything).Return(true)
 				notifier.EXPECT().SendNotification(mock.Anything).Return()
 
-				sendSplitNotifications(testLogger(), notifier, true, mockReport, []types.RemovedImageInfo{})
+				sendSplitNotifications(newNopLogger(), notifier, true, mockReport, []types.RemovedImageInfo{})
 
 				notifier.AssertExpectations(ginkgo.GinkgoT())
 			},
@@ -477,7 +477,7 @@ var _ = ginkgo.Describe("Actions", func() {
 			mockReport.EXPECT().Fresh().Return([]types.ContainerReport{})
 
 			// With empty results, no notifications should be sent
-			sendSplitNotifications(testLogger(), notifier, true, mockReport, []types.RemovedImageInfo{})
+			sendSplitNotifications(newNopLogger(), notifier, true, mockReport, []types.RemovedImageInfo{})
 			notifier.AssertExpectations(ginkgo.GinkgoT())
 		})
 
@@ -504,7 +504,7 @@ var _ = ginkgo.Describe("Actions", func() {
 				notifier.EXPECT().ShouldSendNotification(mock.Anything).Return(true)
 				notifier.EXPECT().SendNotification(mock.Anything).Return()
 
-				sendSplitNotifications(testLogger(), notifier, false, mockReport, []types.RemovedImageInfo{})
+				sendSplitNotifications(newNopLogger(), notifier, false, mockReport, []types.RemovedImageInfo{})
 				notifier.AssertExpectations(ginkgo.GinkgoT())
 			},
 		)
@@ -529,7 +529,7 @@ var _ = ginkgo.Describe("Actions", func() {
 			notifier.EXPECT().ShouldSendNotification(mock.Anything).Return(true)
 			notifier.EXPECT().SendNotification(mock.Anything).Return()
 
-			sendSplitNotifications(testLogger(), notifier, true, mockReport, []types.RemovedImageInfo{})
+			sendSplitNotifications(newNopLogger(), notifier, true, mockReport, []types.RemovedImageInfo{})
 			notifier.AssertExpectations(ginkgo.GinkgoT())
 		})
 
@@ -551,7 +551,7 @@ var _ = ginkgo.Describe("Actions", func() {
 			notifier := mockTypes.NewMockNotifier(ginkgo.GinkgoT())
 			// No SendNotification should be called due to empty name
 
-			sendSplitNotifications(testLogger(), notifier, true, mockReport, []types.RemovedImageInfo{})
+			sendSplitNotifications(newNopLogger(), notifier, true, mockReport, []types.RemovedImageInfo{})
 			notifier.AssertExpectations(ginkgo.GinkgoT())
 		})
 
@@ -578,7 +578,7 @@ var _ = ginkgo.Describe("Actions", func() {
 				notifier.EXPECT().ShouldSendNotification(mock.Anything).Return(true)
 				notifier.EXPECT().SendNotification(mock.Anything).Return()
 
-				sendSplitNotifications(testLogger(), notifier, true, mockReport, []types.RemovedImageInfo{})
+				sendSplitNotifications(newNopLogger(), notifier, true, mockReport, []types.RemovedImageInfo{})
 				notifier.AssertExpectations(ginkgo.GinkgoT())
 			},
 		)
@@ -604,7 +604,7 @@ var _ = ginkgo.Describe("Actions", func() {
 			notifier.EXPECT().ShouldSendNotification(mock.Anything).Return(true)
 			notifier.EXPECT().SendNotification(mock.Anything).Return()
 
-			sendSplitNotifications(testLogger(), notifier, false, mockReport, []types.RemovedImageInfo{})
+			sendSplitNotifications(newNopLogger(), notifier, false, mockReport, []types.RemovedImageInfo{})
 			notifier.AssertExpectations(ginkgo.GinkgoT())
 		})
 
@@ -629,7 +629,7 @@ var _ = ginkgo.Describe("Actions", func() {
 			notifier.EXPECT().ShouldSendNotification(mock.Anything).Return(true)
 			notifier.EXPECT().SendNotification(mock.Anything).Return()
 
-			sendSplitNotifications(testLogger(), notifier, false, mockReport, []types.RemovedImageInfo{})
+			sendSplitNotifications(newNopLogger(), notifier, false, mockReport, []types.RemovedImageInfo{})
 			notifier.AssertExpectations(ginkgo.GinkgoT())
 		})
 
@@ -655,7 +655,7 @@ var _ = ginkgo.Describe("Actions", func() {
 			notifier.EXPECT().ShouldSendNotification(mock.Anything).Return(true)
 			notifier.EXPECT().SendNotification(mock.Anything).Return()
 
-			sendSplitNotifications(testLogger(), notifier, false, mockReport, []types.RemovedImageInfo{})
+			sendSplitNotifications(newNopLogger(), notifier, false, mockReport, []types.RemovedImageInfo{})
 			notifier.AssertExpectations(ginkgo.GinkgoT())
 		})
 
@@ -674,7 +674,7 @@ var _ = ginkgo.Describe("Actions", func() {
 			notifier := mockTypes.NewMockNotifier(ginkgo.GinkgoT())
 			// No SendNotification should be called since all lists are empty
 
-			sendSplitNotifications(testLogger(), notifier, true, mockReport, []types.RemovedImageInfo{})
+			sendSplitNotifications(newNopLogger(), notifier, true, mockReport, []types.RemovedImageInfo{})
 			notifier.AssertExpectations(ginkgo.GinkgoT())
 		})
 
@@ -885,7 +885,7 @@ var _ = ginkgo.Describe("Actions", func() {
 				notifier.EXPECT().ShouldSendNotification(mock.Anything).Return(false)
 				// With notification level set to error and no errors, no notification should be sent
 
-				sendSplitNotifications(testLogger(), notifier, true, mockReport, []types.RemovedImageInfo{})
+				sendSplitNotifications(newNopLogger(), notifier, true, mockReport, []types.RemovedImageInfo{})
 				notifier.AssertExpectations(ginkgo.GinkgoT())
 			})
 		})
@@ -894,13 +894,13 @@ var _ = ginkgo.Describe("Actions", func() {
 	ginkgo.Describe("performImageCleanup", func() {
 		ginkgo.It("should return empty slice when cleanup is disabled", func() {
 			client := mockActions.CreateMockClient(&mockActions.TestData{}, false, false)
-			cleanedImages := performImageCleanup(testLogger(), context.Background(), client, false, []types.RemovedImageInfo{}, 0)
+			cleanedImages := performImageCleanup(newNopLogger(), context.Background(), client, false, []types.RemovedImageInfo{}, 0)
 			gomega.Expect(cleanedImages).To(gomega.BeEmpty())
 		})
 
 		ginkgo.It("should perform cleanup when cleanup is enabled", func() {
 			client := mockActions.CreateMockClient(&mockActions.TestData{}, false, false)
-			cleanedImages := performImageCleanup(testLogger(), context.Background(), client, true, []types.RemovedImageInfo{
+			cleanedImages := performImageCleanup(newNopLogger(), context.Background(), client, true, []types.RemovedImageInfo{
 				{
 					ContainerName: "test-container",
 					ImageName:     "test-image:v1.0",
@@ -914,7 +914,7 @@ var _ = ginkgo.Describe("Actions", func() {
 
 		ginkgo.It("should return a valid slice when cleanup input is empty", func() {
 			client := mockActions.CreateMockClient(&mockActions.TestData{}, false, false)
-			cleanedImages := performImageCleanup(testLogger(), context.Background(), client, true, []types.RemovedImageInfo{}, 0)
+			cleanedImages := performImageCleanup(newNopLogger(), context.Background(), client, true, []types.RemovedImageInfo{}, 0)
 			// Should return a valid slice even with empty input
 			gomega.Expect(cleanedImages).NotTo(gomega.BeNil())
 		})
@@ -924,7 +924,7 @@ var _ = ginkgo.Describe("Actions", func() {
 			ctx, cancel := context.WithCancel(context.Background())
 			cancel()
 
-			cleanedImages := performImageCleanup(testLogger(), ctx, client, true, []types.RemovedImageInfo{
+			cleanedImages := performImageCleanup(newNopLogger(), ctx, client, true, []types.RemovedImageInfo{
 				{
 					ContainerName: "test-container",
 					ImageName:     "test-image:v1.0",
@@ -953,7 +953,7 @@ var _ = ginkgo.Describe("Actions", func() {
 			mockReport.EXPECT().Restarted().Return([]types.ContainerReport{})
 			mockReport.EXPECT().Skipped().Return([]types.ContainerReport{})
 
-			metric := generateAndLogMetric(testLogger(), mockReport)
+			metric := generateAndLogMetric(newNopLogger(), mockReport)
 
 			gomega.Expect(metric).NotTo(gomega.BeNil())
 			gomega.Expect(metric.Scanned).To(gomega.Equal(2))
@@ -971,7 +971,7 @@ var _ = ginkgo.Describe("Actions", func() {
 			mockReport.EXPECT().Restarted().Return([]types.ContainerReport{})
 			mockReport.EXPECT().Skipped().Return([]types.ContainerReport{})
 
-			metric := generateAndLogMetric(testLogger(), mockReport)
+			metric := generateAndLogMetric(newNopLogger(), mockReport)
 
 			gomega.Expect(metric).NotTo(gomega.BeNil())
 			gomega.Expect(metric.Scanned).To(gomega.Equal(0))
@@ -1113,13 +1113,13 @@ var _ = ginkgo.Describe("Actions", func() {
 					defer wg.Done()
 
 					params := RunUpdatesWithNotificationsParams{
-						Logger:                       testLogger(),
+						Logger:                       newNopLogger(),
 						Client:                       clientA,
 						Notifier:                     nil,
 						NotificationSplitByContainer: false,
 						NotificationReport:           false,
 						Update: defaultTestUpdateParams(
-							filters.FilterByScope(testLogger(), "scope-a", filters.NoFilter),
+							filters.FilterByScope(newNopLogger(), "scope-a", filters.NoFilter),
 						),
 					}
 
@@ -1131,13 +1131,13 @@ var _ = ginkgo.Describe("Actions", func() {
 					defer wg.Done()
 
 					params := RunUpdatesWithNotificationsParams{
-						Logger:                       testLogger(),
+						Logger:                       newNopLogger(),
 						Client:                       clientB,
 						Notifier:                     nil,
 						NotificationSplitByContainer: false,
 						NotificationReport:           false,
 						Update: defaultTestUpdateParams(
-							filters.FilterByScope(testLogger(), "scope-b", filters.NoFilter),
+							filters.FilterByScope(newNopLogger(), "scope-b", filters.NoFilter),
 						),
 					}
 
@@ -1234,13 +1234,13 @@ var _ = ginkgo.Describe("Actions", func() {
 					defer wg.Done()
 
 					params := RunUpdatesWithNotificationsParams{
-						Logger:                       testLogger(),
+						Logger:                       newNopLogger(),
 						Client:                       client1,
 						Notifier:                     nil,
 						NotificationSplitByContainer: false,
 						NotificationReport:           false,
 						Update: defaultTestUpdateParams(
-							filters.FilterByScope(testLogger(), "scope1", filters.WatchtowerContainersFilter),
+							filters.FilterByScope(newNopLogger(), "scope1", filters.WatchtowerContainersFilter),
 						),
 					}
 					RunUpdatesWithNotifications(context.Background(), params)
@@ -1250,13 +1250,13 @@ var _ = ginkgo.Describe("Actions", func() {
 					defer wg.Done()
 
 					params := RunUpdatesWithNotificationsParams{
-						Logger:                       testLogger(),
+						Logger:                       newNopLogger(),
 						Client:                       client2,
 						Notifier:                     nil,
 						NotificationSplitByContainer: false,
 						NotificationReport:           false,
 						Update: defaultTestUpdateParams(
-							filters.FilterByScope(testLogger(), "scope2", filters.WatchtowerContainersFilter),
+							filters.FilterByScope(newNopLogger(), "scope2", filters.WatchtowerContainersFilter),
 						),
 					}
 					RunUpdatesWithNotifications(context.Background(), params)
@@ -1341,12 +1341,12 @@ var _ = ginkgo.Describe("Actions", func() {
 				defer wg.Done()
 
 				updateA := defaultTestUpdateParams(
-					filters.FilterByScope(testLogger(), "scope-a", filters.WatchtowerContainersFilter),
+					filters.FilterByScope(newNopLogger(), "scope-a", filters.WatchtowerContainersFilter),
 				)
 				updateA.Cleanup = true
 
 				params := RunUpdatesWithNotificationsParams{
-					Logger:                       testLogger(),
+					Logger:                       newNopLogger(),
 					Client:                       clientA,
 					Notifier:                     nil,
 					NotificationSplitByContainer: false,
@@ -1360,12 +1360,12 @@ var _ = ginkgo.Describe("Actions", func() {
 				defer wg.Done()
 
 				updateB := defaultTestUpdateParams(
-					filters.FilterByScope(testLogger(), "scope-b", filters.WatchtowerContainersFilter),
+					filters.FilterByScope(newNopLogger(), "scope-b", filters.WatchtowerContainersFilter),
 				)
 				updateB.Cleanup = true
 
 				params := RunUpdatesWithNotificationsParams{
-					Logger:                       testLogger(),
+					Logger:                       newNopLogger(),
 					Client:                       clientB,
 					Notifier:                     nil,
 					NotificationSplitByContainer: false,
@@ -1467,13 +1467,13 @@ var _ = ginkgo.Describe("Actions", func() {
 					defer wg.Done()
 
 					params := RunUpdatesWithNotificationsParams{
-						Logger:                       testLogger(),
+						Logger:                       newNopLogger(),
 						Client:                       clientProd,
 						Notifier:                     nil,
 						NotificationSplitByContainer: false,
 						NotificationReport:           false,
 						Update: defaultTestUpdateParams(
-							filters.FilterByScope(testLogger(), "prod", filters.NoFilter),
+							filters.FilterByScope(newNopLogger(), "prod", filters.NoFilter),
 						),
 					}
 
@@ -1485,13 +1485,13 @@ var _ = ginkgo.Describe("Actions", func() {
 					defer wg.Done()
 
 					params := RunUpdatesWithNotificationsParams{
-						Logger:                       testLogger(),
+						Logger:                       newNopLogger(),
 						Client:                       clientDev,
 						Notifier:                     nil,
 						NotificationSplitByContainer: false,
 						NotificationReport:           false,
 						Update: defaultTestUpdateParams(
-							filters.FilterByScope(testLogger(), "dev", filters.NoFilter),
+							filters.FilterByScope(newNopLogger(), "dev", filters.NoFilter),
 						),
 					}
 
@@ -1586,13 +1586,13 @@ var _ = ginkgo.Describe("Actions", func() {
 					client := mockActions.CreateMockClient(testData, false, false)
 
 					params := RunUpdatesWithNotificationsParams{
-						Logger:                       testLogger(),
+						Logger:                       newNopLogger(),
 						Client:                       client,
 						Notifier:                     nil, // No notifications for this test
 						NotificationSplitByContainer: false,
 						NotificationReport:           false,
 						Update: defaultTestUpdateParams(
-							filters.FilterByScope(testLogger(), "scope-a", filters.NoFilter),
+							filters.FilterByScope(newNopLogger(), "scope-a", filters.NoFilter),
 						),
 					}
 
@@ -1666,12 +1666,12 @@ var _ = ginkgo.Describe("Actions", func() {
 
 				// Run scope-a operation (cleanup should fail)
 				updateA := defaultTestUpdateParams(
-					filters.FilterByScope(testLogger(), "scope-a", filters.NoFilter),
+					filters.FilterByScope(newNopLogger(), "scope-a", filters.NoFilter),
 				)
 				updateA.Cleanup = true
 
 				paramsA := RunUpdatesWithNotificationsParams{
-					Logger:                       testLogger(),
+					Logger:                       newNopLogger(),
 					Client:                       clientA,
 					Notifier:                     nil,
 					NotificationSplitByContainer: false,
@@ -1681,12 +1681,12 @@ var _ = ginkgo.Describe("Actions", func() {
 
 				// Run scope-b operation (cleanup should succeed)
 				updateB := defaultTestUpdateParams(
-					filters.FilterByScope(testLogger(), "scope-b", filters.NoFilter),
+					filters.FilterByScope(newNopLogger(), "scope-b", filters.NoFilter),
 				)
 				updateB.Cleanup = true
 
 				paramsB := RunUpdatesWithNotificationsParams{
-					Logger:                       testLogger(),
+					Logger:                       newNopLogger(),
 					Client:                       clientB,
 					Notifier:                     nil,
 					NotificationSplitByContainer: false,
@@ -1797,13 +1797,13 @@ var _ = ginkgo.Describe("Actions", func() {
 						defer wg.Done()
 
 						params := RunUpdatesWithNotificationsParams{
-							Logger:                       testLogger(),
+							Logger:                       newNopLogger(),
 							Client:                       clientX,
 							Notifier:                     nil,
 							NotificationSplitByContainer: false,
 							NotificationReport:           false,
 							Update: defaultTestUpdateParams(
-								filters.FilterByScope(testLogger(), "scope-x", filters.NoFilter),
+								filters.FilterByScope(newNopLogger(), "scope-x", filters.NoFilter),
 							),
 						}
 
@@ -1815,13 +1815,13 @@ var _ = ginkgo.Describe("Actions", func() {
 						defer wg.Done()
 
 						params := RunUpdatesWithNotificationsParams{
-							Logger:                       testLogger(),
+							Logger:                       newNopLogger(),
 							Client:                       clientY,
 							Notifier:                     nil,
 							NotificationSplitByContainer: false,
 							NotificationReport:           false,
 							Update: defaultTestUpdateParams(
-								filters.FilterByScope(testLogger(), "scope-y", filters.NoFilter),
+								filters.FilterByScope(newNopLogger(), "scope-y", filters.NoFilter),
 							),
 						}
 

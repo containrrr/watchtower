@@ -46,7 +46,7 @@ var _ = ginkgo.Describe("GetContainerIDFromCgroupFile", func() {
 				setup(fsys)
 			}
 
-			got, err := GetContainerIDFromCgroupFile(testLog(), fsys)
+			got, err := GetContainerIDFromCgroupFile(nopLog(), fsys)
 			if wantErr == nil {
 				gomega.Expect(err).ToNot(gomega.HaveOccurred())
 			} else {
@@ -76,7 +76,7 @@ var _ = ginkgo.Describe("GetContainerIDFromCgroupFile", func() {
 var _ = ginkgo.Describe("parseContainerIDFromCgroupString", func() {
 	ginkgo.DescribeTable("should extract container ID from string",
 		func(s string, want types.ContainerID, wantErr error) {
-			got, err := parseContainerIDFromCgroupString(testLog(), s)
+			got, err := parseContainerIDFromCgroupString(nopLog(), s)
 			if wantErr == nil {
 				gomega.Expect(err).ToNot(gomega.HaveOccurred())
 			} else {
@@ -147,7 +147,7 @@ var _ = ginkgo.Describe("GetContainerIDFromMountinfo", func() {
 				setup(fsys)
 			}
 
-			got, err := GetContainerIDFromMountinfo(testLog(), fsys)
+			got, err := GetContainerIDFromMountinfo(nopLog(), fsys)
 			if wantErr == nil {
 				gomega.Expect(err).ToNot(gomega.HaveOccurred())
 			} else {
@@ -184,7 +184,7 @@ var _ = ginkgo.Describe("GetContainerIDFromMountinfo", func() {
 var _ = ginkgo.Describe("parseContainerIDFromMountinfo", func() {
 	ginkgo.DescribeTable("should extract container ID from mountinfo string",
 		func(s string, want types.ContainerID, wantErr error) {
-			got, err := parseContainerIDFromMountinfo(testLog(), s)
+			got, err := parseContainerIDFromMountinfo(nopLog(), s)
 			if wantErr == nil {
 				gomega.Expect(err).ToNot(gomega.HaveOccurred())
 			} else {
@@ -281,7 +281,7 @@ var _ = ginkgo.Describe("GetContainerIDFromHostname", func() {
 				setup()
 			}
 
-			got, err := GetContainerIDFromHostname(testLog(), context.Background(), mockClient)
+			got, err := GetContainerIDFromHostname(nopLog(), context.Background(), mockClient)
 			if wantErr {
 				gomega.Expect(err).To(gomega.HaveOccurred())
 				gomega.Expect(got).To(gomega.BeEmpty())
@@ -515,7 +515,7 @@ var _ = ginkgo.Describe("GetCurrentContainerID", func() {
 				setup(fsys)
 			}
 
-			id, err := GetCurrentContainerID(testLog(), context.Background(), fsys, mockClient)
+			id, err := GetCurrentContainerID(nopLog(), context.Background(), fsys, mockClient)
 			if expectError {
 				gomega.Expect(err).To(gomega.HaveOccurred())
 				gomega.Expect(id).To(gomega.BeEmpty())
@@ -712,7 +712,7 @@ func TestParseContainerIDFromMountinfo_Layouts(t *testing.T) {
 
 			mountinfo := "1234 24 0:52 " + tt.root + " /etc/hostname rw,relatime - ext4 /dev/sda1 rw\n"
 
-			got, err := parseContainerIDFromMountinfo(testLog(), mountinfo)
+			got, err := parseContainerIDFromMountinfo(newTestLogger(t), mountinfo)
 			if tt.want == "" {
 				require.ErrorIs(t, err, errNoValidContainerID)
 
@@ -756,7 +756,7 @@ func TestParseContainerIDFromCgroupString_Layouts(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, err := parseContainerIDFromCgroupString(testLog(), tt.cgroup)
+			got, err := parseContainerIDFromCgroupString(newTestLogger(t), tt.cgroup)
 			if tt.want == "" {
 				require.ErrorIs(t, err, errNoValidContainerID)
 

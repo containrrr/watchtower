@@ -71,7 +71,7 @@ func TestRemoveExcessContainers_CallerListCollectsImages(t *testing.T) {
 		{ImageID: "org/watchtower:1", ContainerName: "watchtower-old-a"},
 	}
 
-	removed, err := removeExcessContainers(testLogger(), t.Context(), client,
+	removed, err := removeExcessContainers(newTestLogger(t), t.Context(), client,
 		[]types.Container{old1, old2}, true, current, &images)
 	require.NoError(t, err)
 	assert.Equal(t, 2, removed)
@@ -104,7 +104,7 @@ func TestRemoveExcessContainers_PartialFailureKeepsCallerList(t *testing.T) {
 
 		images := []types.RemovedImageInfo{{ImageID: "org/app:1", ContainerName: "app"}}
 
-		removed, err := removeExcessContainers(testLogger(), t.Context(), client,
+		removed, err := removeExcessContainers(newTestLogger(t), t.Context(), client,
 			[]types.Container{stopped, stuck}, true, current, &images)
 		require.ErrorIs(t, err, errStopWatchtowerFailed)
 		assert.Equal(t, 1, removed)
@@ -147,7 +147,7 @@ func TestRemoveExcessContainers_CancelKeepsRemovedInstanceImages(t *testing.T) {
 
 		images := []types.RemovedImageInfo{{ImageID: "org/app:1", ContainerName: "app"}}
 
-		removed, err := removeExcessContainers(testLogger(), ctx, client,
+		removed, err := removeExcessContainers(newTestLogger(t), ctx, client,
 			[]types.Container{removedShared, removedOwn, stuck, pending}, true, current, &images)
 		require.ErrorIs(t, err, context.Canceled)
 		assert.Equal(t, 2, removed)
@@ -178,7 +178,7 @@ func TestRemoveExcessContainers_NoCallerListRemovesImages(t *testing.T) {
 	client.EXPECT().RemoveImageByID(mock.Anything, types.ImageID("org/watchtower:1"), mock.Anything).
 		Return(nil).Once()
 
-	removed, err := removeExcessContainers(testLogger(), t.Context(), client,
+	removed, err := removeExcessContainers(newTestLogger(t), t.Context(), client,
 		[]types.Container{old1, old2}, true, current, nil)
 	require.NoError(t, err)
 	assert.Equal(t, 2, removed)
@@ -206,7 +206,7 @@ func TestUpdate_OldInstanceImageJoinsSessionCleanup(t *testing.T) {
 			return false, c.ImageID(), "", nil
 		}).Maybe()
 
-	_, cleanup, err := update(testLogger(), t.Context(), client,
+	_, cleanup, err := update(newTestLogger(t), t.Context(), client,
 		types.UpdateParams{Cleanup: true, CurrentContainerID: currentID}, ratelimit.New())
 	require.NoError(t, err)
 
@@ -247,7 +247,7 @@ func TestUpdate_SortFailureKeepsOldInstanceImage(t *testing.T) {
 			return false, c.ImageID(), "", nil
 		}).Maybe()
 
-	_, cleanup, err := update(testLogger(), t.Context(), client,
+	_, cleanup, err := update(newTestLogger(t), t.Context(), client,
 		types.UpdateParams{Cleanup: true, CurrentContainerID: currentID}, ratelimit.New())
 	require.ErrorIs(t, err, errSortDependenciesFailed)
 
@@ -284,7 +284,7 @@ func TestRunUpdatesWithNotifications_RemovesOldInstanceImageOnce(t *testing.T) {
 	published, _ := broadcaster.SubscribeWithDone()
 
 	RunUpdatesWithNotifications(t.Context(), RunUpdatesWithNotificationsParams{
-		Logger:           testLogger(),
+		Logger:           newTestLogger(t),
 		Client:           client,
 		Notifier:         notifier,
 		EventBroadcaster: broadcaster,

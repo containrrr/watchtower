@@ -23,9 +23,29 @@ import (
 	mockTypes "github.com/nicholas-fedor/watchtower/pkg/types/mocks"
 )
 
-// testLog returns a logger that discards every event, for tests that do not
-// assert on logs.
-func testLog() *zerolog.Logger {
+// newTestLogger returns a logger that writes each event to the test's log, so a
+// failing test shows what it logged.
+//
+// Parameters:
+//   - t: Test that receives the log lines.
+//
+// Returns:
+//   - *zerolog.Logger: Logger writing to t.
+func newTestLogger(t *testing.T) *zerolog.Logger {
+	t.Helper()
+
+	// Frame 4 skips zerolog's write path, so each line names the log call.
+	w := zerolog.TestWriter{T: t, Frame: 4}
+
+	return new(zerolog.New(w))
+}
+
+// newNopLogger returns a logger that discards every event, for Ginkgo specs,
+// benchmarks, and fuzz targets.
+//
+// Returns:
+//   - *zerolog.Logger: Logger that discards all events.
+func newNopLogger() *zerolog.Logger {
 	return new(zerolog.Nop())
 }
 
@@ -54,7 +74,7 @@ func Test_resolveChallengeScheme(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := resolveChallengeScheme(testLog(), tt.host, registryConfig.Registry{})
+			got := resolveChallengeScheme(newTestLogger(t), tt.host, registryConfig.Registry{})
 			assert.Equal(t, tt.want, got)
 		})
 	}
@@ -188,7 +208,7 @@ func TestGetChallengeURL(t *testing.T) {
 				return
 			}
 
-			got := getChallengeURL(testLog(), ref, registryConfig.Registry{}, tt.endpoint)
+			got := getChallengeURL(newTestLogger(t), ref, registryConfig.Registry{}, tt.endpoint)
 			if tt.wantErr {
 				assert.Empty(t, got.Host)
 
@@ -227,7 +247,7 @@ func TestGetChallengeRequest(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := getChallengeRequest(testLog(), context.Background(), tt.url)
+			got, err := getChallengeRequest(newTestLogger(t), context.Background(), tt.url)
 			if tt.wantErr {
 				assert.Error(t, err)
 
@@ -316,7 +336,7 @@ func Test_handleEmptyAuthHeader(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := processChallengeResponse(testLog(), ctx,
+			_, err := processChallengeResponse(newTestLogger(t), ctx,
 				mockContainer,
 				tt.registryAuth,
 				mockClient,
@@ -417,7 +437,7 @@ func Test_handleBasicAuthChallenge(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := handleBasicAuthChallenge(testLog(), tt.registryAuth, tt.redirected, tt.redirectHost, tt.originalHost, tt.originalScheme, tt.redirectScheme)
+			got, err := handleBasicAuthChallenge(newTestLogger(t), tt.registryAuth, tt.redirected, tt.redirectHost, tt.originalHost, tt.originalScheme, tt.redirectScheme)
 			if tt.wantErr {
 				assert.Error(t, err)
 
@@ -454,7 +474,7 @@ func Test_handleUnsupportedChallenge(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := handleUnsupportedChallenge(testLog(), tt.challenge)
+			_, err := handleUnsupportedChallenge(newTestLogger(t), tt.challenge)
 			require.Error(t, err)
 			assert.ErrorIs(t, err, errUnsupportedChallenge)
 		})
@@ -578,7 +598,7 @@ func Test_processChallengeResponse(t *testing.T) {
 
 			ctx := context.Background()
 
-			got, err := processChallengeResponse(testLog(), ctx,
+			got, err := processChallengeResponse(newTestLogger(t), ctx,
 				mockContainer,
 				tt.registryAuth,
 				mockClient,
@@ -675,7 +695,7 @@ func Test_handleBearerAuth(t *testing.T) {
 
 			ctx := context.Background()
 
-			got, err := handleBearerAuth(testLog(), ctx, tt.wwwAuthHeader, mockContainer, tt.registryAuth, mockClient, registryConfig.Registry{}, false, "")
+			got, err := handleBearerAuth(newTestLogger(t), ctx, tt.wwwAuthHeader, mockContainer, tt.registryAuth, mockClient, registryConfig.Registry{}, false, "")
 			if tt.wantErr {
 				assert.Error(t, err)
 
@@ -815,7 +835,7 @@ func TestGetToken(t *testing.T) {
 
 			ctx := context.Background()
 
-			got, err := GetToken(testLog(), ctx, tt.container, tt.registryAuth, mockClient, registryConfig.Registry{}, tt.endpoint)
+			got, err := GetToken(newTestLogger(t), ctx, tt.container, tt.registryAuth, mockClient, registryConfig.Registry{}, tt.endpoint)
 			if tt.wantErr {
 				assert.Error(t, err)
 
@@ -840,7 +860,7 @@ func TestGetToken_anonymousGHCRSkipsChallengeOnCachedToken(t *testing.T) {
 	seedAnonymousGHCRToken(t)
 
 	mockClient := mockAuth.NewMockClient(t)
-	got, err := GetToken(testLog(), context.Background(), newGHCRContainer(t), "", mockClient, registryConfig.Registry{}, "")
+	got, err := GetToken(newTestLogger(t), context.Background(), newGHCRContainer(t), "", mockClient, registryConfig.Registry{}, "")
 	require.NoError(t, err)
 	assert.Equal(t, TokenResult{
 		Token:         testAnonymousGHCRToken,
@@ -852,7 +872,7 @@ func TestGetToken_anonymousLSCRSkipsChallengeOnCachedToken(t *testing.T) {
 	seedAnonymousGHCRToken(t)
 
 	mockClient := mockAuth.NewMockClient(t)
-	got, err := GetToken(testLog(), context.Background(), newLSCRContainer(t), "", mockClient, registryConfig.Registry{}, "")
+	got, err := GetToken(newTestLogger(t), context.Background(), newLSCRContainer(t), "", mockClient, registryConfig.Registry{}, "")
 	require.NoError(t, err)
 	assert.Equal(t, TokenResult{
 		Token:         testAnonymousGHCRToken,
@@ -880,7 +900,7 @@ func TestGetToken_anonymousGHCRChallengesWhenCacheEmpty(t *testing.T) {
 		Request:    &http.Request{URL: mustParseURL("https://ghcr.io/token")},
 	}, nil).Once()
 
-	got, err := GetToken(testLog(), context.Background(), newGHCRContainer(t), "", mockClient, registryConfig.Registry{}, "")
+	got, err := GetToken(newTestLogger(t), context.Background(), newGHCRContainer(t), "", mockClient, registryConfig.Registry{}, "")
 	require.NoError(t, err)
 	assert.Equal(t, TokenResult{
 		Token:         "Bearer fresh-ghcr-token",
@@ -922,7 +942,7 @@ func TestGetToken_anonymousGHCRDoesNotSkipMirrorOrCredentials(t *testing.T) {
 				Request:    &http.Request{URL: challengeURL},
 			}, nil).Once()
 
-			got, err := GetToken(testLog(), context.Background(), newGHCRContainer(t), tt.registryAuth, mockClient, registryConfig.Registry{}, tt.endpoint)
+			got, err := GetToken(newTestLogger(t), context.Background(), newGHCRContainer(t), tt.registryAuth, mockClient, registryConfig.Registry{}, tt.endpoint)
 			require.NoError(t, err)
 			assert.Equal(t, TokenResult{
 				Redirected:   false,

@@ -21,11 +21,11 @@ import (
 	"github.com/nicholas-fedor/watchtower/pkg/types"
 )
 
-// nopLog returns a discarded logger for Load and validate tests.
+// newNopLogger returns a discarded logger for Load and validate tests.
 //
 // Returns:
 //   - *zerolog.Logger: Nop logger.
-func nopLog() *zerolog.Logger {
+func newNopLogger() *zerolog.Logger {
 	log := zerolog.Nop()
 
 	return &log
@@ -58,7 +58,7 @@ func bindLoad(t *testing.T, args ...string) (*viper.Viper, *pflag.FlagSet, *cobr
 func TestLoad_DefaultsAndAlignment(t *testing.T) {
 	_, _, cmd := bindLoad(t)
 
-	cfg, err := Load(nopLog(), cmd, []string{"/Foo", "Bar"})
+	cfg, err := Load(newNopLogger(), cmd, []string{"/Foo", "Bar"})
 	require.NoError(t, err)
 
 	assert.Equal(t, "unix:///var/run/docker.sock", cfg.Docker.Host)
@@ -79,7 +79,7 @@ func TestLoad_DefaultsAndAlignment(t *testing.T) {
 func TestLoad_BindError(t *testing.T) {
 	cmd := &cobra.Command{Use: "watchtower"}
 
-	_, err := Load(nopLog(), cmd, nil)
+	_, err := Load(newNopLogger(), cmd, nil)
 	require.Error(t, err)
 	assert.ErrorContains(t, err, "bind configuration:")
 }
@@ -87,7 +87,7 @@ func TestLoad_BindError(t *testing.T) {
 func TestLoad_APIVersionQuotesStripped(t *testing.T) {
 	_, _, cmd := bindLoad(t, "--api-version", `"1.44"`)
 
-	cfg, err := Load(nopLog(), cmd, nil)
+	cfg, err := Load(newNopLogger(), cmd, nil)
 	require.NoError(t, err)
 	assert.Equal(t, "1.44", cfg.Docker.APIVersion)
 }
@@ -95,7 +95,7 @@ func TestLoad_APIVersionQuotesStripped(t *testing.T) {
 func TestLoad_CompatCopiedOntoClient(t *testing.T) {
 	_, _, cmd := bindLoad(t, "--cpu-copy-mode", "full", "--disable-memory-swappiness")
 
-	cfg, err := Load(nopLog(), cmd, nil)
+	cfg, err := Load(newNopLogger(), cmd, nil)
 	require.NoError(t, err)
 	assert.Equal(t, "full", cfg.Compatibility.CPUCopyMode)
 	assert.Equal(t, "full", cfg.Client.CPUCopyMode)
@@ -106,14 +106,14 @@ func TestLoad_CompatCopiedOntoClient(t *testing.T) {
 func TestLoad_RollingRestartWithMonitorOnly(t *testing.T) {
 	_, _, cmd := bindLoad(t, "--rolling-restart", "--monitor-only")
 
-	_, err := Load(nopLog(), cmd, nil)
+	_, err := Load(newNopLogger(), cmd, nil)
 	require.ErrorIs(t, err, errRollingRestartWithMonitorOnly)
 }
 
 func TestLoad_MonitorOnlyWithNoPullSucceeds(t *testing.T) {
 	_, _, cmd := bindLoad(t, "--monitor-only", "--no-pull")
 
-	cfg, err := Load(nopLog(), cmd, nil)
+	cfg, err := Load(newNopLogger(), cmd, nil)
 	require.NoError(t, err)
 	assert.True(t, cfg.Update.MonitorOnly)
 	assert.True(t, cfg.Update.NoPull)
@@ -122,19 +122,19 @@ func TestLoad_MonitorOnlyWithNoPullSucceeds(t *testing.T) {
 func TestLoad_GitAndComposeErrors(t *testing.T) {
 	t.Run("invalid git-image", func(t *testing.T) {
 		_, _, cmd := bindLoad(t, "--git-image", "not-a-mapping")
-		_, err := Load(nopLog(), cmd, nil)
+		_, err := Load(newNopLogger(), cmd, nil)
 		require.ErrorIs(t, err, git.ErrInvalidGitImage)
 	})
 
 	t.Run("invalid compose-project", func(t *testing.T) {
 		_, _, cmd := bindLoad(t, "--compose-project", "nopair")
-		_, err := Load(nopLog(), cmd, nil)
+		_, err := Load(newNopLogger(), cmd, nil)
 		require.ErrorIs(t, err, git.ErrInvalidComposeProject)
 	})
 
 	t.Run("missing ca bundle", func(t *testing.T) {
 		_, _, cmd := bindLoad(t, "--git-ca-bundle", filepath.Join(t.TempDir(), "missing.pem"))
-		_, err := Load(nopLog(), cmd, nil)
+		_, err := Load(newNopLogger(), cmd, nil)
 		require.Error(t, err)
 		assert.ErrorContains(t, err, "git-ca-bundle:")
 	})
@@ -143,7 +143,7 @@ func TestLoad_GitAndComposeErrors(t *testing.T) {
 func TestLoad_InvalidFilterLabel(t *testing.T) {
 	_, _, cmd := bindLoad(t, "--enable-containers-by-label", "not-a-pair")
 
-	_, err := Load(nopLog(), cmd, nil)
+	_, err := Load(newNopLogger(), cmd, nil)
 	require.Error(t, err)
 	assert.ErrorContains(t, err, "build filter:")
 }
@@ -151,21 +151,21 @@ func TestLoad_InvalidFilterLabel(t *testing.T) {
 func TestLoad_NegativeStopTimeout(t *testing.T) {
 	_, _, cmd := bindLoad(t, "--stop-timeout", "-1s")
 
-	_, err := Load(nopLog(), cmd, nil)
+	_, err := Load(newNopLogger(), cmd, nil)
 	require.ErrorIs(t, err, errNegativeStopTimeout)
 }
 
 func TestLoad_InvalidAndNegativeCooldown(t *testing.T) {
 	t.Run("invalid duration", func(t *testing.T) {
 		_, _, cmd := bindLoad(t, "--cooldown-delay", "not-a-duration")
-		_, err := Load(nopLog(), cmd, nil)
+		_, err := Load(newNopLogger(), cmd, nil)
 		require.Error(t, err)
 		assert.ErrorContains(t, err, "cooldown-delay:")
 	})
 
 	t.Run("negative duration", func(t *testing.T) {
 		_, _, cmd := bindLoad(t, "--cooldown-delay", "-1h")
-		_, err := Load(nopLog(), cmd, nil)
+		_, err := Load(newNopLogger(), cmd, nil)
 		require.Error(t, err)
 		assert.ErrorContains(t, err, "cooldown-delay:")
 	})
@@ -229,7 +229,7 @@ func TestLoadUpdate(t *testing.T) {
 			"--use-compose-depends-on", "--label-take-precedence", "--ephemeral-self-update",
 		)
 
-		got, err := loadUpdate(nopLog(), vCfg, flagSet)
+		got, err := loadUpdate(newNopLogger(), vCfg, flagSet)
 		require.NoError(t, err)
 		assert.True(t, got.Cleanup)
 		assert.True(t, got.NoPull)
@@ -245,27 +245,27 @@ func TestLoadUpdate(t *testing.T) {
 
 	t.Run("empty cooldown", func(t *testing.T) {
 		vCfg, flagSet, _ := bindLoad(t)
-		got, err := loadUpdate(nopLog(), vCfg, flagSet)
+		got, err := loadUpdate(newNopLogger(), vCfg, flagSet)
 		require.NoError(t, err)
 		assert.Equal(t, time.Duration(0), got.CooldownDelay)
 	})
 
 	t.Run("subsecond timeout", func(t *testing.T) {
 		vCfg, flagSet, _ := bindLoad(t, "--stop-timeout", "500ms")
-		got, err := loadUpdate(nopLog(), vCfg, flagSet)
+		got, err := loadUpdate(newNopLogger(), vCfg, flagSet)
 		require.NoError(t, err)
 		assert.Equal(t, 500*time.Millisecond, got.StopTimeout)
 	})
 
 	t.Run("negative timeout", func(t *testing.T) {
 		vCfg, flagSet, _ := bindLoad(t, "--stop-timeout", "-5s")
-		_, err := loadUpdate(nopLog(), vCfg, flagSet)
+		_, err := loadUpdate(newNopLogger(), vCfg, flagSet)
 		require.ErrorIs(t, err, errNegativeStopTimeout)
 	})
 
 	t.Run("invalid cooldown", func(t *testing.T) {
 		vCfg, flagSet, _ := bindLoad(t, "--cooldown-delay", "nope")
-		_, err := loadUpdate(nopLog(), vCfg, flagSet)
+		_, err := loadUpdate(newNopLogger(), vCfg, flagSet)
 		require.Error(t, err)
 		assert.ErrorContains(t, err, "cooldown-delay:")
 	})
@@ -274,7 +274,7 @@ func TestLoadUpdate(t *testing.T) {
 		// util.ParseDuration rejects a leading '-' before loadUpdate can return
 		// errNegativeCooldownDelay.
 		vCfg, flagSet, _ := bindLoad(t, "--cooldown-delay", "-2d")
-		_, err := loadUpdate(nopLog(), vCfg, flagSet)
+		_, err := loadUpdate(newNopLogger(), vCfg, flagSet)
 		require.Error(t, err)
 		assert.ErrorContains(t, err, "cooldown-delay:")
 	})
@@ -325,7 +325,7 @@ func TestLoadFilter(t *testing.T) {
 			"--scope", "prod",
 		)
 
-		got, err := loadFilter(nopLog(), vCfg, flagSet, []string{"/App"})
+		got, err := loadFilter(newNopLogger(), vCfg, flagSet, []string{"/App"})
 		require.NoError(t, err)
 		assert.True(t, got.LabelEnable)
 		assert.Equal(t, []string{"SkipMe"}, got.DisableContainers)
@@ -341,7 +341,7 @@ func TestLoadFilter(t *testing.T) {
 
 	t.Run("invalid label pair", func(t *testing.T) {
 		vCfg, flagSet, _ := bindLoad(t, "--disable-containers-by-label", "broken")
-		_, err := loadFilter(nopLog(), vCfg, flagSet, nil)
+		_, err := loadFilter(newNopLogger(), vCfg, flagSet, nil)
 		require.Error(t, err)
 		assert.ErrorContains(t, err, "build filter:")
 	})
@@ -625,11 +625,11 @@ func TestReadOptionalFile(t *testing.T) {
 
 func TestValidate(t *testing.T) {
 	t.Run("ok", func(t *testing.T) {
-		require.NoError(t, validate(nopLog(), Config{}))
+		require.NoError(t, validate(newNopLogger(), Config{}))
 	})
 
 	t.Run("rolling and monitor-only", func(t *testing.T) {
-		err := validate(nopLog(), Config{
+		err := validate(newNopLogger(), Config{
 			Update: update.Update{
 				RollingRestart: true,
 				MonitorOnly:    true,
@@ -639,7 +639,7 @@ func TestValidate(t *testing.T) {
 	})
 
 	t.Run("monitor-only and no-pull warns", func(t *testing.T) {
-		err := validate(nopLog(), Config{
+		err := validate(newNopLogger(), Config{
 			Update: update.Update{
 				MonitorOnly: true,
 				NoPull:      true,

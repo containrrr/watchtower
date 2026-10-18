@@ -28,7 +28,29 @@ import (
 	mockTypes "github.com/nicholas-fedor/watchtower/pkg/types/mocks"
 )
 
-func testLog() *zerolog.Logger {
+// newTestLogger returns a logger that writes each event to the test's log, so a
+// failing test shows what it logged.
+//
+// Parameters:
+//   - t: Test that receives the log lines.
+//
+// Returns:
+//   - *zerolog.Logger: Logger writing to t.
+func newTestLogger(t *testing.T) *zerolog.Logger {
+	t.Helper()
+
+	// Frame 4 skips zerolog's write path, so each line names the log call.
+	w := zerolog.TestWriter{T: t, Frame: 4}
+
+	return new(zerolog.New(w))
+}
+
+// newNopLogger returns a logger that discards every event, for Ginkgo specs,
+// benchmarks, and fuzz targets.
+//
+// Returns:
+//   - *zerolog.Logger: Logger that discards all events.
+func newNopLogger() *zerolog.Logger {
 	return new(zerolog.Nop())
 }
 
@@ -72,7 +94,7 @@ func TestNormalizeDigest(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := NormalizeDigest(testLog(), tt.digest)
+			result := NormalizeDigest(newTestLogger(t), tt.digest)
 			assert.Equal(t, tt.expected, result, "NormalizeDigest(%q)", tt.digest)
 		})
 	}
@@ -162,7 +184,7 @@ func TestDigestsMatch(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := digestsMatch(testLog(), tt.localDigests, tt.remoteDigest)
+			result := digestsMatch(newTestLogger(t), tt.localDigests, tt.remoteDigest)
 			assert.Equal(t, tt.expected, result, "digestsMatch(%v, %q)", tt.localDigests, tt.remoteDigest)
 		})
 	}
@@ -209,7 +231,7 @@ func TestCompareDigestWithRemote(t *testing.T) {
 	host := parts[len(parts)-1]
 	mc.On("ImageName").Return(host + "/myapp:latest")
 
-	match, remoteDigest, err := CompareDigestWithRemote(testLog(), context.Background(), mc, "", registryConfig.Registry{}, ratelimit.New(), server.URL)
+	match, remoteDigest, err := CompareDigestWithRemote(newTestLogger(t), context.Background(), mc, "", registryConfig.Registry{}, ratelimit.New(), server.URL)
 	require.NoError(t, err)
 	assert.False(t, match)
 	assert.Equal(t, "sha256:"+remoteHash, remoteDigest)
@@ -261,7 +283,7 @@ func TestCompareDigestWithRemote_Head429DoesNotFallBackToGET(t *testing.T) {
 	host := parts[len(parts)-1]
 	mc.On("ImageName").Return(host + "/linuxserver/radarr:latest")
 
-	match, _, err := CompareDigestWithRemote(testLog(), context.Background(), mc, "", settings, ratelimit.New(), server.URL)
+	match, _, err := CompareDigestWithRemote(newTestLogger(t), context.Background(), mc, "", settings, ratelimit.New(), server.URL)
 	require.Error(t, err)
 	require.ErrorIs(t, err, ratelimit.ErrRateLimited)
 	assert.False(t, match)
@@ -349,7 +371,7 @@ func TestCompareDigestWithRemote_Retry429DoesNotContinueToNextEndpoint(t *testin
 	mc.On("ImageName").Return(host + "/linuxserver/radarr:latest")
 
 	match, _, err := CompareDigestWithRemote(
-		testLog(),
+		newTestLogger(t),
 		context.Background(),
 		mc,
 		"",
@@ -410,7 +432,7 @@ func TestCompareDigestWithRemote_UnauthorizedOnBothHostsIsError(t *testing.T) {
 		},
 	})
 
-	match, remoteDigest, err := CompareDigestWithRemote(testLog(), context.Background(), mc, "", settings, ratelimit.New())
+	match, remoteDigest, err := CompareDigestWithRemote(newTestLogger(t), context.Background(), mc, "", settings, ratelimit.New())
 	require.ErrorIs(t, err, errUnresolvedManifestRetry)
 	assert.False(t, match)
 	assert.Empty(t, remoteDigest)
@@ -457,7 +479,7 @@ func TestCompareDigestWithRemote_HeadRejectedFallsBackToGet(t *testing.T) {
 		},
 	})
 
-	match, remoteDigest, err := CompareDigestWithRemote(testLog(), context.Background(), mc, "", settings, ratelimit.New())
+	match, remoteDigest, err := CompareDigestWithRemote(newTestLogger(t), context.Background(), mc, "", settings, ratelimit.New())
 	require.NoError(t, err)
 	assert.False(t, match)
 	assert.Equal(t, remote, remoteDigest)
@@ -531,7 +553,7 @@ func TestCompareDigestWithRemote_LocalOnly404(t *testing.T) {
 	parts := strings.SplitN(server.URL, "://", 2)
 	host := parts[len(parts)-1]
 
-	match, remoteDigest, err := CompareDigestWithRemote(testLog(), context.Background(),
+	match, remoteDigest, err := CompareDigestWithRemote(newTestLogger(t), context.Background(),
 		mc,
 		"",
 		settings,
@@ -665,13 +687,13 @@ func TestLocalOnlyImageCache(t *testing.T) {
 	host := parts[len(parts)-1]
 
 	// First call: probe registry, cache local-only.
-	match, _, err := CompareDigestWithRemote(testLog(), context.Background(), mc, "", settings, ratelimit.New(), host)
+	match, _, err := CompareDigestWithRemote(newTestLogger(t), context.Background(), mc, "", settings, ratelimit.New(), host)
 	require.NoError(t, err)
 	assert.True(t, match)
 	assert.Equal(t, 1, headManifestCalls)
 
 	// Second call: cache hit, no additional HEAD.
-	match, _, err = CompareDigestWithRemote(testLog(), context.Background(), mc, "", settings, ratelimit.New(), host)
+	match, _, err = CompareDigestWithRemote(newTestLogger(t), context.Background(), mc, "", settings, ratelimit.New(), host)
 	require.NoError(t, err)
 	assert.True(t, match)
 	assert.Equal(t, 1, headManifestCalls, "cached local-only image must not re-probe registry")
@@ -820,7 +842,7 @@ func TestCompareDigest(t *testing.T) {
 
 			container.On("ImageName").Return(host + "/myapp:latest").Maybe()
 
-			got, err := CompareDigest(testLog(), context.Background(), container, "", registryConfig.Registry{}, ratelimit.New(), serverURL)
+			got, err := CompareDigest(newTestLogger(t), context.Background(), container, "", registryConfig.Registry{}, ratelimit.New(), serverURL)
 			if tt.wantErr {
 				require.Error(t, err)
 				assert.Equal(t, tt.expected, got)
@@ -964,7 +986,7 @@ func TestFetchDigestWithGet(t *testing.T) {
 			host := parts[len(parts)-1]
 			container.On("ImageName").Return(host + "/myapp:latest").Maybe()
 
-			got, err := fetchDigestWithGet(testLog(), context.Background(), container, "", registryConfig.Registry{}, ratelimit.New(), server.URL)
+			got, err := fetchDigestWithGet(newTestLogger(t), context.Background(), container, "", registryConfig.Registry{}, ratelimit.New(), server.URL)
 			if tt.wantErr {
 				require.Error(t, err)
 				assert.Empty(t, got)
@@ -1070,7 +1092,7 @@ func TestBuildManifestURL(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			settings := registryConfig.Registry{TLSSkip: tt.tlsSkip}
 
-			gotURL, gotHost, _, err := buildManifestURL(testLog(), tt.container(t), settings, tt.hostOverride)
+			gotURL, gotHost, _, err := buildManifestURL(newTestLogger(t), tt.container(t), settings, tt.hostOverride)
 			if tt.wantErr {
 				require.Error(t, err)
 
@@ -1292,7 +1314,7 @@ func TestHandleManifestResponse(t *testing.T) {
 				defer resp.Body.Close()
 			}
 
-			gotDigest, gotURL, gotRetry, err := handleManifestResponse(testLog(), resp,
+			gotDigest, gotURL, gotRetry, err := handleManifestResponse(newTestLogger(t), resp,
 				tt.method,
 				tt.originalHost,
 				tt.challengeHost,
@@ -1386,7 +1408,7 @@ func TestExtractHeadDigest(t *testing.T) {
 				defer resp.Body.Close()
 			}
 
-			got, err := extractHeadDigest(testLog(), resp)
+			got, err := extractHeadDigest(newTestLogger(t), resp)
 			if tt.wantErr {
 				require.Error(t, err)
 				assert.Empty(t, got)
@@ -1561,7 +1583,7 @@ func TestExtractGetDigest(t *testing.T) {
 				defer resp.Body.Close()
 			}
 
-			got, err := extractGetDigest(testLog(), resp)
+			got, err := extractGetDigest(newTestLogger(t), resp)
 			if tt.wantErr {
 				require.Error(t, err)
 				assert.Empty(t, got)
@@ -1617,7 +1639,7 @@ func TestExtractGetDigest_ManifestSizeLimits(t *testing.T) {
 
 			t.Cleanup(func() { _ = resp.Body.Close() })
 
-			got, err := extractGetDigest(testLog(), resp)
+			got, err := extractGetDigest(newTestLogger(t), resp)
 			if tc.wantErr != nil {
 				require.ErrorIs(t, err, tc.wantErr)
 				assert.Empty(t, got)
@@ -1863,7 +1885,7 @@ func TestRetryManifestRequest(t *testing.T) {
 			challengeHost := cmp.Or(tt.challengeHost, "ghcr.io")
 			currentURL := cmp.Or(tt.currentURL, "https://registry.example.com/v2/manifests/latest")
 
-			got, err := retryManifestRequest(testLog(), context.Background(),
+			got, err := retryManifestRequest(newTestLogger(t), context.Background(),
 				tt.method,
 				tt.updatedURL,
 				tt.token,

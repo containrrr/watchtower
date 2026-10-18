@@ -75,7 +75,7 @@ func FuzzBuildManifestURLForImage(f *testing.F) {
 		// Create a mock container with the fuzzed image reference
 		mock := createMockContainerForFuzz(imageRef)
 		// Call BuildManifestURLForImage with HTTPS scheme because we don't care about the result, just that it doesn't panic
-		_, _ = manifest.BuildManifestURLForImage(testLog(), mock.ImageName(), mock.Name(), "https")
+		_, _ = manifest.BuildManifestURLForImage(newNopLogger(), mock.ImageName(), mock.Name(), "https")
 	})
 }
 

@@ -22,10 +22,21 @@ import (
 	mockTypes "github.com/nicholas-fedor/watchtower/pkg/types/mocks"
 )
 
-func testLog() *zerolog.Logger {
-	n := zerolog.Nop()
+// newTestLogger returns a logger that writes each event to the test's log, so a
+// failing test shows what it logged.
+//
+// Parameters:
+//   - t: Test that receives the log lines.
+//
+// Returns:
+//   - *zerolog.Logger: Logger writing to t.
+func newTestLogger(t *testing.T) *zerolog.Logger {
+	t.Helper()
 
-	return &n
+	// Frame 4 skips zerolog's write path, so each line names the log call.
+	w := zerolog.TestWriter{T: t, Frame: 4}
+
+	return new(zerolog.New(w))
 }
 
 func TestUpdateFromContainer(t *testing.T) {
@@ -164,7 +175,7 @@ func TestUpdateFromContainer(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := updateFromContainer(testLog(),
+			got := updateFromContainer(newTestLogger(t),
 				tt.args.container,
 				tt.args.newImage,
 				tt.args.state,
@@ -309,7 +320,7 @@ func TestProgress_AddSkipped(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.m.AddSkipped(testLog(), tt.args.container, tt.args.err, tt.args.params)
+			tt.m.AddSkipped(newTestLogger(t), tt.args.container, tt.args.err, tt.args.params)
 
 			if len(tt.m) != len(tt.want) {
 				t.Errorf("Progress.AddSkipped(testLog(), ) map length = %d, want %d", len(tt.m), len(tt.want))
@@ -359,7 +370,7 @@ func TestProgress_AddFailed(t *testing.T) {
 
 	progress := Progress{}
 	failErr := errors.New("registry rate limited")
-	progress.AddFailed(testLog(), mock, failErr, types.UpdateParams{})
+	progress.AddFailed(newTestLogger(t), mock, failErr, types.UpdateParams{})
 
 	got := progress["cont1"]
 	if got == nil {
@@ -487,7 +498,7 @@ func TestProgress_AddScanned(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.m.AddScanned(testLog(), tt.args.container, tt.args.newImage, tt.args.params)
+			tt.m.AddScanned(newTestLogger(t), tt.args.container, tt.args.newImage, tt.args.params)
 
 			if len(tt.m) != len(tt.want) {
 				t.Errorf("Progress.AddScanned(testLog(), ) map length = %d, want %d", len(tt.m), len(tt.want))
@@ -615,7 +626,7 @@ func TestProgress_UpdateFailed(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.m.UpdateFailed(testLog(), tt.args.failures)
+			tt.m.UpdateFailed(newTestLogger(t), tt.args.failures)
 
 			if len(tt.m) != len(tt.want) {
 				t.Errorf(
@@ -692,7 +703,7 @@ func TestProgress_Add(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.m.Add(testLog(), tt.args.update)
+			tt.m.Add(newTestLogger(t), tt.args.update)
 
 			if len(tt.m) != len(tt.want) {
 				t.Errorf("Progress.Add(testLog(), ) map length = %d, want %d", len(tt.m), len(tt.want))
@@ -780,7 +791,7 @@ func TestProgress_MarkForUpdate(t *testing.T) {
 				}
 			}()
 
-			tt.m.MarkForUpdate(testLog(), tt.args.containerID)
+			tt.m.MarkForUpdate(newTestLogger(t), tt.args.containerID)
 
 			if len(tt.m) != len(tt.want) {
 				t.Errorf(
@@ -890,7 +901,7 @@ func TestProgress_Report(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.m.Report(testLog()); !reflect.DeepEqual(got, tt.want) {
+			if got := tt.m.Report(newTestLogger(t)); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Progress.Report(testLog(), ) = %v, want %v", got, tt.want)
 			}
 		})
@@ -993,7 +1004,7 @@ func TestProgress_MarkRestarted(t *testing.T) {
 				}
 			}()
 
-			tt.m.MarkRestarted(testLog(), tt.args.containerID)
+			tt.m.MarkRestarted(newTestLogger(t), tt.args.containerID)
 
 			if len(tt.m) != len(tt.want) {
 				t.Errorf(
@@ -1040,7 +1051,7 @@ func TestProgress_MarkRestarted_UpdateFailed_Integration(t *testing.T) {
 	}
 
 	// Mark as restarted
-	m.MarkRestarted(testLog(), "cont1")
+	m.MarkRestarted(newTestLogger(t), "cont1")
 
 	if m["cont1"].state != RestartedState {
 		t.Errorf("Expected state RestartedState, got %v", m["cont1"].state)
@@ -1050,7 +1061,7 @@ func TestProgress_MarkRestarted_UpdateFailed_Integration(t *testing.T) {
 	failures := map[types.ContainerID]error{
 		"cont1": errors.New("restart failed"),
 	}
-	m.UpdateFailed(testLog(), failures)
+	m.UpdateFailed(newTestLogger(t), failures)
 
 	if m["cont1"].state != FailedState {
 		t.Errorf("Expected state FailedState after UpdateFailed, got %v", m["cont1"].state)
@@ -1067,7 +1078,7 @@ func TestProgress_MarkRestarted_AddSkipped_Integration(t *testing.T) {
 	}
 
 	// Mark as restarted
-	m.MarkRestarted(testLog(), "cont1")
+	m.MarkRestarted(newTestLogger(t), "cont1")
 
 	if m["cont1"].state != RestartedState {
 		t.Errorf("Expected state RestartedState, got %v", m["cont1"].state)
@@ -1083,7 +1094,7 @@ func TestProgress_MarkRestarted_AddSkipped_Integration(t *testing.T) {
 		IsMonitorOnly(testifyMock.MatchedBy(func(_ types.UpdateParams) bool { return true })).
 		Return(false)
 
-	m.AddSkipped(testLog(), mock, errors.New("skipped after restart"), types.UpdateParams{})
+	m.AddSkipped(newTestLogger(t), mock, errors.New("skipped after restart"), types.UpdateParams{})
 
 	if m["cont1"].state != SkippedState {
 		t.Errorf("Expected state SkippedState after AddSkipped, got %v", m["cont1"].state)
@@ -1105,7 +1116,7 @@ func TestProgress_Restarted_With_Error(t *testing.T) {
 	}
 
 	// Mark as restarted, error should persist
-	m.MarkRestarted(testLog(), "cont1")
+	m.MarkRestarted(newTestLogger(t), "cont1")
 
 	if m["cont1"].state != RestartedState {
 		t.Errorf("Expected state RestartedState, got %v", m["cont1"].state)
@@ -1130,7 +1141,7 @@ func TestProgress_Report_With_Restarted_In_All(t *testing.T) {
 		},
 	}
 
-	report := m.Report(testLog())
+	report := m.Report(newTestLogger(t))
 
 	all := report.All()
 
@@ -1175,13 +1186,13 @@ func TestProgress_MarkRestarted_Concurrent(t *testing.T) {
 	go func() {
 		defer wg.Done()
 
-		m.MarkRestarted(testLog(), "cont1")
+		m.MarkRestarted(newTestLogger(t), "cont1")
 	}()
 
 	go func() {
 		defer wg.Done()
 
-		m.MarkRestarted(testLog(), "cont2")
+		m.MarkRestarted(newTestLogger(t), "cont2")
 	}()
 
 	wg.Wait()
@@ -1322,7 +1333,7 @@ func TestProgress_SetCooldownInfo(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.m.SetCooldownInfo(testLog(), tt.args.containerID, tt.args.age, tt.args.delay, tt.args.remaining, tt.args.eligibleAt)
+			tt.m.SetCooldownInfo(newTestLogger(t), tt.args.containerID, tt.args.age, tt.args.delay, tt.args.remaining, tt.args.eligibleAt)
 
 			if len(tt.m) != len(tt.want) {
 				t.Errorf(
@@ -1398,13 +1409,13 @@ func TestProgress_SetCooldownInfo_Concurrent(t *testing.T) {
 	go func() {
 		defer wg.Done()
 
-		m.SetCooldownInfo(testLog(), "cont1", "1 day", "24 hours", "", time.Time{})
+		m.SetCooldownInfo(newTestLogger(t), "cont1", "1 day", "24 hours", "", time.Time{})
 	}()
 
 	go func() {
 		defer wg.Done()
 
-		m.SetCooldownInfo(testLog(), "cont2", "2 hours", "24 hours", "22 hours", time.Date(2026, 5, 26, 0, 45, 0, 0, time.UTC))
+		m.SetCooldownInfo(newTestLogger(t), "cont2", "2 hours", "24 hours", "22 hours", time.Date(2026, 5, 26, 0, 45, 0, 0, time.UTC))
 	}()
 
 	wg.Wait()
@@ -1445,7 +1456,7 @@ func TestApplyReportMeta(t *testing.T) {
 			gitPkg.RepoLabel: "https://github.com/org/app.git",
 			gitPkg.RefLabel:  "main",
 		})
-		got := updateFromContainer(testLog(), c, "img2", ScannedState, types.UpdateParams{})
+		got := updateFromContainer(newTestLogger(t), c, "img2", ScannedState, types.UpdateParams{})
 		assert.Equal(t, "https://github.com/org/app.git", got.GitRepo())
 		assert.Equal(t, "main", got.GitRef())
 		assert.Equal(t, "https://github.com/org/app/releases", got.Changelog())
@@ -1460,10 +1471,10 @@ func TestProgressSetLatestImage(t *testing.T) {
 		id: &ContainerStatus{containerID: id, newImage: "old"},
 	}
 
-	progress.SetLatestImage(testLog(), id, "sha256:gitbuilt")
+	progress.SetLatestImage(newTestLogger(t), id, "sha256:gitbuilt")
 	assert.Equal(t, types.ImageID("sha256:gitbuilt"), progress[id].LatestImageID())
 
-	progress.SetLatestImage(testLog(), "missing", "ignored")
+	progress.SetLatestImage(newTestLogger(t), "missing", "ignored")
 	assert.NotContains(t, progress, types.ContainerID("missing"))
 }
 
@@ -1474,7 +1485,7 @@ func TestProgressSetLatestImageMeta(t *testing.T) {
 		t.Parallel()
 
 		meta := Progress{}.SetLatestImageMeta(
-			testLog(),
+			newTestLogger(t),
 			nil,
 			types.UpdateParams{},
 			container.ChangelogVars{},
@@ -1490,7 +1501,7 @@ func TestProgressSetLatestImageMeta(t *testing.T) {
 			gitPkg.ChangelogURLLabel: "https://example.com/{tag}",
 		})
 		meta := Progress{}.SetLatestImageMeta(
-			testLog(),
+			newTestLogger(t),
 			c,
 			types.UpdateParams{},
 			container.ChangelogVars{Tag: "v1.0.0"},
@@ -1506,11 +1517,11 @@ func TestProgressSetLatestImageMeta(t *testing.T) {
 			gitPkg.RepoLabel:         "https://github.com/org/app.git",
 			gitPkg.ChangelogURLLabel: "https://example.com/notes/{tag}",
 		})
-		status := updateFromContainer(testLog(), c, "img", ScannedState, types.UpdateParams{})
+		status := updateFromContainer(newTestLogger(t), c, "img", ScannedState, types.UpdateParams{})
 		progress := Progress{c.ID(): status}
 
 		progress.SetLatestImageMeta(
-			testLog(),
+			newTestLogger(t),
 			c,
 			types.UpdateParams{},
 			container.ChangelogVars{Tag: "v1.2.3", Commit: "deadbeef"},
@@ -1525,11 +1536,11 @@ func TestProgressSetLatestImageMeta(t *testing.T) {
 		c := reportTestContainer(t, map[string]string{
 			gitPkg.RepoLabel: "https://github.com/org/app.git",
 		})
-		status := updateFromContainer(testLog(), c, "img", ScannedState, types.UpdateParams{})
+		status := updateFromContainer(newTestLogger(t), c, "img", ScannedState, types.UpdateParams{})
 		progress := Progress{c.ID(): status}
 
 		meta := progress.SetLatestImageMeta(
-			testLog(),
+			newTestLogger(t),
 			c,
 			types.UpdateParams{},
 			container.ChangelogVars{Tag: "v1.2.3"},
@@ -1549,11 +1560,11 @@ func TestProgressSetLatestImageMeta(t *testing.T) {
 		c := reportTestContainer(t, map[string]string{
 			gitPkg.RepoLabel: "https://github.com/org/app.git",
 		})
-		status := updateFromContainer(testLog(), c, "img", ScannedState, types.UpdateParams{})
+		status := updateFromContainer(newTestLogger(t), c, "img", ScannedState, types.UpdateParams{})
 		progress := Progress{c.ID(): status}
 
 		progress.SetLatestImageMeta(
-			testLog(),
+			newTestLogger(t),
 			c,
 			types.UpdateParams{},
 			container.ChangelogVars{Tag: "v9.9.9", Commit: "deadbeef"},

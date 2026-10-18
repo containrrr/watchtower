@@ -16,21 +16,41 @@ import (
 	"github.com/nicholas-fedor/watchtower/internal/metrics"
 )
 
-// testLogger returns a logger that discards every event, for tests that do not
-// assert on logs.
-func testLogger() *zerolog.Logger {
+// newTestLogger returns a logger that writes each event to the test's log, so a
+// failing test shows what it logged.
+//
+// Parameters:
+//   - t: Test that receives the log lines.
+//
+// Returns:
+//   - *zerolog.Logger: Logger writing to t.
+func newTestLogger(t *testing.T) *zerolog.Logger {
+	t.Helper()
+
+	// Frame 4 skips zerolog's write path, so each line names the log call.
+	w := zerolog.TestWriter{T: t, Frame: 4}
+
+	return new(zerolog.New(w))
+}
+
+// newNopLogger returns a logger that discards every event, for Ginkgo specs,
+// benchmarks, and fuzz targets.
+//
+// Returns:
+//   - *zerolog.Logger: Logger that discards all events.
+func newNopLogger() *zerolog.Logger {
 	return new(zerolog.Nop())
 }
 
 func TestNew(t *testing.T) {
-	h := New(testLogger())
+	h := New(newTestLogger(t))
 	require.NotNil(t, h)
 	assert.Equal(t, "/v1/metrics", h.Path)
 	assert.NotNil(t, h.Handle)
 }
 
 func TestNew_ServesPrometheusMetrics(t *testing.T) {
-	h := New(testLogger())
+	h := New(newTestLogger(t))
 	require.NotNil(t, h)
 
 	app := fiber.New(fiber.Config{})
@@ -57,7 +77,7 @@ func TestNew_ServesPrometheusMetrics(t *testing.T) {
 }
 
 func TestNew_ReturnsTextContentType(t *testing.T) {
-	h := New(testLogger())
+	h := New(newTestLogger(t))
 	require.NotNil(t, h)
 
 	app := fiber.New(fiber.Config{})
@@ -89,7 +109,7 @@ func TestNewStatusHandler(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			h := NewStatusHandler(testLogger(), tt.getLast)
+			h := NewStatusHandler(newTestLogger(t), tt.getLast)
 			require.NotNil(t, h)
 			assert.Equal(t, "/v1/status", h.Path)
 		})
@@ -99,7 +119,7 @@ func TestNewStatusHandler(t *testing.T) {
 func TestStatusHandler_Handle_WithMetric(t *testing.T) {
 	expected := &metrics.Metric{Scanned: 10, Updated: 3, Failed: 1, Restarted: 2, Skipped: 0}
 
-	h := NewStatusHandler(testLogger(), func() *metrics.Metric { return expected })
+	h := NewStatusHandler(newTestLogger(t), func() *metrics.Metric { return expected })
 	app := fiber.New(fiber.Config{})
 	app.Get("/v1/status", h.Handle)
 
@@ -113,7 +133,7 @@ func TestStatusHandler_Handle_WithMetric(t *testing.T) {
 }
 
 func TestStatusHandler_Handle_NilMetric(t *testing.T) {
-	h := NewStatusHandler(testLogger(), func() *metrics.Metric { return nil })
+	h := NewStatusHandler(newTestLogger(t), func() *metrics.Metric { return nil })
 	app := fiber.New(fiber.Config{})
 	app.Get("/v1/status", h.Handle)
 
@@ -141,7 +161,7 @@ func TestStatusHandler_Handle_ScanFailed(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			h := NewStatusHandler(testLogger(), func() *metrics.Metric { return tt.metric })
+			h := NewStatusHandler(newTestLogger(t), func() *metrics.Metric { return tt.metric })
 			app := fiber.New(fiber.Config{})
 			app.Get("/v1/status", h.Handle)
 

@@ -168,7 +168,7 @@ func Test_extractChallengeHost(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := extractChallengeHost(testLog(), tt.realm)
+			got := extractChallengeHost(newTestLogger(t), tt.realm)
 			assert.Equal(t, tt.want, got)
 		})
 	}
@@ -248,7 +248,7 @@ func TestGetRegistryAddress(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := GetRegistryAddress(testLog(), tt.imageRef)
+			got, err := GetRegistryAddress(newTestLogger(t), tt.imageRef)
 			if tt.wantErr {
 				assert.Error(t, err)
 

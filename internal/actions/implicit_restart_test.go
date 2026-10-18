@@ -273,10 +273,10 @@ func TestMarkImplicitRestarts(t *testing.T) {
 				}
 			}
 
-			graph, err := sorter.NewDependencyGraph(testLogger(), monitored, unmonitored, false)
+			graph, err := sorter.NewDependencyGraph(newTestLogger(t), monitored, unmonitored, false)
 			require.NoError(t, err)
 
-			markImplicitRestarts(testLogger(), graph, all, monitored, excluded)
+			markImplicitRestarts(newTestLogger(t), graph, all, monitored, excluded)
 
 			var marked []string
 

@@ -50,7 +50,7 @@ var _ = ginkgo.Describe("the update action", func() {
 					"test-container-01": true,
 					"test-container-02": true,
 				}
-				report, cleanupImageInfos, err := actions.Update(testLogger(),
+				report, cleanupImageInfos, err := actions.Update(newNopLogger(),
 					context.Background(),
 					client,
 					types.UpdateParams{Cleanup: true},
@@ -91,7 +91,7 @@ var _ = ginkgo.Describe("the update action", func() {
 					"test-container-01": true,
 					"test-container-02": true,
 				}
-				report, cleanupImageInfos, err := actions.Update(testLogger(),
+				report, cleanupImageInfos, err := actions.Update(newNopLogger(),
 					context.Background(),
 					client,
 					types.UpdateParams{Cleanup: true, MonitorOnly: true},
@@ -129,7 +129,7 @@ var _ = ginkgo.Describe("the update action", func() {
 					client.TestData.Staleness = map[string]bool{
 						"test-container-02": true,
 					}
-					report, cleanupImageInfos, err := actions.Update(testLogger(),
+					report, cleanupImageInfos, err := actions.Update(newNopLogger(),
 						context.Background(),
 						client,
 						types.UpdateParams{
@@ -174,7 +174,7 @@ var _ = ginkgo.Describe("the update action", func() {
 						client.TestData.Staleness = map[string]bool{
 							"test-container-02": true,
 						}
-						report, cleanupImageInfos, err := actions.Update(testLogger(),
+						report, cleanupImageInfos, err := actions.Update(newNopLogger(),
 							context.Background(),
 							client,
 							types.UpdateParams{
@@ -209,7 +209,7 @@ var _ = ginkgo.Describe("the update action", func() {
 					client.TestData.Staleness = map[string]bool{
 						"test-container-01": true,
 					}
-					report, cleanupImageInfos, err := actions.Update(testLogger(),
+					report, cleanupImageInfos, err := actions.Update(newNopLogger(),
 						context.Background(),
 						client,
 						types.UpdateParams{

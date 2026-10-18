@@ -345,7 +345,7 @@ func TestSnapshotCopyFiles(t *testing.T) {
 		t.Parallel()
 
 		api := mockContainer.NewMockArchiveAPI(t)
-		snap, err := snapshotCopyFiles(testLog(), t.Context(), api, MockContainer())
+		snap, err := snapshotCopyFiles(newTestLogger(t), t.Context(), api, MockContainer())
 		require.NoError(t, err)
 		assert.True(t, snap.empty())
 	})
@@ -370,7 +370,7 @@ func TestSnapshotCopyFiles(t *testing.T) {
 			copyFileLabel: "/app/config.yaml",
 		}))
 
-		snap, err := snapshotCopyFiles(testLog(), t.Context(), api, c)
+		snap, err := snapshotCopyFiles(newTestLogger(t), t.Context(), api, c)
 		require.NoError(t, err)
 		require.Len(t, snap.files, 1)
 		assert.Equal(t, "/app/config.yaml", snap.files[0].target)
@@ -393,7 +393,7 @@ func TestSnapshotCopyFiles(t *testing.T) {
 			copyFileLabel: "/etc/missing.conf",
 		}))
 
-		snap, err := snapshotCopyFiles(testLog(), t.Context(), api, c)
+		snap, err := snapshotCopyFiles(newTestLogger(t), t.Context(), api, c)
 		require.NoError(t, err)
 		assert.True(t, snap.empty())
 	})
@@ -409,7 +409,7 @@ func TestSnapshotCopyFiles(t *testing.T) {
 			WithBinds([]string{"/host/config.yaml:/app/config.yaml:ro"}),
 		)
 
-		snap, err := snapshotCopyFiles(testLog(), t.Context(), api, c)
+		snap, err := snapshotCopyFiles(newTestLogger(t), t.Context(), api, c)
 		require.NoError(t, err)
 		assert.True(t, snap.empty())
 	})
@@ -427,7 +427,7 @@ func TestSnapshotCopyFiles(t *testing.T) {
 			}),
 		)
 
-		snap, err := snapshotCopyFiles(testLog(), t.Context(), api, c)
+		snap, err := snapshotCopyFiles(newTestLogger(t), t.Context(), api, c)
 		require.NoError(t, err)
 		assert.True(t, snap.empty())
 	})
@@ -446,7 +446,7 @@ func TestSnapshotCopyFiles(t *testing.T) {
 			}),
 		)
 
-		snap, err := snapshotCopyFiles(testLog(), t.Context(), api, c)
+		snap, err := snapshotCopyFiles(newTestLogger(t), t.Context(), api, c)
 		require.NoError(t, err)
 		assert.True(t, snap.empty())
 	})
@@ -476,7 +476,7 @@ func TestSnapshotCopyFiles(t *testing.T) {
 			}),
 		)
 
-		snap, err := snapshotCopyFiles(testLog(), t.Context(), api, c)
+		snap, err := snapshotCopyFiles(newTestLogger(t), t.Context(), api, c)
 		require.NoError(t, err)
 		require.Len(t, snap.files, 1)
 
@@ -503,7 +503,7 @@ func TestSnapshotCopyFiles(t *testing.T) {
 			copyFileLabel: "/app/data",
 		}))
 
-		_, err := snapshotCopyFiles(testLog(), t.Context(), api, c)
+		_, err := snapshotCopyFiles(newTestLogger(t), t.Context(), api, c)
 		require.ErrorIs(t, err, errCopyFileDirectory)
 	})
 
@@ -526,7 +526,7 @@ func TestSnapshotCopyFiles(t *testing.T) {
 			copyFileLabel: "/etc/huge.conf",
 		}))
 
-		_, err := snapshotCopyFiles(testLog(), t.Context(), api, c)
+		_, err := snapshotCopyFiles(newTestLogger(t), t.Context(), api, c)
 		require.ErrorIs(t, err, errCopyFileTooLarge)
 	})
 
@@ -549,7 +549,7 @@ func TestSnapshotCopyFiles(t *testing.T) {
 			copyFileLabel: "/app/config.yaml",
 		}))
 
-		_, err := snapshotCopyFiles(testLog(), t.Context(), api, c)
+		_, err := snapshotCopyFiles(newTestLogger(t), t.Context(), api, c)
 		require.ErrorIs(t, err, errCopyFileSymlink)
 	})
 
@@ -571,7 +571,7 @@ func TestSnapshotCopyFiles(t *testing.T) {
 			copyFileLabel: "/app/config.yaml",
 		}))
 
-		_, err := snapshotCopyFiles(testLog(), t.Context(), api, c)
+		_, err := snapshotCopyFiles(newTestLogger(t), t.Context(), api, c)
 		require.ErrorIs(t, err, errCopyFileSnapshotFailed)
 	})
 
@@ -583,7 +583,7 @@ func TestSnapshotCopyFiles(t *testing.T) {
 			copyFileLabel: "relative.conf",
 		}))
 
-		_, err := snapshotCopyFiles(testLog(), t.Context(), api, c)
+		_, err := snapshotCopyFiles(newTestLogger(t), t.Context(), api, c)
 		require.ErrorIs(t, err, errCopyFileInvalidPath)
 	})
 
@@ -620,7 +620,7 @@ func TestSnapshotCopyFiles(t *testing.T) {
 			copyFileLabel: strings.Join(paths, ","),
 		}))
 
-		_, err := snapshotCopyFiles(testLog(), t.Context(), api, c)
+		_, err := snapshotCopyFiles(newTestLogger(t), t.Context(), api, c)
 		require.ErrorIs(t, err, errCopyFileStoreFull)
 	})
 }
@@ -633,7 +633,7 @@ func TestInjectCopyFiles(t *testing.T) {
 
 		api := mockContainer.NewMockArchiveAPI(t)
 		err := injectCopyFiles(
-			testLog(),
+			newTestLogger(t),
 			t.Context(),
 			api,
 			"new-id",
@@ -661,7 +661,7 @@ func TestInjectCopyFiles(t *testing.T) {
 			Return(dockerClient.CopyToContainerResult{}, nil)
 
 		err := injectCopyFiles(
-			testLog(),
+			newTestLogger(t),
 			t.Context(),
 			api,
 			"new-id",
@@ -699,7 +699,7 @@ func TestInjectCopyFiles(t *testing.T) {
 			Return(dockerClient.CopyToContainerResult{}, nil)
 
 		err = injectCopyFiles(
-			testLog(),
+			newTestLogger(t),
 			t.Context(),
 			api,
 			"new-id",
@@ -722,7 +722,7 @@ func TestInjectCopyFiles(t *testing.T) {
 			Return(dockerClient.CopyToContainerResult{}, errors.New("denied"))
 
 		err := injectCopyFiles(
-			testLog(),
+			newTestLogger(t),
 			t.Context(),
 			api,
 			"new-id",
@@ -751,7 +751,7 @@ func TestInjectCopyFiles(t *testing.T) {
 			Twice()
 
 		err := injectCopyFiles(
-			testLog(),
+			newTestLogger(t),
 			t.Context(),
 			api,
 			"new-id",
@@ -780,7 +780,7 @@ func TestInjectCopyFiles(t *testing.T) {
 			Return(dockerClient.CopyToContainerResult{}, nil)
 
 		err := injectCopyFiles(
-			testLog(),
+			newTestLogger(t),
 			t.Context(),
 			api,
 			"new-id",
@@ -1110,7 +1110,7 @@ func TestSnapshotCopyFileErrors(t *testing.T) {
 		c := MockContainer(WithLabels(map[string]string{
 			copyFileLabel: "/app/config.yaml",
 		}))
-		_, err := snapshotCopyFiles(testLog(), t.Context(), api, c)
+		_, err := snapshotCopyFiles(newTestLogger(t), t.Context(), api, c)
 		require.ErrorIs(t, err, errCopyFileSnapshotFailed)
 	})
 
@@ -1131,7 +1131,7 @@ func TestSnapshotCopyFileErrors(t *testing.T) {
 		c := MockContainer(WithLabels(map[string]string{
 			copyFileLabel: "/app/config.yaml",
 		}))
-		_, err := snapshotCopyFiles(testLog(), t.Context(), api, c)
+		_, err := snapshotCopyFiles(newTestLogger(t), t.Context(), api, c)
 		require.ErrorIs(t, err, errCopyFileSymlink)
 	})
 
@@ -1153,7 +1153,7 @@ func TestSnapshotCopyFileErrors(t *testing.T) {
 		c := MockContainer(WithLabels(map[string]string{
 			copyFileLabel: "/app/config.yaml",
 		}))
-		_, err := snapshotCopyFiles(testLog(), t.Context(), api, c)
+		_, err := snapshotCopyFiles(newTestLogger(t), t.Context(), api, c)
 		require.ErrorIs(t, err, errCopyFileSnapshotFailed)
 	})
 
@@ -1175,7 +1175,7 @@ func TestSnapshotCopyFileErrors(t *testing.T) {
 		c := MockContainer(WithLabels(map[string]string{
 			copyFileLabel: "/app/config.yaml",
 		}))
-		_, err := snapshotCopyFiles(testLog(), t.Context(), api, c)
+		_, err := snapshotCopyFiles(newTestLogger(t), t.Context(), api, c)
 		require.ErrorIs(t, err, errCopyFileTooLarge)
 	})
 }
@@ -1187,7 +1187,7 @@ func TestClientCopyFileStore(t *testing.T) {
 		t.Parallel()
 
 		api := mockContainer.NewMockArchiveAPI(t)
-		cli := &client{log: testLog(), copyAPI: api}
+		cli := &client{log: newTestLogger(t), copyAPI: api}
 		require.NoError(t, cli.SnapshotCopyFiles(t.Context(), MockContainer()))
 		assert.Empty(t, cli.copyFiles)
 	})
@@ -1208,7 +1208,7 @@ func TestClientCopyFileStore(t *testing.T) {
 				},
 			}, nil)
 
-		cli := &client{log: testLog(), copyAPI: api}
+		cli := &client{log: newTestLogger(t), copyAPI: api}
 		source := MockContainer(WithLabels(map[string]string{
 			copyFileLabel: "/app/config.yaml",
 		}))
@@ -1220,7 +1220,7 @@ func TestClientCopyFileStore(t *testing.T) {
 	t.Run("snapshot invalid label fails", func(t *testing.T) {
 		t.Parallel()
 
-		cli := &client{log: testLog(), copyAPI: mockContainer.NewMockArchiveAPI(t)}
+		cli := &client{log: newTestLogger(t), copyAPI: mockContainer.NewMockArchiveAPI(t)}
 		err := cli.SnapshotCopyFiles(t.Context(), MockContainer(WithLabels(map[string]string{
 			copyFileLabel: "relative.conf",
 		})))
@@ -1230,7 +1230,7 @@ func TestClientCopyFileStore(t *testing.T) {
 	t.Run("inject missing snapshot is a no-op", func(t *testing.T) {
 		t.Parallel()
 
-		cli := &client{log: testLog(), copyAPI: mockContainer.NewMockArchiveAPI(t)}
+		cli := &client{log: newTestLogger(t), copyAPI: mockContainer.NewMockArchiveAPI(t)}
 		require.NoError(t, cli.injectStoredCopyFiles(t.Context(), MockContainer(), "new-id"))
 	})
 
@@ -1246,7 +1246,7 @@ func TestClientCopyFileStore(t *testing.T) {
 			Return(dockerClient.CopyToContainerResult{}, nil)
 
 		cli := &client{
-			log:     testLog(),
+			log:     newTestLogger(t),
 			copyAPI: api,
 			copyFiles: map[types.ContainerID]copyFileSnapshot{
 				source.ID(): {files: []copyFileEntry{{
@@ -1272,7 +1272,7 @@ func TestClientCopyFileStore(t *testing.T) {
 			Return(dockerClient.CopyToContainerResult{}, errors.New("denied"))
 
 		cli := &client{
-			log:     testLog(),
+			log:     newTestLogger(t),
 			copyAPI: api,
 			copyFiles: map[types.ContainerID]copyFileSnapshot{
 				source.ID(): {files: []copyFileEntry{{

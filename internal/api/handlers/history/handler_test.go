@@ -14,14 +14,25 @@ import (
 	"github.com/nicholas-fedor/watchtower/internal/metrics"
 )
 
-// testLogger returns a logger that discards every event, for tests that do not
-// assert on logs.
-func testLogger() *zerolog.Logger {
-	return new(zerolog.Nop())
+// newTestLogger returns a logger that writes each event to the test's log, so a
+// failing test shows what it logged.
+//
+// Parameters:
+//   - t: Test that receives the log lines.
+//
+// Returns:
+//   - *zerolog.Logger: Logger writing to t.
+func newTestLogger(t *testing.T) *zerolog.Logger {
+	t.Helper()
+
+	// Frame 4 skips zerolog's write path, so each line names the log call.
+	w := zerolog.TestWriter{T: t, Frame: 4}
+
+	return new(zerolog.New(w))
 }
 
 func TestNew(t *testing.T) {
-	h := New(testLogger(), func(_, _ *time.Time, _ int) []metrics.HistoryEntry { return nil })
+	h := New(newTestLogger(t), func(_, _ *time.Time, _ int) []metrics.HistoryEntry { return nil })
 	require.NotNil(t, h)
 	assert.Equal(t, "/v1/history", h.Path)
 }
@@ -32,7 +43,7 @@ func TestHandler_Handle(t *testing.T) {
 		{Scanned: 5, Updated: 1, Failed: 0, Restarted: 0, Skipped: 4},
 	}
 
-	h := New(testLogger(), func(_, _ *time.Time, _ int) []metrics.HistoryEntry { return entries })
+	h := New(newTestLogger(t), func(_, _ *time.Time, _ int) []metrics.HistoryEntry { return entries })
 
 	app := fiber.New(fiber.Config{})
 	app.Get("/v1/history", h.Handle)
@@ -47,7 +58,7 @@ func TestHandler_Handle(t *testing.T) {
 }
 
 func TestHandler_HandleWithInvalidSince(t *testing.T) {
-	h := New(testLogger(), func(_, _ *time.Time, _ int) []metrics.HistoryEntry { return nil })
+	h := New(newTestLogger(t), func(_, _ *time.Time, _ int) []metrics.HistoryEntry { return nil })
 
 	app := fiber.New(fiber.Config{})
 	app.Get("/v1/history", h.Handle)
@@ -62,7 +73,7 @@ func TestHandler_HandleWithInvalidSince(t *testing.T) {
 }
 
 func TestHandler_HandleWithInvalidLimit(t *testing.T) {
-	h := New(testLogger(), func(_, _ *time.Time, _ int) []metrics.HistoryEntry { return nil })
+	h := New(newTestLogger(t), func(_, _ *time.Time, _ int) []metrics.HistoryEntry { return nil })
 
 	app := fiber.New(fiber.Config{})
 	app.Get("/v1/history", h.Handle)
@@ -86,7 +97,7 @@ func TestHandler_HandleWithValidTimeRange(t *testing.T) {
 		gotLimit           int
 	)
 
-	h := New(testLogger(), func(since, until *time.Time, limit int) []metrics.HistoryEntry {
+	h := New(newTestLogger(t), func(since, until *time.Time, limit int) []metrics.HistoryEntry {
 		gotSince = since
 		gotUntil = until
 		gotLimit = limit
@@ -118,7 +129,7 @@ func TestHandler_HandleWithValidTimeRange(t *testing.T) {
 }
 
 func TestHandler_HandleWithInvalidUntil(t *testing.T) {
-	h := New(testLogger(), func(_, _ *time.Time, _ int) []metrics.HistoryEntry { return nil })
+	h := New(newTestLogger(t), func(_, _ *time.Time, _ int) []metrics.HistoryEntry { return nil })
 
 	app := fiber.New(fiber.Config{})
 	app.Get("/v1/history", h.Handle)
@@ -133,7 +144,7 @@ func TestHandler_HandleWithInvalidUntil(t *testing.T) {
 }
 
 func TestHandler_HandleWithNegativeLimit(t *testing.T) {
-	h := New(testLogger(), func(_, _ *time.Time, _ int) []metrics.HistoryEntry { return nil })
+	h := New(newTestLogger(t), func(_, _ *time.Time, _ int) []metrics.HistoryEntry { return nil })
 
 	app := fiber.New(fiber.Config{})
 	app.Get("/v1/history", h.Handle)
@@ -150,7 +161,7 @@ func TestHandler_HandleWithNegativeLimit(t *testing.T) {
 func TestHandler_Handle_WithTimezoneOffset(t *testing.T) {
 	var capturedSince *time.Time
 
-	h := New(testLogger(), func(since, _ *time.Time, _ int) []metrics.HistoryEntry {
+	h := New(newTestLogger(t), func(since, _ *time.Time, _ int) []metrics.HistoryEntry {
 		capturedSince = since
 
 		return nil
@@ -175,7 +186,7 @@ func TestHandler_Handle_WithTimezoneOffset(t *testing.T) {
 func TestHandler_Handle_WithFractionalSeconds(t *testing.T) {
 	var capturedUntil *time.Time
 
-	h := New(testLogger(), func(_, until *time.Time, _ int) []metrics.HistoryEntry {
+	h := New(newTestLogger(t), func(_, until *time.Time, _ int) []metrics.HistoryEntry {
 		capturedUntil = until
 
 		return nil
@@ -198,7 +209,7 @@ func TestHandler_Handle_WithFractionalSeconds(t *testing.T) {
 func TestHandler_Handle_NegativeTimezone(t *testing.T) {
 	var capturedSince *time.Time
 
-	h := New(testLogger(), func(since, _ *time.Time, _ int) []metrics.HistoryEntry {
+	h := New(newTestLogger(t), func(since, _ *time.Time, _ int) []metrics.HistoryEntry {
 		capturedSince = since
 
 		return nil

@@ -90,7 +90,7 @@ func TestRunUpdatesWithNotifications_UpdateErrorKeepsPartialResults(t *testing.T
 	published, _ := broadcaster.SubscribeWithDone()
 
 	metric := RunUpdatesWithNotifications(ctx, RunUpdatesWithNotificationsParams{
-		Logger:           testLogger(),
+		Logger:           newTestLogger(t),
 		Client:           client,
 		Notifier:         notifier,
 		EventBroadcaster: broadcaster,

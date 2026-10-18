@@ -74,7 +74,7 @@ func TestUpdate_PreUpdateExitCode75IsSkipped(t *testing.T) {
 				ExecuteCommand(mock.Anything, app, "/pre-update.sh", mock.Anything, mock.Anything, mock.Anything).
 				Return(true, nil).Once()
 
-			report, _, err := update(testLogger(), t.Context(), client,
+			report, _, err := update(newTestLogger(t), t.Context(), client,
 				types.UpdateParams{LifecycleHooks: true, RollingRestart: rolling}, ratelimit.New())
 			require.NoError(t, err)
 
@@ -127,7 +127,7 @@ func TestUpdate_CanceledContainersAreSkipped(t *testing.T) {
 			client.EXPECT().GetContainer(mock.Anything, mock.Anything).Return(first, nil).Maybe()
 			client.EXPECT().WaitForContainerHealthy(mock.Anything, mock.Anything, mock.Anything).Return(nil).Maybe()
 
-			report, _, _ := update(testLogger(), ctx, client, types.UpdateParams{RollingRestart: rolling}, ratelimit.New())
+			report, _, _ := update(newTestLogger(t), ctx, client, types.UpdateParams{RollingRestart: rolling}, ratelimit.New())
 			require.NotNil(t, report)
 
 			untouched := first.Name()
@@ -177,7 +177,7 @@ func TestUpdate_CanceledRecreateFailureIsFailed(t *testing.T) {
 	client.EXPECT().CreateContainer(mock.Anything, mock.Anything).
 		Return(types.ContainerID(""), fmt.Errorf("create container: %w", context.Canceled)).Once()
 
-	report, _, _ := update(testLogger(), ctx, client, types.UpdateParams{}, ratelimit.New())
+	report, _, _ := update(newTestLogger(t), ctx, client, types.UpdateParams{}, ratelimit.New())
 	require.NotNil(t, report)
 
 	untouched := first.Name()
@@ -215,7 +215,7 @@ func TestUpdate_StopFailureStaysFailedWhenCanceled(t *testing.T) {
 			return errors.New("daemon unavailable")
 		}).Once()
 
-	report, _, _ := update(testLogger(), ctx, client, types.UpdateParams{}, ratelimit.New())
+	report, _, _ := update(newTestLogger(t), ctx, client, types.UpdateParams{}, ratelimit.New())
 	require.NotNil(t, report)
 
 	assert.Empty(t, report.Skipped())
@@ -245,7 +245,7 @@ func TestUpdate_ContainerGoneBeforeStopIsSkipped(t *testing.T) {
 			client.EXPECT().StopAndRemoveContainer(mock.Anything, app, mock.Anything).
 				Return(fmt.Errorf("no such container: %w", cerrdefs.ErrNotFound)).Once()
 
-			report, _, err := update(testLogger(), t.Context(), client, types.UpdateParams{RollingRestart: rolling}, ratelimit.New())
+			report, _, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{RollingRestart: rolling}, ratelimit.New())
 			require.NoError(t, err)
 
 			skips := reportErrors(report.Skipped())
@@ -283,7 +283,7 @@ func TestUpdate_SkipSelfUpdateLeavesDependentWatchtowerRunning(t *testing.T) {
 	client.EXPECT().StartContainerByID(mock.Anything, mock.Anything).Return(nil).Once()
 	client.EXPECT().GetContainer(mock.Anything, mock.Anything).Return(app, nil).Maybe()
 
-	report, _, err := update(testLogger(), t.Context(), client, types.UpdateParams{SkipSelfUpdate: true}, ratelimit.New())
+	report, _, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{SkipSelfUpdate: true}, ratelimit.New())
 	require.NoError(t, err)
 
 	assert.Equal(t, []string{app.Name()}, reportNames(report.Updated()))

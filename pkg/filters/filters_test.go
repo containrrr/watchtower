@@ -13,10 +13,21 @@ import (
 	mockContainer "github.com/nicholas-fedor/watchtower/pkg/container/mocks"
 )
 
-func testLog() *zerolog.Logger {
-	n := zerolog.Nop()
+// newTestLogger returns a logger that writes each event to the test's log, so a
+// failing test shows what it logged.
+//
+// Parameters:
+//   - t: Test that receives the log lines.
+//
+// Returns:
+//   - *zerolog.Logger: Logger writing to t.
+func newTestLogger(t *testing.T) *zerolog.Logger {
+	t.Helper()
 
-	return &n
+	// Frame 4 skips zerolog's write path, so each line names the log call.
+	w := zerolog.TestWriter{T: t, Frame: 4}
+
+	return new(zerolog.New(w))
 }
 
 func TestExcludeOldWatchtowerFilter(t *testing.T) {
@@ -151,11 +162,11 @@ func TestFilterByNames(t *testing.T) {
 
 	names := make([]string, 0, 1)
 
-	filter := FilterByNames(testLog(), names, nil)
+	filter := FilterByNames(newTestLogger(t), names, nil)
 	assert.Nil(t, filter)
 
 	names = append(names, "test")
-	filter = FilterByNames(testLog(), names, NoFilter)
+	filter = FilterByNames(newTestLogger(t), names, NoFilter)
 	assert.NotNil(t, filter)
 
 	container := new(mockContainer.FilterableContainer)
@@ -173,7 +184,7 @@ func TestFilterByNamesLeadingSlashScenarios(t *testing.T) {
 
 	// Test container with normalized name matching filter without slash
 	names := []string{"test"}
-	filter := FilterByNames(testLog(), names, NoFilter)
+	filter := FilterByNames(newTestLogger(t), names, NoFilter)
 	assert.NotNil(t, filter)
 
 	container := new(mockContainer.FilterableContainer)
@@ -183,7 +194,7 @@ func TestFilterByNamesLeadingSlashScenarios(t *testing.T) {
 
 	// Test container with normalized name matching filter with slash
 	names = []string{"/test"}
-	filter = FilterByNames(testLog(), names, NoFilter)
+	filter = FilterByNames(newTestLogger(t), names, NoFilter)
 	assert.NotNil(t, filter)
 
 	container = new(mockContainer.FilterableContainer)
@@ -193,7 +204,7 @@ func TestFilterByNamesLeadingSlashScenarios(t *testing.T) {
 
 	// Test multiple containers with normalized filter inputs
 	names = []string{"container1", "container2", "container3"}
-	filter = FilterByNames(testLog(), names, NoFilter)
+	filter = FilterByNames(newTestLogger(t), names, NoFilter)
 	assert.NotNil(t, filter)
 
 	// Should match container1
@@ -216,7 +227,7 @@ func TestFilterByNamesLeadingSlashScenarios(t *testing.T) {
 
 	// Test multiple containers with leading slash in filter inputs
 	names = []string{"/container1", "/container2", "/container3"}
-	filter = FilterByNames(testLog(), names, NoFilter)
+	filter = FilterByNames(newTestLogger(t), names, NoFilter)
 	assert.NotNil(t, filter)
 
 	// Should match /container1
@@ -249,7 +260,7 @@ func TestFilterByNamesRegex(t *testing.T) {
 
 	names := []string{`ba(b|ll)oon`}
 
-	filter := FilterByNames(testLog(), names, NoFilter)
+	filter := FilterByNames(newTestLogger(t), names, NoFilter)
 	assert.NotNil(t, filter)
 
 	container := new(mockContainer.FilterableContainer)
@@ -271,7 +282,7 @@ func TestFilterByNamesRegex(t *testing.T) {
 func TestFilterByEnabledLabelsPresenceCheck(t *testing.T) {
 	t.Parallel()
 
-	filter := filterByEnabledLabels(testLog(), map[string]string{enableLabelKey: ""}, NoFilter)
+	filter := filterByEnabledLabels(newTestLogger(t), map[string]string{enableLabelKey: ""}, NoFilter)
 	assert.NotNil(t, filter)
 
 	container := new(mockContainer.FilterableContainer)
@@ -298,7 +309,7 @@ func TestFilterByScope(t *testing.T) {
 
 	scope := "testscope"
 
-	filter := FilterByScope(testLog(), scope, NoFilter)
+	filter := FilterByScope(newTestLogger(t), scope, NoFilter)
 	assert.NotNil(t, filter)
 
 	container := new(mockContainer.FilterableContainer)
@@ -325,7 +336,7 @@ func TestFilterByNoneScope(t *testing.T) {
 
 	scope := "none"
 
-	filter := FilterByScope(testLog(), scope, NoFilter)
+	filter := FilterByScope(newTestLogger(t), scope, NoFilter)
 	assert.NotNil(t, filter)
 
 	container := new(mockContainer.FilterableContainer)
@@ -356,7 +367,7 @@ func TestFilterByNoneScope(t *testing.T) {
 func TestFilterByNoneScope_TransitionScenarios(t *testing.T) {
 	t.Parallel()
 
-	filter := FilterByScope(testLog(), "none", NoFilter)
+	filter := FilterByScope(newTestLogger(t), "none", NoFilter)
 	assert.NotNil(t, filter)
 
 	tests := []struct {
@@ -421,7 +432,7 @@ func TestFilterByNoneScope_TransitionScenarios(t *testing.T) {
 func TestFilterByNoneScope_MixedHandling(t *testing.T) {
 	t.Parallel()
 
-	filter := FilterByScope(testLog(), "none", NoFilter)
+	filter := FilterByScope(newTestLogger(t), "none", NoFilter)
 	assert.NotNil(t, filter)
 
 	// Test mixed batch of containers with different scope configurations
@@ -465,7 +476,7 @@ func TestFilterByNoneScope_MixedHandling(t *testing.T) {
 func TestBuildFilterNoneScope(t *testing.T) {
 	t.Parallel()
 
-	filter, desc, err := BuildFilter(testLog(), nil, nil, nil, nil, nil, nil, false, "none")
+	filter, desc, err := BuildFilter(newTestLogger(t), nil, nil, nil, nil, nil, nil, false, "none")
 	require.NoError(t, err)
 
 	assert.Contains(t, desc, "without a scope")
@@ -501,7 +512,7 @@ func TestBuildFilterNoneScope(t *testing.T) {
 func TestFilterByDisabledLabelsExactMatch(t *testing.T) {
 	t.Parallel()
 
-	filter := filterByDisabledLabels(testLog(), map[string]string{enableLabelKey: "false"}, NoFilter)
+	filter := filterByDisabledLabels(newTestLogger(t), map[string]string{enableLabelKey: "false"}, NoFilter)
 	assert.NotNil(t, filter)
 
 	container := new(mockContainer.FilterableContainer)
@@ -528,7 +539,7 @@ func TestFilterByDisableNamesLeadingSlashScenarios(t *testing.T) {
 
 	// Test container with normalized name excluded by filter without slash
 	disableNames := []string{"excluded"}
-	filter := FilterByDisableNames(testLog(), disableNames, NoFilter)
+	filter := FilterByDisableNames(newTestLogger(t), disableNames, NoFilter)
 	assert.NotNil(t, filter)
 
 	container := new(mockContainer.FilterableContainer)
@@ -538,7 +549,7 @@ func TestFilterByDisableNamesLeadingSlashScenarios(t *testing.T) {
 
 	// Test container with normalized name excluded by filter with slash
 	disableNames = []string{"/excluded"}
-	filter = FilterByDisableNames(testLog(), disableNames, NoFilter)
+	filter = FilterByDisableNames(newTestLogger(t), disableNames, NoFilter)
 	assert.NotNil(t, filter)
 
 	container = new(mockContainer.FilterableContainer)
@@ -548,7 +559,7 @@ func TestFilterByDisableNamesLeadingSlashScenarios(t *testing.T) {
 
 	// Test multiple containers with normalized filter inputs
 	disableNames = []string{"container1", "container2", "container3"}
-	filter = FilterByDisableNames(testLog(), disableNames, NoFilter)
+	filter = FilterByDisableNames(newTestLogger(t), disableNames, NoFilter)
 	assert.NotNil(t, filter)
 
 	// Should exclude container1
@@ -571,7 +582,7 @@ func TestFilterByDisableNamesLeadingSlashScenarios(t *testing.T) {
 
 	// Test multiple containers with leading slash in filter inputs
 	disableNames = []string{"/container1", "/container2", "/container3"}
-	filter = FilterByDisableNames(testLog(), disableNames, NoFilter)
+	filter = FilterByDisableNames(newTestLogger(t), disableNames, NoFilter)
 	assert.NotNil(t, filter)
 
 	// Should exclude /container1
@@ -602,9 +613,9 @@ func TestFilterByDisableNamesLeadingSlashScenarios(t *testing.T) {
 func TestFilterByImage(t *testing.T) {
 	t.Parallel()
 
-	filterEmpty := FilterByImage(testLog(), nil, NoFilter)
-	filterSingle := FilterByImage(testLog(), []string{"registry"}, NoFilter)
-	filterMultiple := FilterByImage(testLog(), []string{"registry", "bla"}, NoFilter)
+	filterEmpty := FilterByImage(newTestLogger(t), nil, NoFilter)
+	filterSingle := FilterByImage(newTestLogger(t), []string{"registry"}, NoFilter)
+	filterMultiple := FilterByImage(newTestLogger(t), []string{"registry", "bla"}, NoFilter)
 
 	assert.NotNil(t, filterSingle)
 	assert.NotNil(t, filterMultiple)
@@ -641,9 +652,9 @@ func TestFilterByImage(t *testing.T) {
 	assert.True(t, filterMultiple(container))
 	container.AssertExpectations(t)
 
-	filterEmptyTagged := FilterByImage(testLog(), nil, NoFilter)
-	filterSingleTagged := FilterByImage(testLog(), []string{"registry:develop"}, NoFilter)
-	filterMultipleTagged := FilterByImage(testLog(), []string{"registry:develop", "registry:latest"}, NoFilter)
+	filterEmptyTagged := FilterByImage(newTestLogger(t), nil, NoFilter)
+	filterSingleTagged := FilterByImage(newTestLogger(t), []string{"registry:develop"}, NoFilter)
+	filterMultipleTagged := FilterByImage(newTestLogger(t), []string{"registry:develop", "registry:latest"}, NoFilter)
 
 	assert.NotNil(t, filterSingleTagged)
 	assert.NotNil(t, filterMultipleTagged)
@@ -676,7 +687,7 @@ func TestFilterByImage(t *testing.T) {
 func TestFilterByImageMalformed(t *testing.T) {
 	t.Parallel()
 
-	filter := FilterByImage(testLog(), []string{"valid:image", "invalid::tag", "image:", ":tag", ""}, NoFilter)
+	filter := FilterByImage(newTestLogger(t), []string{"valid:image", "invalid::tag", "image:", ":tag", ""}, NoFilter)
 	assert.NotNil(t, filter)
 
 	container := new(mockContainer.FilterableContainer)
@@ -718,7 +729,7 @@ func TestMatchImageAndTagHostPortRegistry(t *testing.T) {
 func TestFilterByImageHostPortRegistry(t *testing.T) {
 	t.Parallel()
 
-	filterTagged := FilterByImage(testLog(), []string{"localhost:5000/app:v2"}, NoFilter)
+	filterTagged := FilterByImage(newTestLogger(t), []string{"localhost:5000/app:v2"}, NoFilter)
 
 	container := new(mockContainer.FilterableContainer)
 	container.On("ImageName").Return("localhost:5000/app:v1")
@@ -738,7 +749,7 @@ func TestBuildFilter(t *testing.T) {
 
 	names := []string{"test", "valid"}
 
-	filter, desc, err := BuildFilter(testLog(), names, []string{}, nil, nil, nil, nil, false, "")
+	filter, desc, err := BuildFilter(newTestLogger(t), names, []string{}, nil, nil, nil, nil, false, "")
 	require.NoError(t, err)
 	assert.Contains(t, desc, "test")
 	assert.Contains(t, desc, "or")
@@ -799,7 +810,7 @@ func TestBuildFilterEnableLabel(t *testing.T) {
 	names := make([]string, 0, 1)
 	names = append(names, "test")
 
-	filter, desc, err := BuildFilter(testLog(), names, []string{}, nil, nil, nil, nil, true, "")
+	filter, desc, err := BuildFilter(newTestLogger(t), names, []string{}, nil, nil, nil, nil, true, "")
 	require.NoError(t, err)
 	assert.Contains(t, desc, "with label")
 	assert.Contains(t, desc, `com.centurylinklabs.watchtower.enable`)
@@ -842,7 +853,7 @@ func TestBuildFilterEnableLabelPreservesUserCriteria(t *testing.T) {
 	// User requests only containers with enable=false, while enableLabel=true
 	// requires enable=true. These conflict, so a container with enable=true
 	// must be excluded by the user's exact-match criterion.
-	filter, _, err := BuildFilter(testLog(),
+	filter, _, err := BuildFilter(newTestLogger(t),
 		[]string{"test"},
 		[]string{},
 		nil,
@@ -867,7 +878,7 @@ func TestBuildFilterEnableLabelPreservesUserCriteria(t *testing.T) {
 func TestBuildFilterDisableContainer(t *testing.T) {
 	t.Parallel()
 
-	filter, desc, err := BuildFilter(testLog(), []string{}, []string{"excluded", "notfound"}, nil, nil, nil, nil, false, "")
+	filter, desc, err := BuildFilter(newTestLogger(t), []string{}, []string{"excluded", "notfound"}, nil, nil, nil, nil, false, "")
 	require.NoError(t, err)
 	assert.Contains(t, desc, "not named")
 	assert.Contains(t, desc, "excluded")
@@ -948,11 +959,11 @@ func TestFilterByImageNames(t *testing.T) {
 
 	patterns := make([]string, 0, 1)
 
-	filter := filterByMonitoredImageNamePatterns(testLog(), patterns, nil)
+	filter := filterByMonitoredImageNamePatterns(newTestLogger(t), patterns, nil)
 	assert.Nil(t, filter)
 
 	patterns = append(patterns, "nginx:latest")
-	filter = filterByMonitoredImageNamePatterns(testLog(), patterns, NoFilter)
+	filter = filterByMonitoredImageNamePatterns(newTestLogger(t), patterns, NoFilter)
 	assert.NotNil(t, filter)
 
 	// Image matches -> kept.
@@ -973,7 +984,7 @@ func TestFilterByImageNames(t *testing.T) {
 func TestFilterByImageNamesRegex(t *testing.T) {
 	t.Parallel()
 
-	filter := filterByMonitoredImageNamePatterns(testLog(), []string{"nginx:.*"}, NoFilter)
+	filter := filterByMonitoredImageNamePatterns(newTestLogger(t), []string{"nginx:.*"}, NoFilter)
 	assert.NotNil(t, filter)
 
 	// Anchored regex matches any nginx tag.
@@ -994,7 +1005,7 @@ func TestFilterByImageNamesRegex(t *testing.T) {
 func TestFilterByImageNamesRegistryPath(t *testing.T) {
 	t.Parallel()
 
-	filter := filterByMonitoredImageNamePatterns(testLog(), []string{"docker.io/library/nginx:.*"}, NoFilter)
+	filter := filterByMonitoredImageNamePatterns(newTestLogger(t), []string{"docker.io/library/nginx:.*"}, NoFilter)
 	assert.NotNil(t, filter)
 
 	// Registry path with slashes matches.
@@ -1017,11 +1028,11 @@ func TestFilterBySkippedImageNames(t *testing.T) {
 
 	patterns := make([]string, 0, 1)
 
-	filter := filterBySkippedImageNamePatterns(testLog(), patterns, nil)
+	filter := filterBySkippedImageNamePatterns(newTestLogger(t), patterns, nil)
 	assert.Nil(t, filter)
 
 	patterns = append(patterns, "nginx:latest")
-	filter = filterBySkippedImageNamePatterns(testLog(), patterns, NoFilter)
+	filter = filterBySkippedImageNamePatterns(newTestLogger(t), patterns, NoFilter)
 	assert.NotNil(t, filter)
 
 	// Skipped image.
@@ -1042,7 +1053,7 @@ func TestFilterBySkippedImageNames(t *testing.T) {
 func TestBuildFilterImageNames(t *testing.T) {
 	t.Parallel()
 
-	filter, desc, err := BuildFilter(testLog(),
+	filter, desc, err := BuildFilter(newTestLogger(t),
 		nil, nil,
 		[]string{"nginx:.*", "redis:.*"},
 		[]string{"redis:latest"},
@@ -1105,7 +1116,7 @@ func TestBuildFilterImageNamesWithContainerNames(t *testing.T) {
 
 	// When both container name and image name patterns are set,
 	// a container must match BOTH to be included.
-	filter, desc, err := BuildFilter(testLog(),
+	filter, desc, err := BuildFilter(newTestLogger(t),
 		[]string{"web"},
 		nil,
 		[]string{"nginx:.*"},
@@ -1156,7 +1167,7 @@ func TestFilterByEnabledLabels(t *testing.T) {
 
 	labels := map[string]string{"Service": "Pelican", "Env": "prod"}
 
-	filter := filterByEnabledLabels(testLog(), labels, NoFilter)
+	filter := filterByEnabledLabels(newTestLogger(t), labels, NoFilter)
 	assert.NotNil(t, filter)
 
 	container := new(mockContainer.FilterableContainer)
@@ -1187,7 +1198,7 @@ func TestFilterByEnabledLabels(t *testing.T) {
 	assert.False(t, filter(container))
 	container.AssertExpectations(t)
 
-	emptyFilter := filterByEnabledLabels(testLog(), nil, NoFilter)
+	emptyFilter := filterByEnabledLabels(newTestLogger(t), nil, NoFilter)
 	container = new(mockContainer.FilterableContainer)
 	container.On("Name").Return("/anything").Maybe()
 	assert.True(t, emptyFilter(container))
@@ -1199,7 +1210,7 @@ func TestFilterByDisabledLabels(t *testing.T) {
 
 	labels := map[string]string{"Service": "Pelican", "Env": "dev"}
 
-	filter := filterByDisabledLabels(testLog(), labels, NoFilter)
+	filter := filterByDisabledLabels(newTestLogger(t), labels, NoFilter)
 	assert.NotNil(t, filter)
 
 	container := new(mockContainer.FilterableContainer)
@@ -1230,7 +1241,7 @@ func TestFilterByDisabledLabels(t *testing.T) {
 	assert.True(t, filter(container))
 	container.AssertExpectations(t)
 
-	emptyFilter := filterByDisabledLabels(testLog(), nil, NoFilter)
+	emptyFilter := filterByDisabledLabels(newTestLogger(t), nil, NoFilter)
 	container = new(mockContainer.FilterableContainer)
 	container.On("Name").Return("/anything").Maybe()
 	assert.True(t, emptyFilter(container))
@@ -1240,7 +1251,7 @@ func TestFilterByDisabledLabels(t *testing.T) {
 func TestBuildFilterEnabledLabels(t *testing.T) {
 	t.Parallel()
 
-	filter, desc, err := BuildFilter(testLog(), nil, nil, nil, nil, []string{"Service=Pelican"}, nil, false, "none")
+	filter, desc, err := BuildFilter(newTestLogger(t), nil, nil, nil, nil, []string{"Service=Pelican"}, nil, false, "none")
 	require.NoError(t, err)
 	assert.Contains(t, desc, "with label")
 	assert.Contains(t, desc, `Service="Pelican"`)
@@ -1269,7 +1280,7 @@ func TestBuildFilterEnabledLabels(t *testing.T) {
 func TestBuildFilterDisabledLabels(t *testing.T) {
 	t.Parallel()
 
-	filter, desc, err := BuildFilter(testLog(), nil, nil, nil, nil, nil, []string{"Service=Pelican"}, false, "none")
+	filter, desc, err := BuildFilter(newTestLogger(t), nil, nil, nil, nil, nil, []string{"Service=Pelican"}, false, "none")
 	require.NoError(t, err)
 	assert.Contains(t, desc, "without label")
 	assert.Contains(t, desc, `Service="Pelican"`)
@@ -1415,7 +1426,7 @@ func TestCompileNamePatterns_ClassifiesLiteralsAndRegex(t *testing.T) {
 func TestFilterByDisableNames_InvalidRegexIsExactMatch(t *testing.T) {
 	t.Parallel()
 
-	filter := FilterByDisableNames(testLog(), []string{"["}, NoFilter)
+	filter := FilterByDisableNames(newTestLogger(t), []string{"["}, NoFilter)
 
 	excluded := new(mockContainer.FilterableContainer)
 	excluded.On("Name").Return("[")
@@ -1431,7 +1442,7 @@ func TestFilterByDisableNames_InvalidRegexIsExactMatch(t *testing.T) {
 func TestFilterByNames_InvalidRegexIsExactMatch(t *testing.T) {
 	t.Parallel()
 
-	filter := FilterByNames(testLog(), []string{"["}, NoFilter)
+	filter := FilterByNames(newTestLogger(t), []string{"["}, NoFilter)
 
 	matched := new(mockContainer.FilterableContainer)
 	matched.On("Name").Return("[")

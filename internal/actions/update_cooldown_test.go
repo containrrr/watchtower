@@ -145,7 +145,7 @@ var _ = ginkgo.Describe("the update action cooldown", func() {
 				Stopped: make(map[string]bool),
 			}
 
-			report, _, err := actions.Update(testLogger(),
+			report, _, err := actions.Update(newNopLogger(),
 				context.Background(),
 				client,
 				cooldownConfig(1*time.Hour),
@@ -180,7 +180,7 @@ var _ = ginkgo.Describe("the update action cooldown", func() {
 				Stopped: make(map[string]bool),
 			}
 
-			report, _, err := actions.Update(testLogger(),
+			report, _, err := actions.Update(newNopLogger(),
 				context.Background(),
 				client,
 				cooldownConfig(1*time.Hour),
@@ -209,7 +209,7 @@ var _ = ginkgo.Describe("the update action cooldown", func() {
 				Stopped: make(map[string]bool),
 			}
 
-			report, _, err := actions.Update(testLogger(),
+			report, _, err := actions.Update(newNopLogger(),
 				context.Background(),
 				client,
 				cooldownConfig(0),
@@ -242,7 +242,7 @@ var _ = ginkgo.Describe("the update action cooldown", func() {
 			config := cooldownConfig(1 * time.Hour)
 			config.NoPull = true
 
-			report, _, err := actions.Update(testLogger(),
+			report, _, err := actions.Update(newNopLogger(),
 				context.Background(),
 				client,
 				config,
@@ -267,7 +267,7 @@ var _ = ginkgo.Describe("the update action cooldown", func() {
 				Stopped: make(map[string]bool),
 			}
 
-			report, _, err := actions.Update(testLogger(),
+			report, _, err := actions.Update(newNopLogger(),
 				context.Background(),
 				client,
 				cooldownConfig(1*time.Hour),
@@ -300,7 +300,7 @@ var _ = ginkgo.Describe("the update action cooldown", func() {
 			config := cooldownConfig(1 * time.Hour)
 			config.MonitorOnly = true
 
-			report, _, err := actions.Update(testLogger(),
+			report, _, err := actions.Update(newNopLogger(),
 				context.Background(),
 				client,
 				config,

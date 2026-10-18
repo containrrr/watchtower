@@ -127,7 +127,7 @@ var _ = ginkgo.Describe("isOutsideCooldown", func() {
 
 	ginkgo.When("no cooldown delay is configured", func() {
 		ginkgo.It("returns true with no registry calls", func() {
-			i := newImageClient(mockClient, testLog(), registryConfig.Registry{}, ratelimit.New())
+			i := newImageClient(mockClient, nopLog(), registryConfig.Registry{}, ratelimit.New())
 			c := MockContainer(WithImageName("test:latest"))
 
 			outside, err := i.isOutsideCooldown(
@@ -140,7 +140,7 @@ var _ = ginkgo.Describe("isOutsideCooldown", func() {
 
 	ginkgo.When("cooldown delay is zero", func() {
 		ginkgo.It("returns true immediately", func() {
-			i := newImageClient(mockClient, testLog(), registryConfig.Registry{}, ratelimit.New())
+			i := newImageClient(mockClient, nopLog(), registryConfig.Registry{}, ratelimit.New())
 			c := MockContainer(WithImageName("test:latest"))
 
 			outside, err := i.isOutsideCooldown(
@@ -155,7 +155,7 @@ var _ = ginkgo.Describe("isOutsideCooldown", func() {
 
 	ginkgo.When("container is monitor-only", func() {
 		ginkgo.It("returns true and bypasses the cooldown check", func() {
-			i := newImageClient(mockClient, testLog(), registryConfig.Registry{}, ratelimit.New())
+			i := newImageClient(mockClient, nopLog(), registryConfig.Registry{}, ratelimit.New())
 			c := MockContainer(WithImageName("test:latest"))
 
 			outside, err := i.isOutsideCooldown(
@@ -171,7 +171,7 @@ var _ = ginkgo.Describe("isOutsideCooldown", func() {
 
 	ginkgo.When("container has no-pull enabled", func() {
 		ginkgo.It("returns true and bypasses the cooldown check", func() {
-			i := newImageClient(mockClient, testLog(), registryConfig.Registry{}, ratelimit.New())
+			i := newImageClient(mockClient, nopLog(), registryConfig.Registry{}, ratelimit.New())
 			c := MockContainer(WithImageName("test:latest"))
 
 			outside, err := i.isOutsideCooldown(
@@ -346,13 +346,13 @@ func TestIsOutsideCooldown_RegistrySettings(t *testing.T) {
 	container := MockContainer(WithImageName(strings.TrimPrefix(server.URL, "http://") + "/org/app:1.0"))
 	params := types.UpdateParams{CooldownDelay: time.Hour}
 
-	plain := newImageClient(nil, testLog(), registryConfig.Registry{TLSSkip: true}, ratelimit.New())
+	plain := newImageClient(nil, newTestLogger(t), registryConfig.Registry{TLSSkip: true}, ratelimit.New())
 
 	outside, err := plain.isOutsideCooldown(t.Context(), container, params)
 	require.NoError(t, err)
 	assert.True(t, outside, "an image older than the cooldown was deferred")
 
-	secure := newImageClient(nil, testLog(), registryConfig.Registry{}, ratelimit.New())
+	secure := newImageClient(nil, newTestLogger(t), registryConfig.Registry{}, ratelimit.New())
 
 	outside, err = secure.isOutsideCooldown(t.Context(), container, params)
 	require.Error(t, err, "an HTTPS request reached the plain HTTP registry")

@@ -112,7 +112,7 @@ var _ = ginkgo.Describe("the client", func() {
 	ginkgo.When("pulling the latest image", func() {
 		ginkgo.When("the image consist of a pinned hash", func() {
 			ginkgo.It("should gracefully fail with a useful message for bare sha256", func() {
-				i := newImageClient(mockClient, testLog(), registryConfig.Registry{}, ratelimit.New())
+				i := newImageClient(mockClient, nopLog(), registryConfig.Registry{}, ratelimit.New())
 				pinnedContainer := MockContainer(
 					WithImageName(
 						"sha256:fa5269854a5e615e51a72b17ad3fd1e01268f278a6684c8ed3c5f0cdce3f230b",
@@ -123,7 +123,7 @@ var _ = ginkgo.Describe("the client", func() {
 					To(gomega.MatchError(`image is pinned with sha256, skipping pull`))
 			})
 			ginkgo.It("should gracefully fail for repository-qualified digest", func() {
-				i := newImageClient(mockClient, testLog(), registryConfig.Registry{}, ratelimit.New())
+				i := newImageClient(mockClient, nopLog(), registryConfig.Registry{}, ratelimit.New())
 				pinnedContainer := MockContainer(
 					WithImageName(
 						"nginx@sha256:fa5269854a5e615e51a72b17ad3fd1e01268f278a6684c8ed3c5f0cdce3f230b",
@@ -145,7 +145,7 @@ var _ = ginkgo.Describe("the client", func() {
 				),
 			)
 
-			i := newImageClient(mockClient, testLog(), registryConfig.Registry{}, ratelimit.New())
+			i := newImageClient(mockClient, nopLog(), registryConfig.Registry{}, ratelimit.New())
 			pullContainer := MockContainer(
 				WithImageName("private-registry.io/app:latest"),
 				WithRepoDigests([]string{"private-registry.io/app@sha256:abc"}),
@@ -173,7 +173,7 @@ var _ = ginkgo.Describe("the client", func() {
 				),
 			)
 
-			i := newImageClient(mockClient, testLog(), registryConfig.Registry{}, ratelimit.New())
+			i := newImageClient(mockClient, nopLog(), registryConfig.Registry{}, ratelimit.New())
 			pullContainer := MockContainer(
 				WithImageName("registry.example.com/nonexistent:latest"),
 				WithRepoDigests([]string{"registry.example.com/nonexistent@sha256:def"}),
@@ -200,7 +200,7 @@ var _ = ginkgo.Describe("the client", func() {
 				),
 			)
 
-			i := newImageClient(mockClient, testLog(), registryConfig.Registry{}, ratelimit.New())
+			i := newImageClient(mockClient, nopLog(), registryConfig.Registry{}, ratelimit.New())
 			pullContainer := MockContainer(
 				WithImageName("registry.example.com/app:latest"),
 				WithRepoDigests([]string{"registry.example.com/app@sha256:ghi"}),
@@ -229,7 +229,7 @@ var _ = ginkgo.Describe("the client", func() {
 				),
 			)
 
-			i := newImageClient(mockClient, testLog(), registryConfig.Registry{}, ratelimit.New())
+			i := newImageClient(mockClient, nopLog(), registryConfig.Registry{}, ratelimit.New())
 			err := i.performImagePull(
 				context.Background(),
 				"registry.example.com/app:latest",
@@ -250,7 +250,7 @@ var _ = ginkgo.Describe("the client", func() {
 				),
 			)
 
-			i := newImageClient(mockClient, testLog(), registryConfig.Registry{}, ratelimit.New())
+			i := newImageClient(mockClient, nopLog(), registryConfig.Registry{}, ratelimit.New())
 			err := i.performImagePull(
 				context.Background(),
 				"ghcr.io/linuxserver/nginx:latest",
@@ -271,7 +271,7 @@ var _ = ginkgo.Describe("the client", func() {
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
 
-			i := newImageClient(mockClient, testLog(), registryConfig.Registry{}, ratelimit.New())
+			i := newImageClient(mockClient, nopLog(), registryConfig.Registry{}, ratelimit.New())
 			err := i.performImagePull(
 				ctx,
 				"ghcr.io/linuxserver/nginx:latest",
@@ -299,7 +299,7 @@ var _ = ginkgo.Describe("the client", func() {
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
 
-			i := newImageClient(mockClient, testLog(), registryConfig.Registry{}, ratelimit.New())
+			i := newImageClient(mockClient, nopLog(), registryConfig.Registry{}, ratelimit.New())
 
 			started := time.Now()
 			err := i.performImagePull(
@@ -364,7 +364,7 @@ var _ = ginkgo.Describe("the client", func() {
 				),
 			)
 
-			i := newImageClient(mockClient, testLog(), registryConfig.Registry{}, ratelimit.New())
+			i := newImageClient(mockClient, nopLog(), registryConfig.Registry{}, ratelimit.New())
 
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
@@ -413,7 +413,7 @@ var _ = ginkgo.Describe("the client", func() {
 				),
 			)
 
-			i := newImageClient(mockClient, testLog(), registryConfig.Registry{}, limiter)
+			i := newImageClient(mockClient, nopLog(), registryConfig.Registry{}, limiter)
 
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
@@ -469,7 +469,7 @@ var _ = ginkgo.Describe("the client", func() {
 				_, _ = w.Write([]byte(`{"status":"Download complete"}` + "\n"))
 			})
 
-			i := newImageClient(mockClient, testLog(), registryConfig.Registry{}, ratelimit.New())
+			i := newImageClient(mockClient, nopLog(), registryConfig.Registry{}, ratelimit.New())
 
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
@@ -521,7 +521,7 @@ var _ = ginkgo.Describe("the client", func() {
 				),
 			)
 
-			i := newImageClient(mockClient, testLog(), registryConfig.Registry{}, ratelimit.New())
+			i := newImageClient(mockClient, nopLog(), registryConfig.Registry{}, ratelimit.New())
 			pullContainer := MockContainer(
 				WithImageName("private-registry.io/app:latest"),
 				WithRepoDigests([]string{"private-registry.io/app@sha256:abc"}),
@@ -547,7 +547,7 @@ var _ = ginkgo.Describe("the client", func() {
 				),
 			)
 
-			i := newImageClient(mockClient, testLog(), registryConfig.Registry{}, ratelimit.New())
+			i := newImageClient(mockClient, nopLog(), registryConfig.Registry{}, ratelimit.New())
 			pullContainer := MockContainer(
 				WithImageName("private-registry.io/app:latest"),
 				WithRepoDigests([]string{"private-registry.io/app@sha256:abc"}),
@@ -574,7 +574,7 @@ var _ = ginkgo.Describe("the client", func() {
 					mockContainer.RemoveImageHandler(images),
 				)
 
-				c := &client{log: testLog(), api: mockClient}
+				c := &client{log: nopLog(), api: mockClient}
 
 				log, logbuf := captureLog(zerolog.DebugLevel)
 				c.log = log
@@ -602,7 +602,7 @@ var _ = ginkgo.Describe("the client", func() {
 					mockContainer.RemoveImageHandler(nil),
 				)
 
-				c := &client{log: testLog(), api: mockClient}
+				c := &client{log: nopLog(), api: mockClient}
 				err := c.RemoveImageByID(context.Background(), types.ImageID(image), "test-image")
 				gomega.Expect(cerrdefs.IsNotFound(err)).To(gomega.BeTrue())
 			})
@@ -630,7 +630,7 @@ var _ = ginkgo.Describe("the client", func() {
 						),
 					)
 
-					c := &client{log: testLog(), api: mockClient}
+					c := &client{log: nopLog(), api: mockClient}
 
 					log, _ := captureLog(zerolog.InfoLevel)
 					c.log = log
@@ -670,7 +670,7 @@ var _ = ginkgo.Describe("the client", func() {
 					),
 				)
 
-				c := &client{log: testLog(), api: mockClient}
+				c := &client{log: nopLog(), api: mockClient}
 
 				log, _ := captureLog(zerolog.InfoLevel)
 				c.log = log
@@ -697,7 +697,7 @@ var _ = ginkgo.Describe("the client", func() {
 				ctx, cancel := context.WithCancel(context.Background())
 				cancel() // Cancel immediately
 
-				c := &client{log: testLog(), api: mockClient}
+				c := &client{log: nopLog(), api: mockClient}
 
 				_, _, _, err := c.IsContainerStale(
 					ctx,
@@ -749,7 +749,7 @@ var _ = ginkgo.Describe("the client", func() {
 					),
 				)
 
-				c := &client{log: testLog(), api: mockClient}
+				c := &client{log: nopLog(), api: mockClient}
 
 				log, logbuf := captureLog(zerolog.DebugLevel)
 				c.log = log
@@ -791,7 +791,7 @@ var _ = ginkgo.Describe("the client", func() {
 					),
 				)
 
-				c := &client{log: testLog(), api: mockClient}
+				c := &client{log: nopLog(), api: mockClient}
 
 				log, logbuf := captureLog(zerolog.DebugLevel)
 				c.log = log
@@ -835,7 +835,7 @@ var _ = ginkgo.Describe("the client", func() {
 					),
 				)
 
-				c := &client{log: testLog(), api: mockClient}
+				c := &client{log: nopLog(), api: mockClient}
 
 				stale, latestID, latestDigest, err := c.IsContainerStale(
 					context.Background(),
@@ -873,7 +873,7 @@ var _ = ginkgo.Describe("the client", func() {
 					),
 				)
 
-				c := &client{log: testLog(), api: mockClient}
+				c := &client{log: nopLog(), api: mockClient}
 
 				stale, latestID, latestDigest, err := c.IsContainerStale(
 					context.Background(),
@@ -911,7 +911,7 @@ var _ = ginkgo.Describe("the client", func() {
 					),
 				)
 
-				c := &client{log: testLog(), api: mockClient}
+				c := &client{log: nopLog(), api: mockClient}
 
 				stale, latestID, latestDigest, err := c.IsContainerStale(
 					context.Background(),
@@ -948,7 +948,7 @@ var _ = ginkgo.Describe("the client", func() {
 					),
 				)
 
-				c := &client{log: testLog(), api: mockClient}
+				c := &client{log: nopLog(), api: mockClient}
 
 				log, logbuf := captureLog(zerolog.DebugLevel)
 				c.log = log
@@ -995,7 +995,7 @@ var _ = ginkgo.Describe("the client", func() {
 					),
 				)
 
-				c := &client{log: testLog(), api: mockClient}
+				c := &client{log: nopLog(), api: mockClient}
 
 				stale, latestID, latestDigest, err := c.IsContainerStale(
 					context.Background(),
@@ -1037,7 +1037,7 @@ var _ = ginkgo.Describe("the client", func() {
 					),
 				)
 
-				c := &client{log: testLog(), api: mockClient, RateLimiter: ratelimit.New()}
+				c := &client{log: nopLog(), api: mockClient, RateLimiter: ratelimit.New()}
 
 				log, logbuf := captureLog(zerolog.DebugLevel)
 				c.log = log
@@ -1090,7 +1090,7 @@ var _ = ginkgo.Describe("the client", func() {
 					),
 				)
 
-				c := &client{log: testLog(), api: mockClient}
+				c := &client{log: nopLog(), api: mockClient}
 
 				log, logbuf := captureLog(zerolog.DebugLevel)
 				c.log = log
@@ -1185,7 +1185,7 @@ var _ = ginkgo.Describe("CheckContainerUpdate", func() {
 		ginkgo.It("reports no update for bare sha256 without contacting the registry", func() {
 			pinnedID := "sha256:fa5269854a5e615e51a72b17ad3fd1e01268f278a6684c8ed3c5f0cdce3f230b"
 			container := MockContainer(WithImageName(pinnedID))
-			c := &client{log: testLog(), api: mockClient}
+			c := &client{log: nopLog(), api: mockClient}
 
 			available, latestID, latestDigest, err := c.CheckContainerUpdate(
 				context.Background(),
@@ -1204,7 +1204,7 @@ var _ = ginkgo.Describe("CheckContainerUpdate", func() {
 		ginkgo.It("reports no update for repo@sha256 without contacting the registry", func() {
 			pinnedRef := "nginx@sha256:fa5269854a5e615e51a72b17ad3fd1e01268f278a6684c8ed3c5f0cdce3f230b"
 			container := MockContainer(WithImageName(pinnedRef))
-			c := &client{log: testLog(), api: mockClient}
+			c := &client{log: nopLog(), api: mockClient}
 
 			available, latestID, latestDigest, err := c.CheckContainerUpdate(
 				context.Background(),
@@ -1245,7 +1245,7 @@ var _ = ginkgo.Describe("CheckContainerUpdate", func() {
 				),
 			)
 
-			c := &client{log: testLog(), api: mockClient}
+			c := &client{log: nopLog(), api: mockClient}
 
 			available, latestID, _, err := c.CheckContainerUpdate(
 				context.Background(),
@@ -1274,7 +1274,7 @@ var _ = ginkgo.Describe("CheckContainerUpdate", func() {
 				},
 			)
 
-			c := &client{log: testLog(), api: mockClient}
+			c := &client{log: nopLog(), api: mockClient}
 
 			available, latestID, latestDigest, err := c.CheckContainerUpdate(
 				context.Background(),
@@ -1341,7 +1341,7 @@ var _ = ginkgo.Describe("CheckContainerUpdate", func() {
 
 			// The test registry serves plain HTTP.
 			c := &client{
-				log:         testLog(),
+				log:         nopLog(),
 				api:         mockClient,
 				Registry:    registryConfig.Registry{TLSSkip: true},
 				RateLimiter: ratelimit.New(),
@@ -1388,7 +1388,7 @@ var _ = ginkgo.Describe("CheckContainerUpdate", func() {
 
 			// The test registry serves plain HTTP.
 			c := &client{
-				log:         testLog(),
+				log:         nopLog(),
 				api:         mockClient,
 				Registry:    registryConfig.Registry{TLSSkip: true},
 				RateLimiter: ratelimit.New(),
@@ -1484,7 +1484,7 @@ var _ = ginkgo.Describe("ExtractImageDigest", func() {
 var _ = ginkgo.Describe("IsOutsideCooldown (cooldown gating before pull)", func() {
 	ginkgo.When("no cooldown delay is configured", func() {
 		ginkgo.It("returns true (safe to pull) with no registry calls", func() {
-			i := newImageClient(nil, testLog(), registryConfig.Registry{}, ratelimit.New())
+			i := newImageClient(nil, nopLog(), registryConfig.Registry{}, ratelimit.New())
 			c := MockContainer(WithImageName("test:latest"))
 
 			outside, err := i.isOutsideCooldown(
@@ -1497,7 +1497,7 @@ var _ = ginkgo.Describe("IsOutsideCooldown (cooldown gating before pull)", func(
 
 	ginkgo.When("container is monitor-only or no-pull", func() {
 		ginkgo.It("returns true (bypasses cooldown check)", func() {
-			i := newImageClient(nil, testLog(), registryConfig.Registry{}, ratelimit.New())
+			i := newImageClient(nil, nopLog(), registryConfig.Registry{}, ratelimit.New())
 			c := MockContainer(WithImageName("test:latest"))
 
 			outside, err := i.isOutsideCooldown(

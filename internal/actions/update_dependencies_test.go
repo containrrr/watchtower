@@ -79,7 +79,7 @@ var _ = ginkgo.Describe("the update action", func() {
 				false,
 			)
 
-			report, cleanupImageInfos, err := actions.Update(testLogger(),
+			report, cleanupImageInfos, err := actions.Update(newNopLogger(),
 				context.Background(),
 				client,
 				types.UpdateParams{Cleanup: true},
@@ -139,7 +139,7 @@ var _ = ginkgo.Describe("the update action", func() {
 			gomega.Expect(provider.ToRestart()).To(gomega.BeTrue())
 			gomega.Expect(consumer.ToRestart()).To(gomega.BeFalse())
 
-			actions.UpdateImplicitRestart(testLogger(), containers, containers, true)
+			actions.UpdateImplicitRestart(newNopLogger(), containers, containers, true)
 
 			gomega.Expect(containers[0].ToRestart()).To(gomega.BeTrue())
 			gomega.Expect(containers[1].ToRestart()).To(gomega.BeTrue())
@@ -157,7 +157,7 @@ var _ = ginkgo.Describe("the update action", func() {
 				gomega.Expect(containers[0].ToRestart()).To(gomega.BeTrue())  // db
 				gomega.Expect(containers[1].ToRestart()).To(gomega.BeFalse()) // web
 
-				actions.UpdateImplicitRestart(testLogger(), containers, containers, true)
+				actions.UpdateImplicitRestart(newNopLogger(), containers, containers, true)
 
 				// web should be marked for restart because it depends on db
 				gomega.Expect(containers[0].ToRestart()).To(gomega.BeTrue())
@@ -178,7 +178,7 @@ var _ = ginkgo.Describe("the update action", func() {
 				gomega.Expect(containers[1].ToRestart()).To(gomega.BeFalse()) // db
 				gomega.Expect(containers[2].ToRestart()).To(gomega.BeFalse()) // app
 
-				actions.UpdateImplicitRestart(testLogger(), containers, containers, true)
+				actions.UpdateImplicitRestart(newNopLogger(), containers, containers, true)
 
 				// All should be marked for restart: cache -> db -> app
 				gomega.Expect(containers[0].ToRestart()).To(gomega.BeTrue())
@@ -199,7 +199,7 @@ var _ = ginkgo.Describe("the update action", func() {
 				gomega.Expect(containers[0].ToRestart()).To(gomega.BeTrue())  // db
 				gomega.Expect(containers[1].ToRestart()).To(gomega.BeFalse()) // web
 
-				actions.UpdateImplicitRestart(testLogger(), containers, containers, true)
+				actions.UpdateImplicitRestart(newNopLogger(), containers, containers, true)
 
 				// web should be marked for restart because it depends on db
 				gomega.Expect(containers[0].ToRestart()).To(gomega.BeTrue())
@@ -219,7 +219,7 @@ var _ = ginkgo.Describe("the update action", func() {
 				gomega.Expect(containers[0].ToRestart()).To(gomega.BeTrue())  // base
 				gomega.Expect(containers[1].ToRestart()).To(gomega.BeFalse()) // dependent
 
-				actions.UpdateImplicitRestart(testLogger(), containers, containers, true)
+				actions.UpdateImplicitRestart(newNopLogger(), containers, containers, true)
 
 				gomega.Expect(containers[0].ToRestart()).To(gomega.BeTrue())
 				gomega.Expect(containers[1].ToRestart()).To(gomega.BeTrue())
@@ -239,7 +239,7 @@ var _ = ginkgo.Describe("the update action", func() {
 				gomega.Expect(containers[1].ToRestart()).To(gomega.BeFalse()) // dependent-simple
 				gomega.Expect(containers[2].ToRestart()).To(gomega.BeFalse()) // dependent-network
 
-				actions.UpdateImplicitRestart(testLogger(), containers, containers, true)
+				actions.UpdateImplicitRestart(newNopLogger(), containers, containers, true)
 
 				gomega.Expect(containers[0].ToRestart()).To(gomega.BeTrue())
 				gomega.Expect(containers[1].ToRestart()).To(gomega.BeTrue(), "dependent-simple should be marked via depends_on")
@@ -293,7 +293,7 @@ var _ = ginkgo.Describe("the update action", func() {
 				gomega.Expect(webContainer.ToRestart()).To(gomega.BeFalse())
 
 				// Call UpdateImplicitRestart with UseComposeDependsOn = false
-				actions.UpdateImplicitRestart(testLogger(), containers, containers, false)
+				actions.UpdateImplicitRestart(newNopLogger(), containers, containers, false)
 
 				// web should NOT be marked for restart because compose depends_on is disabled
 				gomega.Expect(dbContainer.ToRestart()).To(gomega.BeTrue())
@@ -345,7 +345,7 @@ var _ = ginkgo.Describe("the update action", func() {
 
 				// Call UpdateImplicitRestart with UseComposeDependsOn = false
 				// But watchtower depends-on should still work
-				actions.UpdateImplicitRestart(testLogger(), containers, containers, false)
+				actions.UpdateImplicitRestart(newNopLogger(), containers, containers, false)
 
 				// web should be marked for restart because it depends on db via watchtower label
 				gomega.Expect(dbContainer.ToRestart()).To(gomega.BeTrue())
@@ -410,7 +410,7 @@ var _ = ginkgo.Describe("the update action", func() {
 			gomega.Expect(containerA.ToRestart()).To(gomega.BeFalse())
 
 			// Run UpdateImplicitRestart to propagate restart through the chain
-			actions.UpdateImplicitRestart(testLogger(), containers, containers, true)
+			actions.UpdateImplicitRestart(newNopLogger(), containers, containers, true)
 
 			// Verify that restart propagates: A and B should now be marked for restart
 			gomega.Expect(containers[0].ToRestart()).To(gomega.BeTrue()) // C
@@ -446,7 +446,7 @@ var _ = ginkgo.Describe("the update action", func() {
 				false,
 				false,
 			)
-			report, cleanupImageInfos, err := actions.Update(testLogger(),
+			report, cleanupImageInfos, err := actions.Update(newNopLogger(),
 				context.Background(),
 				client,
 				types.UpdateParams{Cleanup: true},
@@ -507,7 +507,7 @@ var _ = ginkgo.Describe("the update action", func() {
 			containers := []types.Container{badContainer, base, dependent}
 			base.SetStale(true)
 
-			actions.UpdateImplicitRestart(testLogger(), containers, containers, true)
+			actions.UpdateImplicitRestart(newNopLogger(), containers, containers, true)
 
 			// The valid dependent should still be marked despite the bad container
 			gomega.Expect(dependent.ToRestart()).To(gomega.BeTrue())
@@ -554,7 +554,7 @@ var _ = ginkgo.Describe("the update action", func() {
 			containers := []types.Container{base, dependent}
 			base.SetStale(true)
 
-			actions.UpdateImplicitRestart(testLogger(), containers, containers, true)
+			actions.UpdateImplicitRestart(newNopLogger(), containers, containers, true)
 
 			// Replica matches for qualified links are permitted by the refined guard.
 			gomega.Expect(dependent.ToRestart()).To(gomega.BeTrue())
@@ -603,7 +603,7 @@ var _ = ginkgo.Describe("the update action", func() {
 			containers := []types.Container{base, dependent}
 			base.SetStale(true)
 
-			actions.UpdateImplicitRestart(testLogger(), containers, containers, true)
+			actions.UpdateImplicitRestart(newNopLogger(), containers, containers, true)
 
 			// The dependent should still be marked, even though the base resolved
 			// to its runtime name "myproject-db-1" due to the special case.
@@ -652,7 +652,7 @@ var _ = ginkgo.Describe("the update action", func() {
 			containers := []types.Container{base, dependent}
 			base.SetStale(true)
 
-			actions.UpdateImplicitRestart(testLogger(), containers, containers, true)
+			actions.UpdateImplicitRestart(newNopLogger(), containers, containers, true)
 
 			gomega.Expect(dependent.ToRestart()).To(gomega.BeTrue())
 		})
@@ -677,7 +677,7 @@ var _ = ginkgo.Describe("the update action", func() {
 				false,
 				false,
 			)
-			report, cleanupImageInfos, err := actions.Update(testLogger(),
+			report, cleanupImageInfos, err := actions.Update(newNopLogger(),
 				context.Background(),
 				client,
 				types.UpdateParams{Cleanup: true},
@@ -750,7 +750,7 @@ var _ = ginkgo.Describe("the update action", func() {
 					false,
 					false,
 				)
-				report, cleanupImageInfos, err := actions.Update(testLogger(),
+				report, cleanupImageInfos, err := actions.Update(newNopLogger(),
 					context.Background(),
 					client,
 					types.UpdateParams{Cleanup: true},
@@ -813,7 +813,7 @@ var _ = ginkgo.Describe("the update action", func() {
 				false,
 			)
 
-			report, cleanupImageInfos, err := actions.Update(testLogger(),
+			report, cleanupImageInfos, err := actions.Update(newNopLogger(),
 				context.Background(),
 				client,
 				types.UpdateParams{Cleanup: true},
@@ -861,7 +861,7 @@ var _ = ginkgo.Describe("the update action", func() {
 					false,
 				)
 
-				report, cleanupImageInfos, err := actions.Update(testLogger(),
+				report, cleanupImageInfos, err := actions.Update(newNopLogger(),
 					context.Background(),
 					client,
 					types.UpdateParams{Cleanup: true},
@@ -960,7 +960,7 @@ var _ = ginkgo.Describe("the update action", func() {
 				false,
 			)
 
-			report, cleanupImageInfos, err := actions.Update(testLogger(),
+			report, cleanupImageInfos, err := actions.Update(newNopLogger(),
 				context.Background(),
 				client,
 				types.UpdateParams{Cleanup: true},
@@ -1008,7 +1008,7 @@ var _ = ginkgo.Describe("the update action", func() {
 				false,
 			)
 
-			report, cleanupImageInfos, err := actions.Update(testLogger(),
+			report, cleanupImageInfos, err := actions.Update(newNopLogger(),
 				context.Background(),
 				client,
 				types.UpdateParams{Cleanup: true},
@@ -1054,7 +1054,7 @@ var _ = ginkgo.Describe("the update action", func() {
 				false,
 			)
 
-			report, cleanupImageInfos, err := actions.Update(testLogger(),
+			report, cleanupImageInfos, err := actions.Update(newNopLogger(),
 				context.Background(),
 				client,
 				types.UpdateParams{Cleanup: true},
@@ -1169,7 +1169,7 @@ var _ = ginkgo.Describe("the update action", func() {
 				false,
 			)
 
-			report, cleanupImageInfos, err := actions.Update(testLogger(),
+			report, cleanupImageInfos, err := actions.Update(newNopLogger(),
 				context.Background(),
 				client,
 				types.UpdateParams{Cleanup: true},
@@ -1234,7 +1234,7 @@ var _ = ginkgo.Describe("the update action", func() {
 					false,
 				)
 
-				report, cleanupImageInfos, err := actions.Update(testLogger(),
+				report, cleanupImageInfos, err := actions.Update(newNopLogger(),
 					context.Background(),
 					client,
 					types.UpdateParams{Cleanup: true},
@@ -1296,7 +1296,7 @@ var _ = ginkgo.Describe("the update action", func() {
 					gomega.Expect(dependency.ToRestart()).To(gomega.BeTrue())
 					gomega.Expect(dependent.ToRestart()).To(gomega.BeFalse())
 
-					actions.UpdateImplicitRestart(testLogger(), containers, containers, true)
+					actions.UpdateImplicitRestart(newNopLogger(), containers, containers, true)
 
 					// Verify that restart propagates to dependent
 					gomega.Expect(containers[0].ToRestart()).To(gomega.BeTrue()) // dependency
@@ -1367,7 +1367,7 @@ var _ = ginkgo.Describe("the update action", func() {
 					false,
 				)
 
-				report, cleanupImageInfos, err := actions.Update(testLogger(),
+				report, cleanupImageInfos, err := actions.Update(newNopLogger(),
 					context.Background(),
 					client,
 					types.UpdateParams{
@@ -1432,7 +1432,7 @@ var _ = ginkgo.Describe("the update action", func() {
 				false,
 			)
 
-			report, cleanupImageInfos, err := actions.Update(testLogger(),
+			report, cleanupImageInfos, err := actions.Update(newNopLogger(),
 				context.Background(),
 				client,
 				types.UpdateParams{Cleanup: true},
@@ -1491,7 +1491,7 @@ var _ = ginkgo.Describe("the update action", func() {
 				false,
 			)
 
-			report, cleanupImageInfos, err := actions.Update(testLogger(),
+			report, cleanupImageInfos, err := actions.Update(newNopLogger(),
 				context.Background(),
 				client,
 				types.UpdateParams{Cleanup: true},
@@ -1589,7 +1589,7 @@ var _ = ginkgo.Describe("the update action", func() {
 				false,
 			)
 
-			report, cleanupImageInfos, err := actions.Update(testLogger(),
+			report, cleanupImageInfos, err := actions.Update(newNopLogger(),
 				context.Background(),
 				client,
 				types.UpdateParams{Cleanup: true},
@@ -1694,7 +1694,7 @@ var _ = ginkgo.Describe("the update action", func() {
 					false,
 				)
 
-				report, cleanupImageInfos, err := actions.Update(testLogger(),
+				report, cleanupImageInfos, err := actions.Update(newNopLogger(),
 					context.Background(),
 					client,
 					types.UpdateParams{Cleanup: true},
@@ -1753,7 +1753,7 @@ var _ = ginkgo.Describe("the update action", func() {
 				gomega.Expect(dependency.ToRestart()).To(gomega.BeTrue())
 				gomega.Expect(dependent.ToRestart()).To(gomega.BeFalse())
 
-				actions.UpdateImplicitRestart(testLogger(), containers, containers, true)
+				actions.UpdateImplicitRestart(newNopLogger(), containers, containers, true)
 
 				gomega.Expect(containers[0].ToRestart()).To(gomega.BeTrue()) // dependency
 				gomega.Expect(containers[1].ToRestart()).To(gomega.BeTrue()) // dependent
@@ -1767,7 +1767,7 @@ var _ = ginkgo.Describe("the update action", func() {
 				gomega.Expect(dependency.ToRestart()).To(gomega.BeFalse())
 				gomega.Expect(dependent.ToRestart()).To(gomega.BeTrue())
 
-				actions.UpdateImplicitRestart(testLogger(), containers, containers, true)
+				actions.UpdateImplicitRestart(newNopLogger(), containers, containers, true)
 
 				// With unidirectional logic, restart does NOT propagate from dependent to dependency
 				gomega.Expect(containers[0].ToRestart()).
@@ -1856,7 +1856,7 @@ var _ = ginkgo.Describe("the update action", func() {
 					false,
 				)
 
-				report, cleanupImageInfos, err := actions.Update(testLogger(),
+				report, cleanupImageInfos, err := actions.Update(newNopLogger(),
 					context.Background(),
 					client,
 					types.UpdateParams{Cleanup: true},
@@ -1958,7 +1958,7 @@ var _ = ginkgo.Describe("the update action", func() {
 				false,
 			)
 
-			report, cleanupImageInfos, err := actions.Update(testLogger(),
+			report, cleanupImageInfos, err := actions.Update(newNopLogger(),
 				context.Background(),
 				client,
 				types.UpdateParams{Cleanup: true, RollingRestart: true},
@@ -2053,7 +2053,7 @@ var _ = ginkgo.Describe("the update action", func() {
 				false,
 			)
 
-			report, cleanupImageInfos, err := actions.Update(testLogger(),
+			report, cleanupImageInfos, err := actions.Update(newNopLogger(),
 				context.Background(),
 				client,
 				types.UpdateParams{Cleanup: true},
@@ -2090,7 +2090,7 @@ var _ = ginkgo.Describe("the update action", func() {
 				testData := getNetworkModeTestData()
 				client := mockActions.CreateMockClient(testData, false, false)
 
-				report, cleanupImageInfos, err := actions.Update(testLogger(),
+				report, cleanupImageInfos, err := actions.Update(newNopLogger(),
 					context.Background(),
 					client,
 					types.UpdateParams{Cleanup: true},
@@ -2122,7 +2122,7 @@ var _ = ginkgo.Describe("the update action", func() {
 				testData := getComposeDependsOnWithNetworkModeTestData()
 				client := mockActions.CreateMockClient(testData, false, false)
 
-				report, cleanupImageInfos, err := actions.Update(testLogger(),
+				report, cleanupImageInfos, err := actions.Update(newNopLogger(),
 					context.Background(),
 					client,
 					types.UpdateParams{Cleanup: true},
@@ -2218,7 +2218,7 @@ var _ = ginkgo.Describe("the update action", func() {
 					false,
 				)
 
-				report, _, err := actions.Update(testLogger(),
+				report, _, err := actions.Update(newNopLogger(),
 					context.Background(),
 					client,
 					types.UpdateParams{Cleanup: true},
@@ -2290,7 +2290,7 @@ var _ = ginkgo.Describe("the update action", func() {
 					false,
 				)
 
-				report, _, err := actions.Update(testLogger(),
+				report, _, err := actions.Update(newNopLogger(),
 					context.Background(),
 					client,
 					types.UpdateParams{Cleanup: true},
@@ -2362,7 +2362,7 @@ var _ = ginkgo.Describe("the update action", func() {
 					false,
 				)
 
-				report, _, err := actions.Update(testLogger(),
+				report, _, err := actions.Update(newNopLogger(),
 					context.Background(),
 					client,
 					types.UpdateParams{Cleanup: true},
@@ -2438,7 +2438,7 @@ var _ = ginkgo.Describe("the update action", func() {
 					false,
 				)
 
-				report, _, err := actions.Update(testLogger(),
+				report, _, err := actions.Update(newNopLogger(),
 					context.Background(),
 					client,
 					types.UpdateParams{Cleanup: true},
@@ -2529,7 +2529,7 @@ var _ = ginkgo.Describe("the update action", func() {
 					false,
 				)
 
-				report, _, err := actions.Update(testLogger(),
+				report, _, err := actions.Update(newNopLogger(),
 					context.Background(),
 					client,
 					types.UpdateParams{Cleanup: true},
@@ -2603,7 +2603,7 @@ var _ = ginkgo.Describe("the update action", func() {
 					false,
 				)
 
-				report, cleanupImageInfos, err := actions.Update(testLogger(),
+				report, cleanupImageInfos, err := actions.Update(newNopLogger(),
 					context.Background(),
 					client,
 					types.UpdateParams{Cleanup: true},
@@ -2682,7 +2682,7 @@ var _ = ginkgo.Describe("the update action", func() {
 				false,
 			)
 
-			report, cleanupImageInfos, err := actions.Update(testLogger(),
+			report, cleanupImageInfos, err := actions.Update(newNopLogger(),
 				context.Background(),
 				client,
 				types.UpdateParams{Cleanup: true},
@@ -2764,7 +2764,7 @@ var _ = ginkgo.Describe("the update action", func() {
 					false,
 				)
 
-				report, cleanupImageInfos, err := actions.Update(testLogger(),
+				report, cleanupImageInfos, err := actions.Update(newNopLogger(),
 					context.Background(),
 					client,
 					types.UpdateParams{Cleanup: true},
@@ -2847,7 +2847,7 @@ var _ = ginkgo.Describe("the update action", func() {
 				false,
 			)
 
-			report, cleanupImageInfos, err := actions.Update(testLogger(),
+			report, cleanupImageInfos, err := actions.Update(newNopLogger(),
 				context.Background(),
 				client,
 				types.UpdateParams{Cleanup: true},
@@ -2927,7 +2927,7 @@ var _ = ginkgo.Describe("the update action", func() {
 					false,
 				)
 
-				report, cleanupImageInfos, err := actions.Update(testLogger(),
+				report, cleanupImageInfos, err := actions.Update(newNopLogger(),
 					context.Background(),
 					client,
 					types.UpdateParams{Cleanup: true},
@@ -3013,7 +3013,7 @@ var _ = ginkgo.Describe("the update action", func() {
 					false,
 				)
 
-				report, cleanupImageInfos, err := actions.Update(testLogger(),
+				report, cleanupImageInfos, err := actions.Update(newNopLogger(),
 					context.Background(),
 					client,
 					types.UpdateParams{Cleanup: true},

@@ -26,11 +26,21 @@ import (
 	"github.com/nicholas-fedor/watchtower/pkg/types"
 )
 
-// testLogger returns a discarded zerolog logger for tests that do not assert on logs.
-func testLogger() *zerolog.Logger {
-	nop := zerolog.Nop()
+// newTestLogger returns a logger that writes each event to the test's log, so a
+// failing test shows what it logged.
+//
+// Parameters:
+//   - t: Test that receives the log lines.
+//
+// Returns:
+//   - *zerolog.Logger: Logger writing to t.
+func newTestLogger(t *testing.T) *zerolog.Logger {
+	t.Helper()
 
-	return &nop
+	// Frame 4 skips zerolog's write path, so each line names the log call.
+	w := zerolog.TestWriter{T: t, Frame: 4}
+
+	return new(zerolog.New(w))
 }
 
 // testContainerOption configures optional fields on the InspectResponse for testing.
@@ -86,11 +96,14 @@ func createTestContainer(chain string, opts ...testContainerOption) *container.C
 // testDeps returns ScheduleDeps with common test defaults.
 // Callers override ScheduleSpec, UpdateOnStart, SkipFirstRun, containers, and BaseParams as needed.
 func testDeps(
+	t *testing.T,
 	runUpdate func(context.Context, types.Filter, types.UpdateParams) *metrics.Metric,
 	writeStartup func(logging.StartupParams),
 ) ScheduleDeps {
+	t.Helper()
+
 	return ScheduleDeps{
-		Logger:              testLogger(),
+		Logger:              newTestLogger(t),
 		Filter:              filters.NoFilter,
 		WriteStartupMessage: writeStartup,
 		RunUpdate:           runUpdate,
@@ -109,7 +122,7 @@ func TestWaitForRunningUpdate(t *testing.T) {
 
 		lock := NewUpdateLock()
 
-		waitForRunningUpdate(testLogger(), t.Context(), lock)
+		waitForRunningUpdate(newTestLogger(t), t.Context(), lock)
 
 		assert.False(t, lock.TryLock(), "an update could start after the shutdown wait")
 	})
@@ -124,7 +137,7 @@ func TestWaitForRunningUpdate(t *testing.T) {
 			done := make(chan struct{})
 
 			go func() {
-				waitForRunningUpdate(testLogger(), t.Context(), lock)
+				waitForRunningUpdate(newTestLogger(t), t.Context(), lock)
 				close(done)
 			}()
 
@@ -152,7 +165,7 @@ func TestWaitForRunningUpdate(t *testing.T) {
 
 			start := time.Now()
 
-			waitForRunningUpdate(testLogger(), t.Context(), lock)
+			waitForRunningUpdate(newTestLogger(t), t.Context(), lock)
 
 			assert.Equal(t, 60*time.Second, time.Since(start))
 		})
@@ -173,7 +186,7 @@ func TestWaitForRunningUpdate(t *testing.T) {
 				cancel()
 			}()
 
-			waitForRunningUpdate(testLogger(), ctx, lock)
+			waitForRunningUpdate(newTestLogger(t), ctx, lock)
 
 			assert.Equal(t, 50*time.Millisecond, time.Since(start))
 		})
@@ -187,7 +200,7 @@ func TestRunUpgradesOnSchedule_WaitingRunStopsAtShutdown(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		var updated atomic.Bool
 
-		deps := testDeps(func(context.Context, types.Filter, types.UpdateParams) *metrics.Metric {
+		deps := testDeps(t, func(context.Context, types.Filter, types.UpdateParams) *metrics.Metric {
 			updated.Store(true)
 
 			return &metrics.Metric{}
@@ -229,7 +242,7 @@ func TestRunUpgradesOnSchedule_EmptySchedule(t *testing.T) {
 	timeoutCtx, timeoutCancel := context.WithTimeout(ctx, 10*time.Millisecond)
 	defer timeoutCancel()
 
-	deps := testDeps(runUpdatesWithNotifications, writeStartupMessage)
+	deps := testDeps(t, runUpdatesWithNotifications, writeStartupMessage)
 	err := RunUpgradesOnSchedule(timeoutCtx, deps)
 	// Should complete without error when context times out (clean cancellation)
 	if err != nil {
@@ -254,7 +267,7 @@ func TestRunUpgradesOnSchedule_StartupMessageSuppressed(t *testing.T) {
 	timeoutCtx, timeoutCancel := context.WithTimeout(ctx, 10*time.Millisecond)
 	defer timeoutCancel()
 
-	deps := testDeps(runUpdatesWithNotifications, writeStartupMessage)
+	deps := testDeps(t, runUpdatesWithNotifications, writeStartupMessage)
 	deps.StartupMessageSent = true
 	err := RunUpgradesOnSchedule(timeoutCtx, deps)
 	// Should complete without error when context times out (clean cancellation)
@@ -284,7 +297,7 @@ func TestRunUpgradesOnSchedule_UpdateOnStart(t *testing.T) {
 	timeoutCtx, timeoutCancel := context.WithTimeout(ctx, 10*time.Millisecond)
 	defer timeoutCancel()
 
-	deps := testDeps(runUpdatesWithNotifications, writeStartupMessage)
+	deps := testDeps(t, runUpdatesWithNotifications, writeStartupMessage)
 	deps.UpdateOnStart = true
 
 	err := RunUpgradesOnSchedule(timeoutCtx, deps)
@@ -312,7 +325,7 @@ func TestRunUpgradesOnSchedule_UpdateOnStartSkippedWhenCanceled(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 
-	deps := testDeps(runUpdatesWithNotifications, func(logging.StartupParams) {})
+	deps := testDeps(t, runUpdatesWithNotifications, func(logging.StartupParams) {})
 	deps.UpdateOnStart = true
 
 	err := RunUpgradesOnSchedule(ctx, deps)
@@ -334,7 +347,7 @@ func TestRunUpgradesOnSchedule_InvalidCronSpec(t *testing.T) {
 
 	writeStartupMessage := func(logging.StartupParams) {}
 
-	deps := testDeps(runUpdatesWithNotifications, writeStartupMessage)
+	deps := testDeps(t, runUpdatesWithNotifications, writeStartupMessage)
 	deps.ScheduleSpec = "invalid cron spec"
 
 	err := RunUpgradesOnSchedule(ctx, deps)
@@ -398,7 +411,7 @@ func TestRunUpgradesOnSchedule_QuotedScheduleSpec(t *testing.T) {
 			timeoutCtx, timeoutCancel := context.WithTimeout(ctx, 10*time.Millisecond)
 			defer timeoutCancel()
 
-			deps := testDeps(runUpdatesWithNotifications, writeStartupMessage)
+			deps := testDeps(t, runUpdatesWithNotifications, writeStartupMessage)
 			deps.ScheduleSpec = tt.scheduleSpec
 			deps.SkipFirstRun = true
 			err := RunUpgradesOnSchedule(timeoutCtx, deps)
@@ -429,7 +442,7 @@ func TestRunUpgradesOnSchedule_ContextCancellation(t *testing.T) {
 	canceledCtx, cancelFunc := context.WithCancel(ctx)
 	cancelFunc()
 
-	deps := testDeps(runUpdatesWithNotifications, writeStartupMessage)
+	deps := testDeps(t, runUpdatesWithNotifications, writeStartupMessage)
 
 	err := RunUpgradesOnSchedule(canceledCtx, deps)
 	if err != nil {
@@ -464,7 +477,7 @@ func TestRunUpgradesOnSchedule_StopsOnlyOnCancellation(t *testing.T) {
 	done := make(chan error, 1)
 
 	go func() {
-		done <- RunUpgradesOnSchedule(ctx, testDeps(runUpdatesWithNotifications, func(logging.StartupParams) {}))
+		done <- RunUpgradesOnSchedule(ctx, testDeps(t, runUpdatesWithNotifications, func(logging.StartupParams) {}))
 	}()
 
 	process, err := os.FindProcess(os.Getpid())
@@ -529,7 +542,7 @@ func TestRunUpgradesOnSchedule_MonitorOnlyParameter(t *testing.T) {
 			timeoutCtx, timeoutCancel := context.WithTimeout(ctx, 10*time.Millisecond)
 			defer timeoutCancel()
 
-			deps := testDeps(runUpdatesWithNotifications, writeStartupMessage)
+			deps := testDeps(t, runUpdatesWithNotifications, writeStartupMessage)
 			deps.UpdateOnStart = true
 			deps.BaseParams.MonitorOnly = tt.monitorOnly
 
@@ -639,7 +652,7 @@ func TestRunUpgradesOnSchedule_CronWithSeconds(t *testing.T) {
 	timeoutCtx, timeoutCancel := context.WithTimeout(ctx, 5*time.Second)
 	defer timeoutCancel()
 
-	deps := testDeps(runUpdatesWithNotifications, writeStartupMessage)
+	deps := testDeps(t, runUpdatesWithNotifications, writeStartupMessage)
 	deps.ScheduleSpec = scheduleSpec
 	err := RunUpgradesOnSchedule(timeoutCtx, deps)
 	// Should complete without error when context times out (clean cancellation)
@@ -673,7 +686,7 @@ func TestRunUpgradesOnSchedule_SkipFirstRun_True(t *testing.T) {
 	timeoutCtx, timeoutCancel := context.WithTimeout(ctx, 3500*time.Millisecond)
 	defer timeoutCancel()
 
-	deps := testDeps(runUpdatesWithNotifications, writeStartupMessage)
+	deps := testDeps(t, runUpdatesWithNotifications, writeStartupMessage)
 	deps.ScheduleSpec = scheduleSpec
 	deps.SkipFirstRun = true
 	err := RunUpgradesOnSchedule(timeoutCtx, deps)
@@ -720,7 +733,7 @@ func TestRunUpgradesOnSchedule_WatchtowerParent_Skipping(t *testing.T) {
 	timeoutCtx, timeoutCancel := context.WithTimeout(ctx, 2500*time.Millisecond)
 	defer timeoutCancel()
 
-	deps := testDeps(runUpdatesWithNotifications, writeStartupMessage)
+	deps := testDeps(t, runUpdatesWithNotifications, writeStartupMessage)
 	deps.ScheduleSpec = scheduleSpec
 	deps.CurrentWatchtowerContainer = parentContainer
 	err := RunUpgradesOnSchedule(timeoutCtx, deps)
@@ -760,7 +773,7 @@ func TestRunUpgradesOnSchedule_ScheduledRuns_Execution(t *testing.T) {
 	timeoutCtx, timeoutCancel := context.WithTimeout(ctx, 2500*time.Millisecond)
 	defer timeoutCancel()
 
-	deps := testDeps(runUpdatesWithNotifications, writeStartupMessage)
+	deps := testDeps(t, runUpdatesWithNotifications, writeStartupMessage)
 	deps.ScheduleSpec = scheduleSpec
 	err := RunUpgradesOnSchedule(timeoutCtx, deps)
 	// Should complete without error when context times out (clean cancellation)
@@ -817,7 +830,7 @@ func TestRunUpgradesOnSchedule_EphemeralSelfUpdateWithExposedPorts(t *testing.T)
 	timeoutCtx, timeoutCancel := context.WithTimeout(ctx, 10*time.Millisecond)
 	defer timeoutCancel()
 
-	deps := testDeps(runUpdatesWithNotifications, writeStartupMessage)
+	deps := testDeps(t, runUpdatesWithNotifications, writeStartupMessage)
 	deps.UpdateOnStart = true
 	deps.CurrentWatchtowerContainer = containerWithPorts
 	deps.BaseParams.EphemeralSelfUpdate = true
@@ -847,7 +860,7 @@ func TestRunUpgradesOnSchedule_KeepsBaseSkipSelfUpdate(t *testing.T) {
 	defer timeoutCancel()
 
 	// The run at startup does not skip self-updates on its own.
-	deps := testDeps(runUpdatesWithNotifications, func(logging.StartupParams) {})
+	deps := testDeps(t, runUpdatesWithNotifications, func(logging.StartupParams) {})
 	deps.UpdateOnStart = true
 	deps.BaseParams.SkipSelfUpdate = true
 	err := RunUpgradesOnSchedule(timeoutCtx, deps)
@@ -883,7 +896,7 @@ func TestRunUpgradesOnSchedule_PortConflictGuard_SkipsSelfUpdate(t *testing.T) {
 	timeoutCtx, timeoutCancel := context.WithTimeout(ctx, 10*time.Millisecond)
 	defer timeoutCancel()
 
-	deps := testDeps(runUpdatesWithNotifications, writeStartupMessage)
+	deps := testDeps(t, runUpdatesWithNotifications, writeStartupMessage)
 	deps.UpdateOnStart = true
 	deps.CurrentWatchtowerContainer = containerWithPorts
 	err := RunUpgradesOnSchedule(timeoutCtx, deps)
@@ -939,7 +952,7 @@ func TestRunUpgradesOnSchedule_NoExposedPorts_AllowsSelfUpdate(t *testing.T) {
 			timeoutCtx, timeoutCancel := context.WithTimeout(ctx, 10*time.Millisecond)
 			defer timeoutCancel()
 
-			deps := testDeps(runUpdatesWithNotifications, writeStartupMessage)
+			deps := testDeps(t, runUpdatesWithNotifications, writeStartupMessage)
 			deps.UpdateOnStart = true
 			deps.CurrentWatchtowerContainer = containerNoPorts
 			deps.BaseParams.EphemeralSelfUpdate = tt.ephemeralSelfUpdate
@@ -992,7 +1005,7 @@ func TestRunUpgradesOnSchedule_ReviveStoppedPropagation(t *testing.T) {
 			timeoutCtx, timeoutCancel := context.WithTimeout(ctx, 10*time.Millisecond)
 			defer timeoutCancel()
 
-			deps := testDeps(runUpdatesWithNotifications, writeStartupMessage)
+			deps := testDeps(t, runUpdatesWithNotifications, writeStartupMessage)
 			deps.UpdateOnStart = true
 			deps.BaseParams.ReviveStopped = tt.reviveStopped
 			err := RunUpgradesOnSchedule(timeoutCtx, deps)
@@ -1042,7 +1055,7 @@ func TestRunUpgradesOnSchedule_UseComposeDependsOnPropagation(t *testing.T) {
 			timeoutCtx, timeoutCancel := context.WithTimeout(ctx, 10*time.Millisecond)
 			defer timeoutCancel()
 
-			deps := testDeps(runUpdatesWithNotifications, writeStartupMessage)
+			deps := testDeps(t, runUpdatesWithNotifications, writeStartupMessage)
 			deps.UpdateOnStart = true
 			deps.BaseParams.UseComposeDependsOn = tt.useComposeDependsOn
 			err := RunUpgradesOnSchedule(timeoutCtx, deps)

@@ -48,7 +48,7 @@ func TestIntegration_HealthProbes_CustomRoute(t *testing.T) {
 	mc := mockContainer.NewMockClient(t)
 	mc.EXPECT().ListContainers(mock.Anything).Return([]types.Container{}, nil)
 
-	app := newApp(testLogger(), 60, proxyConfig{}, corsConfig{}, false)
+	app := newApp(newTestLogger(t), 60, proxyConfig{}, corsConfig{}, false)
 	app.Get("/health/custom", func(c fiber.Ctx) error {
 		_, err := mc.ListContainers(c.Context())
 		if err != nil {
@@ -75,7 +75,7 @@ func TestIntegration_SetupAndStartAPI_NoAPIs(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
-	_, err := SetupAndStartAPI(ctx, withTestLogger(config.Options{Token: "test"}))
+	_, err := SetupAndStartAPI(ctx, withTestLogger(t, config.Options{Token: "test"}))
 	assert.NoError(t, err)
 }
 
@@ -170,7 +170,7 @@ func TestIntegration_SetupAndStartAPI_MissingUpdateDependencies(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := SetupAndStartAPI(ctx, withTestLogger(tt.opts))
+			_, err := SetupAndStartAPI(ctx, withTestLogger(t, tt.opts))
 			require.Error(t, err)
 			assert.Contains(t, err.Error(), tt.errMsg)
 		})
@@ -186,12 +186,12 @@ func TestIntegration_GracefulShutdown_MetricsAPI(t *testing.T) {
 	errCh := make(chan error, 1)
 
 	go func() {
-		errCh <- apiStartErr(SetupAndStartAPI(ctx, withTestLogger(config.Options{
+		errCh <- startAPI(t, ctx, withTestLogger(t, config.Options{
 			Token:            "test-token",
 			EnableMetricsAPI: true,
 			RateLimit:        60,
 			DefaultMetrics:   func() *metrics.Metrics { return helperMetrics },
-		})))
+		}))
 	}()
 
 	time.Sleep(50 * time.Millisecond)
@@ -210,7 +210,7 @@ func TestIntegration_GracefulShutdown_AllAPIs(t *testing.T) {
 	errCh := make(chan error, 1)
 
 	go func() {
-		errCh <- apiStartErr(SetupAndStartAPI(ctx, withTestLogger(config.Options{
+		errCh <- startAPI(t, ctx, withTestLogger(t, config.Options{
 			Token:               "test-token",
 			EnableUpdateAPI:     true,
 			UpdateLock:          scheduling.NewUpdateLock(),
@@ -225,7 +225,7 @@ func TestIntegration_GracefulShutdown_AllAPIs(t *testing.T) {
 			FilterByImage:  func(_ []string, f types.Filter) types.Filter { return f },
 			DefaultMetrics: func() *metrics.Metrics { return helperMetrics },
 			UnblockHTTPAPI: true,
-		})))
+		}))
 	}()
 
 	time.Sleep(50 * time.Millisecond)
@@ -245,7 +245,7 @@ func TestIntegration_GracefulShutdownTiming(t *testing.T) {
 
 	errCh := make(chan error, 1)
 	go func() {
-		errCh <- apiStartErr(SetupAndStartAPI(ctx, withTestLogger(config.Options{
+		errCh <- startAPI(t, ctx, withTestLogger(t, config.Options{
 			Token:               "test-token",
 			EnableUpdateAPI:     true,
 			UpdateLock:          scheduling.NewUpdateLock(),
@@ -260,7 +260,7 @@ func TestIntegration_GracefulShutdownTiming(t *testing.T) {
 			FilterByImage:  func(_ []string, f types.Filter) types.Filter { return f },
 			DefaultMetrics: func() *metrics.Metrics { return helperMetrics },
 			UnblockHTTPAPI: true,
-		})))
+		}))
 	}()
 
 	time.Sleep(50 * time.Millisecond)
@@ -307,7 +307,7 @@ func TestIntegration_GetAPIAddr(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestIntegration_ConcurrentRequests(t *testing.T) {
-	app := newApp(testLogger(), 60, proxyConfig{}, corsConfig{}, false)
+	app := newApp(newTestLogger(t), 60, proxyConfig{}, corsConfig{}, false)
 
 	var wg sync.WaitGroup
 	for range 10 {
@@ -468,7 +468,7 @@ func TestIntegration_CheckDuringUpdate(t *testing.T) {
 
 	updateDone := make(chan struct{})
 
-	app := newApp(testLogger(), 60, proxyConfig{}, corsConfig{}, false)
+	app := newApp(newTestLogger(t), 60, proxyConfig{}, corsConfig{}, false)
 
 	opts := config.Options{
 		Token:           "test-token",
@@ -487,9 +487,9 @@ func TestIntegration_CheckDuringUpdate(t *testing.T) {
 		DefaultMetrics: func() *metrics.Metrics { return testMetrics },
 	}
 
-	opts = withTestLogger(opts)
+	opts = withTestLogger(t, opts)
 
-	authMiddleware := newAPIAuthMiddleware(testLogger(), opts.Token)
+	authMiddleware := newAPIAuthMiddleware(newTestLogger(t), opts.Token)
 
 	err := routes.ValidateAndRegister(t.Context(), app, authMiddleware, opts)
 	require.NoError(t, err)
@@ -550,7 +550,7 @@ func TestIntegration_APIAndScheduling_ConcurrentWithUnblockHTTPAPI(t *testing.T)
 	// The API and the scheduler share one update lock, as in production.
 	lock := scheduling.NewUpdateLock()
 
-	opts := withTestListenAddr(config.Options{
+	opts := withTestListenAddr(t, config.Options{
 		Token:            "test-token",
 		EnableUpdateAPI:  true,
 		UpdateLock:       lock,
@@ -568,7 +568,7 @@ func TestIntegration_APIAndScheduling_ConcurrentWithUnblockHTTPAPI(t *testing.T)
 
 	apiDone := make(chan error, 1)
 	go func() {
-		apiDone <- apiStartErr(SetupAndStartAPI(testCtx, opts))
+		apiDone <- startAPI(t, testCtx, opts)
 	}()
 
 	select {
@@ -582,7 +582,7 @@ func TestIntegration_APIAndScheduling_ConcurrentWithUnblockHTTPAPI(t *testing.T)
 	defer schedCancel()
 
 	err := scheduling.RunUpgradesOnSchedule(schedCtx, scheduling.ScheduleDeps{
-		Logger:              testLogger(),
+		Logger:              newTestLogger(t),
 		Filter:              func(_ types.FilterableContainer) bool { return true },
 		Lock:                lock,
 		ScheduleSpec:        "@every 1h",
@@ -613,7 +613,7 @@ func TestIntegration_APIAndScheduling_ConcurrentWithUnblockHTTPAPI(t *testing.T)
 func TestIntegration_UpdateHonorsReviveStoppedAndComposeDependsOn(t *testing.T) {
 	var captured types.UpdateParams
 
-	app := newApp(testLogger(), 60, proxyConfig{}, corsConfig{}, false)
+	app := newApp(newTestLogger(t), 60, proxyConfig{}, corsConfig{}, false)
 
 	opts := config.Options{
 		Token:           "test-token",
@@ -635,7 +635,7 @@ func TestIntegration_UpdateHonorsReviveStoppedAndComposeDependsOn(t *testing.T) 
 		DefaultMetrics: func() *metrics.Metrics { return helperMetrics },
 	}
 
-	authMiddleware := newAPIAuthMiddleware(testLogger(), opts.Token)
+	authMiddleware := newAPIAuthMiddleware(newTestLogger(t), opts.Token)
 
 	err := routes.ValidateAndRegister(t.Context(), app, authMiddleware, opts)
 	require.NoError(t, err)

@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"testing"
 	"time"
 
 	"github.com/onsi/ginkgo/v2"
@@ -25,10 +26,30 @@ import (
 	mockTypes "github.com/nicholas-fedor/watchtower/pkg/types/mocks"
 )
 
-func testLogger() *zerolog.Logger {
-	nop := zerolog.Nop()
+// newTestLogger returns a logger that writes each event to the test's log, so a
+// failing test shows what it logged.
+//
+// Parameters:
+//   - t: Test that receives the log lines.
+//
+// Returns:
+//   - *zerolog.Logger: Logger writing to t.
+func newTestLogger(t *testing.T) *zerolog.Logger {
+	t.Helper()
 
-	return &nop
+	// Frame 4 skips zerolog's write path, so each line names the log call.
+	w := zerolog.TestWriter{T: t, Frame: 4}
+
+	return new(zerolog.New(w))
+}
+
+// newNopLogger returns a logger that discards every event, for Ginkgo specs,
+// benchmarks, and fuzz targets.
+//
+// Returns:
+//   - *zerolog.Logger: Logger that discards all events.
+func newNopLogger() *zerolog.Logger {
+	return new(zerolog.Nop())
 }
 
 const (
@@ -66,7 +87,7 @@ var _ = ginkgo.Describe("restartStaleContainer", func() {
 			RunOnce: true,
 		}
 		testContainer := client.TestData.Containers[0]
-		newID, renamed, err := restartStaleContainer(testLogger(), context.Background(), testContainer, client, params)
+		newID, renamed, err := restartStaleContainer(newNopLogger(), context.Background(), testContainer, client, params)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 		gomega.Expect(renamed).To(gomega.BeFalse())
 		gomega.Expect(client.TestData.RenameContainerCount.Load()).To(gomega.Equal(int32(0)))
@@ -102,7 +123,7 @@ var _ = ginkgo.Describe("restartStaleContainer", func() {
 			RunOnce: false,
 		}
 		testContainer := client.TestData.Containers[0]
-		newID, renamed, err := restartStaleContainer(testLogger(), context.Background(), testContainer, client, params)
+		newID, renamed, err := restartStaleContainer(newNopLogger(), context.Background(), testContainer, client, params)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 		gomega.Expect(renamed).To(gomega.BeTrue())
 		gomega.Expect(client.TestData.RenameContainerCount.Load()).To(gomega.Equal(int32(1)))
@@ -138,7 +159,7 @@ var _ = ginkgo.Describe("restartStaleContainer", func() {
 			RunOnce: false,
 		}
 		testContainer := client.TestData.Containers[0]
-		newID, renamed, err := restartStaleContainer(testLogger(), context.Background(), testContainer, client, params)
+		newID, renamed, err := restartStaleContainer(newNopLogger(), context.Background(), testContainer, client, params)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 		gomega.Expect(renamed).To(gomega.BeTrue())
 		gomega.Expect(client.TestData.RenameContainerCount.Load()).To(gomega.Equal(int32(0)))
@@ -175,7 +196,7 @@ var _ = ginkgo.Describe("restartStaleContainer", func() {
 			Cleanup:             true,
 		}
 		testContainer := client.TestData.Containers[0]
-		newID, renamed, err := restartStaleContainer(testLogger(), context.Background(), testContainer, client, params)
+		newID, renamed, err := restartStaleContainer(newNopLogger(), context.Background(), testContainer, client, params)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 		gomega.Expect(renamed).To(gomega.BeTrue())
 		gomega.Expect(newID).To(gomega.BeEmpty())
@@ -187,7 +208,7 @@ var _ = ginkgo.Describe("restartStaleContainer", func() {
 var _ = ginkgo.Describe("handleUpdateResult", func() {
 	ginkgo.It("should return a failed zero metric when error is not nil and there is no report", func() {
 		err := errors.New("test error")
-		result := handleUpdateResult(testLogger(), nil, err, nil)
+		result := handleUpdateResult(newNopLogger(), nil, err, nil)
 		gomega.Expect(result).To(gomega.Equal(&metrics.Metric{ScanFailed: true}))
 	})
 
@@ -200,14 +221,14 @@ var _ = ginkgo.Describe("handleUpdateResult", func() {
 		mockReport.EXPECT().Skipped().Return(nil)
 
 		err := errors.New("rolling restart canceled")
-		result := handleUpdateResult(testLogger(), mockReport, err, nil)
+		result := handleUpdateResult(newNopLogger(), mockReport, err, nil)
 		gomega.Expect(result).To(gomega.Equal(&metrics.Metric{Scanned: 3, Updated: 1, Failed: 2, ScanFailed: true}))
 	})
 
 	ginkgo.It("should return a failed zero metric when result is nil", func() {
 		var err error
 
-		result := handleUpdateResult(testLogger(), nil, err, nil)
+		result := handleUpdateResult(newNopLogger(), nil, err, nil)
 		gomega.Expect(result).To(gomega.Equal(&metrics.Metric{ScanFailed: true}))
 	})
 
@@ -216,7 +237,7 @@ var _ = ginkgo.Describe("handleUpdateResult", func() {
 
 		var err error
 
-		result := handleUpdateResult(testLogger(), mockReport, err, nil)
+		result := handleUpdateResult(newNopLogger(), mockReport, err, nil)
 		gomega.Expect(result).To(gomega.BeNil())
 	})
 
@@ -227,7 +248,7 @@ var _ = ginkgo.Describe("handleUpdateResult", func() {
 
 		// Call handleUpdateResult with an error and the mock notifier
 		err := errors.New("dependency resolution error")
-		result := handleUpdateResult(testLogger(), nil, err, mockNotifier)
+		result := handleUpdateResult(newNopLogger(), nil, err, mockNotifier)
 
 		// Verify we got the expected metric
 		gomega.Expect(result).To(gomega.Equal(&metrics.Metric{ScanFailed: true}))
@@ -245,13 +266,13 @@ var _ = ginkgo.Describe("handleUpdateResult", func() {
 		mockNotifier.EXPECT().SendNotification(mockReport).Times(1)
 
 		err := errors.New("rolling restart canceled")
-		handleUpdateResult(testLogger(), mockReport, err, mockNotifier)
+		handleUpdateResult(newNopLogger(), mockReport, err, mockNotifier)
 	})
 
 	ginkgo.It("should not send notification when error occurs and notifier is nil", func() {
 		// Call handleUpdateResult with an error and nil notifier
 		err := errors.New("dependency resolution error")
-		result := handleUpdateResult(testLogger(), nil, err, nil)
+		result := handleUpdateResult(newNopLogger(), nil, err, nil)
 
 		// Verify we got the expected metric
 		gomega.Expect(result).To(gomega.Equal(&metrics.Metric{ScanFailed: true}))
@@ -266,7 +287,7 @@ var _ = ginkgo.Describe("handleUpdateResult", func() {
 
 		var err error
 
-		result := handleUpdateResult(testLogger(), mockReport, err, mockNotifier)
+		result := handleUpdateResult(newNopLogger(), mockReport, err, mockNotifier)
 
 		// Verify we got the expected result
 		gomega.Expect(result).To(gomega.BeNil())
@@ -298,7 +319,7 @@ var _ = ginkgo.Describe("executeUpdate", func() {
 		config := types.UpdateParams{
 			Filter: filters.NoFilter,
 		}
-		report, cleanupInfos, err := executeUpdate(testLogger(),
+		report, cleanupInfos, err := executeUpdate(newNopLogger(),
 			context.Background(),
 			client,
 			config,
@@ -319,7 +340,7 @@ var _ = ginkgo.Describe("executeUpdate", func() {
 		config := types.UpdateParams{
 			Filter: filters.NoFilter,
 		}
-		report, cleanupInfos, err := executeUpdate(testLogger(),
+		report, cleanupInfos, err := executeUpdate(newNopLogger(),
 			context.Background(),
 			client,
 			config,
@@ -355,7 +376,7 @@ var _ = ginkgo.Describe("executeUpdate", func() {
 		config := types.UpdateParams{
 			Filter: filters.NoFilter,
 		}
-		report, cleanupInfos, err := executeUpdate(testLogger(),
+		report, cleanupInfos, err := executeUpdate(newNopLogger(),
 			context.Background(),
 			client,
 			config,
@@ -397,7 +418,7 @@ var _ = ginkgo.Describe("executeUpdate", func() {
 			Filter:  filters.NoFilter,
 			RunOnce: true,
 		}
-		report, cleanupInfos, err := executeUpdate(testLogger(),
+		report, cleanupInfos, err := executeUpdate(newNopLogger(),
 			context.Background(),
 			client,
 			config,
@@ -439,7 +460,7 @@ var _ = ginkgo.Describe("executeUpdate", func() {
 		config := types.UpdateParams{
 			Filter: filters.NoFilter,
 		}
-		report, cleanupInfos, err := executeUpdate(testLogger(),
+		report, cleanupInfos, err := executeUpdate(newNopLogger(),
 			context.Background(),
 			client,
 			config,
@@ -1022,7 +1043,7 @@ var _ = ginkgo.Describe("DetachedContext", func() {
 				testContainer := client.TestData.Containers[0]
 
 				// Call restartStaleContainer which creates and uses the detached context.
-				newID, renamed, err := restartStaleContainer(testLogger(),
+				newID, renamed, err := restartStaleContainer(newNopLogger(),
 					context.Background(),
 					testContainer,
 					client,
@@ -1145,7 +1166,7 @@ var _ = ginkgo.Describe("DetachedContext", func() {
 			// after the initial handoff rename but before/during create failure.
 			var wg sync.WaitGroup
 			wg.Go(func() {
-				_, renamed, err = restartStaleContainer(testLogger(),
+				_, renamed, err = restartStaleContainer(newNopLogger(),
 					parentCtx,
 					testContainer,
 					client,
@@ -1238,7 +1259,7 @@ var _ = ginkgo.Describe("DetachedContext", func() {
 			// after the initial handoff and create but before/during start failure.
 			var wg sync.WaitGroup
 			wg.Go(func() {
-				_, renamed, err = restartStaleContainer(testLogger(),
+				_, renamed, err = restartStaleContainer(newNopLogger(),
 					parentCtx,
 					testContainer,
 					client,
@@ -1338,7 +1359,7 @@ var _ = ginkgo.Describe("DetachedContext", func() {
 				// 1. RenameContainer succeeds (uses parent context)
 				// 2. StartContainerByID fails due to StartContainerByIDError
 				// 3. Cleanup runs using the detached context (should survive parent cancellation)
-				_, renamed, err = restartStaleContainer(testLogger(),
+				_, renamed, err = restartStaleContainer(newNopLogger(),
 					parentCtx,
 					testContainer,
 					client,
@@ -1416,7 +1437,7 @@ var _ = ginkgo.Describe("DetachedContext", func() {
 
 			// Call restartStaleContainer with an already-canceled parent context.
 			// The RenameContainer operation should fail because the parent context is canceled.
-			_, renamed, err := restartStaleContainer(testLogger(),
+			_, renamed, err := restartStaleContainer(newNopLogger(),
 				parentCtx,
 				testContainer,
 				client,
@@ -1475,7 +1496,7 @@ var _ = ginkgo.Describe("DetachedContext", func() {
 			testContainer := client.TestData.Containers[0]
 
 			// Call restartStaleContainer with a background context.
-			newID, renamed, err := restartStaleContainer(testLogger(),
+			newID, renamed, err := restartStaleContainer(newNopLogger(),
 				context.Background(),
 				testContainer,
 				client,
@@ -1699,7 +1720,7 @@ var _ = ginkgo.Describe("stopContainersInReversedOrder", func() {
 			cancel()
 
 			// Call stopContainersInReversedOrder.
-			failed, stopped := stopContainersInReversedOrder(testLogger(),
+			failed, stopped := stopContainersInReversedOrder(newNopLogger(),
 				canceledCtx,
 				containers,
 				client,
@@ -1902,7 +1923,7 @@ var _ = ginkgo.Describe("stopContainersInReversedOrder", func() {
 			)
 
 			// Call with valid context.
-			_, _ = stopContainersInReversedOrder(testLogger(),
+			_, _ = stopContainersInReversedOrder(newNopLogger(),
 				context.Background(),
 				containers,
 				client,
@@ -1966,7 +1987,7 @@ var _ = ginkgo.Describe("restartContainersInSortedOrder cancel recovery", func()
 
 		var cleanup []types.RemovedImageInfo
 
-		failed := restartContainersInSortedOrder(testLogger(),
+		failed := restartContainersInSortedOrder(newNopLogger(),
 			ctx,
 			containers,
 			client,
@@ -2213,7 +2234,7 @@ var _ = ginkgo.Describe("performRollingRestart", func() {
 			// Call performRollingRestart.
 			var cleanupImageInfos []types.RemovedImageInfo
 
-			failed, err := performRollingRestart(testLogger(),
+			failed, err := performRollingRestart(newNopLogger(),
 				canceledCtx,
 				containers,
 				client,
@@ -2438,7 +2459,7 @@ var _ = ginkgo.Describe("performRollingRestart", func() {
 			// Call with valid context.
 			var cleanupImageInfos []types.RemovedImageInfo
 
-			_, _ = performRollingRestart(testLogger(),
+			_, _ = performRollingRestart(newNopLogger(),
 				context.Background(),
 				containers,
 				client,
@@ -2491,7 +2512,7 @@ var _ = ginkgo.Describe("performRollingRestart", func() {
 			// Call performRollingRestart.
 			var cleanupImageInfos []types.RemovedImageInfo
 
-			failed, err := performRollingRestart(testLogger(),
+			failed, err := performRollingRestart(newNopLogger(),
 				canceledCtx,
 				containers,
 				client,
@@ -2554,7 +2575,7 @@ var _ = ginkgo.Describe("performRollingRestart", func() {
 			// Call performRollingRestart.
 			var cleanupImageInfos []types.RemovedImageInfo
 
-			failed, err := performRollingRestart(testLogger(),
+			failed, err := performRollingRestart(newNopLogger(),
 				deadlineCtx,
 				containers,
 				client,
@@ -2647,7 +2668,7 @@ var _ = ginkgo.Describe("isPinned", func() {
 			progress := session.Progress{}
 			params := types.UpdateParams{}
 
-			pinned, err := isPinned(testLogger(), cont, &progress, params, nil)
+			pinned, err := isPinned(newNopLogger(), cont, &progress, params, nil)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			gomega.Expect(pinned).To(gomega.Equal(wantPinned))
 
@@ -2674,7 +2695,7 @@ var _ = ginkgo.Describe("isPinned", func() {
 		)
 		progress := session.Progress{}
 
-		pinned, err := isPinned(testLogger(), cont, &progress, types.UpdateParams{}, nil)
+		pinned, err := isPinned(newNopLogger(), cont, &progress, types.UpdateParams{}, nil)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 		gomega.Expect(pinned).To(gomega.BeTrue())
 		gomega.Expect(progress).To(gomega.HaveLen(1))
@@ -2689,7 +2710,7 @@ var _ = ginkgo.Describe("isPinned", func() {
 		)
 		progress := session.Progress{}
 
-		pinned, err := isPinned(testLogger(), cont, &progress, types.UpdateParams{}, nil)
+		pinned, err := isPinned(newNopLogger(), cont, &progress, types.UpdateParams{}, nil)
 		gomega.Expect(err).To(gomega.HaveOccurred())
 		gomega.Expect(pinned).To(gomega.BeFalse())
 		gomega.Expect(progress).To(gomega.BeEmpty())
@@ -2705,7 +2726,7 @@ var _ = ginkgo.Describe("isPinned", func() {
 
 		progress := session.Progress{}
 
-		pinned, err := isPinned(testLogger(), cont, &progress, types.UpdateParams{}, nil)
+		pinned, err := isPinned(newNopLogger(), cont, &progress, types.UpdateParams{}, nil)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 		gomega.Expect(pinned).To(gomega.BeFalse())
 	})

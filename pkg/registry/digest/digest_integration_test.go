@@ -31,9 +31,29 @@ import (
 	"github.com/nicholas-fedor/watchtower/pkg/types"
 )
 
-// testLog returns a logger that discards every event, for tests that do not
-// assert on logs.
-func testLog() *zerolog.Logger {
+// newTestLogger returns a logger that writes each event to the test's log, so a
+// failing test shows what it logged.
+//
+// Parameters:
+//   - t: Test that receives the log lines.
+//
+// Returns:
+//   - *zerolog.Logger: Logger writing to t.
+func newTestLogger(t *testing.T) *zerolog.Logger {
+	t.Helper()
+
+	// Frame 4 skips zerolog's write path, so each line names the log call.
+	w := zerolog.TestWriter{T: t, Frame: 4}
+
+	return new(zerolog.New(w))
+}
+
+// newNopLogger returns a logger that discards every event, for Ginkgo specs,
+// benchmarks, and fuzz targets.
+//
+// Returns:
+//   - *zerolog.Logger: Logger that discards all events.
+func newNopLogger() *zerolog.Logger {
 	return new(zerolog.Nop())
 }
 
@@ -139,7 +159,7 @@ var _ = ginkgo.Describe("Digests", func() {
 			)
 		}
 
-		return digest.NormalizeDigest(testLog(), digestHeader), nil
+		return digest.NormalizeDigest(newNopLogger(), digestHeader), nil
 	}
 
 	// setupRemoteDigestTestServer appends standard registry auth handlers to an existing
@@ -180,13 +200,13 @@ var _ = ginkgo.Describe("Digests", func() {
 
 		client := newTestAuthClient()
 		ctx := context.Background()
-		registryAuth := auth.TransformAuth(testLog(), "token")
-		result, err := auth.GetToken(testLog(), ctx, container, registryAuth, client, testRegistry, "")
+		registryAuth := auth.TransformAuth(newNopLogger(), "token")
+		result, err := auth.GetToken(newNopLogger(), ctx, container, registryAuth, client, testRegistry, "")
 		token := result.Token
 
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-		url, err := manifest.BuildManifestURLForImage(testLog(), container.ImageName(), container.Name(), getScheme())
+		url, err := manifest.BuildManifestURLForImage(newNopLogger(), container.ImageName(), container.Name(), getScheme())
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 		req, err := http.NewRequestWithContext(ctx, http.MethodHead, url, nil)
@@ -214,7 +234,7 @@ var _ = ginkgo.Describe("Digests", func() {
 		ginkgo.It("should return true if digests match",
 			SkipIfCredentialsEmpty(GHCRCredentials, func() {
 				creds := fmt.Sprintf("%s:%s", GHCRCredentials.Username, GHCRCredentials.Password)
-				matches, err := digest.CompareDigest(testLog(), context.Background(),
+				matches, err := digest.CompareDigest(newNopLogger(), context.Background(),
 					mockContainer,
 					creds,
 					testRegistry,
@@ -236,7 +256,7 @@ var _ = ginkgo.Describe("Digests", func() {
 				&dockerImage.InspectResponse{RepoDigests: []string{}},
 			)
 
-			matches, err := digest.CompareDigest(testLog(), context.Background(),
+			matches, err := digest.CompareDigest(newNopLogger(), context.Background(),
 				mockContainerLocal,
 				"",
 				testRegistry,
@@ -270,7 +290,7 @@ var _ = ginkgo.Describe("Digests", func() {
 				mockDigestHash,
 			)
 
-			matches := digest.DigestsMatch(testLog(), mockContainerEmptyDigests.ImageInfo().RepoDigests,
+			matches := digest.DigestsMatch(newNopLogger(), mockContainerEmptyDigests.ImageInfo().RepoDigests,
 				remoteDigest,
 			)
 			gomega.Expect(matches).To(gomega.BeFalse())
@@ -317,13 +337,13 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			client := newTestAuthClient()
 			ctx := context.Background()
-			registryAuth := auth.TransformAuth(testLog(), "token")
-			result, err := auth.GetToken(testLog(), ctx, mockContainerWithServer, registryAuth, client, testRegistry, "")
+			registryAuth := auth.TransformAuth(newNopLogger(), "token")
+			result, err := auth.GetToken(newNopLogger(), ctx, mockContainerWithServer, registryAuth, client, testRegistry, "")
 			token := result.Token
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			url, err := manifest.BuildManifestURLForImage(testLog(), mockContainerWithServer.ImageName(), mockContainerWithServer.Name(), getScheme())
+			url, err := manifest.BuildManifestURLForImage(newNopLogger(), mockContainerWithServer.ImageName(), mockContainerWithServer.Name(), getScheme())
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 			req, err := http.NewRequestWithContext(ctx, http.MethodHead, url, nil)
@@ -344,7 +364,7 @@ var _ = ginkgo.Describe("Digests", func() {
 			remoteDigest, err := extractHeadDigest(resp)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			matches := digest.DigestsMatch(testLog(), mockContainerWithServer.ImageInfo().RepoDigests,
+			matches := digest.DigestsMatch(newNopLogger(), mockContainerWithServer.ImageInfo().RepoDigests,
 				remoteDigest,
 			)
 			gomega.Expect(matches).To(gomega.BeFalse())
@@ -363,15 +383,15 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			client := newTestAuthClient()
 			ctx := context.Background()
-			registryAuth := auth.TransformAuth(testLog(), "token")
-			_, err := auth.GetToken(testLog(), ctx, mockContainerUnreachable, registryAuth, client, testRegistry, "")
+			registryAuth := auth.TransformAuth(newNopLogger(), "token")
+			_, err := auth.GetToken(newNopLogger(), ctx, mockContainerUnreachable, registryAuth, client, testRegistry, "")
 			gomega.Expect(err).To(gomega.HaveOccurred())
 			gomega.Expect(err.Error()).
 				To(gomega.ContainSubstring("failed to execute challenge request"))
 		})
 
 		ginkgo.It("should return an error when container contains no image info", func() {
-			matches, err := digest.CompareDigest(testLog(), context.Background(),
+			matches, err := digest.CompareDigest(newNopLogger(), context.Background(),
 				mockContainerNoImage,
 				"user:pass",
 				testRegistry,
@@ -395,8 +415,8 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			client := newTestAuthClient()
 			ctx := context.Background()
-			registryAuth := auth.TransformAuth(testLog(), "token")
-			_, err := auth.GetToken(testLog(), ctx, mockContainerInvalidImage, registryAuth, client, testRegistry, "")
+			registryAuth := auth.TransformAuth(newNopLogger(), "token")
+			_, err := auth.GetToken(newNopLogger(), ctx, mockContainerInvalidImage, registryAuth, client, testRegistry, "")
 			gomega.Expect(err).To(gomega.HaveOccurred())
 			gomega.Expect(err.Error()).To(gomega.ContainSubstring("failed to parse image name"))
 		})
@@ -415,8 +435,8 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			client := newTestAuthClient()
 			ctx := context.Background()
-			registryAuth := auth.TransformAuth(testLog(), "token")
-			_, err := auth.GetToken(testLog(), ctx, mockContainerInvalidURL, registryAuth, client, testRegistry, "")
+			registryAuth := auth.TransformAuth(newNopLogger(), "token")
+			_, err := auth.GetToken(newNopLogger(), ctx, mockContainerInvalidURL, registryAuth, client, testRegistry, "")
 			gomega.Expect(err).To(gomega.HaveOccurred())
 			gomega.Expect(err.Error()).To(gomega.ContainSubstring("failed to parse image name"))
 		})
@@ -468,13 +488,13 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			client := newTestAuthClient()
 			ctx := context.Background()
-			registryAuth := auth.TransformAuth(testLog(), "token")
-			result, err := auth.GetToken(testLog(), ctx, mockContainerWithServer, registryAuth, client, testRegistry, "")
+			registryAuth := auth.TransformAuth(newNopLogger(), "token")
+			result, err := auth.GetToken(newNopLogger(), ctx, mockContainerWithServer, registryAuth, client, testRegistry, "")
 			token := result.Token
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			url, err := manifest.BuildManifestURLForImage(testLog(), mockContainerWithServer.ImageName(), mockContainerWithServer.Name(), getScheme())
+			url, err := manifest.BuildManifestURLForImage(newNopLogger(), mockContainerWithServer.ImageName(), mockContainerWithServer.Name(), getScheme())
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 			req, err := http.NewRequestWithContext(ctx, http.MethodHead, url, nil)
@@ -533,13 +553,13 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			client := newTestAuthClient()
 			ctx := context.Background()
-			registryAuth := auth.TransformAuth(testLog(), "token")
-			result, err := auth.GetToken(testLog(), ctx, mockContainerWithServer, registryAuth, client, testRegistry, "")
+			registryAuth := auth.TransformAuth(newNopLogger(), "token")
+			result, err := auth.GetToken(newNopLogger(), ctx, mockContainerWithServer, registryAuth, client, testRegistry, "")
 			token := result.Token
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			url, err := manifest.BuildManifestURLForImage(testLog(), mockContainerWithServer.ImageName(), mockContainerWithServer.Name(), getScheme())
+			url, err := manifest.BuildManifestURLForImage(newNopLogger(), mockContainerWithServer.ImageName(), mockContainerWithServer.Name(), getScheme())
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 			req, err := http.NewRequestWithContext(ctx, http.MethodHead, url, nil)
@@ -604,8 +624,8 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			client := newTestAuthClient()
 			ctx := context.Background()
-			registryAuth := auth.TransformAuth(testLog(), "token")
-			result, err := auth.GetToken(testLog(), ctx,
+			registryAuth := auth.TransformAuth(newNopLogger(), "token")
+			result, err := auth.GetToken(newNopLogger(), ctx,
 				mockContainerWithInvalidDigest,
 				registryAuth,
 				client,
@@ -616,7 +636,7 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			url, err := manifest.BuildManifestURLForImage(testLog(), mockContainerWithInvalidDigest.ImageName(), mockContainerWithInvalidDigest.Name(), getScheme())
+			url, err := manifest.BuildManifestURLForImage(newNopLogger(), mockContainerWithInvalidDigest.ImageName(), mockContainerWithInvalidDigest.Name(), getScheme())
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 			req, err := http.NewRequestWithContext(ctx, http.MethodHead, url, nil)
@@ -637,7 +657,7 @@ var _ = ginkgo.Describe("Digests", func() {
 			remoteDigest, err := extractHeadDigest(resp)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			matches := digest.DigestsMatch(testLog(), mockContainerWithInvalidDigest.ImageInfo().RepoDigests,
+			matches := digest.DigestsMatch(newNopLogger(), mockContainerWithInvalidDigest.ImageInfo().RepoDigests,
 				remoteDigest,
 			)
 			gomega.Expect(matches).To(gomega.BeFalse())
@@ -686,13 +706,13 @@ var _ = ginkgo.Describe("Digests", func() {
 			testRegistry.TLSSkip = true
 			defer func() { testRegistry.TLSSkip = false }()
 
-			registryAuth := auth.TransformAuth(testLog(), "token")
-			_, err := auth.GetToken(testLog(), ctx, mockContainerWithServer, registryAuth, client, testRegistry, "")
+			registryAuth := auth.TransformAuth(newNopLogger(), "token")
+			_, err := auth.GetToken(newNopLogger(), ctx, mockContainerWithServer, registryAuth, client, testRegistry, "")
 			gomega.Expect(err).To(gomega.HaveOccurred())
 			gomega.Expect(err.Error()).
 				To(gomega.ContainSubstring("challenge header did not include all values needed to construct an auth url"))
 
-			matches, err := digest.CompareDigest(testLog(), ctx,
+			matches, err := digest.CompareDigest(newNopLogger(), ctx,
 				mockContainerWithServer,
 				registryAuth,
 				testRegistry,
@@ -754,10 +774,10 @@ var _ = ginkgo.Describe("Digests", func() {
 			testRegistry.TLSSkip = true
 			defer func() { testRegistry.TLSSkip = false }()
 
-			registryAuth := auth.TransformAuth(testLog(), "token")
+			registryAuth := auth.TransformAuth(newNopLogger(), "token")
 
 			// Test that CompareDigest does not fall back to GET for 404 and returns error
-			matches, err := digest.CompareDigest(testLog(), ctx,
+			matches, err := digest.CompareDigest(newNopLogger(), ctx,
 				mockContainerWithServer,
 				registryAuth,
 				testRegistry,
@@ -815,10 +835,10 @@ var _ = ginkgo.Describe("Digests", func() {
 			testRegistry.TLSSkip = true
 			defer func() { testRegistry.TLSSkip = false }()
 
-			registryAuth := auth.TransformAuth(testLog(), "token")
+			registryAuth := auth.TransformAuth(newNopLogger(), "token")
 
 			// Test that CompareDigest fails when HEAD returns 500 (non-404 error)
-			_, err := digest.CompareDigest(testLog(), ctx, mockContainerWithServer, registryAuth, testRegistry, ratelimit.New())
+			_, err := digest.CompareDigest(newNopLogger(), ctx, mockContainerWithServer, registryAuth, testRegistry, ratelimit.New())
 			gomega.Expect(err).To(gomega.HaveOccurred())
 			gomega.Expect(err.Error()).
 				To(gomega.ContainSubstring("registry responded with invalid HEAD request"))
@@ -869,8 +889,8 @@ var _ = ginkgo.Describe("Digests", func() {
 			testRegistry.TLSSkip = true
 			defer func() { testRegistry.TLSSkip = false }()
 
-			registryAuth := auth.TransformAuth(testLog(), "token")
-			matches, err := digest.CompareDigest(testLog(), ctx, mockContainer, registryAuth, testRegistry, ratelimit.New())
+			registryAuth := auth.TransformAuth(newNopLogger(), "token")
+			matches, err := digest.CompareDigest(newNopLogger(), ctx, mockContainer, registryAuth, testRegistry, ratelimit.New())
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			gomega.Expect(matches).To(gomega.BeTrue())
 		})
@@ -949,13 +969,13 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			client := newTestAuthClient()
 			ctx := context.Background()
-			registryAuth := auth.TransformAuth(testLog(), "token")
-			result, err := auth.GetToken(testLog(), ctx, mockContainerWithServer, registryAuth, client, testRegistry, "")
+			registryAuth := auth.TransformAuth(newNopLogger(), "token")
+			result, err := auth.GetToken(newNopLogger(), ctx, mockContainerWithServer, registryAuth, client, testRegistry, "")
 			token := result.Token
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			url, err := manifest.BuildManifestURLForImage(testLog(), mockContainerWithServer.ImageName(), mockContainerWithServer.Name(), getScheme())
+			url, err := manifest.BuildManifestURLForImage(newNopLogger(), mockContainerWithServer.ImageName(), mockContainerWithServer.Name(), getScheme())
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 			req, err := http.NewRequestWithContext(ctx, http.MethodHead, url, nil)
@@ -976,7 +996,7 @@ var _ = ginkgo.Describe("Digests", func() {
 			remoteDigest, err := extractHeadDigest(resp)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			matches := digest.DigestsMatch(testLog(), mockContainerWithServer.ImageInfo().RepoDigests,
+			matches := digest.DigestsMatch(newNopLogger(), mockContainerWithServer.ImageInfo().RepoDigests,
 				remoteDigest,
 			)
 			gomega.Expect(matches).To(gomega.BeTrue())
@@ -1022,13 +1042,13 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			client := newTestAuthClient()
 			ctx := context.Background()
-			registryAuth := auth.TransformAuth(testLog(), "token")
-			result, err := auth.GetToken(testLog(), ctx, mockContainerWithServer, registryAuth, client, testRegistry, "")
+			registryAuth := auth.TransformAuth(newNopLogger(), "token")
+			result, err := auth.GetToken(newNopLogger(), ctx, mockContainerWithServer, registryAuth, client, testRegistry, "")
 			token := result.Token
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			url, err := manifest.BuildManifestURLForImage(testLog(), mockContainerWithServer.ImageName(), mockContainerWithServer.Name(), getScheme())
+			url, err := manifest.BuildManifestURLForImage(newNopLogger(), mockContainerWithServer.ImageName(), mockContainerWithServer.Name(), getScheme())
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 			req, err := http.NewRequestWithContext(ctx, http.MethodHead, url, nil)
@@ -1094,13 +1114,13 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			client := newTestAuthClient()
 			ctx := context.Background()
-			registryAuth := auth.TransformAuth(testLog(), "token")
-			result, err := auth.GetToken(testLog(), ctx, mockContainerWithServer, registryAuth, client, testRegistry, "")
+			registryAuth := auth.TransformAuth(newNopLogger(), "token")
+			result, err := auth.GetToken(newNopLogger(), ctx, mockContainerWithServer, registryAuth, client, testRegistry, "")
 			token := result.Token
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			url, err := manifest.BuildManifestURLForImage(testLog(), mockContainerWithServer.ImageName(), mockContainerWithServer.Name(), getScheme())
+			url, err := manifest.BuildManifestURLForImage(newNopLogger(), mockContainerWithServer.ImageName(), mockContainerWithServer.Name(), getScheme())
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 			req, err := http.NewRequestWithContext(ctx, http.MethodHead, url, nil)
@@ -1165,13 +1185,13 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			client := newTestAuthClient()
 			ctx := context.Background()
-			registryAuth := auth.TransformAuth(testLog(), "token")
-			result, err := auth.GetToken(testLog(), ctx, mockContainerWithServer, registryAuth, client, testRegistry, "")
+			registryAuth := auth.TransformAuth(newNopLogger(), "token")
+			result, err := auth.GetToken(newNopLogger(), ctx, mockContainerWithServer, registryAuth, client, testRegistry, "")
 			token := result.Token
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			url, err := manifest.BuildManifestURLForImage(testLog(), mockContainerWithServer.ImageName(), mockContainerWithServer.Name(), getScheme())
+			url, err := manifest.BuildManifestURLForImage(newNopLogger(), mockContainerWithServer.ImageName(), mockContainerWithServer.Name(), getScheme())
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 			req, err := http.NewRequestWithContext(ctx, http.MethodHead, url, nil)
@@ -1192,7 +1212,7 @@ var _ = ginkgo.Describe("Digests", func() {
 			// Test extractHeadDigest directly with valid digest header
 			headResult, err := extractHeadDigest(resp)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-			gomega.Expect(headResult).To(gomega.Equal(digest.NormalizeDigest(testLog(), mockDigestHash)))
+			gomega.Expect(headResult).To(gomega.Equal(digest.NormalizeDigest(newNopLogger(), mockDigestHash)))
 			gomega.Expect(server.ReceivedRequests()).Should(gomega.HaveLen(3))
 		})
 	})
@@ -1201,21 +1221,21 @@ var _ = ginkgo.Describe("Digests", func() {
 		ginkgo.It("should handle malformed local digests without @ separator", func() {
 			localDigests := []string{"malformed-digest"}
 			remoteDigest := mockDigestHash
-			result := digest.DigestsMatch(testLog(), localDigests, remoteDigest)
+			result := digest.DigestsMatch(newNopLogger(), localDigests, remoteDigest)
 			gomega.Expect(result).To(gomega.BeFalse())
 		})
 
 		ginkgo.It("should handle local digests with empty parts after @", func() {
 			localDigests := []string{"repo@"}
 			remoteDigest := mockDigestHash
-			result := digest.DigestsMatch(testLog(), localDigests, remoteDigest)
+			result := digest.DigestsMatch(newNopLogger(), localDigests, remoteDigest)
 			gomega.Expect(result).To(gomega.BeFalse())
 		})
 
 		ginkgo.It("should handle local digests with only one part after @", func() {
 			localDigests := []string{"repo@singlepart"}
 			remoteDigest := mockDigestHash
-			result := digest.DigestsMatch(testLog(), localDigests, remoteDigest)
+			result := digest.DigestsMatch(newNopLogger(), localDigests, remoteDigest)
 			gomega.Expect(result).To(gomega.BeFalse())
 		})
 
@@ -1224,14 +1244,14 @@ var _ = ginkgo.Describe("Digests", func() {
 				"repo@namespace@" + mockDigestHash,
 			}
 			remoteDigest := mockDigestHash
-			result := digest.DigestsMatch(testLog(), localDigests, remoteDigest)
+			result := digest.DigestsMatch(newNopLogger(), localDigests, remoteDigest)
 			gomega.Expect(result).To(gomega.BeFalse()) // Should not match due to malformed format
 		})
 
 		ginkgo.It("should handle empty local digests slice", func() {
 			localDigests := []string{}
 			remoteDigest := mockDigestHash
-			result := digest.DigestsMatch(testLog(), localDigests, remoteDigest)
+			result := digest.DigestsMatch(newNopLogger(), localDigests, remoteDigest)
 			gomega.Expect(result).To(gomega.BeFalse())
 		})
 
@@ -1239,49 +1259,49 @@ var _ = ginkgo.Describe("Digests", func() {
 			var localDigests []string
 
 			remoteDigest := mockDigestHash
-			result := digest.DigestsMatch(testLog(), localDigests, remoteDigest)
+			result := digest.DigestsMatch(newNopLogger(), localDigests, remoteDigest)
 			gomega.Expect(result).To(gomega.BeFalse())
 		})
 
 		ginkgo.It("should match when local digest includes repository prefix", func() {
 			localDigests := []string{"repo@sha256:abc123"}
 			remoteDigest := "sha256:abc123"
-			result := digest.DigestsMatch(testLog(), localDigests, remoteDigest)
+			result := digest.DigestsMatch(newNopLogger(), localDigests, remoteDigest)
 			gomega.Expect(result).To(gomega.BeTrue())
 		})
 
 		ginkgo.It("should match when remote digest has no sha256 prefix", func() {
 			localDigests := []string{"repo@sha256:abc123"}
 			remoteDigest := "abc123"
-			result := digest.DigestsMatch(testLog(), localDigests, remoteDigest)
+			result := digest.DigestsMatch(newNopLogger(), localDigests, remoteDigest)
 			gomega.Expect(result).To(gomega.BeTrue())
 		})
 
 		ginkgo.It("should not match when remote digest is empty", func() {
 			localDigests := []string{"repo@sha256:abc123"}
 			remoteDigest := ""
-			result := digest.DigestsMatch(testLog(), localDigests, remoteDigest)
+			result := digest.DigestsMatch(newNopLogger(), localDigests, remoteDigest)
 			gomega.Expect(result).To(gomega.BeFalse())
 		})
 
 		ginkgo.It("should match when one of multiple local digests matches remote", func() {
 			localDigests := []string{"repo1@sha256:hash1", "repo2@sha256:hash2"}
 			remoteDigest := "sha256:hash1"
-			result := digest.DigestsMatch(testLog(), localDigests, remoteDigest)
+			result := digest.DigestsMatch(newNopLogger(), localDigests, remoteDigest)
 			gomega.Expect(result).To(gomega.BeTrue())
 		})
 
 		ginkgo.It("should not match when none of multiple local digests match remote", func() {
 			localDigests := []string{"repo1@sha256:hash1", "repo2@sha256:hash2"}
 			remoteDigest := "sha256:hash3"
-			result := digest.DigestsMatch(testLog(), localDigests, remoteDigest)
+			result := digest.DigestsMatch(newNopLogger(), localDigests, remoteDigest)
 			gomega.Expect(result).To(gomega.BeFalse())
 		})
 
 		ginkgo.It("should match when local digest has empty repo prefix", func() {
 			localDigests := []string{"@sha256:abc123"}
 			remoteDigest := "sha256:abc123"
-			result := digest.DigestsMatch(testLog(), localDigests, remoteDigest)
+			result := digest.DigestsMatch(newNopLogger(), localDigests, remoteDigest)
 			gomega.Expect(result).To(gomega.BeTrue())
 		})
 
@@ -1289,22 +1309,22 @@ var _ = ginkgo.Describe("Digests", func() {
 			ginkgo.It("should trim sha256: prefix from digest", func() {
 				input := mockDigestHash
 				expected := "d68e1e532088964195ad3a0a71526bc2f11a78de0def85629beb75e2265f0547"
-				gomega.Expect(digest.NormalizeDigest(testLog(), input)).To(gomega.Equal(expected))
+				gomega.Expect(digest.NormalizeDigest(newNopLogger(), input)).To(gomega.Equal(expected))
 			})
 
 			ginkgo.It("should return unchanged digest without recognized prefix", func() {
 				input := "d68e1e532088964195ad3a0a71526bc2f11a78de0def85629beb75e2265f0547"
-				gomega.Expect(digest.NormalizeDigest(testLog(), input)).To(gomega.Equal(input))
+				gomega.Expect(digest.NormalizeDigest(newNopLogger(), input)).To(gomega.Equal(input))
 			})
 
 			ginkgo.It("should handle empty digest string", func() {
 				input := ""
-				gomega.Expect(digest.NormalizeDigest(testLog(), input)).To(gomega.Equal(""))
+				gomega.Expect(digest.NormalizeDigest(newNopLogger(), input)).To(gomega.Equal(""))
 			})
 
 			ginkgo.It("should handle digest with unrecognized prefix", func() {
 				input := "md5:1234567890abcdef"
-				gomega.Expect(digest.NormalizeDigest(testLog(), input)).To(gomega.Equal(input))
+				gomega.Expect(digest.NormalizeDigest(newNopLogger(), input)).To(gomega.Equal(input))
 			})
 		})
 
@@ -1319,7 +1339,7 @@ var _ = ginkgo.Describe("Digests", func() {
 				&dockerImage.InspectResponse{RepoDigests: []string{}},
 			)
 
-			result, err := digest.FetchDigest(testLog(), context.Background(),
+			result, err := digest.FetchDigest(newNopLogger(), context.Background(),
 				mockContainerLocalhost,
 				"",
 				testRegistry,
@@ -1336,7 +1356,7 @@ var _ = ginkgo.Describe("Digests", func() {
 				&dockerImage.InspectResponse{RepoDigests: []string{}},
 			)
 
-			result, err = digest.FetchDigest(testLog(), context.Background(),
+			result, err = digest.FetchDigest(newNopLogger(), context.Background(),
 				mockContainerLocal,
 				"",
 				testRegistry,
@@ -1353,7 +1373,7 @@ var _ = ginkgo.Describe("Digests", func() {
 				&dockerImage.InspectResponse{RepoDigests: []string{}},
 			)
 
-			result, err = digest.FetchDigest(testLog(), context.Background(),
+			result, err = digest.FetchDigest(newNopLogger(), context.Background(),
 				mockContainerLoopback,
 				"",
 				testRegistry,
@@ -1376,14 +1396,14 @@ var _ = ginkgo.Describe("Digests", func() {
 			jsonData, _ := json.Marshal(creds)
 			inputAuth := base64.StdEncoding.EncodeToString(jsonData)
 
-			result := auth.TransformAuth(testLog(), inputAuth)
+			result := auth.TransformAuth(newNopLogger(), inputAuth)
 			expected := base64.StdEncoding.EncodeToString([]byte("testuser:testpass"))
 			gomega.Expect(result).To(gomega.Equal(expected))
 		})
 
 		ginkgo.It("should return original input if decoding fails", func() {
 			inputAuth := "invalid-base64-string"
-			result := auth.TransformAuth(testLog(), inputAuth)
+			result := auth.TransformAuth(newNopLogger(), inputAuth)
 			gomega.Expect(result).To(gomega.Equal(inputAuth))
 		})
 
@@ -1398,7 +1418,7 @@ var _ = ginkgo.Describe("Digests", func() {
 			jsonData, _ := json.Marshal(creds)
 			inputAuth := base64.StdEncoding.EncodeToString(jsonData)
 
-			result := auth.TransformAuth(testLog(), inputAuth)
+			result := auth.TransformAuth(newNopLogger(), inputAuth)
 			gomega.Expect(result).To(gomega.Equal(inputAuth))
 		})
 	})
@@ -1469,10 +1489,10 @@ var _ = ginkgo.Describe("Digests", func() {
 			)
 
 			ctx := context.Background()
-			registryAuth := auth.TransformAuth(testLog(), "token")
-			result, err := digest.FetchDigest(testLog(), ctx, mockContainerWithServer, registryAuth, testRegistry, ratelimit.New())
+			registryAuth := auth.TransformAuth(newNopLogger(), "token")
+			result, err := digest.FetchDigest(newNopLogger(), ctx, mockContainerWithServer, registryAuth, testRegistry, ratelimit.New())
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-			gomega.Expect(result).To(gomega.Equal(digest.NormalizeDigest(testLog(), mockDigestHash)))
+			gomega.Expect(result).To(gomega.Equal(digest.NormalizeDigest(newNopLogger(), mockDigestHash)))
 		})
 
 		ginkgo.It("should return an error if GET request fails after token", func() {
@@ -1517,8 +1537,8 @@ var _ = ginkgo.Describe("Digests", func() {
 			)
 
 			ctx := context.Background()
-			registryAuth := auth.TransformAuth(testLog(), "token")
-			_, err := digest.FetchDigest(testLog(), ctx, mockContainerWithServer, registryAuth, testRegistry, ratelimit.New())
+			registryAuth := auth.TransformAuth(newNopLogger(), "token")
+			_, err := digest.FetchDigest(newNopLogger(), ctx, mockContainerWithServer, registryAuth, testRegistry, ratelimit.New())
 			gomega.Expect(err).To(gomega.HaveOccurred())
 			gomega.Expect(err.Error()).
 				To(gomega.ContainSubstring("registry responded with invalid HEAD request"))
@@ -1539,8 +1559,8 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			client := newTestAuthClient()
 			ctx := context.Background()
-			registryAuth := auth.TransformAuth(testLog(), "token")
-			_, err := auth.GetToken(testLog(), ctx, mockContainerUnreachable, registryAuth, client, testRegistry, "")
+			registryAuth := auth.TransformAuth(newNopLogger(), "token")
+			_, err := auth.GetToken(newNopLogger(), ctx, mockContainerUnreachable, registryAuth, client, testRegistry, "")
 			gomega.Expect(err).To(gomega.HaveOccurred())
 			gomega.Expect(err.Error()).To(gomega.MatchRegexp("Temporary failure in name resolution|no such host|server misbehaving"))
 		})
@@ -1558,8 +1578,8 @@ var _ = ginkgo.Describe("Digests", func() {
 			)
 
 			ctx := context.Background()
-			registryAuth := auth.TransformAuth(testLog(), "token")
-			_, err := digest.FetchDigest(testLog(), ctx, mockContainerInvalidImage, registryAuth, testRegistry, ratelimit.New())
+			registryAuth := auth.TransformAuth(newNopLogger(), "token")
+			_, err := digest.FetchDigest(newNopLogger(), ctx, mockContainerInvalidImage, registryAuth, testRegistry, ratelimit.New())
 			gomega.Expect(err).To(gomega.HaveOccurred())
 			gomega.Expect(err.Error()).To(gomega.ContainSubstring("failed to parse image name"))
 		})
@@ -1597,8 +1617,8 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			client := newTestAuthClient()
 			ctx := context.Background()
-			registryAuth := auth.TransformAuth(testLog(), "token")
-			_, err := auth.GetToken(testLog(), ctx, mockContainerInvalidURL, registryAuth, client, testRegistry, "")
+			registryAuth := auth.TransformAuth(newNopLogger(), "token")
+			_, err := auth.GetToken(newNopLogger(), ctx, mockContainerInvalidURL, registryAuth, client, testRegistry, "")
 			gomega.Expect(err).To(gomega.HaveOccurred())
 			gomega.Expect(err.Error()).To(gomega.ContainSubstring("failed to parse image name"))
 		})
@@ -1643,13 +1663,13 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			client := newTestAuthClient()
 			ctx := context.Background()
-			registryAuth := auth.TransformAuth(testLog(), "token")
-			result, err := auth.GetToken(testLog(), ctx, mockContainerWithServer, registryAuth, client, testRegistry, "")
+			registryAuth := auth.TransformAuth(newNopLogger(), "token")
+			result, err := auth.GetToken(newNopLogger(), ctx, mockContainerWithServer, registryAuth, client, testRegistry, "")
 			token := result.Token
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			url, err := manifest.BuildManifestURLForImage(testLog(), mockContainerWithServer.ImageName(), mockContainerWithServer.Name(), getScheme())
+			url, err := manifest.BuildManifestURLForImage(newNopLogger(), mockContainerWithServer.ImageName(), mockContainerWithServer.Name(), getScheme())
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 			req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -1667,7 +1687,7 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			defer resp.Body.Close()
 
-			_, err = digest.ExtractGetDigest(testLog(), resp)
+			_, err = digest.ExtractGetDigest(newNopLogger(), resp)
 			gomega.Expect(err).To(gomega.HaveOccurred())
 			gomega.Expect(err.Error()).
 				To(gomega.ContainSubstring("invalid digest format in body"))
@@ -1715,13 +1735,13 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			client := newTestAuthClient()
 			ctx := context.Background()
-			registryAuth := auth.TransformAuth(testLog(), "token")
-			result, err := auth.GetToken(testLog(), ctx, mockContainerWithServer, registryAuth, client, testRegistry, "")
+			registryAuth := auth.TransformAuth(newNopLogger(), "token")
+			result, err := auth.GetToken(newNopLogger(), ctx, mockContainerWithServer, registryAuth, client, testRegistry, "")
 			token := result.Token
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			url, err := manifest.BuildManifestURLForImage(testLog(), mockContainerWithServer.ImageName(), mockContainerWithServer.Name(), getScheme())
+			url, err := manifest.BuildManifestURLForImage(newNopLogger(), mockContainerWithServer.ImageName(), mockContainerWithServer.Name(), getScheme())
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 			req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -1739,9 +1759,9 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			defer resp.Body.Close()
 
-			getResult, err := digest.ExtractGetDigest(testLog(), resp)
+			getResult, err := digest.ExtractGetDigest(newNopLogger(), resp)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-			gomega.Expect(getResult).To(gomega.Equal(digest.NormalizeDigest(testLog(), mockDigestHash)))
+			gomega.Expect(getResult).To(gomega.Equal(digest.NormalizeDigest(newNopLogger(), mockDigestHash)))
 		})
 
 		ginkgo.It("should parse JSON manifest for digest extraction", func() {
@@ -1784,13 +1804,13 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			client := newTestAuthClient()
 			ctx := context.Background()
-			registryAuth := auth.TransformAuth(testLog(), "token")
-			result, err := auth.GetToken(testLog(), ctx, mockContainerWithServer, registryAuth, client, testRegistry, "")
+			registryAuth := auth.TransformAuth(newNopLogger(), "token")
+			result, err := auth.GetToken(newNopLogger(), ctx, mockContainerWithServer, registryAuth, client, testRegistry, "")
 			token := result.Token
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			url, err := manifest.BuildManifestURLForImage(testLog(), mockContainerWithServer.ImageName(), mockContainerWithServer.Name(), getScheme())
+			url, err := manifest.BuildManifestURLForImage(newNopLogger(), mockContainerWithServer.ImageName(), mockContainerWithServer.Name(), getScheme())
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 			req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -1808,9 +1828,9 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			defer resp.Body.Close()
 
-			getResult, err := digest.ExtractGetDigest(testLog(), resp)
+			getResult, err := digest.ExtractGetDigest(newNopLogger(), resp)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-			gomega.Expect(getResult).To(gomega.Equal(digest.NormalizeDigest(testLog(), mockDigestHash)))
+			gomega.Expect(getResult).To(gomega.Equal(digest.NormalizeDigest(newNopLogger(), mockDigestHash)))
 		})
 
 		ginkgo.It("should handle empty body error", func() {
@@ -1853,13 +1873,13 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			client := newTestAuthClient()
 			ctx := context.Background()
-			registryAuth := auth.TransformAuth(testLog(), "token")
-			result, err := auth.GetToken(testLog(), ctx, mockContainerWithServer, registryAuth, client, testRegistry, "")
+			registryAuth := auth.TransformAuth(newNopLogger(), "token")
+			result, err := auth.GetToken(newNopLogger(), ctx, mockContainerWithServer, registryAuth, client, testRegistry, "")
 			token := result.Token
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			url, err := manifest.BuildManifestURLForImage(testLog(), mockContainerWithServer.ImageName(), mockContainerWithServer.Name(), getScheme())
+			url, err := manifest.BuildManifestURLForImage(newNopLogger(), mockContainerWithServer.ImageName(), mockContainerWithServer.Name(), getScheme())
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 			req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -1877,7 +1897,7 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			defer resp.Body.Close()
 
-			_, err = digest.ExtractGetDigest(testLog(), resp)
+			_, err = digest.ExtractGetDigest(newNopLogger(), resp)
 			gomega.Expect(err).To(gomega.HaveOccurred())
 			gomega.Expect(err.Error()).
 				To(gomega.ContainSubstring("missing digest header and empty body"))
@@ -1923,13 +1943,13 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			client := newTestAuthClient()
 			ctx := context.Background()
-			registryAuth := auth.TransformAuth(testLog(), "token")
-			result, err := auth.GetToken(testLog(), ctx, mockContainerWithServer, registryAuth, client, testRegistry, "")
+			registryAuth := auth.TransformAuth(newNopLogger(), "token")
+			result, err := auth.GetToken(newNopLogger(), ctx, mockContainerWithServer, registryAuth, client, testRegistry, "")
 			token := result.Token
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			url, err := manifest.BuildManifestURLForImage(testLog(), mockContainerWithServer.ImageName(), mockContainerWithServer.Name(), getScheme())
+			url, err := manifest.BuildManifestURLForImage(newNopLogger(), mockContainerWithServer.ImageName(), mockContainerWithServer.Name(), getScheme())
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 			req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -1947,7 +1967,7 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			defer resp.Body.Close()
 
-			_, err = digest.ExtractGetDigest(testLog(), resp)
+			_, err = digest.ExtractGetDigest(newNopLogger(), resp)
 			gomega.Expect(err).To(gomega.HaveOccurred())
 			gomega.Expect(err.Error()).
 				To(gomega.ContainSubstring("invalid digest format in body"))
@@ -1995,8 +2015,8 @@ var _ = ginkgo.Describe("Digests", func() {
 			testRegistry.TLSSkip = true
 			defer func() { testRegistry.TLSSkip = false }()
 
-			registryAuth := auth.TransformAuth(testLog(), "token")
-			result, err := digest.CompareDigest(testLog(), ctx,
+			registryAuth := auth.TransformAuth(newNopLogger(), "token")
+			result, err := digest.CompareDigest(newNopLogger(), ctx,
 				mockContainerWithServer,
 				registryAuth,
 				testRegistry,
@@ -2053,13 +2073,13 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			client := newTestAuthClient()
 			ctx := context.Background()
-			registryAuth := auth.TransformAuth(testLog(), "token")
-			result, err := auth.GetToken(testLog(), ctx, mockContainerWithServer, registryAuth, client, testRegistry, "")
+			registryAuth := auth.TransformAuth(newNopLogger(), "token")
+			result, err := auth.GetToken(newNopLogger(), ctx, mockContainerWithServer, registryAuth, client, testRegistry, "")
 			token := result.Token
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			url, err := manifest.BuildManifestURLForImage(testLog(), mockContainerWithServer.ImageName(), mockContainerWithServer.Name(), getScheme())
+			url, err := manifest.BuildManifestURLForImage(newNopLogger(), mockContainerWithServer.ImageName(), mockContainerWithServer.Name(), getScheme())
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 			req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -2077,9 +2097,9 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			defer resp.Body.Close()
 
-			getResult, err := digest.ExtractGetDigest(testLog(), resp)
+			getResult, err := digest.ExtractGetDigest(newNopLogger(), resp)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-			gomega.Expect(getResult).To(gomega.Equal(digest.NormalizeDigest(testLog(), mockDigestHash)))
+			gomega.Expect(getResult).To(gomega.Equal(digest.NormalizeDigest(newNopLogger(), mockDigestHash)))
 		})
 
 		ginkgo.It("should handle JSON manifest with empty digest field", func() {
@@ -2124,13 +2144,13 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			client := newTestAuthClient()
 			ctx := context.Background()
-			registryAuth := auth.TransformAuth(testLog(), "token")
-			result, err := auth.GetToken(testLog(), ctx, mockContainerWithServer, registryAuth, client, testRegistry, "")
+			registryAuth := auth.TransformAuth(newNopLogger(), "token")
+			result, err := auth.GetToken(newNopLogger(), ctx, mockContainerWithServer, registryAuth, client, testRegistry, "")
 			token := result.Token
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			url, err := manifest.BuildManifestURLForImage(testLog(), mockContainerWithServer.ImageName(), mockContainerWithServer.Name(), getScheme())
+			url, err := manifest.BuildManifestURLForImage(newNopLogger(), mockContainerWithServer.ImageName(), mockContainerWithServer.Name(), getScheme())
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 			req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -2148,7 +2168,7 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			defer resp.Body.Close()
 
-			_, err = digest.ExtractGetDigest(testLog(), resp)
+			_, err = digest.ExtractGetDigest(newNopLogger(), resp)
 			gomega.Expect(err).To(gomega.HaveOccurred())
 			gomega.Expect(err.Error()).
 				To(gomega.ContainSubstring("empty digest in JSON manifest"))
@@ -2196,13 +2216,13 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			client := newTestAuthClient()
 			ctx := context.Background()
-			registryAuth := auth.TransformAuth(testLog(), "token")
-			result, err := auth.GetToken(testLog(), ctx, mockContainerWithServer, registryAuth, client, testRegistry, "")
+			registryAuth := auth.TransformAuth(newNopLogger(), "token")
+			result, err := auth.GetToken(newNopLogger(), ctx, mockContainerWithServer, registryAuth, client, testRegistry, "")
 			token := result.Token
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			url, err := manifest.BuildManifestURLForImage(testLog(), mockContainerWithServer.ImageName(), mockContainerWithServer.Name(), getScheme())
+			url, err := manifest.BuildManifestURLForImage(newNopLogger(), mockContainerWithServer.ImageName(), mockContainerWithServer.Name(), getScheme())
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 			req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -2220,7 +2240,7 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			defer resp.Body.Close()
 
-			_, err = digest.ExtractGetDigest(testLog(), resp)
+			_, err = digest.ExtractGetDigest(newNopLogger(), resp)
 			gomega.Expect(err).To(gomega.HaveOccurred())
 			gomega.Expect(err.Error()).
 				To(gomega.ContainSubstring("empty digest in JSON manifest"))
@@ -2266,13 +2286,13 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			client := newTestAuthClient()
 			ctx := context.Background()
-			registryAuth := auth.TransformAuth(testLog(), "token")
-			result, err := auth.GetToken(testLog(), ctx, mockContainerWithServer, registryAuth, client, testRegistry, "")
+			registryAuth := auth.TransformAuth(newNopLogger(), "token")
+			result, err := auth.GetToken(newNopLogger(), ctx, mockContainerWithServer, registryAuth, client, testRegistry, "")
 			token := result.Token
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			url, err := manifest.BuildManifestURLForImage(testLog(), mockContainerWithServer.ImageName(), mockContainerWithServer.Name(), getScheme())
+			url, err := manifest.BuildManifestURLForImage(newNopLogger(), mockContainerWithServer.ImageName(), mockContainerWithServer.Name(), getScheme())
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 			req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -2290,7 +2310,7 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			defer resp.Body.Close()
 
-			_, err = digest.ExtractGetDigest(testLog(), resp)
+			_, err = digest.ExtractGetDigest(newNopLogger(), resp)
 			gomega.Expect(err).To(gomega.HaveOccurred())
 			gomega.Expect(err.Error()).
 				To(gomega.ContainSubstring("invalid digest format in body"))
@@ -2336,13 +2356,13 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			client := newTestAuthClient()
 			ctx := context.Background()
-			registryAuth := auth.TransformAuth(testLog(), "token")
-			result, err := auth.GetToken(testLog(), ctx, mockContainerWithServer, registryAuth, client, testRegistry, "")
+			registryAuth := auth.TransformAuth(newNopLogger(), "token")
+			result, err := auth.GetToken(newNopLogger(), ctx, mockContainerWithServer, registryAuth, client, testRegistry, "")
 			token := result.Token
 
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-			url, err := manifest.BuildManifestURLForImage(testLog(), mockContainerWithServer.ImageName(), mockContainerWithServer.Name(), getScheme())
+			url, err := manifest.BuildManifestURLForImage(newNopLogger(), mockContainerWithServer.ImageName(), mockContainerWithServer.Name(), getScheme())
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 			req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -2360,7 +2380,7 @@ var _ = ginkgo.Describe("Digests", func() {
 
 			defer resp.Body.Close()
 
-			_, err = digest.ExtractGetDigest(testLog(), resp)
+			_, err = digest.ExtractGetDigest(newNopLogger(), resp)
 			gomega.Expect(err).To(gomega.HaveOccurred())
 			gomega.Expect(err.Error()).
 				To(gomega.ContainSubstring("invalid digest format in body"))
@@ -2379,7 +2399,7 @@ var _ = ginkgo.Describe("Digests", func() {
 				Body:       io.NopCloser(failingReader),
 			}
 
-			_, err := digest.ExtractGetDigest(testLog(), resp)
+			_, err := digest.ExtractGetDigest(newNopLogger(), resp)
 			gomega.Expect(err).To(gomega.HaveOccurred())
 			gomega.Expect(err.Error()).
 				To(gomega.ContainSubstring("failed to read response body"))
@@ -2454,8 +2474,8 @@ var _ = ginkgo.Describe("Digests", func() {
 			)
 
 			ctx := context.Background()
-			registryAuth := auth.TransformAuth(testLog(), "token")
-			result, err := digest.FetchDigest(testLog(), ctx, mockContainerWithServer, registryAuth, testRegistry, ratelimit.New())
+			registryAuth := auth.TransformAuth(newNopLogger(), "token")
+			result, err := digest.FetchDigest(newNopLogger(), ctx, mockContainerWithServer, registryAuth, testRegistry, ratelimit.New())
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			gomega.Expect(result).
 				To(gomega.Equal("d68e1e532088964195ad3a0a71526bc2f11a78de0def85629beb75e2265f0547"))
@@ -2527,8 +2547,8 @@ var _ = ginkgo.Describe("Digests", func() {
 			)
 
 			ctx := context.Background()
-			registryAuth := auth.TransformAuth(testLog(), "token")
-			result, err := digest.FetchDigest(testLog(), ctx, mockContainerWithServer, registryAuth, testRegistry, ratelimit.New())
+			registryAuth := auth.TransformAuth(newNopLogger(), "token")
+			result, err := digest.FetchDigest(newNopLogger(), ctx, mockContainerWithServer, registryAuth, testRegistry, ratelimit.New())
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			gomega.Expect(result).
 				To(gomega.Equal("d68e1e532088964195ad3a0a71526bc2f11a78de0def85629beb75e2265f0547"))
@@ -2579,10 +2599,10 @@ var _ = ginkgo.Describe("Digests", func() {
 			)
 
 			ctx := context.Background()
-			registryAuth := auth.TransformAuth(testLog(), "token")
-			result, err := digest.FetchDigest(testLog(), ctx, mockContainerWithServer, registryAuth, testRegistry, ratelimit.New())
+			registryAuth := auth.TransformAuth(newNopLogger(), "token")
+			result, err := digest.FetchDigest(newNopLogger(), ctx, mockContainerWithServer, registryAuth, testRegistry, ratelimit.New())
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-			gomega.Expect(result).To(gomega.Equal(digest.NormalizeDigest(testLog(), mockDigestHash)))
+			gomega.Expect(result).To(gomega.Equal(digest.NormalizeDigest(newNopLogger(), mockDigestHash)))
 		})
 
 		ginkgo.When("testing fetchDigest function directly", func() {
@@ -2634,15 +2654,15 @@ var _ = ginkgo.Describe("Digests", func() {
 					),
 				)
 
-				registryAuth := auth.TransformAuth(testLog(), "")
-				result, err := digest.FetchDigest(testLog(), ctx,
+				registryAuth := auth.TransformAuth(newNopLogger(), "")
+				result, err := digest.FetchDigest(newNopLogger(), ctx,
 					mockContainerWithServer,
 					registryAuth,
 					testRegistry,
 					ratelimit.New(),
 				)
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
-				gomega.Expect(result).To(gomega.Equal(digest.NormalizeDigest(testLog(), mockDigestHash)))
+				gomega.Expect(result).To(gomega.Equal(digest.NormalizeDigest(newNopLogger(), mockDigestHash)))
 			})
 
 			ginkgo.It("should handle invalid image reference", func() {
@@ -2659,8 +2679,8 @@ var _ = ginkgo.Describe("Digests", func() {
 
 				client := newTestAuthClient()
 				ctx := context.Background()
-				registryAuth := auth.TransformAuth(testLog(), "token")
-				_, err := auth.GetToken(testLog(), ctx, mockContainerInvalid, registryAuth, client, testRegistry, "")
+				registryAuth := auth.TransformAuth(newNopLogger(), "token")
+				_, err := auth.GetToken(newNopLogger(), ctx, mockContainerInvalid, registryAuth, client, testRegistry, "")
 				gomega.Expect(err).To(gomega.HaveOccurred())
 				gomega.Expect(err.Error()).
 					To(gomega.ContainSubstring("failed to parse image name"))
@@ -2678,8 +2698,8 @@ var _ = ginkgo.Describe("Digests", func() {
 				)
 
 				ctx := context.Background()
-				registryAuth := auth.TransformAuth(testLog(), "token")
-				_, err := digest.FetchDigest(testLog(), ctx, mockContainerInvalidURL, registryAuth, testRegistry, ratelimit.New())
+				registryAuth := auth.TransformAuth(newNopLogger(), "token")
+				_, err := digest.FetchDigest(newNopLogger(), ctx, mockContainerInvalidURL, registryAuth, testRegistry, ratelimit.New())
 				gomega.Expect(err).To(gomega.HaveOccurred())
 				gomega.Expect(err.Error()).
 					To(gomega.ContainSubstring("failed to build manifest URL"))
@@ -2724,8 +2744,8 @@ var _ = ginkgo.Describe("Digests", func() {
 				)
 
 				ctx := context.Background()
-				registryAuth := auth.TransformAuth(testLog(), "token")
-				_, err := digest.FetchDigest(testLog(), ctx, mockContainerWithServer, registryAuth, testRegistry, ratelimit.New())
+				registryAuth := auth.TransformAuth(newNopLogger(), "token")
+				_, err := digest.FetchDigest(newNopLogger(), ctx, mockContainerWithServer, registryAuth, testRegistry, ratelimit.New())
 				gomega.Expect(err).To(gomega.HaveOccurred())
 				gomega.Expect(err.Error()).
 					To(gomega.ContainSubstring("invalid digest format in body"))
@@ -2777,8 +2797,8 @@ var _ = ginkgo.Describe("Digests", func() {
 
 				client := newTestAuthClient()
 				ctx := context.Background()
-				registryAuth := auth.TransformAuth(testLog(), "token")
-				result, err := auth.GetToken(testLog(), ctx,
+				registryAuth := auth.TransformAuth(newNopLogger(), "token")
+				result, err := auth.GetToken(newNopLogger(), ctx,
 					mockContainerWithServer,
 					registryAuth,
 					client,
@@ -2789,7 +2809,7 @@ var _ = ginkgo.Describe("Digests", func() {
 
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-				url, err := manifest.BuildManifestURLForImage(testLog(), mockContainerWithServer.ImageName(), mockContainerWithServer.Name(), getScheme())
+				url, err := manifest.BuildManifestURLForImage(newNopLogger(), mockContainerWithServer.ImageName(), mockContainerWithServer.Name(), getScheme())
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 				req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -2807,7 +2827,7 @@ var _ = ginkgo.Describe("Digests", func() {
 
 				defer resp.Body.Close()
 
-				getResult, err := digest.ExtractGetDigest(testLog(), resp)
+				getResult, err := digest.ExtractGetDigest(newNopLogger(), resp)
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
 				gomega.Expect(getResult).
 					To(gomega.Equal("ociindexdigest123456789012345678901234567890123456789012345678901234567890"))
@@ -2859,8 +2879,8 @@ var _ = ginkgo.Describe("Digests", func() {
 
 				client := newTestAuthClient()
 				ctx := context.Background()
-				registryAuth := auth.TransformAuth(testLog(), "token")
-				result, err := auth.GetToken(testLog(), ctx,
+				registryAuth := auth.TransformAuth(newNopLogger(), "token")
+				result, err := auth.GetToken(newNopLogger(), ctx,
 					mockContainerWithServer,
 					registryAuth,
 					client,
@@ -2871,7 +2891,7 @@ var _ = ginkgo.Describe("Digests", func() {
 
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-				url, err := manifest.BuildManifestURLForImage(testLog(), mockContainerWithServer.ImageName(), mockContainerWithServer.Name(), getScheme())
+				url, err := manifest.BuildManifestURLForImage(newNopLogger(), mockContainerWithServer.ImageName(), mockContainerWithServer.Name(), getScheme())
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 				req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -2889,7 +2909,7 @@ var _ = ginkgo.Describe("Digests", func() {
 
 				defer resp.Body.Close()
 
-				_, err = digest.ExtractGetDigest(testLog(), resp)
+				_, err = digest.ExtractGetDigest(newNopLogger(), resp)
 				gomega.Expect(err).To(gomega.HaveOccurred())
 				gomega.Expect(err.Error()).
 					To(gomega.ContainSubstring("unsupported content type for JSON parsing"))
@@ -2938,8 +2958,8 @@ var _ = ginkgo.Describe("Digests", func() {
 
 				client := newTestAuthClient()
 				ctx := context.Background()
-				registryAuth := auth.TransformAuth(testLog(), "token")
-				result, err := auth.GetToken(testLog(), ctx,
+				registryAuth := auth.TransformAuth(newNopLogger(), "token")
+				result, err := auth.GetToken(newNopLogger(), ctx,
 					mockContainerWithServer,
 					registryAuth,
 					client,
@@ -2950,7 +2970,7 @@ var _ = ginkgo.Describe("Digests", func() {
 
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
-				url, err := manifest.BuildManifestURLForImage(testLog(), mockContainerWithServer.ImageName(), mockContainerWithServer.Name(), getScheme())
+				url, err := manifest.BuildManifestURLForImage(newNopLogger(), mockContainerWithServer.ImageName(), mockContainerWithServer.Name(), getScheme())
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 				req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -2968,7 +2988,7 @@ var _ = ginkgo.Describe("Digests", func() {
 
 				defer resp.Body.Close()
 
-				_, err = digest.ExtractGetDigest(testLog(), resp)
+				_, err = digest.ExtractGetDigest(newNopLogger(), resp)
 				gomega.Expect(err).To(gomega.HaveOccurred())
 				gomega.Expect(err.Error()).
 					To(gomega.ContainSubstring("unsupported content type for JSON parsing"))
@@ -3041,8 +3061,8 @@ var _ = ginkgo.Describe("Digests", func() {
 						}),
 					)
 
-					registryAuth := auth.TransformAuth(testLog(), "token")
-					result, err := digest.CompareDigest(testLog(), ctx,
+					registryAuth := auth.TransformAuth(newNopLogger(), "token")
+					result, err := digest.CompareDigest(newNopLogger(), ctx,
 						mockContainerWithServer,
 						registryAuth,
 						testRegistry,
@@ -3138,12 +3158,12 @@ func TestDigestClient_GetManifest_SlowResponse(t *testing.T) {
 		mockDigest,
 	)
 
-	registryAuth := auth.TransformAuth(testLog(), "token")
+	registryAuth := auth.TransformAuth(newTestLogger(t), "token")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 25*time.Millisecond)
 	defer cancel()
 
-	_, err := digest.FetchDigest(testLog(), ctx, mockContainerWithServer, registryAuth, testRegistry, ratelimit.New())
+	_, err := digest.FetchDigest(newTestLogger(t), ctx, mockContainerWithServer, registryAuth, testRegistry, ratelimit.New())
 	if err == nil {
 		t.Fatal("expected error")
 	}

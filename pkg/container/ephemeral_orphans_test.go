@@ -104,7 +104,7 @@ func TestRemoveOrphanedOrchestrators_SkipsInFlight(t *testing.T) {
 					Return(nil).Once()
 			}
 
-			count, err := RemoveOrphanedOrchestrators(testLog(), t.Context(), client)
+			count, err := RemoveOrphanedOrchestrators(newTestLogger(t), t.Context(), client)
 			require.NoError(t, err)
 			assert.Equal(t, wantCount, count)
 		})

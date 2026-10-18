@@ -16,9 +16,12 @@ import (
 	"github.com/nicholas-fedor/watchtower/pkg/registry/manifest"
 )
 
-// testLog returns a logger that discards every event, for tests that do not
-// assert on logs.
-func testLog() *zerolog.Logger {
+// newNopLogger returns a logger that discards every event, for Ginkgo specs,
+// benchmarks, and fuzz targets.
+//
+// Returns:
+//   - *zerolog.Logger: Logger that discards all events.
+func newNopLogger() *zerolog.Logger {
 	return new(zerolog.Nop())
 }
 
@@ -196,5 +199,5 @@ func buildMockContainerManifestURL(imageRef string) (string, error) {
 		imageInfo,
 	)
 
-	return manifest.BuildManifestURLForImage(testLog(), mock.ImageName(), mock.Name(), testScheme)
+	return manifest.BuildManifestURLForImage(newNopLogger(), mock.ImageName(), mock.Name(), testScheme)
 }

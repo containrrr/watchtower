@@ -52,7 +52,7 @@ func TestRunUpdatesWithNotifications_OldSelfDetected(t *testing.T) {
 	var detected int
 
 	RunUpdatesWithNotifications(t.Context(), RunUpdatesWithNotificationsParams{
-		Logger:            testLogger(),
+		Logger:            newTestLogger(t),
 		Client:            client,
 		Notifier:          notifier,
 		EventBroadcaster:  broadcaster,

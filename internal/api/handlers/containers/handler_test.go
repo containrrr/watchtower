@@ -14,10 +14,21 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// testLogger returns a logger that discards every event, for tests that do not
-// assert on logs.
-func testLogger() *zerolog.Logger {
-	return new(zerolog.Nop())
+// newTestLogger returns a logger that writes each event to the test's log, so a
+// failing test shows what it logged.
+//
+// Parameters:
+//   - t: Test that receives the log lines.
+//
+// Returns:
+//   - *zerolog.Logger: Logger writing to t.
+func newTestLogger(t *testing.T) *zerolog.Logger {
+	t.Helper()
+
+	// Frame 4 skips zerolog's write path, so each line names the log call.
+	w := zerolog.TestWriter{T: t, Frame: 4}
+
+	return new(zerolog.New(w))
 }
 
 func TestNew(t *testing.T) {
@@ -37,7 +48,7 @@ func TestNew(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			h := New(testLogger(), tt.list)
+			h := New(newTestLogger(t), tt.list)
 			require.NotNil(t, h)
 			assert.Equal(t, "/v1/containers", h.Path)
 		})
@@ -77,7 +88,7 @@ func TestHandler_Handle(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			h := New(testLogger(), tt.listFunc)
+			h := New(newTestLogger(t), tt.listFunc)
 			app := fiber.New(fiber.Config{})
 			app.Get("/v1/containers", h.Handle)
 
@@ -98,7 +109,7 @@ func TestHandler_Handle_FilterByName(t *testing.T) {
 		{Name: "redis-cache", Image: "redis:7", ImageID: "sha256:123", Digest: "sha256:456"},
 	}
 
-	h := New(testLogger(), func(_ context.Context) ([]Status, error) { return statuses, nil })
+	h := New(newTestLogger(t), func(_ context.Context) ([]Status, error) { return statuses, nil })
 	app := fiber.New(fiber.Config{})
 	app.Get("/v1/containers", h.Handle)
 
@@ -128,7 +139,7 @@ func TestHandler_Handle_FilterByImage(t *testing.T) {
 		{Name: "redis-cache", Image: "redis:7", ImageID: "sha256:123", Digest: "sha256:456"},
 	}
 
-	h := New(testLogger(), func(_ context.Context) ([]Status, error) { return statuses, nil })
+	h := New(newTestLogger(t), func(_ context.Context) ([]Status, error) { return statuses, nil })
 	app := fiber.New(fiber.Config{})
 	app.Get("/v1/containers", h.Handle)
 
@@ -159,7 +170,7 @@ func TestHandler_Handle_FilterByNameAndImage(t *testing.T) {
 		{Name: "mysql-db", Image: "mysql:8.0", ImageID: "sha256:789", Digest: "sha256:012"},
 	}
 
-	h := New(testLogger(), func(_ context.Context) ([]Status, error) { return statuses, nil })
+	h := New(newTestLogger(t), func(_ context.Context) ([]Status, error) { return statuses, nil })
 	app := fiber.New(fiber.Config{})
 	app.Get("/v1/containers", h.Handle)
 
@@ -184,7 +195,7 @@ func TestHandler_Handle_NoMatchFilter(t *testing.T) {
 		{Name: "nginx-proxy", Image: "nginx:latest", ImageID: "sha256:abc", Digest: "sha256:def"},
 	}
 
-	h := New(testLogger(), func(_ context.Context) ([]Status, error) { return statuses, nil })
+	h := New(newTestLogger(t), func(_ context.Context) ([]Status, error) { return statuses, nil })
 	app := fiber.New(fiber.Config{})
 	app.Get("/v1/containers", h.Handle)
 

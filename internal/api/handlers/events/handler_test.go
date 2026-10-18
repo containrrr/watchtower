@@ -15,26 +15,37 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func testLogger() *zerolog.Logger {
-	n := zerolog.Nop()
+// newTestLogger returns a logger that writes each event to the test's log, so a
+// failing test shows what it logged.
+//
+// Parameters:
+//   - t: Test that receives the log lines.
+//
+// Returns:
+//   - *zerolog.Logger: Logger writing to t.
+func newTestLogger(t *testing.T) *zerolog.Logger {
+	t.Helper()
 
-	return &n
+	// Frame 4 skips zerolog's write path, so each line names the log call.
+	w := zerolog.TestWriter{T: t, Frame: 4}
+
+	return new(zerolog.New(w))
 }
 
 func TestNewHandler(t *testing.T) {
 	b := NewBroadcaster()
-	h := NewHandler(testLogger(), b, nil)
+	h := NewHandler(newTestLogger(t), b, nil)
 	require.NotNil(t, h)
 	assert.Equal(t, "/v1/events", h.Path)
 	assert.Nil(t, h.AllowedOrigins)
 
-	h2 := NewHandler(testLogger(), b, []string{"https://example.com"})
+	h2 := NewHandler(newTestLogger(t), b, []string{"https://example.com"})
 	assert.Equal(t, []string{"https://example.com"}, h2.AllowedOrigins)
 }
 
 func TestHandler_Handle_Connects(t *testing.T) {
 	b := NewBroadcaster()
-	h := NewHandler(testLogger(), b, nil)
+	h := NewHandler(newTestLogger(t), b, nil)
 
 	app := fiber.New(fiber.Config{})
 	app.Get("/v1/events", h.Handle())
@@ -67,7 +78,7 @@ func TestHandler_Handle_MaxSubscribers(t *testing.T) {
 }
 
 func TestHandler_Handle_NilBroadcaster(t *testing.T) {
-	h := NewHandler(testLogger(), nil, nil)
+	h := NewHandler(newTestLogger(t), nil, nil)
 	app := fiber.New(fiber.Config{})
 	app.Get("/v1/events", h.Handle())
 
@@ -90,7 +101,7 @@ func TestHandler_Handle_NilBroadcaster(t *testing.T) {
 
 func TestHandler_Handle_ReceivesEvent(t *testing.T) {
 	b := NewBroadcaster()
-	h := NewHandler(testLogger(), b, nil)
+	h := NewHandler(newTestLogger(t), b, nil)
 
 	app := fiber.New(fiber.Config{})
 	app.Get("/v1/events", h.Handle())
@@ -112,7 +123,7 @@ func TestHandler_Handle_ReceivesEvent(t *testing.T) {
 
 func TestHandler_Handle_ReceivesPublishedEvent(t *testing.T) {
 	b := NewBroadcaster()
-	h := NewHandler(testLogger(), b, nil)
+	h := NewHandler(newTestLogger(t), b, nil)
 
 	subCh, _ := b.SubscribeWithDone()
 	assert.NotNil(t, subCh)
@@ -148,7 +159,7 @@ func TestHandler_Handle_ReceivesPublishedEvent(t *testing.T) {
 
 func TestHandler_Handle_RejectsDisallowedOrigin(t *testing.T) {
 	b := NewBroadcaster()
-	h := NewHandler(testLogger(), b, []string{"https://allowed.com"})
+	h := NewHandler(newTestLogger(t), b, []string{"https://allowed.com"})
 
 	app := fiber.New(fiber.Config{})
 	app.Get("/v1/events", h.Handle())
@@ -172,7 +183,7 @@ func TestHandler_Handle_RejectsDisallowedOrigin(t *testing.T) {
 
 func TestHandler_Handle_AllowsSameOrigin(t *testing.T) {
 	b := NewBroadcaster()
-	h := NewHandler(testLogger(), b, nil)
+	h := NewHandler(newTestLogger(t), b, nil)
 
 	app := fiber.New(fiber.Config{})
 	app.Get("/v1/events", h.Handle())
@@ -194,7 +205,7 @@ func TestHandler_Handle_AllowsSameOrigin(t *testing.T) {
 
 func TestHandler_Handle_AllowsCORSMatch(t *testing.T) {
 	b := NewBroadcaster()
-	h := NewHandler(testLogger(), b, []string{"https://app.example.com"})
+	h := NewHandler(newTestLogger(t), b, []string{"https://app.example.com"})
 
 	app := fiber.New(fiber.Config{})
 	app.Get("/v1/events", h.Handle())
@@ -251,7 +262,7 @@ func TestIsOriginAllowed(t *testing.T) {
 
 func TestHandler_Handle_AllowsNullOrigin(t *testing.T) {
 	b := NewBroadcaster()
-	h := NewHandler(testLogger(), b, nil)
+	h := NewHandler(newTestLogger(t), b, nil)
 
 	app := fiber.New(fiber.Config{})
 	app.Get("/v1/events", h.Handle())
@@ -275,7 +286,7 @@ func TestHandler_Handle_AllowsNullOrigin(t *testing.T) {
 
 func TestHandler_Handle_AllowsWildcardCORS(t *testing.T) {
 	b := NewBroadcaster()
-	h := NewHandler(testLogger(), b, []string{"*"})
+	h := NewHandler(newTestLogger(t), b, []string{"*"})
 
 	app := fiber.New(fiber.Config{})
 	app.Get("/v1/events", h.Handle())
@@ -299,7 +310,7 @@ func TestHandler_Handle_AllowsWildcardCORS(t *testing.T) {
 
 func TestHandler_Handle_MaxSubscribersHTTP(t *testing.T) {
 	b := NewBroadcaster()
-	h := NewHandler(testLogger(), b, nil)
+	h := NewHandler(newTestLogger(t), b, nil)
 
 	for range maxSubscribers {
 		ch, _ := b.SubscribeWithDone()
@@ -326,7 +337,7 @@ func TestHandler_Handle_MaxSubscribersHTTP(t *testing.T) {
 
 func TestHandler_Handle_StreamStaysOpenAndDeliversEvent(t *testing.T) {
 	b := NewBroadcaster()
-	h := NewHandler(testLogger(), b, nil)
+	h := NewHandler(newTestLogger(t), b, nil)
 
 	app := fiber.New(fiber.Config{})
 	app.Get("/v1/events", h.Handle())
@@ -376,7 +387,7 @@ func TestHandler_Handle_StreamStaysOpenAndDeliversEvent(t *testing.T) {
 
 func TestHandler_Handle_OriginCheckPrecedence(t *testing.T) {
 	b := NewBroadcaster()
-	h := NewHandler(testLogger(), b, nil)
+	h := NewHandler(newTestLogger(t), b, nil)
 
 	app := fiber.New(fiber.Config{})
 	app.Get("/v1/events", h.Handle())

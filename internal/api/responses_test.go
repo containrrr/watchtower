@@ -194,8 +194,10 @@ func newFixtureMetrics(t *testing.T) *metrics.Metrics {
 
 // fixtureOptions returns API options with every endpoint enabled, backed by the
 // given Docker client and metrics store. Each update reports the same scan.
-func fixtureOptions(client container.Client, store *metrics.Metrics) config.Options {
-	return withTestLogger(config.Options{
+func fixtureOptions(t *testing.T, client container.Client, store *metrics.Metrics) config.Options {
+	t.Helper()
+
+	return withTestLogger(t, config.Options{
 		Token:               fixtureAPIToken,
 		EventsToken:         fixtureEventsToken,
 		RateLimit:           1000,
@@ -409,7 +411,7 @@ func (r *responseRecorder) recordOne(t *testing.T, req responseRequest) {
 // an update. Requests run in order because later ones observe earlier updates.
 func TestHTTPAPIResponses(t *testing.T) {
 	store := newFixtureMetrics(t)
-	opts := fixtureOptions(newFixtureClient(t), store)
+	opts := fixtureOptions(t, newFixtureClient(t), store)
 	recorder := newResponseRecorder(t, newFixtureApp(t, opts), responseRequest{method: http.MethodGet, target: "/livez"})
 
 	recorder.record(t,
@@ -454,7 +456,7 @@ func TestHTTPAPIResponses(t *testing.T) {
 	// A scan that ends in an error is reported as failed, with the counts it
 	// reached, by the update, the status, and the history.
 	failedStore := newFixtureMetrics(t)
-	failedOpts := fixtureOptions(newFixtureClient(t), failedStore)
+	failedOpts := fixtureOptions(t, newFixtureClient(t), failedStore)
 	failedOpts.RunUpdatesWithNotifications = func(context.Context, types.Filter, types.UpdateParams) *metrics.Metric {
 		return &metrics.Metric{Scanned: 5, Updated: 1, Failed: 0, Restarted: 0, Skipped: 0, ScanFailed: true}
 	}
@@ -476,7 +478,7 @@ func TestHTTPAPIResponses(t *testing.T) {
 // TestHTTPAPIErrorResponses snapshots the responses for rejected requests,
 // invalid parameters, a busy update lock, and an unreachable Docker daemon.
 func TestHTTPAPIErrorResponses(t *testing.T) {
-	app := newFixtureApp(t, fixtureOptions(newFixtureClient(t), newFixtureMetrics(t)))
+	app := newFixtureApp(t, fixtureOptions(t, newFixtureClient(t), newFixtureMetrics(t)))
 	recorder := newResponseRecorder(t, app, responseRequest{method: http.MethodGet, target: "/livez"})
 
 	recorder.record(t,
@@ -495,14 +497,14 @@ func TestHTTPAPIErrorResponses(t *testing.T) {
 		responseRequest{method: http.MethodGet, target: "/v1/unknown", token: fixtureAPIToken},
 	)
 
-	busyOpts := fixtureOptions(newFixtureClient(t), newFixtureMetrics(t))
+	busyOpts := fixtureOptions(t, newFixtureClient(t), newFixtureMetrics(t))
 	busyOpts.UpdateLock = scheduling.NewUpdateLock()
 	require.True(t, busyOpts.UpdateLock.TryLock())
 
 	recorder.app = newFixtureApp(t, busyOpts)
 	recorder.record(t, responseRequest{method: http.MethodPost, target: "/v1/update", token: fixtureAPIToken})
 
-	failingOpts := fixtureOptions(newFailingClient(t), newFixtureMetrics(t))
+	failingOpts := fixtureOptions(t, newFailingClient(t), newFixtureMetrics(t))
 	failingOpts.RunUpdatesWithNotifications = func(context.Context, types.Filter, types.UpdateParams) *metrics.Metric {
 		return nil
 	}
@@ -524,7 +526,7 @@ func TestHTTPAPIErrorResponses(t *testing.T) {
 // metrics endpoint exposes for Watchtower. Values depend on earlier scans in
 // the process, so only the HELP and TYPE lines are recorded.
 func TestHTTPAPIMetricsResponse(t *testing.T) {
-	app := newFixtureApp(t, fixtureOptions(newFixtureClient(t), newFixtureMetrics(t)))
+	app := newFixtureApp(t, fixtureOptions(t, newFixtureClient(t), newFixtureMetrics(t)))
 
 	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/v1/metrics", nil)
 	req.Header.Set(fiber.HeaderAuthorization, "Bearer "+fixtureAPIToken)
@@ -590,7 +592,7 @@ func readSSEEvents(t *testing.T, stream *bufio.Reader, count int) string {
 // session publishes. The stream is served on a local listener because it
 // stays open until the client disconnects.
 func TestHTTPAPIEventStream(t *testing.T) {
-	opts := fixtureOptions(newFixtureClient(t), newFixtureMetrics(t))
+	opts := fixtureOptions(t, newFixtureClient(t), newFixtureMetrics(t))
 	app := newFixtureApp(t, opts)
 
 	listener, err := (&net.ListenConfig{}).Listen(t.Context(), "tcp", "127.0.0.1:0")

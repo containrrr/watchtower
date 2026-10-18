@@ -36,7 +36,7 @@ func FuzzExtractHeadDigest(f *testing.F) {
 		resp.Header.Set(digest.ContentDigestHeader, headerValue)
 
 		// Call extractHeadDigest because we don't care about the result, only that it doesn't panic
-		_, _ = digest.ExtractHeadDigest(testLog(), resp)
+		_, _ = digest.ExtractHeadDigest(newNopLogger(), resp)
 	})
 }
 
@@ -61,7 +61,7 @@ func FuzzExtractGetDigest(f *testing.F) {
 		defer resp.Body.Close()
 
 		// Call ExtractGetDigest because we don't care about the result, only that it doesn't panic
-		_, _ = digest.ExtractGetDigest(testLog(), resp)
+		_, _ = digest.ExtractGetDigest(newNopLogger(), resp)
 	})
 }
 
@@ -78,7 +78,7 @@ func FuzzNormalizeDigest(f *testing.F) {
 
 	f.Fuzz(func(_ *testing.T, input string) {
 		// Call NormalizeDigest because we don't care about the result, only that it doesn't panic
-		_ = digest.NormalizeDigest(testLog(), input)
+		_ = digest.NormalizeDigest(newNopLogger(), input)
 	})
 }
 
@@ -113,7 +113,7 @@ func FuzzDigestsMatch(f *testing.F) {
 		// Ignore unmarshal errors to test robustness with malformed JSON
 		json.Unmarshal([]byte(localJSON), &localDigests)
 		// Call DigestsMatch because we don't care about the result, only that it doesn't panic
-		digest.DigestsMatch(testLog(), localDigests, remote)
+		digest.DigestsMatch(newNopLogger(), localDigests, remote)
 	})
 }
 
@@ -142,7 +142,7 @@ func FuzzBuildManifestURL(f *testing.F) {
 		)
 
 		// Call buildManifestURL because we don't care about the result, only that it doesn't panic
-		_, _, _, _ = digest.BuildManifestURL(testLog(), mockContainer, registryConfig.Registry{}, hostOverride)
+		_, _, _, _ = digest.BuildManifestURL(newNopLogger(), mockContainer, registryConfig.Registry{}, hostOverride)
 	})
 }
 
@@ -217,7 +217,7 @@ func FuzzHandleManifestResponse(f *testing.F) {
 			}
 
 			// Call HandleManifestResponse because we don't care about the result, only that it doesn't panic
-			_, _, _, _ = digest.HandleManifestResponse(testLog(), resp,
+			_, _, _, _ = digest.HandleManifestResponse(newNopLogger(), resp,
 				method,
 				originalHost,
 				challengeHost,

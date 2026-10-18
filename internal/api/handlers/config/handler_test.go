@@ -13,14 +13,25 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func testLogger() *zerolog.Logger {
-	n := zerolog.Nop()
+// newTestLogger returns a logger that writes each event to the test's log, so a
+// failing test shows what it logged.
+//
+// Parameters:
+//   - t: Test that receives the log lines.
+//
+// Returns:
+//   - *zerolog.Logger: Logger writing to t.
+func newTestLogger(t *testing.T) *zerolog.Logger {
+	t.Helper()
 
-	return &n
+	// Frame 4 skips zerolog's write path, so each line names the log call.
+	w := zerolog.TestWriter{T: t, Frame: 4}
+
+	return new(zerolog.New(w))
 }
 
 func TestNew(t *testing.T) {
-	h := New(testLogger(), func(_ context.Context) (ConfigData, error) {
+	h := New(newTestLogger(t), func(_ context.Context) (ConfigData, error) {
 		return ConfigData{}, nil
 	})
 	require.NotNil(t, h)
@@ -55,7 +66,7 @@ func TestHandler_Handle(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			h := New(testLogger(), tt.getConfig)
+			h := New(newTestLogger(t), tt.getConfig)
 			app := fiber.New(fiber.Config{})
 			app.Get("/v1/config", h.Handle)
 

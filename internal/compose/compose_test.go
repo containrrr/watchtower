@@ -6,17 +6,20 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func testLog() *zerolog.Logger {
-	n := zerolog.Nop()
-
-	return &n
+// newNopLogger returns a logger that discards every event, for Ginkgo specs,
+// benchmarks, and fuzz targets.
+//
+// Returns:
+//   - *zerolog.Logger: Logger that discards all events.
+func newNopLogger() *zerolog.Logger {
+	return new(zerolog.Nop())
 }
 
 var _ = ginkgo.Describe("Compose", func() {
 	ginkgo.DescribeTable(
 		"ParseDependsOnLabel",
 		func(input string, expected []string) {
-			result := ParseDependsOnLabel(testLog(), input)
+			result := ParseDependsOnLabel(newNopLogger(), input)
 			gomega.Expect(result).To(gomega.Equal(expected))
 		},
 		ginkgo.Entry("returns nil for empty label", "", nil),

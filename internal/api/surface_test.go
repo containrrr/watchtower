@@ -41,7 +41,7 @@ func newFullSurfaceApp(t *testing.T) *fiber.App {
 	client.EXPECT().ListContainers(mock.Anything, mock.Anything).Return([]types.Container{}, nil).Maybe()
 	client.EXPECT().ListContainers(mock.Anything).Return([]types.Container{}, nil).Maybe()
 
-	opts := withTestLogger(config.Options{
+	opts := withTestLogger(t, config.Options{
 		Token:               "api-token",
 		EventsToken:         "events-token",
 		RateLimit:           1000,

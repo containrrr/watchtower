@@ -108,7 +108,7 @@ func TestLoad_DiskSpaceValidation(t *testing.T) {
 			flags.ProcessFlagAliases(log, flagSet)
 			flags.GetSecretsFromFiles(log, cmd)
 
-			_, err := Load(testLogger(), cmd, nil)
+			_, err := Load(newTestLogger(t), cmd, nil)
 			require.Error(t, err)
 			assert.ErrorIs(t, err, tc.want)
 		})

@@ -545,7 +545,7 @@ func TestOrchestrateSelfUpdate_Handoff(t *testing.T) {
 			client := mockContainer.NewMockClient(t)
 			tt.setup(client, old)
 
-			err := orchestrateSelfUpdate(testLogger(), t.Context(), client,
+			err := orchestrateSelfUpdate(newTestLogger(t), t.Context(), client,
 				orchestratorOldID, orchestratorNewImage, originalName, "", tt.cleanup)
 			if tt.wantErr != nil {
 				require.ErrorIs(t, err, tt.wantErr)

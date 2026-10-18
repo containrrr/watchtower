@@ -41,7 +41,7 @@ tasks:
   test:
     desc: Run all tests with coverage
     cmds:
-      - go test -timeout 30s -v -coverprofile coverage.out -covermode atomic ./...
+      - go test -timeout 30s -coverprofile coverage.out -covermode atomic ./...
 
   test:race:
     desc: Run all tests with the race detector

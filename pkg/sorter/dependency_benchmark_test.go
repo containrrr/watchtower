@@ -183,7 +183,7 @@ func BenchmarkDependencySorter(b *testing.B) {
 	for _, tc := range testCases {
 		b.Run(tc.name, func(b *testing.B) {
 			containers := tc.containers()
-			benchLog := testLog()
+			benchLog := newNopLogger()
 
 			b.ResetTimer()
 
@@ -275,7 +275,7 @@ func BenchmarkCycleDetection(b *testing.B) {
 	for _, tc := range testCases {
 		b.Run(tc.name, func(b *testing.B) {
 			containers := tc.containers()
-			benchLog := testLog()
+			benchLog := newNopLogger()
 
 			b.ResetTimer()
 
@@ -301,7 +301,7 @@ func BenchmarkCycleDetection(b *testing.B) {
 func BenchmarkMemoryUsage(b *testing.B) {
 	b.Run("MemoryEfficiency", func(b *testing.B) {
 		containers := generateBenchmarkContainers(1000, 0.5)
-		benchLog := testLog()
+		benchLog := newNopLogger()
 
 		b.ResetTimer()
 
@@ -326,7 +326,7 @@ func BenchmarkSortStability(b *testing.B) {
 
 	b.Run("StabilityCheck", func(b *testing.B) {
 		containers := generateBenchmarkContainers(100, 0.3)
-		benchLog := testLog()
+		benchLog := newNopLogger()
 
 		for b.Loop() {
 			ds := dependencySorter{}
