@@ -68,6 +68,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Chores
 
+- Update module github.com/knadh/koanf/v2 to v2.4.1 by @renovate[bot] in [#2913](https://github.com/nicholas-fedor/watchtower/pull/2913)
 - Update module github.com/knadh/koanf/v2 to v2.4.0 by @renovate[bot] in [#2899](https://github.com/nicholas-fedor/watchtower/pull/2899)
 - Update module github.com/philhofer/fwd to v1.2.1 by @renovate[bot] in [#2885](https://github.com/nicholas-fedor/watchtower/pull/2885)
 - Update github.com/google/pprof digest to 1facf8f by @renovate[bot] in [#2878](https://github.com/nicholas-fedor/watchtower/pull/2878)
