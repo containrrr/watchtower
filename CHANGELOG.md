@@ -61,6 +61,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- Stop sharing internal/actions test mocks with other packages by @nicholas-fedor in [#2923](https://github.com/nicholas-fedor/watchtower/pull/2923)
 - Add an httptest-based stub server for HTTP tests by @nicholas-fedor in [#2919](https://github.com/nicholas-fedor/watchtower/pull/2919)
 - Write test logs to the test that produced them by @nicholas-fedor in [#2909](https://github.com/nicholas-fedor/watchtower/pull/2909)
 
