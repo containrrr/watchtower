@@ -3,13 +3,8 @@ package manifest_test
 import (
 	"strings"
 	"testing"
-	"time"
 
-	dockerImageType "github.com/moby/moby/api/types/image"
-
-	mockActions "github.com/nicholas-fedor/watchtower/internal/actions/mocks"
 	"github.com/nicholas-fedor/watchtower/pkg/registry/manifest"
-	"github.com/nicholas-fedor/watchtower/pkg/types"
 )
 
 // FuzzBuildManifestURLForImage fuzzes the BuildManifestURLForImage function with various image reference strings
@@ -72,27 +67,7 @@ func FuzzBuildManifestURLForImage(f *testing.F) {
 	f.Add("registry.com/image-name.with.dots:tag-name.with.dots")  // Dots in name and tag
 
 	f.Fuzz(func(_ *testing.T, imageRef string) {
-		// Create a mock container with the fuzzed image reference
-		mock := createMockContainerForFuzz(imageRef)
 		// Call BuildManifestURLForImage with HTTPS scheme because we don't care about the result, just that it doesn't panic
-		_, _ = manifest.BuildManifestURLForImage(newNopLogger(), mock.ImageName(), mock.Name(), "https")
+		_, _ = manifest.BuildManifestURLForImage(newNopLogger(), imageRef, "fuzz-mock-container", "https")
 	})
-}
-
-// createMockContainerForFuzz creates a minimal mock container for fuzz testing BuildManifestURLForImage.
-func createMockContainerForFuzz(imageRef string) types.Container {
-	imageInfo := dockerImageType.InspectResponse{
-		RepoTags: []string{imageRef},
-	}
-	mockID := "fuzz-mock-id"
-	mockName := "fuzz-mock-container"
-	mockCreated := time.Now()
-
-	return mockActions.CreateMockContainerWithImageInfo(
-		mockID,
-		mockName,
-		imageRef,
-		mockCreated,
-		imageInfo,
-	)
 }

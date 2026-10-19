@@ -2,15 +2,11 @@ package manifest_test
 
 import (
 	"testing"
-	"time"
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	"github.com/rs/zerolog"
 
-	dockerImage "github.com/moby/moby/api/types/image"
-
-	mockActions "github.com/nicholas-fedor/watchtower/internal/actions/mocks"
 	"github.com/nicholas-fedor/watchtower/pkg/registry/manifest"
 )
 
@@ -43,7 +39,7 @@ var _ = ginkgo.Describe("the manifest module", func() {
 			imageRef := "ghcr.io/nicholas-fedor/watchtower:mytag"
 			expected := "https://ghcr.io/v2/nicholas-fedor/watchtower/manifests/mytag"
 
-			URL, err := buildMockContainerManifestURL(imageRef)
+			URL, err := manifestURLFor(imageRef)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			gomega.Expect(URL).To(gomega.Equal(expected))
 		})
@@ -52,7 +48,7 @@ var _ = ginkgo.Describe("the manifest module", func() {
 			imageRef := "nickfedor/watchtower:latest"
 			expected := "https://index.docker.io/v2/nickfedor/watchtower/manifests/latest"
 
-			URL, err := buildMockContainerManifestURL(imageRef)
+			URL, err := manifestURLFor(imageRef)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			gomega.Expect(URL).To(gomega.Equal(expected))
 		})
@@ -61,7 +57,7 @@ var _ = ginkgo.Describe("the manifest module", func() {
 			imageRef := "nickfedor/watchtower"
 			expected := "https://index.docker.io/v2/nickfedor/watchtower/manifests/latest"
 
-			URL, err := buildMockContainerManifestURL(imageRef)
+			URL, err := manifestURLFor(imageRef)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			gomega.Expect(URL).To(gomega.Equal(expected))
 		})
@@ -72,7 +68,7 @@ var _ = ginkgo.Describe("the manifest module", func() {
 				imageRef := "docker-registry.domain/imagename:latest"
 				expected := "https://docker-registry.domain/v2/imagename/manifests/latest"
 
-				URL, err := buildMockContainerManifestURL(imageRef)
+				URL, err := manifestURLFor(imageRef)
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
 				gomega.Expect(URL).To(gomega.Equal(expected))
 			},
@@ -82,14 +78,14 @@ var _ = ginkgo.Describe("the manifest module", func() {
 			imageRef := "docker-registry.domain/imagename@sha256:daf7034c5c89775afe3008393ae033529913548243b84926931d7c84398ecda7"
 			expected := "https://docker-registry.domain/v2/imagename/manifests/sha256:daf7034c5c89775afe3008393ae033529913548243b84926931d7c84398ecda7"
 
-			URL, err := buildMockContainerManifestURL(imageRef)
+			URL, err := manifestURLFor(imageRef)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			gomega.Expect(URL).To(gomega.Equal(expected))
 		})
 
 		ginkgo.It("should return an error for invalid image references", func() {
 			imageRef := "invalid:image:ref:!!"
-			URL, err := buildMockContainerManifestURL(imageRef)
+			URL, err := manifestURLFor(imageRef)
 			gomega.Expect(err).To(gomega.HaveOccurred())
 			gomega.Expect(err.Error()).To(gomega.ContainSubstring("failed to parse image name"))
 			gomega.Expect(URL).To(gomega.BeEmpty())
@@ -99,7 +95,7 @@ var _ = ginkgo.Describe("the manifest module", func() {
 			imageRef := "nginx:latest"
 			expected := "https://index.docker.io/v2/library/nginx/manifests/latest"
 
-			URL, err := buildMockContainerManifestURL(imageRef)
+			URL, err := manifestURLFor(imageRef)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			gomega.Expect(URL).To(gomega.Equal(expected))
 		})
@@ -108,7 +104,7 @@ var _ = ginkgo.Describe("the manifest module", func() {
 			imageRef := "localhost:5000/repo/image:tag"
 			expected := "https://localhost:5000/v2/repo/image/manifests/tag"
 
-			URL, err := buildMockContainerManifestURL(imageRef)
+			URL, err := manifestURLFor(imageRef)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			gomega.Expect(URL).To(gomega.Equal(expected))
 		})
@@ -119,7 +115,7 @@ var _ = ginkgo.Describe("the manifest module", func() {
 			imageRef := "ghcr.io/nicholas-fedor/watchtower:mytag"
 			expected := "http://ghcr.io/v2/nicholas-fedor/watchtower/manifests/mytag"
 
-			URL, err := buildMockContainerManifestURL(imageRef)
+			URL, err := manifestURLFor(imageRef)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			gomega.Expect(URL).To(gomega.Equal(expected))
 		})
@@ -128,7 +124,7 @@ var _ = ginkgo.Describe("the manifest module", func() {
 			imageRef := "registry.example.com/my-project/my-app:v1.2.3-rc1"
 			expected := "https://registry.example.com/v2/my-project/my-app/manifests/v1.2.3-rc1"
 
-			URL, err := buildMockContainerManifestURL(imageRef)
+			URL, err := manifestURLFor(imageRef)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			gomega.Expect(URL).To(gomega.Equal(expected))
 		})
@@ -137,14 +133,14 @@ var _ = ginkgo.Describe("the manifest module", func() {
 			imageRef := "registry.example.com/org/team/project/image:tag"
 			expected := "https://registry.example.com/v2/org/team/project/image/manifests/tag"
 
-			URL, err := buildMockContainerManifestURL(imageRef)
+			URL, err := manifestURLFor(imageRef)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			gomega.Expect(URL).To(gomega.Equal(expected))
 		})
 
 		ginkgo.It("should return an error for uppercase registry names", func() {
 			imageRef := "REGISTRY.EXAMPLE.COM/IMAGE:TAG"
-			URL, err := buildMockContainerManifestURL(imageRef)
+			URL, err := manifestURLFor(imageRef)
 			gomega.Expect(err).To(gomega.HaveOccurred())
 			gomega.Expect(err.Error()).To(gomega.ContainSubstring("failed to parse image name"))
 			gomega.Expect(URL).To(gomega.BeEmpty())
@@ -154,7 +150,7 @@ var _ = ginkgo.Describe("the manifest module", func() {
 			imageRef := "registry.example.com/my.project/my-app:latest"
 			expected := "https://registry.example.com/v2/my.project/my-app/manifests/latest"
 
-			URL, err := buildMockContainerManifestURL(imageRef)
+			URL, err := manifestURLFor(imageRef)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			gomega.Expect(URL).To(gomega.Equal(expected))
 		})
@@ -163,14 +159,14 @@ var _ = ginkgo.Describe("the manifest module", func() {
 			imageRef := "docker.io/library/nginx:latest"
 			expected := "https://index.docker.io/v2/library/nginx/manifests/latest"
 
-			URL, err := buildMockContainerManifestURL(imageRef)
+			URL, err := manifestURLFor(imageRef)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			gomega.Expect(URL).To(gomega.Equal(expected))
 		})
 
 		ginkgo.It("should return an error for references with invalid digest format", func() {
 			imageRef := "registry.example.com/image@sha256:invalid-digest"
-			URL, err := buildMockContainerManifestURL(imageRef)
+			URL, err := manifestURLFor(imageRef)
 			gomega.Expect(err).To(gomega.HaveOccurred())
 			gomega.Expect(err.Error()).To(gomega.ContainSubstring("failed to parse image name"))
 			gomega.Expect(URL).To(gomega.BeEmpty())
@@ -178,24 +174,14 @@ var _ = ginkgo.Describe("the manifest module", func() {
 	})
 })
 
-// buildMockContainerManifestURL creates a mock container and builds its manifest URL.
-// It constructs a container with the given image reference for testing BuildManifestURLForImage.
-func buildMockContainerManifestURL(imageRef string) (string, error) {
-	imageInfo := dockerImage.InspectResponse{
-		RepoTags: []string{
-			imageRef,
-		},
-	}
-	mockID := "mock-id"
-	mockName := "mock-container"
-	mockCreated := time.Now()
-	mock := mockActions.CreateMockContainerWithImageInfo(
-		mockID,
-		mockName,
-		imageRef,
-		mockCreated,
-		imageInfo,
-	)
-
-	return manifest.BuildManifestURLForImage(newNopLogger(), mock.ImageName(), mock.Name(), testScheme)
+// manifestURLFor builds the manifest URL for imageRef with the suite's scheme.
+//
+// Parameters:
+//   - imageRef: Image reference to build the URL for.
+//
+// Returns:
+//   - string: Manifest URL.
+//   - error: Non-nil when imageRef cannot be parsed.
+func manifestURLFor(imageRef string) (string, error) {
+	return manifest.BuildManifestURLForImage(newNopLogger(), imageRef, "mock-container", testScheme)
 }

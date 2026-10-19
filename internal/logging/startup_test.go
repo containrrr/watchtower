@@ -9,8 +9,8 @@ import (
 	"github.com/onsi/gomega"
 	"github.com/rs/zerolog"
 
-	mockActions "github.com/nicholas-fedor/watchtower/internal/actions/mocks"
 	"github.com/nicholas-fedor/watchtower/internal/logging"
+	mockLogging "github.com/nicholas-fedor/watchtower/internal/logging/mocks"
 )
 
 // TestStartupLogging runs the Ginkgo test suite for the internal logging startup package.
@@ -28,13 +28,15 @@ func testLogger(buf *bytes.Buffer, level zerolog.Level) *zerolog.Logger {
 
 var _ = ginkgo.Describe("WriteStartupMessage", func() {
 	var (
-		client mockActions.MockClient
+		client *mockLogging.MockAPIVersionProvider
 		buffer *bytes.Buffer
 		log    *zerolog.Logger
 	)
 
 	ginkgo.BeforeEach(func() {
-		client = mockActions.CreateMockClient(&mockActions.TestData{}, false, false)
+		client = mockLogging.NewMockAPIVersionProvider(ginkgo.GinkgoT())
+		client.EXPECT().GetVersion().Return("1.50").Maybe()
+
 		buffer = &bytes.Buffer{}
 		log = testLogger(buffer, zerolog.InfoLevel)
 	})
@@ -49,7 +51,7 @@ var _ = ginkgo.Describe("WriteStartupMessage", func() {
 		})
 
 		output := buffer.String()
-		gomega.Expect(output).To(gomega.ContainSubstring("Watchtower v1.0.0"))
+		gomega.Expect(output).To(gomega.ContainSubstring("Watchtower v1.0.0 using Docker API v1.50"))
 		gomega.Expect(output).To(gomega.ContainSubstring("Using no notifications"))
 	})
 

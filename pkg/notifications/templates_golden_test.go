@@ -11,7 +11,6 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 
-	mockActions "github.com/nicholas-fedor/watchtower/internal/actions/mocks"
 	"github.com/nicholas-fedor/watchtower/internal/testutil/golden"
 	"github.com/nicholas-fedor/watchtower/pkg/container"
 	"github.com/nicholas-fedor/watchtower/pkg/session"
@@ -253,7 +252,7 @@ func goldenFullReport() types.Report {
 	progress := session.Progress{}
 	failures := map[types.ContainerID]error{}
 
-	updated, newImage := mockActions.CreateContainerForProgress(0, 11, "updt%d")
+	updated, newImage := newProgressContainer(0, updatedIDPrefix, "updt%d")
 	progress.AddScanned(log, updated, newImage, types.UpdateParams{})
 	progress.MarkForUpdate(log, updated.ID())
 	progress[updated.ID()].SetGitMetadata(container.ReportMeta{
@@ -269,21 +268,21 @@ func goldenFullReport() types.Report {
 		LatestRevision:  "2222222222222222222222222222222222222222",
 	})
 
-	secondUpdated, secondImage := mockActions.CreateContainerForProgress(1, 11, "updt%d")
+	secondUpdated, secondImage := newProgressContainer(1, updatedIDPrefix, "updt%d")
 	progress.AddScanned(log, secondUpdated, secondImage, types.UpdateParams{})
 	progress.MarkForUpdate(log, secondUpdated.ID())
 
-	fresh, _ := mockActions.CreateContainerForProgress(0, 31, "frsh%d")
+	fresh, _ := newProgressContainer(0, freshIDPrefix, "frsh%d")
 	progress.AddScanned(log, fresh, fresh.ImageID(), types.UpdateParams{})
 
-	failed, failedImage := mockActions.CreateContainerForProgress(0, 21, "fail%d")
+	failed, failedImage := newProgressContainer(0, failedIDPrefix, "fail%d")
 	progress.AddScanned(log, failed, failedImage, types.UpdateParams{})
 	failures[failed.ID()] = errGoldenFailure
 
-	skipped, _ := mockActions.CreateContainerForProgress(0, 41, "skip%d")
+	skipped, _ := newProgressContainer(0, skippedIDPrefix, "skip%d")
 	progress.AddSkipped(log, skipped, errGoldenSkipped, types.UpdateParams{})
 
-	restarted, _ := mockActions.CreateContainerForProgress(0, 51, "rstr%d")
+	restarted, _ := newProgressContainer(0, restartedIDPrefix, "rstr%d")
 	progress.AddScanned(log, restarted, restarted.ImageID(), types.UpdateParams{})
 	progress.MarkRestarted(log, restarted.ID())
 

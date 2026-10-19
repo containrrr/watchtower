@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -25,9 +26,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	dockerContainer "github.com/moby/moby/api/types/container"
+	dockerImage "github.com/moby/moby/api/types/image"
+	dockerNetwork "github.com/moby/moby/api/types/network"
 	shoutrrrTypes "github.com/nicholas-fedor/shoutrrr/pkg/types"
 
-	mockActions "github.com/nicholas-fedor/watchtower/internal/actions/mocks"
 	"github.com/nicholas-fedor/watchtower/internal/flags"
 	"github.com/nicholas-fedor/watchtower/pkg/container"
 	"github.com/nicholas-fedor/watchtower/pkg/session"
@@ -108,7 +111,7 @@ var mockDataMultipleEntries = notificationData{
 
 var mockDataAllFresh = notificationData{
 	Entries: []*notificationEntry{},
-	Report:  mockActions.CreateMockProgressReport(session.FreshState),
+	Report:  newProgressReport(session.FreshState),
 }
 
 // mockDataFromStates generates mock notification data with specified container states.
@@ -123,10 +126,137 @@ func mockDataFromStates(states ...session.State) notificationData {
 
 	return notificationData{
 		Entries: legacyMockData.Entries,
-		Report:  mockActions.CreateMockProgressReport(states...),
+		Report:  newProgressReport(states...),
 		Title:   getTitle(testLogger(), hostname, prefix),
 		Host:    hostname,
 	}
+}
+
+// Error values recorded on the skipped and failed containers of a progress report.
+var (
+	// errReportSkipped is the reason recorded for a skipped container.
+	errReportSkipped = errors.New("unpossible")
+	// errReportFailed is the error recorded for a failed container.
+	errReportFailed = errors.New("accidentally the whole container")
+)
+
+// Container ID prefixes that keep the containers of each state in a progress
+// report distinct, such as "c7941..." for the first skipped container.
+const (
+	// updatedIDPrefix prefixes updated containers.
+	updatedIDPrefix = 11
+	// failedIDPrefix prefixes failed containers.
+	failedIDPrefix = 21
+	// freshIDPrefix prefixes fresh containers.
+	freshIDPrefix = 31
+	// skippedIDPrefix prefixes skipped containers.
+	skippedIDPrefix = 41
+	// restartedIDPrefix prefixes restarted containers.
+	restartedIDPrefix = 51
+)
+
+// progressIDLength is the length of a full container or image ID.
+const progressIDLength = 64
+
+// maxContainersPerState is the number of containers of one state that keep
+// unique IDs. The ID prefixes of the states are ten apart, so the eleventh
+// updated container would reuse the first failed container's ID.
+const maxContainersPerState = 10
+
+// newProgressReport builds a session report with one container for each given
+// state, numbering repeated states so every container has a unique ID and name.
+//
+// Parameters:
+//   - states: Outcome of each container, in order.
+//
+// Returns:
+//   - types.Report: Report built through session.Progress.
+func newProgressReport(states ...session.State) types.Report {
+	log := new(zerolog.Nop())
+	// Count each state's containers so their IDs and names stay unique.
+	stateNums := make(map[session.State]int)
+	progress := session.Progress{}
+	failed := make(map[types.ContainerID]error)
+
+	for _, state := range states {
+		index := stateNums[state]
+
+		switch state {
+		case session.SkippedState:
+			c, _ := newProgressContainer(index, skippedIDPrefix, "skip%d")
+			progress.AddSkipped(log, c, errReportSkipped, types.UpdateParams{})
+		case session.FreshState:
+			c, _ := newProgressContainer(index, freshIDPrefix, "frsh%d")
+			progress.AddScanned(log, c, c.ImageID(), types.UpdateParams{})
+		case session.UpdatedState:
+			c, newImage := newProgressContainer(index, updatedIDPrefix, "updt%d")
+			progress.AddScanned(log, c, newImage, types.UpdateParams{})
+			progress.MarkForUpdate(log, c.ID())
+		case session.FailedState:
+			c, newImage := newProgressContainer(index, failedIDPrefix, "fail%d")
+			progress.AddScanned(log, c, newImage, types.UpdateParams{})
+
+			failed[c.ID()] = errReportFailed
+		case session.RestartedState:
+			c, _ := newProgressContainer(index, restartedIDPrefix, "rstr%d")
+			progress.AddScanned(log, c, c.ImageID(), types.UpdateParams{})
+			progress.MarkRestarted(log, c.ID())
+		case session.UnknownState, session.ScannedState, session.StaleState:
+			// Reports never end in these intermediate states.
+			continue
+		}
+
+		stateNums[state] = index + 1
+	}
+
+	progress.UpdateFailed(log, failed)
+
+	return progress.Report(log)
+}
+
+// newProgressContainer builds a running container for a progress report, with
+// an ID and image IDs derived from idPrefix and index, and a name from
+// nameFormat and index. It panics when index is maxContainersPerState or more.
+//
+// Parameters:
+//   - index: Zero-based position of the container among its state's containers.
+//   - idPrefix: Digits that start the container's ID after "c79".
+//   - nameFormat: Name format with one %d verb for the one-based position.
+//
+// Returns:
+//   - types.Container: Container running image mock/<name>:latest.
+//   - types.ImageID: ID of the newer image the container can move to.
+func newProgressContainer(index, idPrefix int, nameFormat string) (types.Container, types.ImageID) {
+	if index >= maxContainersPerState {
+		panic(fmt.Sprintf("newProgressContainer: index %d would reuse another state's container ID", index))
+	}
+
+	indexStr := strconv.Itoa(idPrefix + index)
+	// Pad the ID with zeros to full length, after the "c79" prefix.
+	idSuffix := indexStr + strings.Repeat("0", progressIDLength-3-len(indexStr))
+	name := fmt.Sprintf(nameFormat, index+1)
+	oldImageID := "01d" + idSuffix
+	imageName := fmt.Sprintf("mock/%s:latest", name)
+
+	inspect := dockerContainer.InspectResponse{
+		ID:      "c79" + idSuffix,
+		Image:   oldImageID,
+		Name:    name,
+		State:   &dockerContainer.State{Running: true},
+		Created: time.Now().Format(time.RFC3339Nano),
+		HostConfig: &dockerContainer.HostConfig{
+			PortBindings: dockerNetwork.PortMap{},
+		},
+		Config: &dockerContainer.Config{Image: imageName},
+	}
+	imageInfo := dockerImage.InspectResponse{
+		ID: oldImageID,
+		RepoDigests: []string{
+			fmt.Sprintf("%s@sha256:%s", oldImageID, strings.ReplaceAll(oldImageID, ":", "_")),
+		},
+	}
+
+	return container.NewContainer(nil, &inspect, &imageInfo), types.ImageID("d0a" + idSuffix)
 }
 
 var _ = ginkgo.Describe("Shoutrrr", func() {
@@ -915,7 +1045,7 @@ Turns out everything is on fire
 					time.Duration(0),
 				)
 
-				mockReport := mockActions.CreateMockProgressReport(session.FailedState)
+				mockReport := newProgressReport(session.FailedState)
 				result := shoutrrr.ShouldSendNotification(mockReport)
 				gomega.Expect(result).To(gomega.BeTrue())
 			})
@@ -930,7 +1060,7 @@ Turns out everything is on fire
 					time.Duration(0),
 				)
 
-				mockReport := mockActions.CreateMockProgressReport(session.FreshState)
+				mockReport := newProgressReport(session.FreshState)
 				result := shoutrrr.ShouldSendNotification(mockReport)
 				gomega.Expect(result).To(gomega.BeFalse())
 			})
@@ -947,7 +1077,7 @@ Turns out everything is on fire
 					time.Duration(0),
 				)
 
-				mockReport := mockActions.CreateMockProgressReport(session.FreshState)
+				mockReport := newProgressReport(session.FreshState)
 				result := shoutrrr.ShouldSendNotification(mockReport)
 				gomega.Expect(result).To(gomega.BeTrue())
 			})
@@ -964,7 +1094,7 @@ Turns out everything is on fire
 					time.Duration(0),
 				)
 
-				mockReport := mockActions.CreateMockProgressReport(session.FreshState)
+				mockReport := newProgressReport(session.FreshState)
 				result := shoutrrr.ShouldSendNotification(mockReport)
 				gomega.Expect(result).To(gomega.BeTrue())
 			})
@@ -981,7 +1111,7 @@ Turns out everything is on fire
 					time.Duration(0),
 				)
 
-				mockReport := mockActions.CreateMockProgressReport(session.FreshState)
+				mockReport := newProgressReport(session.FreshState)
 				result := shoutrrr.ShouldSendNotification(mockReport)
 				gomega.Expect(result).To(gomega.BeTrue())
 			})
@@ -998,7 +1128,7 @@ Turns out everything is on fire
 					time.Duration(0),
 				)
 
-				mockReport := mockActions.CreateMockProgressReport(session.FreshState)
+				mockReport := newProgressReport(session.FreshState)
 				result := shoutrrr.ShouldSendNotification(mockReport)
 				gomega.Expect(result).To(gomega.BeTrue())
 			})
@@ -1979,7 +2109,7 @@ func TestSendNotification_SingleFocusKeepsBatchingActive(t *testing.T) {
 		0,
 	)
 
-	full := mockActions.CreateMockProgressReport(session.UpdatedState)
+	full := newProgressReport(session.UpdatedState)
 	require.NotEmpty(t, full.Updated())
 
 	updated := full.Updated()[0]

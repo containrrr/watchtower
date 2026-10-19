@@ -8,9 +8,9 @@ import (
 	"net/url"
 	"strings"
 	"testing"
-	"time"
 
-	mockActions "github.com/nicholas-fedor/watchtower/internal/actions/mocks"
+	dockerImage "github.com/moby/moby/api/types/image"
+
 	registryConfig "github.com/nicholas-fedor/watchtower/internal/config/registry"
 	"github.com/nicholas-fedor/watchtower/pkg/registry/digest"
 )
@@ -134,12 +134,7 @@ func FuzzBuildManifestURL(f *testing.F) {
 
 	f.Fuzz(func(t *testing.T, imageRef, hostOverride string) {
 		// Create a mock container with the fuzzed image reference
-		mockContainer := mockActions.CreateMockContainer(
-			"mock-id",
-			"mock-name",
-			imageRef,
-			time.Now(),
-		)
+		mockContainer := newMockContainer(t, "mock-name", imageRef, &dockerImage.InspectResponse{ID: imageRef})
 
 		// Call buildManifestURL because we don't care about the result, only that it doesn't panic
 		_, _, _, _ = digest.BuildManifestURL(newNopLogger(), mockContainer, registryConfig.Registry{}, hostOverride)
