@@ -39,6 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Depend on a Docker API port in the image client by @nicholas-fedor in [#2921](https://github.com/nicholas-fedor/watchtower/pull/2921)
 - Move test support out of production packages by @nicholas-fedor in [#2905](https://github.com/nicholas-fedor/watchtower/pull/2905)
 - Inject the registry rate limiter by @nicholas-fedor in [#2903](https://github.com/nicholas-fedor/watchtower/pull/2903)
 - Read self-ID files through the injected filesystem by @nicholas-fedor in [#2901](https://github.com/nicholas-fedor/watchtower/pull/2901)
