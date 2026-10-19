@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Reject empty digests from registry GET responses by @nicholas-fedor in [#2929](https://github.com/nicholas-fedor/watchtower/pull/2929)
 - Update the compose image label when recreating containers by @nicholas-fedor in [#2915](https://github.com/nicholas-fedor/watchtower/pull/2915)
 - Wait for the HTTP API to drain before exiting by @nicholas-fedor in [#2907](https://github.com/nicholas-fedor/watchtower/pull/2907)
 - Replace the update lock channel with a lock type by @nicholas-fedor in [#2869](https://github.com/nicholas-fedor/watchtower/pull/2869)
