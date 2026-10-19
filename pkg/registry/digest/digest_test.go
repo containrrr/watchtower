@@ -8,11 +8,11 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/http/httptest"
 	"net/url"
 	"strings"
-	"sync/atomic"
 	"testing"
+	"testing/iotest"
+	"time"
 
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
@@ -23,6 +23,8 @@ import (
 	dockerImage "github.com/moby/moby/api/types/image"
 
 	registryConfig "github.com/nicholas-fedor/watchtower/internal/config/registry"
+	"github.com/nicholas-fedor/watchtower/internal/meta"
+	"github.com/nicholas-fedor/watchtower/internal/testutil/httpstub"
 	mockAuth "github.com/nicholas-fedor/watchtower/pkg/registry/auth/mocks"
 	"github.com/nicholas-fedor/watchtower/pkg/registry/ratelimit"
 	mockTypes "github.com/nicholas-fedor/watchtower/pkg/types/mocks"
@@ -54,7 +56,221 @@ func newNopLogger() *zerolog.Logger {
 	return new(zerolog.Nop())
 }
 
+// testDigestHash is the manifest digest the stub registries serve.
+const testDigestHash = "sha256:d68e1e532088964195ad3a0a71526bc2f11a78de0def85629beb75e2265f0547"
+
+// testRepoDigest is the repo digest of the image the stub registry containers run.
+const testRepoDigest = "ghcr.io/k6io/operator@" + testDigestHash
+
+// newRegistryContainer returns a mock container that runs image, whose image has
+// repoDigests as its repo digests.
+//
+// Parameters:
+//   - t: Test that owns the mock.
+//   - image: Image reference the container runs.
+//   - repoDigests: The image's repo digests.
+//
+// Returns:
+//   - *mockTypes.MockContainer: Mock that answers the container reads the digest code makes.
+func newRegistryContainer(t *testing.T, image string, repoDigests ...string) *mockTypes.MockContainer {
+	t.Helper()
+
+	imageInfo := &dockerImage.InspectResponse{ID: image, RepoDigests: repoDigests}
+
+	container := mockTypes.NewMockContainer(t)
+	container.EXPECT().Name().Return("mock-container").Maybe()
+	container.EXPECT().ImageName().Return(image).Maybe()
+	container.EXPECT().HasImageInfo().Return(true).Maybe()
+	container.EXPECT().ImageInfo().Return(imageInfo).Maybe()
+	container.EXPECT().ContainerInfo().Return(&dockerContainer.InspectResponse{
+		Config: &dockerContainer.Config{Image: image},
+	}).Maybe()
+
+	return container
+}
+
+// bearerChallengeHandler returns the handler of a registry that answers /v2/
+// with a bearer challenge whose realm is the /token endpoint on realmAddr.
+//
+// Parameters:
+//   - t: Test that receives verification failures.
+//   - realmAddr: Host and port of the registry that issues tokens.
+//   - scope: Repository scope named in the challenge.
+//
+// Returns:
+//   - http.HandlerFunc: Handler for the /v2/ request.
+func bearerChallengeHandler(t *testing.T, realmAddr, scope string) http.HandlerFunc {
+	t.Helper()
+
+	challenge := fmt.Sprintf(`Bearer realm="http://%s/token",service="test-service",scope="%s"`, realmAddr, scope)
+
+	return httpstub.CombineHandlers(
+		httpstub.VerifyRequest(t, http.MethodGet, httpstub.Path("/v2/")),
+		httpstub.RespondWith(http.StatusUnauthorized, "", http.Header{"WWW-Authenticate": {challenge}}),
+	)
+}
+
+// tokenHandler returns the handler of a registry's /token endpoint, which
+// issues a bearer token.
+//
+// Parameters:
+//   - t: Test that receives verification failures.
+//
+// Returns:
+//   - http.HandlerFunc: Handler for the token request.
+func tokenHandler(t *testing.T) http.HandlerFunc {
+	t.Helper()
+
+	return httpstub.CombineHandlers(
+		httpstub.VerifyRequest(t, http.MethodGet, httpstub.Path("/token")),
+		httpstub.RespondWith(http.StatusOK, `{"token": "mock-token"}`, nil),
+	)
+}
+
+// bearerChallengeHandlers returns the handlers of a registry that answers /v2/
+// with a bearer challenge whose realm is its own /token endpoint, and then
+// issues a token.
+//
+// Parameters:
+//   - t: Test that receives verification failures.
+//   - addr: Host and port of the registry.
+//   - scope: Repository scope named in the challenge.
+//
+// Returns:
+//   - []http.HandlerFunc: Challenge and token handlers, in request order.
+func bearerChallengeHandlers(t *testing.T, addr, scope string) []http.HandlerFunc {
+	t.Helper()
+
+	return []http.HandlerFunc{bearerChallengeHandler(t, addr, scope), tokenHandler(t)}
+}
+
+// anonymousRegistryHandler returns the handler of a registry that answers /v2/
+// without asking for authentication.
+//
+// Parameters:
+//   - t: Test that receives verification failures.
+//
+// Returns:
+//   - http.HandlerFunc: Handler for the /v2/ request.
+func anonymousRegistryHandler(t *testing.T) http.HandlerFunc {
+	t.Helper()
+
+	return httpstub.CombineHandlers(
+		httpstub.VerifyRequest(t, http.MethodGet, httpstub.Path("/v2/")),
+		httpstub.RespondWith(http.StatusOK, "", nil),
+	)
+}
+
+// manifestHandler returns a handler that verifies a manifest request and
+// answers it with status and header and no body.
+//
+// Parameters:
+//   - t: Test that receives verification failures.
+//   - method: Expected request method.
+//   - path: Expected manifest path.
+//   - status: Response status code.
+//   - header: Response headers, or nil for none.
+//
+// Returns:
+//   - http.HandlerFunc: Handler for one manifest request.
+func manifestHandler(t *testing.T, method, path string, status int, header http.Header) http.HandlerFunc {
+	t.Helper()
+
+	return httpstub.CombineHandlers(
+		httpstub.VerifyRequest(t, method, httpstub.Path(path)),
+		httpstub.RespondWith(status, "", header),
+	)
+}
+
+// digestHeader returns response headers that carry digest as the manifest digest.
+//
+// Parameters:
+//   - digest: Manifest digest to report.
+//
+// Returns:
+//   - http.Header: Headers with the Docker-Content-Digest header set.
+func digestHeader(digest string) http.Header {
+	return http.Header{ContentDigestHeader: {digest}}
+}
+
+// newLocalOnlyContainer returns a mock container for a locally built image
+// whose repo digest names no registry, as Docker records for an image built and
+// tagged on the host.
+//
+// Parameters:
+//   - t: Test that owns the mock.
+//   - imageID: ID of the container's image.
+//
+// Returns:
+//   - *mockTypes.MockContainer: Mock that answers the container reads the digest code makes.
+func newLocalOnlyContainer(t *testing.T, imageID string) *mockTypes.MockContainer {
+	t.Helper()
+
+	mc := mockTypes.NewMockContainer(t)
+	mc.EXPECT().Name().Return("atlas-badgerdb-1").Maybe()
+	mc.EXPECT().ImageName().Return("atlas-badgerdb:latest").Maybe()
+	mc.EXPECT().HasImageInfo().Return(true).Maybe()
+	mc.EXPECT().ImageInfo().Return(&dockerImage.InspectResponse{
+		ID: imageID,
+		RepoDigests: []string{
+			"atlas-badgerdb@sha256:80f07677bee57274a48929d0688bf0cfabe5e83f06f2f152dab4076445d6ab35",
+		},
+	}).Maybe()
+	mc.EXPECT().ContainerInfo().Return(&dockerContainer.InspectResponse{
+		Config: &dockerContainer.Config{Image: "atlas-badgerdb"},
+	}).Maybe()
+
+	return mc
+}
+
+// clearLocalOnlyImageCache removes all cached local-only image entries, so
+// each test starts without remembered local-only images.
+func clearLocalOnlyImageCache() {
+	localOnlyImageCache.Range(func(key, _ any) bool {
+		localOnlyImageCache.Delete(key)
+
+		return true
+	})
+}
+
+// unauthorizedManifestClient returns a registry client that answers every
+// manifest request with 401, which asks for a retry on the other host.
+func unauthorizedManifestClient(t *testing.T) *mockAuth.MockClient {
+	t.Helper()
+
+	mc := mockAuth.NewMockClient(t)
+	mc.EXPECT().Do(mock.Anything).Return(&http.Response{
+		StatusCode: http.StatusUnauthorized,
+		Status:     "401 Unauthorized",
+		Header:     http.Header{},
+		Body:       http.NoBody,
+		Request:    &http.Request{URL: mustParseURL("https://registry.example.com/v2/manifests/latest")},
+	}, nil)
+
+	return mc
+}
+
+// mustParseURL parses raw and panics when it is not a valid URL.
+//
+// Parameters:
+//   - raw: URL to parse.
+//
+// Returns:
+//   - *url.URL: Parsed URL.
+func mustParseURL(raw string) *url.URL {
+	u, err := url.Parse(raw)
+	if err != nil {
+		panic(fmt.Sprintf("failed to parse URL %q: %v", raw, err))
+	}
+
+	return u
+}
+
+// TestNormalizeDigest verifies that the sha256: prefix is stripped and any other
+// digest is returned unchanged.
 func TestNormalizeDigest(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name     string
 		digest   string
@@ -90,17 +306,28 @@ func TestNormalizeDigest(t *testing.T) {
 			digest:   "sha256:",
 			expected: "",
 		},
+		{
+			name:     "digest without prefix is unchanged",
+			digest:   "d68e1e532088964195ad3a0a71526bc2f11a78de0def85629beb75e2265f0547",
+			expected: "d68e1e532088964195ad3a0a71526bc2f11a78de0def85629beb75e2265f0547",
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			result := NormalizeDigest(newTestLogger(t), tt.digest)
 			assert.Equal(t, tt.expected, result, "NormalizeDigest(%q)", tt.digest)
 		})
 	}
 }
 
+// TestDigestsMatch verifies matching a remote digest against local repo
+// digests, including prefixes, multiple digests, and malformed entries.
 func TestDigestsMatch(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name         string
 		localDigests []string
@@ -180,17 +407,47 @@ func TestDigestsMatch(t *testing.T) {
 			remoteDigest: "",
 			expected:     false,
 		},
+		{
+			name:         "skips local digest with nothing after @",
+			localDigests: []string{"repo@"},
+			remoteDigest: testDigestHash,
+			expected:     false,
+		},
+		{
+			name:         "does not match a local digest without the remote hash",
+			localDigests: []string{"repo@singlepart"},
+			remoteDigest: testDigestHash,
+			expected:     false,
+		},
+		{
+			name:         "does not match a local digest with multiple @ separators",
+			localDigests: []string{"repo@namespace@" + testDigestHash},
+			remoteDigest: testDigestHash,
+			expected:     false,
+		},
+		{
+			name:         "multiple local digests with no match",
+			localDigests: []string{"repo1@sha256:hash1", "repo2@sha256:hash2"},
+			remoteDigest: "sha256:hash3",
+			expected:     false,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			result := digestsMatch(newTestLogger(t), tt.localDigests, tt.remoteDigest)
 			assert.Equal(t, tt.expected, result, "digestsMatch(%v, %q)", tt.localDigests, tt.remoteDigest)
 		})
 	}
 }
 
+// TestFormatDigest verifies that a bare hash gains the sha256: prefix and a
+// prefixed digest is kept as it is.
 func TestFormatDigest(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name  string
 		input string
@@ -204,187 +461,405 @@ func TestFormatDigest(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			assert.Equal(t, tt.want, formatDigest(tt.input))
 		})
 	}
 }
 
+// TestCompareDigest verifies digest comparison for containers without image
+// info, locally built images, and anonymous registries that answer the HEAD
+// request or only a GET request.
+func TestCompareDigest(t *testing.T) {
+	t.Parallel()
+
+	const (
+		manifestPath = "/v2/myapp/manifests/latest"
+		localHash    = "sha256:abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"
+	)
+
+	tests := []struct {
+		name string
+		// container returns the container to compare.
+		container func(t *testing.T) *mockTypes.MockContainer
+		// handlers returns the registry's handlers in request order.
+		handlers func(t *testing.T) []http.HandlerFunc
+		expected bool
+		wantErr  bool
+	}{
+		{
+			name: "returns error when container has no image info",
+			container: func(t *testing.T) *mockTypes.MockContainer {
+				t.Helper()
+
+				mc := mockTypes.NewMockContainer(t)
+				mc.EXPECT().Name().Return("test-container")
+				mc.EXPECT().ImageName().Return("nginx:latest")
+				mc.EXPECT().HasImageInfo().Return(false)
+
+				return mc
+			},
+			expected: false,
+			wantErr:  true,
+		},
+		{
+			name: "returns true for locally built image with empty RepoDigests",
+			container: func(t *testing.T) *mockTypes.MockContainer {
+				t.Helper()
+
+				return newRegistryContainer(t, "local-image:latest")
+			},
+			expected: true,
+		},
+		{
+			name: "matching digests via HEAD request",
+			container: func(t *testing.T) *mockTypes.MockContainer {
+				t.Helper()
+
+				return newRegistryContainer(t, "registry.example.com/myapp:latest", "registry.example.com/myapp@"+localHash)
+			},
+			handlers: func(t *testing.T) []http.HandlerFunc {
+				t.Helper()
+
+				return []http.HandlerFunc{
+					anonymousRegistryHandler(t),
+					manifestHandler(t, http.MethodHead, manifestPath, http.StatusOK, digestHeader(localHash)),
+				}
+			},
+			expected: true,
+		},
+		{
+			name: "non-matching digests via HEAD request",
+			container: func(t *testing.T) *mockTypes.MockContainer {
+				t.Helper()
+
+				return newRegistryContainer(t, "registry.example.com/myapp:latest",
+					"registry.example.com/myapp@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+			},
+			handlers: func(t *testing.T) []http.HandlerFunc {
+				t.Helper()
+
+				return []http.HandlerFunc{
+					anonymousRegistryHandler(t),
+					manifestHandler(t, http.MethodHead, manifestPath, http.StatusOK,
+						digestHeader("sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")),
+				}
+			},
+			expected: false,
+		},
+		{
+			name: "falls back to GET when HEAD returns non-2xx without 404",
+			container: func(t *testing.T) *mockTypes.MockContainer {
+				t.Helper()
+
+				return newRegistryContainer(t, "registry.example.com/myapp:latest", "registry.example.com/myapp@"+localHash)
+			},
+			handlers: func(t *testing.T) []http.HandlerFunc {
+				t.Helper()
+
+				return []http.HandlerFunc{
+					anonymousRegistryHandler(t),
+					manifestHandler(t, http.MethodHead, manifestPath, http.StatusInternalServerError, nil),
+					anonymousRegistryHandler(t),
+					manifestHandler(t, http.MethodGet, manifestPath, http.StatusOK, digestHeader(localHash)),
+				}
+			},
+			expected: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			server := httpstub.New(t)
+			if tt.handlers != nil {
+				server.AppendHandlers(tt.handlers(t)...)
+			}
+
+			got, err := CompareDigest(newTestLogger(t), context.Background(),
+				tt.container(t), "", registryConfig.Registry{}, ratelimit.New(), server.URL())
+			if tt.wantErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+
+			assert.Equal(t, tt.expected, got)
+		})
+	}
+}
+
+// TestCompareDigest_StubRegistry verifies digest comparison against a plain HTTP
+// registry, from the /v2/ challenge through the manifest HEAD request.
+func TestCompareDigest_StubRegistry(t *testing.T) {
+	t.Parallel()
+
+	const manifestPath = "/v2/test/image/manifests/latest"
+
+	tests := []struct {
+		name string
+		// handlers returns the registry's handlers in request order.
+		handlers func(t *testing.T, addr string) []http.HandlerFunc
+		want     bool
+		// errContains is the expected error text, empty when no error is expected.
+		errContains string
+		// wantRequests is the number of requests the registry must receive,
+		// or zero when the count depends on transport retries.
+		wantRequests int
+	}{
+		{
+			name: "should return true when HEAD request succeeds with matching digest",
+			handlers: func(t *testing.T, addr string) []http.HandlerFunc {
+				t.Helper()
+
+				return append(bearerChallengeHandlers(t, addr, "repository:test/image:pull"),
+					httpstub.CombineHandlers(
+						httpstub.VerifyRequest(t, http.MethodHead, httpstub.Path(manifestPath)),
+						httpstub.RespondWith(http.StatusOK, "", http.Header{ContentDigestHeader: {testDigestHash}}),
+					),
+				)
+			},
+			want:         true,
+			wantRequests: 3,
+		},
+		{
+			name: "should send the Watchtower user agent on the HEAD request",
+			handlers: func(t *testing.T, addr string) []http.HandlerFunc {
+				t.Helper()
+
+				return append(bearerChallengeHandlers(t, addr, "repository:test/image:pull"),
+					httpstub.CombineHandlers(
+						httpstub.VerifyRequest(t, http.MethodHead, httpstub.Path(manifestPath)),
+						httpstub.VerifyHeader(t, http.Header{"User-Agent": {meta.UserAgent}}),
+						httpstub.RespondWith(http.StatusOK, "", http.Header{ContentDigestHeader: {testDigestHash}}),
+					),
+				)
+			},
+			want:         true,
+			wantRequests: 3,
+		},
+		{
+			name: "should not fall back to GET when HEAD returns 404",
+			handlers: func(t *testing.T, addr string) []http.HandlerFunc {
+				t.Helper()
+
+				return append(bearerChallengeHandlers(t, addr, "repository:test/image:pull"),
+					httpstub.CombineHandlers(
+						httpstub.VerifyRequest(t, http.MethodHead, httpstub.Path(manifestPath)),
+						httpstub.RespondWith(http.StatusNotFound, "", nil),
+					),
+				)
+			},
+			errContains:  errInvalidRegistryResponse.Error(),
+			wantRequests: 3,
+		},
+		{
+			name: "should return an error if HEAD request fails",
+			handlers: func(t *testing.T, addr string) []http.HandlerFunc {
+				t.Helper()
+
+				dropConnection := httpstub.CombineHandlers(
+					httpstub.VerifyRequest(t, http.MethodHead, httpstub.Path(manifestPath)),
+					func(w http.ResponseWriter, _ *http.Request) {
+						conn, _, err := http.NewResponseController(w).Hijack()
+						if assert.NoError(t, err) {
+							conn.Close()
+						}
+					},
+				)
+
+				// The HTTP transport retries a HEAD request once when the
+				// kept-alive connection it reused fails, so both attempts drop.
+				// A GET fallback would be unhandled and fail the test.
+				return append(bearerChallengeHandlers(t, addr, "repository:test/image:pull"),
+					dropConnection, dropConnection)
+			},
+			errContains: "EOF",
+		},
+		{
+			name: "should handle malformed WWW-Authenticate header",
+			handlers: func(t *testing.T, _ string) []http.HandlerFunc {
+				t.Helper()
+
+				return []http.HandlerFunc{
+					httpstub.CombineHandlers(
+						httpstub.VerifyRequest(t, http.MethodGet, httpstub.Path("/v2/")),
+						httpstub.RespondWith(http.StatusUnauthorized, "", http.Header{
+							"WWW-Authenticate": {`Bearer realm="invalid"`},
+						}),
+					),
+				}
+			},
+			errContains:  "challenge header did not include all values needed to construct an auth url",
+			wantRequests: 1,
+		},
+		{
+			name: "should fetch digest from HTTP registry with TLS skip",
+			handlers: func(t *testing.T, _ string) []http.HandlerFunc {
+				t.Helper()
+
+				return []http.HandlerFunc{
+					anonymousRegistryHandler(t),
+					httpstub.CombineHandlers(
+						httpstub.VerifyRequest(t, http.MethodHead, httpstub.Path(manifestPath)),
+						httpstub.RespondWith(http.StatusOK, "", http.Header{ContentDigestHeader: {testDigestHash}}),
+					),
+				}
+			},
+			want:         true,
+			wantRequests: 2,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			server := httpstub.New(t)
+			server.AppendHandlers(tt.handlers(t, server.Addr())...)
+
+			container := newRegistryContainer(t, server.Addr()+"/test/image:latest", testRepoDigest)
+
+			got, err := CompareDigest(newTestLogger(t), context.Background(),
+				container, "token", registryConfig.Registry{TLSSkip: true}, ratelimit.New())
+			if tt.errContains != "" {
+				require.ErrorContains(t, err, tt.errContains)
+			} else {
+				require.NoError(t, err)
+			}
+
+			assert.Equal(t, tt.want, got)
+
+			if tt.wantRequests > 0 {
+				assert.Len(t, server.ReceivedRequests(), tt.wantRequests)
+			}
+		})
+	}
+}
+
+// TestCompareDigest_RedirectedLSCRImage verifies that an lscr.io image whose
+// registry redirects the /v2/ challenge to another host still compares its
+// digest with a HEAD request.
+func TestCompareDigest_RedirectedLSCRImage(t *testing.T) {
+	t.Parallel()
+
+	server := httpstub.New(t)
+	redirectServer := httpstub.New(t)
+
+	server.AppendHandlers(
+		httpstub.CombineHandlers(
+			httpstub.VerifyRequest(t, http.MethodGet, httpstub.Path("/v2/")),
+			httpstub.RespondWith(http.StatusFound, "", http.Header{
+				"Location": {fmt.Sprintf("http://%s/v2/", redirectServer.Addr())},
+			}),
+		),
+		httpstub.CombineHandlers(
+			httpstub.VerifyRequest(t, http.MethodGet, httpstub.Path("/v2/lscr.io/test/image/manifests/latest")),
+			httpstub.RespondWith(http.StatusNotFound, "", nil),
+		),
+		httpstub.CombineHandlers(
+			httpstub.VerifyRequest(t, http.MethodHead, httpstub.Path("/v2/lscr.io/test/image/manifests/latest")),
+			httpstub.RespondWith(http.StatusOK, "", http.Header{ContentDigestHeader: {testDigestHash}}),
+		),
+	)
+	redirectServer.AppendHandlers(
+		append(bearerChallengeHandlers(t, redirectServer.Addr(), "repository:lscr.io/test/image:pull"),
+			httpstub.RespondWith(http.StatusOK, "", http.Header{ContentDigestHeader: {testDigestHash}}),
+		)...,
+	)
+
+	container := newRegistryContainer(t, server.Addr()+"/lscr.io/test/image:latest", testRepoDigest)
+
+	got, err := CompareDigest(newTestLogger(t), context.Background(),
+		container, "token", registryConfig.Registry{TLSSkip: true}, ratelimit.New())
+	require.NoError(t, err)
+	assert.True(t, got)
+}
+
+// TestCompareDigestWithRemote verifies that a registry digest that differs from
+// the local one is a mismatch and is returned as the remote digest.
 func TestCompareDigestWithRemote(t *testing.T) {
+	t.Parallel()
+
 	const remoteHash = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
 
-	mc := mockTypes.NewMockContainer(t)
-	mc.On("Name").Return("outdated")
-	mc.On("HasImageInfo").Return(true)
-	mc.On("ImageInfo").Return(&dockerImage.InspectResponse{
-		RepoDigests: []string{
-			"registry.example.com/myapp@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-		},
-	})
+	server := httpstub.New(t)
+	server.AppendHandlers(
+		anonymousRegistryHandler(t),
+		manifestHandler(t, http.MethodHead, "/v2/myapp/manifests/latest", http.StatusOK, digestHeader("sha256:"+remoteHash)),
+	)
 
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.Header().Set("Docker-Content-Digest", "sha256:"+remoteHash)
-		w.WriteHeader(http.StatusOK)
-	}))
-	defer server.Close()
+	container := newRegistryContainer(t, server.Addr()+"/myapp:latest",
+		"registry.example.com/myapp@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
 
-	parts := strings.SplitN(server.URL, "://", 2)
-	host := parts[len(parts)-1]
-	mc.On("ImageName").Return(host + "/myapp:latest")
-
-	match, remoteDigest, err := CompareDigestWithRemote(newTestLogger(t), context.Background(), mc, "", registryConfig.Registry{}, ratelimit.New(), server.URL)
+	match, remoteDigest, err := CompareDigestWithRemote(newTestLogger(t), context.Background(),
+		container, "", registryConfig.Registry{}, ratelimit.New(), server.URL())
 	require.NoError(t, err)
 	assert.False(t, match)
 	assert.Equal(t, "sha256:"+remoteHash, remoteDigest)
 }
 
+// TestCompareDigestWithRemote_Head429DoesNotFallBackToGET verifies that a rate
+// limited HEAD request returns the rate limit error instead of retrying the
+// manifest with GET, which would spend more of the registry's quota.
 func TestCompareDigestWithRemote_Head429DoesNotFallBackToGET(t *testing.T) {
-	settings := registryConfig.Registry{TLSSkip: true}
+	t.Parallel()
 
-	mc := mockTypes.NewMockContainer(t)
-	mc.On("Name").Return("radarr")
-	mc.On("HasImageInfo").Return(true)
-	mc.On("ImageInfo").Return(&dockerImage.InspectResponse{
-		RepoDigests: []string{
-			"lscr.io/linuxserver/radarr@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-		},
-	})
+	server := httpstub.New(t)
+	server.AppendHandlers(
+		anonymousRegistryHandler(t),
+		httpstub.CombineHandlers(
+			httpstub.VerifyRequest(t, http.MethodHead, httpstub.Path("/v2/linuxserver/radarr/manifests/latest")),
+			httpstub.RespondWith(http.StatusTooManyRequests,
+				"toomanyrequests: retry-after: 331.163µs, allowed: 44000/minute",
+				http.Header{"Retry-After": {"7200"}}),
+		),
+	)
 
-	var getManifests atomic.Int64
+	container := newRegistryContainer(t, server.Addr()+"/linuxserver/radarr:latest",
+		"lscr.io/linuxserver/radarr@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
 
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodGet && strings.Contains(r.URL.Path, "/manifests/") {
-			getManifests.Add(1)
-
-			t.Errorf("HEAD 429 must not fall back to GET of %s", r.URL.Path)
-			w.WriteHeader(http.StatusOK)
-
-			return
-		}
-
-		if r.Method == http.MethodHead && strings.Contains(r.URL.Path, "/manifests/") {
-			w.Header().Set("Retry-After", "7200")
-			w.WriteHeader(http.StatusTooManyRequests)
-			_, _ = w.Write([]byte("toomanyrequests: retry-after: 331.163µs, allowed: 44000/minute"))
-
-			return
-		}
-
-		if r.Method == http.MethodGet && (r.URL.Path == "/v2/" || r.URL.Path == "/v2") {
-			w.WriteHeader(http.StatusOK)
-
-			return
-		}
-
-		w.WriteHeader(http.StatusOK)
-	}))
-	defer server.Close()
-
-	parts := strings.SplitN(server.URL, "://", 2)
-	host := parts[len(parts)-1]
-	mc.On("ImageName").Return(host + "/linuxserver/radarr:latest")
-
-	match, _, err := CompareDigestWithRemote(newTestLogger(t), context.Background(), mc, "", settings, ratelimit.New(), server.URL)
-	require.Error(t, err)
+	match, _, err := CompareDigestWithRemote(newTestLogger(t), context.Background(),
+		container, "", registryConfig.Registry{TLSSkip: true}, ratelimit.New(), server.URL())
 	require.ErrorIs(t, err, ratelimit.ErrRateLimited)
 	assert.False(t, match)
-	assert.Equal(t, int64(0), getManifests.Load())
 }
 
 // TestCompareDigestWithRemote_Retry429DoesNotContinueToNextEndpoint is a
 // regression test for a 429 on the challenge-host retry. That error must abort
 // the endpoint loop instead of trying the next mirror.
 func TestCompareDigestWithRemote_Retry429DoesNotContinueToNextEndpoint(t *testing.T) {
-	settings := registryConfig.Registry{TLSSkip: true}
+	t.Parallel()
 
-	mc := mockTypes.NewMockContainer(t)
-	mc.On("Name").Return("radarr")
-	mc.On("HasImageInfo").Return(true)
-	mc.On("ImageInfo").Return(&dockerImage.InspectResponse{
-		RepoDigests: []string{
-			"lscr.io/linuxserver/radarr@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-		},
-	})
+	const manifestPath = "/v2/linuxserver/radarr/manifests/latest"
 
-	var (
-		primaryHeads atomic.Int64
-		mirrorHeads  atomic.Int64
+	primary := httpstub.New(t)
+	primary.AppendHandlers(
+		append(bearerChallengeHandlers(t, primary.Addr(), "repository:linuxserver/radarr:pull"),
+			manifestHandler(t, http.MethodHead, manifestPath, http.StatusUnauthorized, nil),
+			httpstub.CombineHandlers(
+				httpstub.VerifyRequest(t, http.MethodHead, httpstub.Path(manifestPath)),
+				httpstub.RespondWith(http.StatusTooManyRequests,
+					"toomanyrequests: retry-after: 331.163µs, allowed: 44000/minute",
+					http.Header{"Retry-After": {"7200"}}),
+			),
+		)...,
 	)
 
-	primary := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodGet && (r.URL.Path == "/v2/" || r.URL.Path == "/v2") {
-			w.Header().Set("WWW-Authenticate", fmt.Sprintf(
-				`Bearer realm="http://%s/token",service="test-service",scope="repository:linuxserver/radarr:pull"`,
-				r.Host,
-			))
-			w.WriteHeader(http.StatusUnauthorized)
+	// The mirror has no handlers, so any request to it fails the test.
+	mirror := httpstub.New(t)
 
-			return
-		}
+	container := newRegistryContainer(t, primary.Addr()+"/linuxserver/radarr:latest",
+		"lscr.io/linuxserver/radarr@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
 
-		if r.Method == http.MethodGet && r.URL.Path == "/token" {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{"token":"test-token"}`))
-
-			return
-		}
-
-		if r.Method == http.MethodHead && strings.Contains(r.URL.Path, "/manifests/") {
-			if primaryHeads.Add(1) == 1 {
-				w.WriteHeader(http.StatusUnauthorized)
-
-				return
-			}
-
-			w.Header().Set("Retry-After", "7200")
-			w.WriteHeader(http.StatusTooManyRequests)
-			_, _ = w.Write([]byte("toomanyrequests: retry-after: 331.163µs, allowed: 44000/minute"))
-
-			return
-		}
-
-		w.WriteHeader(http.StatusOK)
-	}))
-	defer primary.Close()
-
-	mirror := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodHead && strings.Contains(r.URL.Path, "/manifests/") {
-			mirrorHeads.Add(1)
-			w.Header().Set("Docker-Content-Digest", "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
-			w.WriteHeader(http.StatusOK)
-
-			return
-		}
-
-		if r.Method == http.MethodGet && (r.URL.Path == "/v2/" || r.URL.Path == "/v2") {
-			w.WriteHeader(http.StatusOK)
-
-			return
-		}
-
-		w.WriteHeader(http.StatusOK)
-	}))
-	defer mirror.Close()
-
-	parts := strings.SplitN(primary.URL, "://", 2)
-	host := parts[len(parts)-1]
-	mc.On("ImageName").Return(host + "/linuxserver/radarr:latest")
-
-	match, _, err := CompareDigestWithRemote(
-		newTestLogger(t),
-		context.Background(),
-		mc,
-		"",
-		settings,
-		ratelimit.New(),
-		primary.URL,
-		mirror.URL,
-	)
-	require.Error(t, err)
+	match, _, err := CompareDigestWithRemote(newTestLogger(t), context.Background(),
+		container, "", registryConfig.Registry{TLSSkip: true}, ratelimit.New(), primary.URL(), mirror.URL())
 	require.ErrorIs(t, err, ratelimit.ErrRateLimited)
 	assert.False(t, match)
-	assert.GreaterOrEqual(t, primaryHeads.Load(), int64(2))
-	assert.Equal(t, int64(0), mirrorHeads.Load())
+	assert.Len(t, primary.ReceivedRequests(), 4)
+	assert.Empty(t, mirror.ReceivedRequests())
 }
 
 // TestCompareDigestWithRemote_UnauthorizedOnBothHostsIsError verifies that a
@@ -392,47 +867,35 @@ func TestCompareDigestWithRemote_Retry429DoesNotContinueToNextEndpoint(t *testin
 // token host produces an error, not an empty digest that marks the image as
 // out of date and causes a pull.
 func TestCompareDigestWithRemote_UnauthorizedOnBothHostsIsError(t *testing.T) {
-	settings := registryConfig.Registry{TLSSkip: true}
+	t.Parallel()
+
+	const (
+		manifestPath = "/v2/linuxserver/radarr/manifests/latest"
+		scope        = "repository:linuxserver/radarr:pull"
+	)
 
 	// The token host issues tokens but rejects manifest requests.
-	tokenHost := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodGet && r.URL.Path == "/token" {
-			w.Header().Set("Content-Type", "application/json")
-			_, _ = w.Write([]byte(`{"token":"test-token"}`))
-
-			return
-		}
-
-		w.WriteHeader(http.StatusUnauthorized)
-	}))
-	defer tokenHost.Close()
+	tokenHost := httpstub.New(t)
+	tokenHost.AppendHandlers(
+		tokenHandler(t),
+		manifestHandler(t, http.MethodHead, manifestPath, http.StatusUnauthorized, nil),
+		manifestHandler(t, http.MethodGet, manifestPath, http.StatusUnauthorized, nil),
+	)
 
 	// The registry sends clients to the token host and rejects manifest requests.
-	registry := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/v2/" || r.URL.Path == "/v2" {
-			w.Header().Set("WWW-Authenticate", fmt.Sprintf(
-				`Bearer realm="%s/token",service="test-service",scope="repository:linuxserver/radarr:pull"`,
-				tokenHost.URL,
-			))
-		}
+	registry := httpstub.New(t)
+	registry.AppendHandlers(
+		bearerChallengeHandler(t, tokenHost.Addr(), scope),
+		manifestHandler(t, http.MethodHead, manifestPath, http.StatusUnauthorized, nil),
+		bearerChallengeHandler(t, tokenHost.Addr(), scope),
+		manifestHandler(t, http.MethodGet, manifestPath, http.StatusUnauthorized, nil),
+	)
 
-		w.WriteHeader(http.StatusUnauthorized)
-	}))
-	defer registry.Close()
+	container := newRegistryContainer(t, registry.Addr()+"/linuxserver/radarr:latest",
+		registry.Addr()+"/linuxserver/radarr@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
 
-	host := strings.TrimPrefix(registry.URL, "http://")
-
-	mc := mockTypes.NewMockContainer(t)
-	mc.On("Name").Return("radarr").Maybe()
-	mc.On("HasImageInfo").Return(true).Maybe()
-	mc.On("ImageName").Return(host + "/linuxserver/radarr:latest")
-	mc.On("ImageInfo").Return(&dockerImage.InspectResponse{
-		RepoDigests: []string{
-			host + "/linuxserver/radarr@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-		},
-	})
-
-	match, remoteDigest, err := CompareDigestWithRemote(newTestLogger(t), context.Background(), mc, "", settings, ratelimit.New())
+	match, remoteDigest, err := CompareDigestWithRemote(newTestLogger(t), context.Background(),
+		container, "", registryConfig.Registry{TLSSkip: true}, ratelimit.New())
 	require.ErrorIs(t, err, errUnresolvedManifestRetry)
 	assert.False(t, match)
 	assert.Empty(t, remoteDigest)
@@ -442,57 +905,37 @@ func TestCompareDigestWithRemote_UnauthorizedOnBothHostsIsError(t *testing.T) {
 // registry that is its own token host rejects HEAD manifest requests, the
 // retried HEAD falls back to GET, which returns the digest.
 func TestCompareDigestWithRemote_HeadRejectedFallsBackToGet(t *testing.T) {
-	settings := registryConfig.Registry{TLSSkip: true}
+	t.Parallel()
 
-	const remote = "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+	const (
+		manifestPath = "/v2/linuxserver/radarr/manifests/latest"
+		remote       = "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+	)
 
-	registry := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch {
-		case r.URL.Path == "/v2/" || r.URL.Path == "/v2":
-			w.Header().Set("WWW-Authenticate", fmt.Sprintf(
-				`Bearer realm="http://%s/token",service="test-service",scope="repository:linuxserver/radarr:pull"`,
-				r.Host,
-			))
-			w.WriteHeader(http.StatusUnauthorized)
-		case r.URL.Path == "/token":
-			w.Header().Set("Content-Type", "application/json")
-			_, _ = w.Write([]byte(`{"token":"test-token"}`))
-		case r.Method == http.MethodGet && strings.Contains(r.URL.Path, "/manifests/"):
-			w.Header().Set("Docker-Content-Digest", remote)
-			w.Header().Set("Content-Type", "application/vnd.oci.image.index.v1+json")
-			_, _ = w.Write([]byte(`{"schemaVersion":2}`))
-		default:
-			w.WriteHeader(http.StatusUnauthorized)
-		}
-	}))
-	defer registry.Close()
+	registry := httpstub.New(t)
+	registry.AppendHandlers(
+		append(bearerChallengeHandlers(t, registry.Addr(), "repository:linuxserver/radarr:pull"),
+			manifestHandler(t, http.MethodHead, manifestPath, http.StatusUnauthorized, nil),
+			manifestHandler(t, http.MethodHead, manifestPath, http.StatusUnauthorized, nil),
+			bearerChallengeHandler(t, registry.Addr(), "repository:linuxserver/radarr:pull"),
+			httpstub.CombineHandlers(
+				httpstub.VerifyRequest(t, http.MethodGet, httpstub.Path(manifestPath)),
+				httpstub.RespondWith(http.StatusOK, `{"schemaVersion":2}`, http.Header{
+					ContentDigestHeader: {remote},
+					"Content-Type":      {"application/vnd.oci.image.index.v1+json"},
+				}),
+			),
+		)...,
+	)
 
-	host := strings.TrimPrefix(registry.URL, "http://")
+	container := newRegistryContainer(t, registry.Addr()+"/linuxserver/radarr:latest",
+		registry.Addr()+"/linuxserver/radarr@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
 
-	mc := mockTypes.NewMockContainer(t)
-	mc.On("Name").Return("radarr").Maybe()
-	mc.On("HasImageInfo").Return(true).Maybe()
-	mc.On("ImageName").Return(host + "/linuxserver/radarr:latest")
-	mc.On("ImageInfo").Return(&dockerImage.InspectResponse{
-		RepoDigests: []string{
-			host + "/linuxserver/radarr@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-		},
-	})
-
-	match, remoteDigest, err := CompareDigestWithRemote(newTestLogger(t), context.Background(), mc, "", settings, ratelimit.New())
+	match, remoteDigest, err := CompareDigestWithRemote(newTestLogger(t), context.Background(),
+		container, "", registryConfig.Registry{TLSSkip: true}, ratelimit.New())
 	require.NoError(t, err)
 	assert.False(t, match)
 	assert.Equal(t, remote, remoteDigest)
-}
-
-// clearLocalOnlyImageCache removes all cached local-only image entries, so
-// each test starts without remembered local-only images.
-func clearLocalOnlyImageCache() {
-	localOnlyImageCache.Range(func(key, _ any) bool {
-		localOnlyImageCache.Delete(key)
-
-		return true
-	})
 }
 
 // TestCompareDigestWithRemote_LocalOnly404 is a regression test for locally built
@@ -503,81 +946,37 @@ func TestCompareDigestWithRemote_LocalOnly404(t *testing.T) {
 	clearLocalOnlyImageCache()
 	t.Cleanup(clearLocalOnlyImageCache)
 
-	settings := registryConfig.Registry{TLSSkip: true}
-
-	mc := mockTypes.NewMockContainer(t)
-	mc.On("Name").Return("atlas-badgerdb-1")
-	mc.On("ImageName").Return("atlas-badgerdb:latest")
-	mc.On("HasImageInfo").Return(true)
-	mc.On("ImageInfo").Return(&dockerImage.InspectResponse{
-		RepoDigests: []string{
-			"atlas-badgerdb@sha256:80f07677bee57274a48929d0688bf0cfabe5e83f06f2f152dab4076445d6ab35",
-		},
-	})
-	mc.On("ContainerInfo").Return(&dockerContainer.InspectResponse{
-		Config: &dockerContainer.Config{
-			Image: "atlas-badgerdb",
-		},
-	})
-
-	var headManifestCalls int
-
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Auth probe may GET /v2/. Only manifest GET would indicate unwanted fallback.
-		if r.Method == http.MethodGet && strings.Contains(r.URL.Path, "/manifests/") {
-			t.Errorf("unexpected GET to %s. Local-only 404 must not fall back to GET", r.URL.Path)
-			w.WriteHeader(http.StatusNotFound)
-
-			return
-		}
-
-		if r.Method == http.MethodHead && strings.Contains(r.URL.Path, "/manifests/") {
-			headManifestCalls++
-
-			w.WriteHeader(http.StatusNotFound)
-
-			return
-		}
-
-		// Unauthenticated registry probe.
-		if r.Method == http.MethodGet && (r.URL.Path == "/v2/" || r.URL.Path == "/v2") {
-			w.WriteHeader(http.StatusOK)
-
-			return
-		}
-
-		w.WriteHeader(http.StatusOK)
-	}))
-	defer server.Close()
-
-	parts := strings.SplitN(server.URL, "://", 2)
-	host := parts[len(parts)-1]
+	// A GET fallback after the 404 would be unhandled and fail the test.
+	server := httpstub.New(t)
+	server.AppendHandlers(
+		anonymousRegistryHandler(t),
+		manifestHandler(t, http.MethodHead, "/v2/library/atlas-badgerdb/manifests/latest", http.StatusNotFound, nil),
+	)
 
 	match, remoteDigest, err := CompareDigestWithRemote(newTestLogger(t), context.Background(),
-		mc,
-		"",
-		settings,
-		ratelimit.New(),
-		host,
-	)
+		newLocalOnlyContainer(t, ""), "", registryConfig.Registry{TLSSkip: true}, ratelimit.New(), server.Addr())
 	require.NoError(t, err)
 	assert.True(t, match)
 	assert.Empty(t, remoteDigest)
-	assert.GreaterOrEqual(t, headManifestCalls, 1)
+	assert.Len(t, server.ReceivedRequests(), 2)
 }
 
 // TestIsLocalImageNotFound verifies domain-less Config.Image + errManifestNotFound
 // identity matching (a prior dual-sentinel bug broke errors.Is).
 func TestIsLocalImageNotFound(t *testing.T) {
+	t.Parallel()
+
 	t.Run("true for domain-less Config.Image with wrapped errManifestNotFound", func(t *testing.T) {
+		t.Parallel()
+
 		mc := mockTypes.NewMockContainer(t)
-		mc.On("HasImageInfo").Return(true)
-		mc.On("ImageInfo").Return(&dockerImage.InspectResponse{
+		mc.EXPECT().HasImageInfo().Return(true)
+		mc.EXPECT().ImageInfo().Return(&dockerImage.InspectResponse{
 			RepoDigests: []string{
 				"atlas-badgerdb@sha256:80f07677bee57274a48929d0688bf0cfabe5e83f06f2f152dab4076445d6ab35",
 			},
 		})
-		mc.On("ContainerInfo").Return(&dockerContainer.InspectResponse{
+		mc.EXPECT().ContainerInfo().Return(&dockerContainer.InspectResponse{
 			Config: &dockerContainer.Config{Image: "atlas-badgerdb"},
 		})
 
@@ -586,14 +985,16 @@ func TestIsLocalImageNotFound(t *testing.T) {
 	})
 
 	t.Run("true for domain-less image with version tag containing dots", func(t *testing.T) {
+		t.Parallel()
+
 		mc := mockTypes.NewMockContainer(t)
-		mc.On("HasImageInfo").Return(true)
-		mc.On("ImageInfo").Return(&dockerImage.InspectResponse{
+		mc.EXPECT().HasImageInfo().Return(true)
+		mc.EXPECT().ImageInfo().Return(&dockerImage.InspectResponse{
 			RepoDigests: []string{
 				"my-app@sha256:80f07677bee57274a48929d0688bf0cfabe5e83f06f2f152dab4076445d6ab35",
 			},
 		})
-		mc.On("ContainerInfo").Return(&dockerContainer.InspectResponse{
+		mc.EXPECT().ContainerInfo().Return(&dockerContainer.InspectResponse{
 			Config: &dockerContainer.Config{Image: "my-app:1.0"},
 		})
 
@@ -602,9 +1003,11 @@ func TestIsLocalImageNotFound(t *testing.T) {
 	})
 
 	t.Run("false for domain-ful Config.Image", func(t *testing.T) {
+		t.Parallel()
+
 		mc := mockTypes.NewMockContainer(t)
-		mc.On("HasImageInfo").Return(true)
-		mc.On("ContainerInfo").Return(&dockerContainer.InspectResponse{
+		mc.EXPECT().HasImageInfo().Return(true)
+		mc.EXPECT().ContainerInfo().Return(&dockerContainer.InspectResponse{
 			Config: &dockerContainer.Config{Image: "registry.example.com/app:latest"},
 		})
 
@@ -613,17 +1016,19 @@ func TestIsLocalImageNotFound(t *testing.T) {
 	})
 
 	t.Run("false for Hub short name with registry-qualified RepoDigests", func(t *testing.T) {
+		t.Parallel()
+
 		// Official images often keep Config.Image as "nginx" while RepoDigests
 		// records docker.io/library/nginx@sha256:.... A transient 404 must not
 		// mark them local-only for the process lifetime.
 		mc := mockTypes.NewMockContainer(t)
-		mc.On("HasImageInfo").Return(true)
-		mc.On("ImageInfo").Return(&dockerImage.InspectResponse{
+		mc.EXPECT().HasImageInfo().Return(true)
+		mc.EXPECT().ImageInfo().Return(&dockerImage.InspectResponse{
 			RepoDigests: []string{
 				"docker.io/library/nginx@sha256:80f07677bee57274a48929d0688bf0cfabe5e83f06f2f152dab4076445d6ab35",
 			},
 		})
-		mc.On("ContainerInfo").Return(&dockerContainer.InspectResponse{
+		mc.EXPECT().ContainerInfo().Return(&dockerContainer.InspectResponse{
 			Config: &dockerContainer.Config{Image: "nginx:latest"},
 		})
 
@@ -632,6 +1037,8 @@ func TestIsLocalImageNotFound(t *testing.T) {
 	})
 
 	t.Run("false for non-manifest errors", func(t *testing.T) {
+		t.Parallel()
+
 		mc := mockTypes.NewMockContainer(t)
 		err := fmt.Errorf("%w: status 500", errInvalidRegistryResponse)
 		assert.False(t, isLocalImageNotFound(mc, err))
@@ -645,348 +1052,93 @@ func TestLocalOnlyImageCache(t *testing.T) {
 	t.Cleanup(clearLocalOnlyImageCache)
 
 	settings := registryConfig.Registry{TLSSkip: true}
+	container := newLocalOnlyContainer(t, "sha256:80f07677bee57274a48929d0688bf0cfabe5e83f06f2f152dab4076445d6ab35")
 
-	const imageID = "sha256:80f07677bee57274a48929d0688bf0cfabe5e83f06f2f152dab4076445d6ab35"
-
-	mc := mockTypes.NewMockContainer(t)
-	mc.On("Name").Return("atlas-badgerdb-1")
-	mc.On("ImageName").Return("atlas-badgerdb:latest")
-	mc.On("HasImageInfo").Return(true)
-	mc.On("ImageInfo").Return(&dockerImage.InspectResponse{
-		ID: imageID,
-		RepoDigests: []string{
-			"atlas-badgerdb@sha256:80f07677bee57274a48929d0688bf0cfabe5e83f06f2f152dab4076445d6ab35",
-		},
-	})
-	mc.On("ContainerInfo").Return(&dockerContainer.InspectResponse{
-		Config: &dockerContainer.Config{Image: "atlas-badgerdb"},
-	})
-
-	var headManifestCalls int
-
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodHead && strings.Contains(r.URL.Path, "/manifests/") {
-			headManifestCalls++
-
-			w.WriteHeader(http.StatusNotFound)
-
-			return
-		}
-
-		if r.Method == http.MethodGet && (r.URL.Path == "/v2/" || r.URL.Path == "/v2") {
-			w.WriteHeader(http.StatusOK)
-
-			return
-		}
-
-		w.WriteHeader(http.StatusOK)
-	}))
-	defer server.Close()
-
-	parts := strings.SplitN(server.URL, "://", 2)
-	host := parts[len(parts)-1]
+	// Only the first comparison may reach the registry.
+	server := httpstub.New(t)
+	server.AppendHandlers(
+		anonymousRegistryHandler(t),
+		manifestHandler(t, http.MethodHead, "/v2/library/atlas-badgerdb/manifests/latest", http.StatusNotFound, nil),
+	)
 
 	// First call: probe registry, cache local-only.
-	match, _, err := CompareDigestWithRemote(newTestLogger(t), context.Background(), mc, "", settings, ratelimit.New(), host)
+	match, _, err := CompareDigestWithRemote(newTestLogger(t), context.Background(),
+		container, "", settings, ratelimit.New(), server.Addr())
 	require.NoError(t, err)
 	assert.True(t, match)
-	assert.Equal(t, 1, headManifestCalls)
 
-	// Second call: cache hit, no additional HEAD.
-	match, _, err = CompareDigestWithRemote(newTestLogger(t), context.Background(), mc, "", settings, ratelimit.New(), host)
+	// Second call: cache hit, no additional request.
+	match, _, err = CompareDigestWithRemote(newTestLogger(t), context.Background(),
+		container, "", settings, ratelimit.New(), server.Addr())
 	require.NoError(t, err)
 	assert.True(t, match)
-	assert.Equal(t, 1, headManifestCalls, "cached local-only image must not re-probe registry")
+	assert.Len(t, server.ReceivedRequests(), 2, "cached local-only image must not re-probe registry")
 }
 
-func TestCompareDigest(t *testing.T) {
-	tests := []struct {
-		name           string
-		setupContainer func(t *testing.T) *mockTypes.MockContainer
-		setupServer    func() *httptest.Server
-		expected       bool
-		wantErr        bool
-	}{
-		{
-			name: "returns error when container has no image info",
-			setupContainer: func(t *testing.T) *mockTypes.MockContainer {
-				t.Helper()
-				mc := mockTypes.NewMockContainer(t)
-				mc.On("Name").Return("test-container")
-				mc.On("ImageName").Return("nginx:latest")
-				mc.On("HasImageInfo").Return(false)
-
-				return mc
-			},
-			setupServer: func() *httptest.Server {
-				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					t.Errorf("server should not be called when image info is missing")
-				}))
-			},
-			expected: false,
-			wantErr:  true,
-		},
-		{
-			name: "returns true for locally built image with empty RepoDigests",
-			setupContainer: func(t *testing.T) *mockTypes.MockContainer {
-				t.Helper()
-				mc := mockTypes.NewMockContainer(t)
-				mc.On("Name").Return("local-image")
-				mc.On("ImageName").Return("local-image:latest")
-				mc.On("HasImageInfo").Return(true)
-				mc.On("ImageInfo").Return(&dockerImage.InspectResponse{RepoDigests: []string{}})
-
-				return mc
-			},
-			setupServer: func() *httptest.Server {
-				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					t.Errorf("server should not be called for locally built image")
-				}))
-			},
-			expected: true,
-			wantErr:  false,
-		},
-		{
-			name: "matching digests via HEAD request",
-			setupContainer: func(t *testing.T) *mockTypes.MockContainer {
-				t.Helper()
-				mc := mockTypes.NewMockContainer(t)
-				mc.On("Name").Return("up-to-date")
-				mc.On("ImageName").Return("registry.example.com/myapp:latest")
-				mc.On("HasImageInfo").Return(true)
-				mc.On("ImageInfo").Return(&dockerImage.InspectResponse{
-					RepoDigests: []string{
-						"registry.example.com/myapp@sha256:abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
-					},
-				})
-
-				return mc
-			},
-			setupServer: func() *httptest.Server {
-				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					w.Header().Set("Docker-Content-Digest", "sha256:abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890")
-					w.WriteHeader(http.StatusOK)
-				}))
-			},
-			expected: true,
-			wantErr:  false,
-		},
-		{
-			name: "non-matching digests via HEAD request",
-			setupContainer: func(t *testing.T) *mockTypes.MockContainer {
-				t.Helper()
-				mc := mockTypes.NewMockContainer(t)
-				mc.On("Name").Return("outdated")
-				mc.On("ImageName").Return("registry.example.com/myapp:latest")
-				mc.On("HasImageInfo").Return(true)
-				mc.On("ImageInfo").Return(&dockerImage.InspectResponse{
-					RepoDigests: []string{
-						"registry.example.com/myapp@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-					},
-				})
-
-				return mc
-			},
-			setupServer: func() *httptest.Server {
-				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					w.Header().Set("Docker-Content-Digest", "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
-					w.WriteHeader(http.StatusOK)
-				}))
-			},
-			expected: false,
-			wantErr:  false,
-		},
-		{
-			name: "falls back to GET when HEAD returns non-2xx without 404",
-			setupContainer: func(t *testing.T) *mockTypes.MockContainer {
-				t.Helper()
-				mc := mockTypes.NewMockContainer(t)
-				mc.On("Name").Return("fallback-test")
-				mc.On("ImageName").Return("registry.example.com/myapp:latest")
-				mc.On("HasImageInfo").Return(true)
-				mc.On("ImageInfo").Return(&dockerImage.InspectResponse{
-					RepoDigests: []string{
-						"registry.example.com/myapp@sha256:abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
-					},
-				})
-
-				return mc
-			},
-			setupServer: func() *httptest.Server {
-				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					if r.Method == http.MethodHead {
-						w.WriteHeader(http.StatusInternalServerError)
-
-						return
-					}
-
-					w.Header().Set("Docker-Content-Digest", "sha256:abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890")
-					w.WriteHeader(http.StatusOK)
-				}))
-			},
-			expected: true,
-			wantErr:  false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			container := tt.setupContainer(t)
-
-			server := tt.setupServer()
-			defer server.Close()
-
-			serverURL := server.URL
-			parts := strings.SplitN(serverURL, "://", 2)
-			host := parts[len(parts)-1]
-
-			container.On("ImageName").Return(host + "/myapp:latest").Maybe()
-
-			got, err := CompareDigest(newTestLogger(t), context.Background(), container, "", registryConfig.Registry{}, ratelimit.New(), serverURL)
-			if tt.wantErr {
-				require.Error(t, err)
-				assert.Equal(t, tt.expected, got)
-
-				return
-			}
-
-			require.NoError(t, err)
-			assert.Equal(t, tt.expected, got)
-		})
-	}
-}
-
+// TestFetchDigestWithGet verifies digest retrieval from an anonymous registry's
+// GET response header, JSON body, and plain text body, and the error for a
+// response that carries no digest.
 func TestFetchDigestWithGet(t *testing.T) {
+	t.Parallel()
+
+	const (
+		manifestPath = "/v2/myapp/manifests/latest"
+		localHash    = "sha256:abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"
+	)
+
 	tests := []struct {
-		name           string
-		setupContainer func(t *testing.T) *mockTypes.MockContainer
-		setupServer    func() *httptest.Server
-		expected       string
-		wantErr        bool
+		name string
+		// manifest answers the GET manifest request.
+		manifest http.HandlerFunc
+		expected string
+		wantErr  bool
 	}{
 		{
 			name: "extracts digest from GET response header",
-			setupContainer: func(t *testing.T) *mockTypes.MockContainer {
-				t.Helper()
-				mc := mockTypes.NewMockContainer(t)
-				mc.On("Name").Return("fetch-header")
-				mc.On("ImageName").Return("registry.example.com/myapp:latest")
-				mc.On("HasImageInfo").Return(true)
-				mc.On("ImageInfo").Return(&dockerImage.InspectResponse{
-					RepoDigests: []string{
-						"registry.example.com/myapp@sha256:abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
-					},
-				})
-
-				return mc
-			},
-			setupServer: func() *httptest.Server {
-				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					w.Header().Set("Docker-Content-Digest", "sha256:abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890")
-					w.Header().Set("Content-Type", "application/vnd.docker.distribution.manifest.v2+json")
-					w.WriteHeader(http.StatusOK)
-					_, _ = w.Write([]byte(`{"schemaVersion":2,"mediaType":"application/vnd.docker.distribution.manifest.v2+json"}`))
-				}))
-			},
+			manifest: httpstub.RespondWith(http.StatusOK,
+				`{"schemaVersion":2,"mediaType":"application/vnd.docker.distribution.manifest.v2+json"}`,
+				http.Header{
+					ContentDigestHeader: {localHash},
+					"Content-Type":      {"application/vnd.docker.distribution.manifest.v2+json"},
+				}),
 			expected: "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
-			wantErr:  false,
 		},
 		{
 			name: "extracts digest from GET response JSON body",
-			setupContainer: func(t *testing.T) *mockTypes.MockContainer {
-				t.Helper()
-				mc := mockTypes.NewMockContainer(t)
-				mc.On("Name").Return("fetch-json-body")
-				mc.On("ImageName").Return("registry.example.com/myapp:latest")
-				mc.On("HasImageInfo").Return(true)
-				mc.On("ImageInfo").Return(&dockerImage.InspectResponse{
-					RepoDigests: []string{
-						"registry.example.com/myapp@sha256:abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
-					},
-				})
-
-				return mc
-			},
-			setupServer: func() *httptest.Server {
-				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					w.Header().Set("Content-Type", "application/vnd.docker.distribution.manifest.v2+json")
-					w.WriteHeader(http.StatusOK)
-
-					body, err := json.Marshal(map[string]string{"digest": "sha256:abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"})
-					if err != nil {
-						panic(err)
-					}
-
-					_, _ = w.Write(body)
-				}))
-			},
+			manifest: httpstub.RespondWith(http.StatusOK,
+				fmt.Sprintf(`{"digest":%q}`, localHash),
+				http.Header{"Content-Type": {"application/vnd.docker.distribution.manifest.v2+json"}}),
 			expected: "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
-			wantErr:  false,
 		},
 		{
-			name: "extracts digest from plain text body",
-			setupContainer: func(t *testing.T) *mockTypes.MockContainer {
-				t.Helper()
-				mc := mockTypes.NewMockContainer(t)
-				mc.On("Name").Return("fetch-plain-text")
-				mc.On("ImageName").Return("registry.example.com/myapp:latest")
-				mc.On("HasImageInfo").Return(true)
-				mc.On("ImageInfo").Return(&dockerImage.InspectResponse{
-					RepoDigests: []string{
-						"registry.example.com/myapp@sha256:abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
-					},
-				})
-
-				return mc
-			},
-			setupServer: func() *httptest.Server {
-				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					w.Header().Set("Content-Type", "text/plain")
-					w.WriteHeader(http.StatusOK)
-					_, _ = w.Write([]byte("sha256:abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"))
-				}))
-			},
+			name:     "extracts digest from plain text body",
+			manifest: httpstub.RespondWith(http.StatusOK, localHash, http.Header{"Content-Type": {"text/plain"}}),
 			expected: "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
-			wantErr:  false,
 		},
 		{
-			name: "returns error when no digest header and empty body",
-			setupContainer: func(t *testing.T) *mockTypes.MockContainer {
-				t.Helper()
-				mc := mockTypes.NewMockContainer(t)
-				mc.On("Name").Return("fetch-empty-body")
-				mc.On("ImageName").Return("registry.example.com/myapp:latest")
-				mc.On("HasImageInfo").Return(true)
-				mc.On("ImageInfo").Return(&dockerImage.InspectResponse{
-					RepoDigests: []string{
-						"registry.example.com/myapp@sha256:abc",
-					},
-				})
-
-				return mc
-			},
-			setupServer: func() *httptest.Server {
-				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					w.WriteHeader(http.StatusOK)
-				}))
-			},
-			expected: "",
+			name:     "returns error when no digest header and empty body",
+			manifest: httpstub.RespondWith(http.StatusOK, "", nil),
 			wantErr:  true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			container := tt.setupContainer(t)
+			t.Parallel()
 
-			server := tt.setupServer()
-			defer server.Close()
+			server := httpstub.New(t)
+			server.AppendHandlers(
+				anonymousRegistryHandler(t),
+				httpstub.CombineHandlers(
+					httpstub.VerifyRequest(t, http.MethodGet, httpstub.Path(manifestPath)),
+					tt.manifest,
+				),
+			)
 
-			parts := strings.SplitN(server.URL, "://", 2)
-			host := parts[len(parts)-1]
-			container.On("ImageName").Return(host + "/myapp:latest").Maybe()
+			container := newRegistryContainer(t, "registry.example.com/myapp:latest", "registry.example.com/myapp@"+localHash)
 
-			got, err := fetchDigestWithGet(newTestLogger(t), context.Background(), container, "", registryConfig.Registry{}, ratelimit.New(), server.URL)
+			got, err := fetchDigestWithGet(newTestLogger(t), context.Background(),
+				container, "", registryConfig.Registry{}, ratelimit.New(), server.URL())
 			if tt.wantErr {
 				require.Error(t, err)
 				assert.Empty(t, got)
@@ -1000,105 +1152,266 @@ func TestFetchDigestWithGet(t *testing.T) {
 	}
 }
 
-func TestBuildManifestURL(t *testing.T) {
+// TestFetchDigestWithGet_StubRegistry verifies digest retrieval with a GET
+// request against a plain HTTP registry, and the failures that happen before
+// any request is made.
+func TestFetchDigestWithGet_StubRegistry(t *testing.T) {
+	t.Parallel()
+
+	const manifestPath = "/v2/test/image/manifests/latest"
+
 	tests := []struct {
-		name         string
-		tlsSkip      bool
-		container    func(t *testing.T) *mockTypes.MockContainer
-		hostOverride string
-		expectedURL  string
-		expectedHost string
-		wantErr      bool
+		name string
+		// handlers returns the registry's handlers in request order.
+		handlers func(t *testing.T, addr string) []http.HandlerFunc
+		// image returns the image reference the container runs.
+		image func(addr string) string
+		// repoDigests are the image's repo digests.
+		repoDigests []string
+		want        string
+		// errContains is the expected error text, empty when no error is expected.
+		errContains string
 	}{
 		{
-			name: "builds HTTPS manifest URL with empty override",
-			container: func(t *testing.T) *mockTypes.MockContainer {
+			name: "should fetch a digest successfully",
+			handlers: func(t *testing.T, addr string) []http.HandlerFunc {
 				t.Helper()
-				mc := mockTypes.NewMockContainer(t)
-				mc.On("Name").Return("https-default")
-				mc.On("ImageName").Return("nginx:latest")
 
-				return mc
+				return append(bearerChallengeHandlers(t, addr, "repository:test/image:pull"),
+					httpstub.CombineHandlers(
+						httpstub.VerifyRequest(t, http.MethodGet, httpstub.Path(manifestPath)),
+						httpstub.RespondWith(http.StatusOK, "", http.Header{ContentDigestHeader: {testDigestHash}}),
+					),
+				)
 			},
-			hostOverride: "",
-			expectedURL:  "https://index.docker.io/v2/library/nginx/manifests/latest",
-			expectedHost: "index.docker.io",
-			wantErr:      false,
+			want: NormalizeDigest(newNopLogger(), testDigestHash),
 		},
 		{
-			name:    "builds HTTP manifest URL when TLS is skipped",
-			tlsSkip: true,
-			container: func(t *testing.T) *mockTypes.MockContainer {
+			name: "should handle no authentication required",
+			handlers: func(t *testing.T, _ string) []http.HandlerFunc {
 				t.Helper()
-				mc := mockTypes.NewMockContainer(t)
-				mc.On("Name").Return("http-tls-skip")
-				mc.On("ImageName").Return("nginx:latest")
 
-				return mc
+				return []http.HandlerFunc{
+					anonymousRegistryHandler(t),
+					httpstub.CombineHandlers(
+						httpstub.VerifyRequest(t, http.MethodGet, httpstub.Path(manifestPath)),
+						httpstub.RespondWith(http.StatusOK, "", http.Header{ContentDigestHeader: {testDigestHash}}),
+					),
+				}
 			},
-			hostOverride: "",
-			expectedURL:  "http://index.docker.io/v2/library/nginx/manifests/latest",
-			expectedHost: "index.docker.io",
-			wantErr:      false,
+			want: NormalizeDigest(newNopLogger(), testDigestHash),
 		},
 		{
-			name: "overrides host with bare host string",
-			container: func(t *testing.T) *mockTypes.MockContainer {
+			name: "should return an error if GET request fails after token",
+			handlers: func(t *testing.T, addr string) []http.HandlerFunc {
 				t.Helper()
-				mc := mockTypes.NewMockContainer(t)
-				mc.On("Name").Return("bare-host-override")
-				mc.On("ImageName").Return("nginx:latest")
 
-				return mc
+				return append(bearerChallengeHandlers(t, addr, "repository:test/image:pull"),
+					httpstub.CombineHandlers(
+						httpstub.VerifyRequest(t, http.MethodGet, httpstub.Path(manifestPath)),
+						httpstub.RespondWith(http.StatusInternalServerError, "server error", nil),
+					),
+				)
 			},
-			hostOverride: "mirror.example.com",
-			expectedURL:  "https://mirror.example.com/v2/library/nginx/manifests/latest",
-			expectedHost: "index.docker.io",
-			wantErr:      false,
+			errContains: errInvalidRegistryResponse.Error(),
 		},
 		{
-			name: "overrides host and scheme from full URL",
-			container: func(t *testing.T) *mockTypes.MockContainer {
+			name: "should handle plain text 404 responses (non-JSON body)",
+			handlers: func(t *testing.T, addr string) []http.HandlerFunc {
 				t.Helper()
-				mc := mockTypes.NewMockContainer(t)
-				mc.On("Name").Return("full-url-override")
-				mc.On("ImageName").Return("nginx:latest")
 
-				return mc
+				return append(bearerChallengeHandlers(t, addr, "repository:test/image:pull"),
+					httpstub.CombineHandlers(
+						httpstub.VerifyRequest(t, http.MethodGet, httpstub.Path(manifestPath)),
+						httpstub.RespondWith(http.StatusOK, "404 Not Found", nil),
+					),
+				)
 			},
-			hostOverride: "http://mirror.example.com:5000",
-			expectedURL:  "http://mirror.example.com:5000/v2/library/nginx/manifests/latest",
-			expectedHost: "index.docker.io",
-			wantErr:      false,
+			errContains: "invalid digest format in body",
 		},
 		{
-			name: "redirects lscr.io to ghcr.io",
-			container: func(t *testing.T) *mockTypes.MockContainer {
-				t.Helper()
-				mc := mockTypes.NewMockContainer(t)
-				mc.On("Name").Return("lscr-redirect")
-				mc.On("ImageName").Return("lscr.io/linuxserver/radarr:latest")
-
-				return mc
-			},
-			hostOverride: "",
-			expectedURL:  "https://ghcr.io/v2/linuxserver/radarr/manifests/latest",
-			expectedHost: "lscr.io",
-			wantErr:      false,
+			name:        "should return an error if manifest URL build fails",
+			image:       func(string) string { return "example.com/test/image:" },
+			errContains: errFailedParseImageName.Error(),
+		},
+		{
+			name:        "should handle URL parsing failure",
+			image:       func(string) string { return "http://invalid url with spaces/test/image:latest" },
+			errContains: errFailedBuildManifestURL.Error(),
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			settings := registryConfig.Registry{TLSSkip: tt.tlsSkip}
+			t.Parallel()
 
-			gotURL, gotHost, _, err := buildManifestURL(newTestLogger(t), tt.container(t), settings, tt.hostOverride)
-			if tt.wantErr {
-				require.Error(t, err)
+			server := httpstub.New(t)
+			if tt.handlers != nil {
+				server.AppendHandlers(tt.handlers(t, server.Addr())...)
+			}
+
+			image := server.Addr() + "/test/image:latest"
+			if tt.image != nil {
+				image = tt.image(server.Addr())
+			}
+
+			container := newRegistryContainer(t, image, testRepoDigest)
+
+			got, err := fetchDigestWithGet(newTestLogger(t), context.Background(),
+				container, "token", registryConfig.Registry{TLSSkip: true}, ratelimit.New())
+			if tt.errContains != "" {
+				require.ErrorContains(t, err, tt.errContains)
+				assert.Empty(t, got)
 
 				return
 			}
 
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+// TestFetchDigestWithGet_LocalImages verifies that locally built images, which
+// have no repo digests, skip the registry for any registry host.
+func TestFetchDigestWithGet_LocalImages(t *testing.T) {
+	t.Parallel()
+
+	for _, image := range []string{
+		"localhost/test/image:latest",
+		"local/test/image:latest",
+		"127.0.0.1/test/image:latest",
+	} {
+		t.Run(image, func(t *testing.T) {
+			t.Parallel()
+
+			got, err := fetchDigestWithGet(newTestLogger(t), context.Background(),
+				newRegistryContainer(t, image), "", registryConfig.Registry{}, ratelimit.New())
+			require.NoError(t, err)
+			assert.Empty(t, got)
+		})
+	}
+}
+
+// TestFetchDigestWithGet_RedirectedChallenge verifies that when the /v2/
+// challenge redirects to another host, the manifest request goes to that host.
+func TestFetchDigestWithGet_RedirectedChallenge(t *testing.T) {
+	t.Parallel()
+
+	const manifestPath = "/v2/test/image/manifests/latest"
+
+	server := httpstub.New(t)
+	redirectServer := httpstub.New(t)
+
+	server.AppendHandlers(
+		httpstub.CombineHandlers(
+			httpstub.VerifyRequest(t, http.MethodGet, httpstub.Path("/v2/")),
+			httpstub.RespondWith(http.StatusFound, "", http.Header{
+				"Location": {fmt.Sprintf("http://%s/v2/", redirectServer.Addr())},
+			}),
+		),
+	)
+	redirectServer.AppendHandlers(
+		append(bearerChallengeHandlers(t, redirectServer.Addr(), "repository:test/image:pull"),
+			httpstub.CombineHandlers(
+				httpstub.VerifyRequest(t, http.MethodGet, httpstub.Path(manifestPath)),
+				httpstub.RespondWith(http.StatusOK, "", http.Header{ContentDigestHeader: {testDigestHash}}),
+			),
+		)...,
+	)
+
+	container := newRegistryContainer(t, server.Addr()+"/test/image:latest", testRepoDigest)
+
+	got, err := fetchDigestWithGet(newTestLogger(t), context.Background(),
+		container, "token", registryConfig.Registry{TLSSkip: true}, ratelimit.New())
+	require.NoError(t, err)
+	assert.Equal(t, "d68e1e532088964195ad3a0a71526bc2f11a78de0def85629beb75e2265f0547", got)
+}
+
+// TestFetchDigestWithGet_SlowResponse verifies that a manifest request the
+// registry does not answer before the context deadline fails with the deadline
+// error instead of waiting for the registry.
+func TestFetchDigestWithGet_SlowResponse(t *testing.T) {
+	t.Parallel()
+
+	server := httpstub.New(t)
+	server.AppendHandlers(
+		append(bearerChallengeHandlers(t, server.Addr(), "repository:test/image:pull"),
+			httpstub.CombineHandlers(
+				httpstub.VerifyRequest(t, http.MethodGet, httpstub.Path("/v2/test/image/manifests/latest")),
+				func(_ http.ResponseWriter, r *http.Request) {
+					// Answer only once the client gives up on the request.
+					<-r.Context().Done()
+				},
+			),
+		)...,
+	)
+
+	container := newRegistryContainer(t, server.Addr()+"/test/image:latest", testRepoDigest)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 250*time.Millisecond)
+	defer cancel()
+
+	_, err := fetchDigestWithGet(newTestLogger(t), ctx,
+		container, "token", registryConfig.Registry{TLSSkip: true}, ratelimit.New())
+	require.ErrorIs(t, err, context.DeadlineExceeded)
+}
+
+// TestBuildManifestURL verifies the manifest URL and registry host built for an
+// image, with the TLS setting, host overrides, and the lscr.io redirect.
+func TestBuildManifestURL(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name         string
+		tlsSkip      bool
+		image        string
+		hostOverride string
+		expectedURL  string
+		expectedHost string
+	}{
+		{
+			name:         "builds HTTPS manifest URL with empty override",
+			image:        "nginx:latest",
+			expectedURL:  "https://index.docker.io/v2/library/nginx/manifests/latest",
+			expectedHost: "index.docker.io",
+		},
+		{
+			name:         "builds HTTP manifest URL when TLS is skipped",
+			tlsSkip:      true,
+			image:        "nginx:latest",
+			expectedURL:  "http://index.docker.io/v2/library/nginx/manifests/latest",
+			expectedHost: "index.docker.io",
+		},
+		{
+			name:         "overrides host with bare host string",
+			image:        "nginx:latest",
+			hostOverride: "mirror.example.com",
+			expectedURL:  "https://mirror.example.com/v2/library/nginx/manifests/latest",
+			expectedHost: "index.docker.io",
+		},
+		{
+			name:         "overrides host and scheme from full URL",
+			image:        "nginx:latest",
+			hostOverride: "http://mirror.example.com:5000",
+			expectedURL:  "http://mirror.example.com:5000/v2/library/nginx/manifests/latest",
+			expectedHost: "index.docker.io",
+		},
+		{
+			name:         "redirects lscr.io to ghcr.io",
+			image:        "lscr.io/linuxserver/radarr:latest",
+			expectedURL:  "https://ghcr.io/v2/linuxserver/radarr/manifests/latest",
+			expectedHost: "lscr.io",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			settings := registryConfig.Registry{TLSSkip: tt.tlsSkip}
+
+			gotURL, gotHost, _, err := buildManifestURL(newTestLogger(t), newRegistryContainer(t, tt.image), settings, tt.hostOverride)
 			require.NoError(t, err)
 			assert.Equal(t, tt.expectedURL, gotURL)
 			assert.Equal(t, tt.expectedHost, gotHost)
@@ -1106,7 +1419,11 @@ func TestBuildManifestURL(t *testing.T) {
 	}
 }
 
+// TestHandleManifestResponse verifies how manifest responses are turned into a
+// digest, a retry on another host, or an error.
 func TestHandleManifestResponse(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name           string
 		setupResponse  func() *http.Response
@@ -1309,6 +1626,8 @@ func TestHandleManifestResponse(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			resp := tt.setupResponse()
 			if resp.Body != nil {
 				defer resp.Body.Close()
@@ -1340,7 +1659,11 @@ func TestHandleManifestResponse(t *testing.T) {
 	}
 }
 
+// TestExtractHeadDigest verifies digest extraction from a HEAD response's
+// Docker-Content-Digest header and the error when it is missing.
 func TestExtractHeadDigest(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name      string
 		setupResp func() *http.Response
@@ -1403,6 +1726,8 @@ func TestExtractHeadDigest(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			resp := tt.setupResp()
 			if resp.Body != nil {
 				defer resp.Body.Close()
@@ -1422,12 +1747,18 @@ func TestExtractHeadDigest(t *testing.T) {
 	}
 }
 
+// TestExtractGetDigest verifies digest extraction from a GET response's header,
+// JSON body, or plain text body, and the errors for responses without one.
 func TestExtractGetDigest(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name      string
 		setupResp func() *http.Response
 		expected  string
 		wantErr   bool
+		// errContains is the expected error text, empty to skip the check.
+		errContains string
 	}{
 		{
 			name: "extracts digest from response header",
@@ -1568,16 +1899,96 @@ func TestExtractGetDigest(t *testing.T) {
 					StatusCode: http.StatusOK,
 					Status:     "200 OK",
 					Header:     http.Header{},
-					Body:       &errReadCloser{},
+					Body:       io.NopCloser(iotest.ErrReader(errors.New("simulated read error"))),
 				}
 			},
-			expected: "",
-			wantErr:  true,
+			expected:    "",
+			wantErr:     true,
+			errContains: "failed to read response body",
+		},
+		{
+			name: "returns error when plain text body is not a digest",
+			setupResp: func() *http.Response {
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Status:     "200 OK",
+					Header:     http.Header{},
+					Body:       io.NopCloser(strings.NewReader("invalid-digest-format")),
+				}
+			},
+			wantErr:     true,
+			errContains: "invalid digest format in body",
+		},
+		{
+			name: "prefers the digest header over an unparseable body",
+			setupResp: func() *http.Response {
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Status:     "200 OK",
+					Header:     http.Header{"Docker-Content-Digest": []string{testDigestHash}},
+					Body:       io.NopCloser(strings.NewReader("invalid-json")),
+				}
+			},
+			expected: NormalizeDigest(newNopLogger(), testDigestHash),
+		},
+		{
+			name: "extracts digest from JSON body with application/json content type",
+			setupResp: func() *http.Response {
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Status:     "200 OK",
+					Header:     http.Header{"Content-Type": []string{"application/json"}},
+					Body:       io.NopCloser(strings.NewReader(fmt.Sprintf(`{"digest": "%s"}`, testDigestHash))),
+				}
+			},
+			expected: NormalizeDigest(newNopLogger(), testDigestHash),
+		},
+		{
+			name: "extracts digest from OCI image index JSON body",
+			setupResp: func() *http.Response {
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Status:     "200 OK",
+					Header:     http.Header{"Content-Type": []string{"application/vnd.oci.image.index.v1+json"}},
+					Body: io.NopCloser(strings.NewReader(
+						`{"digest": "sha256:ociindexdigest123456789012345678901234567890123456789012345678901234567890"}`,
+					)),
+				}
+			},
+			expected: "ociindexdigest123456789012345678901234567890123456789012345678901234567890",
+		},
+		{
+			name: "returns error when JSON body has no digest field",
+			setupResp: func() *http.Response {
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Status:     "200 OK",
+					Header:     http.Header{"Content-Type": []string{"application/json"}},
+					Body:       io.NopCloser(strings.NewReader(`{"other_field": "value"}`)),
+				}
+			},
+			wantErr:     true,
+			errContains: "empty digest in JSON manifest",
+		},
+		{
+			name: "rejects JSON body without content type",
+			setupResp: func() *http.Response {
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Status:     "200 OK",
+					Header:     http.Header{},
+					Body:       io.NopCloser(strings.NewReader(`{"digest": "sha256:missingcontenttypedigest"}`)),
+				}
+			},
+			wantErr:     true,
+			errContains: "unsupported content type for JSON parsing",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			resp := tt.setupResp()
 			if resp.Body != nil {
 				defer resp.Body.Close()
@@ -1588,6 +1999,10 @@ func TestExtractGetDigest(t *testing.T) {
 				require.Error(t, err)
 				assert.Empty(t, got)
 
+				if tt.errContains != "" {
+					require.ErrorContains(t, err, tt.errContains)
+				}
+
 				return
 			}
 
@@ -1597,18 +2012,11 @@ func TestExtractGetDigest(t *testing.T) {
 	}
 }
 
-// errReadCloser is an io.ReadCloser that always returns an error.
-type errReadCloser struct{}
-
-func (e *errReadCloser) Read(_ []byte) (int, error) {
-	return 0, errors.New("simulated read error")
-}
-
-func (e *errReadCloser) Close() error {
-	return nil
-}
-
+// TestExtractGetDigest_ManifestSizeLimits verifies that a manifest body may be
+// exactly maxManifestSize long and no longer.
 func TestExtractGetDigest_ManifestSizeLimits(t *testing.T) {
+	t.Parallel()
+
 	const digestPrefix = "sha256:abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"
 
 	tests := []struct {
@@ -1629,6 +2037,8 @@ func TestExtractGetDigest_ManifestSizeLimits(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			body := digestPrefix + strings.Repeat("a", tc.size-len(digestPrefix))
 			resp := &http.Response{
 				StatusCode: http.StatusOK,
@@ -1653,7 +2063,11 @@ func TestExtractGetDigest_ManifestSizeLimits(t *testing.T) {
 	}
 }
 
+// TestMakeManifestRequest verifies the method, authorization, Accept, and
+// User-Agent of manifest requests, and the error for an invalid URL.
 func TestMakeManifestRequest(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name        string
 		method      string
@@ -1729,6 +2143,8 @@ func TestMakeManifestRequest(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			ctx := context.Background()
 			req, err := makeManifestRequest(ctx, tt.method, tt.manifestURL, tt.token)
 			tt.verify(t, req, err)
@@ -1736,7 +2152,11 @@ func TestMakeManifestRequest(t *testing.T) {
 	}
 }
 
+// TestRetryManifestRequest verifies the outcome of retrying a manifest request
+// on another host: a digest, a GET fallback, or an error.
 func TestRetryManifestRequest(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name        string
 		method      string
@@ -1763,7 +2183,7 @@ func TestRetryManifestRequest(t *testing.T) {
 			setupClient: func(t *testing.T) *mockAuth.MockClient {
 				t.Helper()
 				mc := mockAuth.NewMockClient(t)
-				mc.On("Do", mock.Anything).Return(&http.Response{
+				mc.EXPECT().Do(mock.Anything).Return(&http.Response{
 					StatusCode: http.StatusOK,
 					Status:     "200 OK",
 					Header:     http.Header{"Docker-Content-Digest": []string{"sha256:abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"}},
@@ -1784,7 +2204,7 @@ func TestRetryManifestRequest(t *testing.T) {
 			setupClient: func(t *testing.T) *mockAuth.MockClient {
 				t.Helper()
 				mc := mockAuth.NewMockClient(t)
-				mc.On("Do", mock.Anything).Return(nil, errors.New("connection refused"))
+				mc.EXPECT().Do(mock.Anything).Return(nil, errors.New("connection refused"))
 
 				return mc
 			},
@@ -1799,7 +2219,7 @@ func TestRetryManifestRequest(t *testing.T) {
 			setupClient: func(t *testing.T) *mockAuth.MockClient {
 				t.Helper()
 				mc := mockAuth.NewMockClient(t)
-				mc.On("Do", mock.Anything).Return(&http.Response{
+				mc.EXPECT().Do(mock.Anything).Return(&http.Response{
 					StatusCode: http.StatusInternalServerError,
 					Status:     "500 Internal Server Error",
 					Header:     http.Header{},
@@ -1824,7 +2244,7 @@ func TestRetryManifestRequest(t *testing.T) {
 				header.Set("Retry-After", "7200")
 
 				mc := mockAuth.NewMockClient(t)
-				mc.On("Do", mock.Anything).Return(&http.Response{
+				mc.EXPECT().Do(mock.Anything).Return(&http.Response{
 					StatusCode: http.StatusTooManyRequests,
 					Status:     "429 Too Many Requests",
 					Header:     header,
@@ -1864,7 +2284,7 @@ func TestRetryManifestRequest(t *testing.T) {
 			setupClient: func(t *testing.T) *mockAuth.MockClient {
 				t.Helper()
 				mc := mockAuth.NewMockClient(t)
-				mc.On("Do", mock.Anything).Return(&http.Response{
+				mc.EXPECT().Do(mock.Anything).Return(&http.Response{
 					StatusCode: http.StatusInternalServerError,
 					Status:     "500 Internal Server Error",
 					Header:     http.Header{},
@@ -1880,6 +2300,8 @@ func TestRetryManifestRequest(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			client := tt.setupClient(t)
 
 			challengeHost := cmp.Or(tt.challengeHost, "ghcr.io")
@@ -1917,30 +2339,4 @@ func TestRetryManifestRequest(t *testing.T) {
 			assert.Equal(t, tt.expected, got)
 		})
 	}
-}
-
-// unauthorizedManifestClient returns a registry client that answers every
-// manifest request with 401, which asks for a retry on the other host.
-func unauthorizedManifestClient(t *testing.T) *mockAuth.MockClient {
-	t.Helper()
-
-	mc := mockAuth.NewMockClient(t)
-	mc.On("Do", mock.Anything).Return(&http.Response{
-		StatusCode: http.StatusUnauthorized,
-		Status:     "401 Unauthorized",
-		Header:     http.Header{},
-		Body:       http.NoBody,
-		Request:    &http.Request{URL: mustParseURL("https://registry.example.com/v2/manifests/latest")},
-	}, nil)
-
-	return mc
-}
-
-func mustParseURL(raw string) *url.URL {
-	u, err := url.Parse(raw)
-	if err != nil {
-		panic(fmt.Sprintf("failed to parse URL %q: %v", raw, err))
-	}
-
-	return u
 }

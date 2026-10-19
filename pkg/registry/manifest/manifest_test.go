@@ -11,18 +11,28 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// mockDigested is a test implementation of reference.Digested with an invalid String() method.
-type mockDigested struct {
-	name   string
+// unnamedDigested is a [reference.Digested] whose String returns an empty
+// name, which no parsed reference can produce, to reach the error paths for
+// invalid names.
+type unnamedDigested struct {
+	// digest is the reference's digest.
 	digest digest.Digest
 }
 
-func (m *mockDigested) String() string {
-	return m.name
+// String returns the empty reference name.
+//
+// Returns:
+//   - string: The empty string.
+func (u unnamedDigested) String() string {
+	return ""
 }
 
-func (m *mockDigested) Digest() digest.Digest {
-	return m.digest
+// Digest returns the reference's digest.
+//
+// Returns:
+//   - digest.Digest: The digest the stub was built with.
+func (u unnamedDigested) Digest() digest.Digest {
+	return u.digest
 }
 
 // newTestLogger returns a logger that writes each event to the test's log, so a
@@ -42,7 +52,10 @@ func newTestLogger(t *testing.T) *zerolog.Logger {
 	return new(zerolog.New(w))
 }
 
+// TestParseImageRef verifies which image references parse and which are rejected.
 func TestParseImageRef(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name    string
 		input   string
@@ -77,6 +90,8 @@ func TestParseImageRef(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			_, err := parseImageRef(tt.input)
 			if tt.wantErr {
 				assert.Error(t, err)
@@ -87,7 +102,11 @@ func TestParseImageRef(t *testing.T) {
 	}
 }
 
+// TestResolveRegistryHost verifies the registry host resolved for references
+// with and without an explicit registry.
 func TestResolveRegistryHost(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name     string
 		input    string
@@ -117,13 +136,19 @@ func TestResolveRegistryHost(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			result := resolveRegistryHost(newTestLogger(t), tt.input)
 			assert.Equal(t, tt.expected, result)
 		})
 	}
 }
 
+// TestManifestURLPath verifies the manifest path built from an image path and
+// a tag or digest specifier.
 func TestManifestURLPath(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name      string
 		imagePath string
@@ -152,13 +177,19 @@ func TestManifestURLPath(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			result := manifestURLPath(tt.imagePath, tt.specifier)
 			assert.Equal(t, tt.expected, result)
 		})
 	}
 }
 
+// TestManifestURLString verifies the manifest URL built from a host, scheme,
+// and path.
 func TestManifestURLString(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name     string
 		host     string
@@ -191,13 +222,18 @@ func TestManifestURLString(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			result := manifestURLString(tt.host, tt.scheme, tt.path)
 			assert.Equal(t, tt.expected, result)
 		})
 	}
 }
 
+// TestTagComponents verifies the image path and tag taken from a tagged reference.
 func TestTagComponents(t *testing.T) {
+	t.Parallel()
+
 	ref, err := reference.ParseDockerRef("registry.example.com/org/image:v1.0.0")
 	require.NoError(t, err)
 
@@ -210,70 +246,42 @@ func TestTagComponents(t *testing.T) {
 	assert.Equal(t, "v1.0.0", components.specifier)
 }
 
+// TestDigestComponents verifies the image path and digest taken from a
+// digested reference.
 func TestDigestComponents(t *testing.T) {
-	tests := []struct {
-		name          string
-		input         string
-		wantErr       bool
-		expectedImage string
-		expectedSpec  string
-	}{
-		{
-			name:          "valid digest reference",
-			input:         "registry.example.com/org/image@sha256:daf7034c5c89775afe3008393ae033529913548243b84926931d7c84398ecda7",
-			wantErr:       false,
-			expectedImage: "org/image",
-			expectedSpec:  "sha256:daf7034c5c89775afe3008393ae033529913548243b84926931d7c84398ecda7",
-		},
-	}
+	t.Parallel()
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			ref, err := reference.ParseDockerRef(tt.input)
-			if err != nil {
-				t.Skipf("Skipping: parse error: %v", err)
+	ref, err := reference.ParseDockerRef(
+		"registry.example.com/org/image@sha256:daf7034c5c89775afe3008393ae033529913548243b84926931d7c84398ecda7",
+	)
+	require.NoError(t, err)
 
-				return
-			}
+	digested, ok := ref.(reference.Digested)
+	require.True(t, ok, "Reference should be Digested")
 
-			digested, ok := ref.(reference.Digested)
-			if !ok {
-				t.Skip("Reference is not Digested")
-
-				return
-			}
-
-			components, err := digestComponents(digested)
-			if tt.wantErr {
-				assert.Error(t, err)
-
-				return
-			}
-
-			require.NoError(t, err)
-			assert.Equal(t, tt.expectedImage, components.imagePath)
-			assert.Equal(t, tt.expectedSpec, components.specifier)
-		})
-	}
+	components, err := digestComponents(digested)
+	require.NoError(t, err)
+	assert.Equal(t, "org/image", components.imagePath)
+	assert.Equal(t, "sha256:daf7034c5c89775afe3008393ae033529913548243b84926931d7c84398ecda7", components.specifier)
 }
 
+// TestDigestComponentsInvalidString verifies that a digested reference whose
+// name cannot be parsed is an error.
 func TestDigestComponentsInvalidString(t *testing.T) {
-	// Test the error path in digestComponents when String() returns an invalid reference.
+	t.Parallel()
+
 	digestVal, err := digest.Parse("sha256:" + strings.Repeat("a", 64))
 	require.NoError(t, err)
 
-	// Use empty string to trigger reference.WithName error.
-	mock := &mockDigested{
-		name:   "",
-		digest: digestVal,
-	}
-
-	components, err := digestComponents(mock)
+	components, err := digestComponents(unnamedDigested{digest: digestVal})
 	require.Error(t, err)
 	assert.Empty(t, components)
 }
 
+// TestBuildTaggedManifestURL verifies the manifest URL built for a tagged reference.
 func TestBuildTaggedManifestURL(t *testing.T) {
+	t.Parallel()
+
 	ref, err := reference.ParseDockerRef("ghcr.io/org/image:mytag")
 	require.NoError(t, err)
 
@@ -292,7 +300,10 @@ func TestBuildTaggedManifestURL(t *testing.T) {
 	assert.Equal(t, expected, url)
 }
 
+// TestBuildDigestedManifestURL verifies the manifest URL built for a digested reference.
 func TestBuildDigestedManifestURL(t *testing.T) {
+	t.Parallel()
+
 	ref, err := reference.ParseDockerRef("registry.example.com/org/image@sha256:daf7034c5c89775afe3008393ae033529913548243b84926931d7c84398ecda7")
 	require.NoError(t, err)
 
@@ -311,22 +322,143 @@ func TestBuildDigestedManifestURL(t *testing.T) {
 	assert.Equal(t, expected, url)
 }
 
+// TestBuildDigestedManifestURLInvalidComponents verifies that a digested
+// reference whose name cannot be parsed yields no URL.
 func TestBuildDigestedManifestURLInvalidComponents(t *testing.T) {
-	// Test the error path in buildDigestedManifestURL when digestComponents fails.
+	t.Parallel()
+
 	digestVal, err := digest.Parse("sha256:" + strings.Repeat("a", 64))
 	require.NoError(t, err)
-
-	mock := &mockDigested{
-		name:   "",
-		digest: digestVal,
-	}
 
 	fields := map[string]any{
 		"container": "test-container",
 		"image":     "invalid",
 	}
 
-	url, err := buildDigestedManifestURL(newTestLogger(t), fields, mock, "https")
+	url, err := buildDigestedManifestURL(newTestLogger(t), fields, unnamedDigested{digest: digestVal}, "https")
 	require.Error(t, err)
 	assert.Empty(t, url)
+}
+
+// TestBuildManifestURLForImage verifies the manifest URL built for image
+// references across registries, tags, digests, and schemes, and the references
+// it rejects.
+func TestBuildManifestURLForImage(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		imageRef string
+		scheme   string
+		want     string
+		wantErr  bool
+	}{
+		{
+			name:     "should return a valid url given a fully qualified image",
+			imageRef: "ghcr.io/nicholas-fedor/watchtower:mytag",
+			scheme:   "https",
+			want:     "https://ghcr.io/v2/nicholas-fedor/watchtower/manifests/mytag",
+		},
+		{
+			name:     "should assume Docker Hub for image refs with no explicit registry",
+			imageRef: "nickfedor/watchtower:latest",
+			scheme:   "https",
+			want:     "https://index.docker.io/v2/nickfedor/watchtower/manifests/latest",
+		},
+		{
+			name:     "should assume latest for image refs with no explicit tag",
+			imageRef: "nickfedor/watchtower",
+			scheme:   "https",
+			want:     "https://index.docker.io/v2/nickfedor/watchtower/manifests/latest",
+		},
+		{
+			name:     "should not prepend library/ for single-part container names in registries other than Docker Hub",
+			imageRef: "docker-registry.domain/imagename:latest",
+			scheme:   "https",
+			want:     "https://docker-registry.domain/v2/imagename/manifests/latest",
+		},
+		{
+			name:     "should return a valid URL for pinned images with digest",
+			imageRef: "docker-registry.domain/imagename@sha256:daf7034c5c89775afe3008393ae033529913548243b84926931d7c84398ecda7",
+			scheme:   "https",
+			want:     "https://docker-registry.domain/v2/imagename/manifests/sha256:daf7034c5c89775afe3008393ae033529913548243b84926931d7c84398ecda7",
+		},
+		{
+			name:     "should return an error for invalid image references",
+			imageRef: "invalid:image:ref:!!",
+			scheme:   "https",
+			wantErr:  true,
+		},
+		{
+			name:     "should prepend library/ for Docker Hub official images",
+			imageRef: "nginx:latest",
+			scheme:   "https",
+			want:     "https://index.docker.io/v2/library/nginx/manifests/latest",
+		},
+		{
+			name:     "should handle hosts with ports correctly",
+			imageRef: "localhost:5000/repo/image:tag",
+			scheme:   "https",
+			want:     "https://localhost:5000/v2/repo/image/manifests/tag",
+		},
+		{
+			name:     "should use the HTTP scheme when requested",
+			imageRef: "ghcr.io/nicholas-fedor/watchtower:mytag",
+			scheme:   "http",
+			want:     "http://ghcr.io/v2/nicholas-fedor/watchtower/manifests/mytag",
+		},
+		{
+			name:     "should handle tags with hyphens and numbers",
+			imageRef: "registry.example.com/my-project/my-app:v1.2.3-rc1",
+			scheme:   "https",
+			want:     "https://registry.example.com/v2/my-project/my-app/manifests/v1.2.3-rc1",
+		},
+		{
+			name:     "should handle multi-level image paths",
+			imageRef: "registry.example.com/org/team/project/image:tag",
+			scheme:   "https",
+			want:     "https://registry.example.com/v2/org/team/project/image/manifests/tag",
+		},
+		{
+			name:     "should return an error for uppercase registry names",
+			imageRef: "REGISTRY.EXAMPLE.COM/IMAGE:TAG",
+			scheme:   "https",
+			wantErr:  true,
+		},
+		{
+			name:     "should handle image names with dots and dashes",
+			imageRef: "registry.example.com/my.project/my-app:latest",
+			scheme:   "https",
+			want:     "https://registry.example.com/v2/my.project/my-app/manifests/latest",
+		},
+		{
+			name:     "should handle Docker Hub official images with namespace",
+			imageRef: "docker.io/library/nginx:latest",
+			scheme:   "https",
+			want:     "https://index.docker.io/v2/library/nginx/manifests/latest",
+		},
+		{
+			name:     "should return an error for references with invalid digest format",
+			imageRef: "registry.example.com/image@sha256:invalid-digest",
+			scheme:   "https",
+			wantErr:  true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, err := BuildManifestURLForImage(newTestLogger(t), tt.imageRef, "mock-container", tt.scheme)
+			if tt.wantErr {
+				require.ErrorIs(t, err, errFailedParseImageName)
+				assert.Empty(t, got)
+
+				return
+			}
+
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, got)
+		})
+	}
 }

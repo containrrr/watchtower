@@ -1,15 +1,24 @@
-package manifest_test
+package manifest
 
 import (
+	"errors"
+	"net/url"
 	"strings"
 	"testing"
 
-	"github.com/nicholas-fedor/watchtower/pkg/registry/manifest"
+	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-// FuzzBuildManifestURLForImage fuzzes the BuildManifestURLForImage function with various image reference strings
-// to ensure robust parsing. It tests valid references, malformed strings, and edge cases to prevent
-// crashes and unexpected behavior during manifest URL construction.
+// FuzzBuildManifestURLForImage checks that a manifest URL built for an image
+// reference parses as a /v2/ manifest URL with the requested scheme and no
+// query or fragment, and that a reference that cannot be used is a parse or
+// missing-tag error.
+//
+// The seeds cover valid references on Docker Hub, GHCR, and registries with
+// ports, digest references, malformed and empty strings, whitespace and
+// control characters, and very long or deep references.
 func FuzzBuildManifestURLForImage(f *testing.F) {
 	// Seed with valid image references
 	f.Add("ghcr.io/nicholas-fedor/watchtower:mytag")
@@ -66,8 +75,23 @@ func FuzzBuildManifestURLForImage(f *testing.F) {
 	f.Add("image:tag-with-many-dashes-and_underscores-123")        // Complex tag
 	f.Add("registry.com/image-name.with.dots:tag-name.with.dots")  // Dots in name and tag
 
-	f.Fuzz(func(_ *testing.T, imageRef string) {
-		// Call BuildManifestURLForImage with HTTPS scheme because we don't care about the result, just that it doesn't panic
-		_, _ = manifest.BuildManifestURLForImage(newNopLogger(), imageRef, "fuzz-mock-container", "https")
+	f.Fuzz(func(t *testing.T, imageRef string) {
+		got, err := BuildManifestURLForImage(new(zerolog.Nop()), imageRef, "fuzz-container", "https")
+		if err != nil {
+			assert.True(t,
+				errors.Is(err, errFailedParseImageName) || errors.Is(err, errMissingTag),
+				"unexpected error: %v", err)
+			assert.Empty(t, got)
+
+			return
+		}
+
+		u, err := url.Parse(got)
+		require.NoError(t, err)
+		assert.Equal(t, "https", u.Scheme)
+		assert.True(t, strings.HasPrefix(u.Path, "/v2/"), "path %q is not under /v2/", u.Path)
+		assert.Contains(t, u.Path, "/manifests/")
+		assert.Empty(t, u.RawQuery)
+		assert.Empty(t, u.Fragment)
 	})
 }
