@@ -431,6 +431,18 @@ func TestDigestsMatch(t *testing.T) {
 			remoteDigest: "sha256:hash3",
 			expected:     false,
 		},
+		{
+			name:         "empty remote digest does not match a local digest without a hash",
+			localDigests: []string{"repo@sha256:"},
+			remoteDigest: "sha256:",
+			expected:     false,
+		},
+		{
+			name:         "empty remote digest does not match a local digest with nothing after @",
+			localDigests: []string{"repo@"},
+			remoteDigest: "",
+			expected:     false,
+		},
 	}
 
 	for _, tt := range tests {
@@ -694,6 +706,38 @@ func TestCompareDigest_StubRegistry(t *testing.T) {
 			},
 			errContains:  "challenge header did not include all values needed to construct an auth url",
 			wantRequests: 1,
+		},
+		{
+			name: "should fall back to GET when the HEAD digest header has no hash",
+			handlers: func(t *testing.T, addr string) []http.HandlerFunc {
+				t.Helper()
+
+				return []http.HandlerFunc{
+					bearerChallengeHandler(t, addr, "repository:test/image:pull"),
+					tokenHandler(t),
+					manifestHandler(t, http.MethodHead, manifestPath, http.StatusOK, digestHeader("sha256:")),
+					bearerChallengeHandler(t, addr, "repository:test/image:pull"),
+					manifestHandler(t, http.MethodGet, manifestPath, http.StatusOK, digestHeader(testDigestHash)),
+				}
+			},
+			want:         true,
+			wantRequests: 5,
+		},
+		{
+			name: "should return an error when neither HEAD nor GET digest header has a hash",
+			handlers: func(t *testing.T, addr string) []http.HandlerFunc {
+				t.Helper()
+
+				return []http.HandlerFunc{
+					bearerChallengeHandler(t, addr, "repository:test/image:pull"),
+					tokenHandler(t),
+					manifestHandler(t, http.MethodHead, manifestPath, http.StatusOK, digestHeader("sha256:")),
+					bearerChallengeHandler(t, addr, "repository:test/image:pull"),
+					manifestHandler(t, http.MethodGet, manifestPath, http.StatusOK, digestHeader("sha256:")),
+				}
+			},
+			errContains:  "missing digest header and empty body",
+			wantRequests: 5,
 		},
 		{
 			name: "should fetch digest from HTTP registry with TLS skip",
@@ -1722,6 +1766,18 @@ func TestExtractHeadDigest(t *testing.T) {
 			expected: "abc",
 			wantErr:  false,
 		},
+		{
+			name: "returns an empty digest for a GET fallback when Docker-Content-Digest has no hash",
+			setupResp: func() *http.Response {
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Status:     "200 OK",
+					Header:     http.Header{"Docker-Content-Digest": []string{"sha256:"}},
+					Body:       http.NoBody,
+				}
+			},
+			expected: "",
+		},
 	}
 
 	for _, tt := range tests {
@@ -1982,6 +2038,44 @@ func TestExtractGetDigest(t *testing.T) {
 			},
 			wantErr:     true,
 			errContains: "unsupported content type for JSON parsing",
+		},
+		{
+			name: "falls back to the body when the digest header has no hash",
+			setupResp: func() *http.Response {
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Status:     "200 OK",
+					Header:     http.Header{"Docker-Content-Digest": []string{"sha256:"}},
+					Body:       io.NopCloser(strings.NewReader(testDigestHash)),
+				}
+			},
+			expected: NormalizeDigest(newNopLogger(), testDigestHash),
+		},
+		{
+			name: "returns error when the digest header has no hash and the body is empty",
+			setupResp: func() *http.Response {
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Status:     "200 OK",
+					Header:     http.Header{"Docker-Content-Digest": []string{"sha256:"}},
+					Body:       http.NoBody,
+				}
+			},
+			wantErr:     true,
+			errContains: "missing digest header and empty body",
+		},
+		{
+			name: "returns error when JSON body digest has no hash",
+			setupResp: func() *http.Response {
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Status:     "200 OK",
+					Header:     http.Header{"Content-Type": []string{"application/json"}},
+					Body:       io.NopCloser(strings.NewReader(`{"digest": "sha256:"}`)),
+				}
+			},
+			wantErr:     true,
+			errContains: "empty digest in JSON manifest",
 		},
 	}
 

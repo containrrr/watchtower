@@ -19,8 +19,9 @@ import (
 )
 
 // FuzzExtractHeadDigest checks that a HEAD response's digest is its normalized
-// Docker-Content-Digest header whatever the status code, and that a missing
-// header is an invalid registry response.
+// Docker-Content-Digest header whatever the status code, that a missing header
+// is an invalid registry response, and that a header with no hash yields an
+// empty digest and no error so the caller falls back to GET.
 //
 // The seeds pair successful and failing status codes with a full digest, an
 // empty header, malformed values, and a bare or short sha256 prefix.
@@ -41,7 +42,9 @@ func FuzzExtractHeadDigest(f *testing.F) {
 		resp.Header.Set(ContentDigestHeader, headerValue)
 
 		got, err := extractHeadDigest(newNopLogger(), resp)
-		if resp.Header.Get(ContentDigestHeader) == "" {
+
+		header := resp.Header.Get(ContentDigestHeader)
+		if header == "" {
 			require.ErrorIs(t, err, errInvalidRegistryResponse)
 			assert.Empty(t, got)
 
@@ -49,13 +52,13 @@ func FuzzExtractHeadDigest(f *testing.F) {
 		}
 
 		require.NoError(t, err)
-		assert.Equal(t, NormalizeDigest(newNopLogger(), headerValue), got)
+		assert.Equal(t, NormalizeDigest(newNopLogger(), header), got)
 	})
 }
 
 // FuzzExtractGetDigest checks that a GET response's digest header takes
-// precedence over its body, and that every failure is an invalid registry
-// response or an oversized manifest.
+// precedence over its body, that a successful extraction is never empty, and
+// that every failure is an invalid registry response or an oversized manifest.
 //
 // The seeds cover JSON bodies with a digest, an empty digest, and invalid JSON,
 // plain text digests, empty bodies, each with JSON and plain text content
@@ -79,9 +82,10 @@ func FuzzExtractGetDigest(f *testing.F) {
 		resp.Header.Set(ContentDigestHeader, headerValue)
 
 		got, err := extractGetDigest(newNopLogger(), resp)
-		if resp.Header.Get(ContentDigestHeader) != "" {
+
+		if headerDigest := NormalizeDigest(newNopLogger(), resp.Header.Get(ContentDigestHeader)); headerDigest != "" {
 			require.NoError(t, err)
-			assert.Equal(t, NormalizeDigest(newNopLogger(), headerValue), got)
+			assert.Equal(t, headerDigest, got)
 
 			return
 		}
@@ -91,7 +95,11 @@ func FuzzExtractGetDigest(f *testing.F) {
 				errors.Is(err, errInvalidRegistryResponse) || errors.Is(err, errManifestTooLarge),
 				"unexpected error: %v", err)
 			assert.Empty(t, got)
+
+			return
 		}
+
+		assert.NotEmpty(t, got)
 	})
 }
 
@@ -131,10 +139,10 @@ func FuzzNormalizeDigest(f *testing.F) {
 	})
 }
 
-// FuzzDigestsMatch checks that a non-empty remote digest without @ always
-// matches a local repo digest built from it, and that the result does not
-// depend on the order of the local digests or on extra entries without an @
-// separator.
+// FuzzDigestsMatch checks that an empty remote digest matches nothing, that a
+// non-empty remote digest without @ always matches a local repo digest built
+// from it, and that the result does not depend on the order of the local
+// digests or on extra entries without an @ separator.
 //
 // The seeds are JSON arrays of local digests with a matching, a different, an
 // empty, and a malformed remote digest, plus empty, malformed, and null arrays.
@@ -159,7 +167,7 @@ func FuzzDigestsMatch(f *testing.F) {
 		log := newNopLogger()
 		got := digestsMatch(log, localDigests, remote)
 
-		if len(localDigests) == 0 {
+		if len(localDigests) == 0 || NormalizeDigest(log, remote) == "" {
 			assert.False(t, got)
 		}
 

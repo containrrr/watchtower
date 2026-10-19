@@ -1189,13 +1189,18 @@ func handleManifestResponse(log *zerolog.Logger,
 // Parameters:
 //   - resp: The HTTP response from a HEAD request containing headers.
 //
+// A header with no hash after its algorithm, such as "sha256:", yields an
+// empty digest and no error, which asks the caller to fall back to a GET
+// request, as a non-success HEAD response does.
+//
 // Returns:
-//   - string: The normalized digest (e.g., "abc..." without "sha256:") if present.
-//   - error: An error if the digest is missing or the response is invalid, nil if successful.
+//   - string: The normalized digest (e.g., "abc..." without "sha256:"), or empty
+//     when the header has no hash.
+//   - error: An error if the digest header is missing, nil otherwise.
 func extractHeadDigest(log *zerolog.Logger, resp *http.Response) (string, error) {
 	// Retrieve the digest from the standard header.
-	digest := resp.Header.Get(ContentDigestHeader)
-	if digest == "" {
+	header := resp.Header.Get(ContentDigestHeader)
+	if header == "" {
 		// Log and return an error if the digest is missing, including auth details for debugging.
 		wwwAuthHeader := resp.Header.Get("WWW-Authenticate")
 		log.Debug().
@@ -1212,12 +1217,20 @@ func extractHeadDigest(log *zerolog.Logger, resp *http.Response) (string, error)
 	}
 
 	// Normalize the digest (e.g., strip "sha256:") for consistency.
-	normalizedDigest := NormalizeDigest(log, digest)
+	digest := NormalizeDigest(log, header)
+	if digest == "" {
+		log.Debug().
+			Str("status", resp.Status).
+			Msg("HEAD response digest has no hash, falling back to GET")
+
+		return "", nil
+	}
+
 	log.Debug().
-		Str("digest", normalizedDigest).
+		Str("digest", digest).
 		Msg("Extracted digest from HEAD response")
 
-	return normalizedDigest, nil
+	return digest, nil
 }
 
 // extractGetDigest extracts the image digest from a GET response's headers or body.
@@ -1238,16 +1251,16 @@ func extractHeadDigest(log *zerolog.Logger, resp *http.Response) (string, error)
 //   - string: The normalized digest (e.g., "abc..." without "sha256:") if present.
 //   - error: An error if the digest cannot be extracted, nil if successful.
 func extractGetDigest(log *zerolog.Logger, resp *http.Response) (string, error) {
-	// First, try to retrieve the digest from the standard header.
-	digest := resp.Header.Get(ContentDigestHeader)
-	if digest != "" {
-		// Normalize the digest (e.g., strip "sha256:") for consistency.
-		normalizedDigest := NormalizeDigest(log, digest)
+	// First, try to retrieve the digest from the standard header, normalized
+	// (e.g., "sha256:" stripped) for consistency. A header with no hash after
+	// its algorithm carries no digest, so the body is tried as for a missing one.
+	headerDigest := NormalizeDigest(log, resp.Header.Get(ContentDigestHeader))
+	if headerDigest != "" {
 		log.Debug().
-			Str("digest", normalizedDigest).
+			Str("digest", headerDigest).
 			Msg("Extracted digest from GET response header")
 
-		return normalizedDigest, nil
+		return headerDigest, nil
 	}
 
 	// Fallback: read the body with a size limit. The extra byte detects overflow.
@@ -1315,16 +1328,16 @@ func extractGetDigest(log *zerolog.Logger, resp *http.Response) (string, error) 
 		jsonErr := json.Unmarshal(bodyBytes, &manifest)
 		if jsonErr == nil {
 			// JSON unmarshaling succeeded, check if digest field contains a value.
-			if manifest.Digest != "" {
-				// Successfully parsed JSON manifest with digest field populated.
-				normalizedDigest := NormalizeDigest(log, manifest.Digest)
+			// A digest field with no hash after its algorithm is as empty as a missing one.
+			normalizedDigest := NormalizeDigest(log, manifest.Digest)
+			if normalizedDigest != "" {
 				log.Debug().
 					Str("digest", normalizedDigest).
 					Msg("Extracted digest from JSON manifest")
 
 				return normalizedDigest, nil
 			}
-			// JSON parsed successfully but digest field is empty or missing.
+			// JSON parsed successfully, but the digest field is missing or has no hash.
 			log.Debug().
 				Str("status", resp.Status).
 				Str("body", bodyStr).
@@ -1373,10 +1386,20 @@ func extractGetDigest(log *zerolog.Logger, resp *http.Response) (string, error) 
 //   - remoteDigest: The digest fetched from the registry (e.g., "sha256:abc..." or raw hash).
 //
 // Returns:
-//   - bool: True if any normalized local digest matches the normalized remote digest, false otherwise.
+//   - bool: True if any normalized local digest matches the normalized remote digest, false
+//     otherwise, including when the remote digest is empty.
 func digestsMatch(log *zerolog.Logger, localDigests []string, remoteDigest string) bool {
 	// Normalize the remote digest once for efficiency.
 	normalizedRemoteDigest := NormalizeDigest(log, remoteDigest)
+
+	// An empty remote digest identifies no image, so it matches nothing.
+	if normalizedRemoteDigest == "" {
+		log.Debug().
+			Strs("local_digests", localDigests).
+			Msg("Remote digest is empty, so no local digest matches")
+
+		return false
+	}
 
 	log.Debug().
 		Strs("local_digests", localDigests).
