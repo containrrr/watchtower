@@ -7,19 +7,17 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"os"
 	"runtime"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/onsi/gomega"
-	"github.com/onsi/gomega/ghttp"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	registryConfig "github.com/nicholas-fedor/watchtower/internal/config/registry"
+	"github.com/nicholas-fedor/watchtower/internal/testutil/httpstub"
 	"github.com/nicholas-fedor/watchtower/pkg/registry/ratelimit"
 	mockTypes "github.com/nicholas-fedor/watchtower/pkg/types/mocks"
 )
@@ -137,19 +135,6 @@ func platformManifestJSON(configDigest string) string {
 	}`, configDigest)
 }
 
-// --- TestMain ---
-// Register a gomega fail handler so ghttp's VerifyRequest can properly
-// report assertion failures. Without this, gomega.Expect().Should() in
-// VerifyRequest silently fails and the server returns HTTP 500.
-
-func TestMain(m *testing.M) {
-	gomega.RegisterFailHandler(func(message string, _ ...int) {
-		panic("gomega assertion failed: " + message)
-	})
-
-	os.Exit(m.Run())
-}
-
 // --- fetchManifestForAge tests ---
 // These test the manifest fetching logic using a mock HTTP server and
 // an injected auth.Client (the test server's HTTP client).
@@ -157,15 +142,14 @@ func TestMain(m *testing.M) {
 func TestFetchManifestForAge_SinglePlatform(t *testing.T) {
 	t.Parallel()
 
-	server := ghttp.NewServer()
-	t.Cleanup(server.Close)
+	server := httpstub.New(t)
 
 	configDigest := "sha256:abc123def456789012345678901234567890123456789012345678901234567890"
 
 	server.AppendHandlers(
-		ghttp.CombineHandlers(
-			ghttp.VerifyRequest("GET", "/v2/test/manifests/latest"),
-			ghttp.RespondWith(http.StatusOK, validManifestJSON(configDigest),
+		httpstub.CombineHandlers(
+			httpstub.VerifyRequest(t, http.MethodGet, httpstub.Path("/v2/test/manifests/latest")),
+			httpstub.RespondWith(http.StatusOK, validManifestJSON(configDigest),
 				http.Header{"Content-Type": {"application/vnd.docker.distribution.manifest.v2+json"}},
 			),
 		),
@@ -175,7 +159,7 @@ func TestFetchManifestForAge_SinglePlatform(t *testing.T) {
 	require.NoError(t, err)
 
 	got, _, err := fetchManifestForAge(newTestLogger(t), context.Background(),
-		server.HTTPTestServer.Client(),
+		server.Client(),
 		ratelimit.New(),
 		parsedURL.String(),
 		"Bearer test-token",
@@ -191,23 +175,23 @@ func TestFetchManifestForAge_SinglePlatform(t *testing.T) {
 }
 
 func TestFetchManifestForAge_RetriesSubMillisecondRateLimit(t *testing.T) {
-	server := ghttp.NewServer()
-	t.Cleanup(server.Close)
+	server := httpstub.New(t)
 
 	configDigest := "sha256:abc123def456789012345678901234567890123456789012345678901234567890"
 	limitKey := "age-retry-ghcr.io"
 
 	server.AppendHandlers(
-		ghttp.CombineHandlers(
-			ghttp.VerifyRequest("GET", "/v2/test/manifests/latest"),
-			ghttp.RespondWith(
+		httpstub.CombineHandlers(
+			httpstub.VerifyRequest(t, http.MethodGet, httpstub.Path("/v2/test/manifests/latest")),
+			httpstub.RespondWith(
 				http.StatusTooManyRequests,
 				"toomanyrequests: retry-after: 23.722µs, allowed: 44000/minute",
+				nil,
 			),
 		),
-		ghttp.CombineHandlers(
-			ghttp.VerifyRequest("GET", "/v2/test/manifests/latest"),
-			ghttp.RespondWith(http.StatusOK, validManifestJSON(configDigest),
+		httpstub.CombineHandlers(
+			httpstub.VerifyRequest(t, http.MethodGet, httpstub.Path("/v2/test/manifests/latest")),
+			httpstub.RespondWith(http.StatusOK, validManifestJSON(configDigest),
 				http.Header{"Content-Type": {"application/vnd.docker.distribution.manifest.v2+json"}},
 			),
 		),
@@ -217,7 +201,7 @@ func TestFetchManifestForAge_RetriesSubMillisecondRateLimit(t *testing.T) {
 	require.NoError(t, err)
 
 	got, _, err := fetchManifestForAge(newTestLogger(t), t.Context(),
-		server.HTTPTestServer.Client(),
+		server.Client(),
 		ratelimit.New(),
 		parsedURL.String(),
 		"Bearer test-token",
@@ -235,22 +219,21 @@ func TestFetchManifestForAge_RetriesSubMillisecondRateLimit(t *testing.T) {
 func TestFetchManifestForAge_MultiPlatformIndex(t *testing.T) {
 	t.Parallel()
 
-	server := ghttp.NewServer()
-	t.Cleanup(server.Close)
+	server := httpstub.New(t)
 
 	configDigest := "sha256:cfg1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcd"
 	platformDigest := fmt.Sprintf("sha256:plt%s%s67890abcdef1234567890abcdef1234567890abcdef1234567890", runtime.GOOS, runtime.GOARCH)
 
 	server.AppendHandlers(
-		ghttp.CombineHandlers(
-			ghttp.VerifyRequest("GET", "/v2/test/manifests/latest"),
-			ghttp.RespondWith(http.StatusOK, multiPlatformIndexJSON(platformDigest, "sha256:arm64digest"),
+		httpstub.CombineHandlers(
+			httpstub.VerifyRequest(t, http.MethodGet, httpstub.Path("/v2/test/manifests/latest")),
+			httpstub.RespondWith(http.StatusOK, multiPlatformIndexJSON(platformDigest, "sha256:arm64digest"),
 				http.Header{"Content-Type": {"application/vnd.oci.image.index.v1+json"}},
 			),
 		),
-		ghttp.CombineHandlers(
-			ghttp.VerifyRequest("GET", gomega.MatchRegexp(`/v2/test/manifests/sha256:plt.*`)),
-			ghttp.RespondWith(http.StatusOK, platformManifestJSON(configDigest),
+		httpstub.CombineHandlers(
+			httpstub.VerifyRequest(t, http.MethodGet, httpstub.PathRegexp(`/v2/test/manifests/sha256:plt.*`)),
+			httpstub.RespondWith(http.StatusOK, platformManifestJSON(configDigest),
 				http.Header{"Content-Type": {"application/vnd.oci.image.manifest.v1+json"}},
 			),
 		),
@@ -260,7 +243,7 @@ func TestFetchManifestForAge_MultiPlatformIndex(t *testing.T) {
 	require.NoError(t, err)
 
 	got, _, err := fetchManifestForAge(newTestLogger(t), context.Background(),
-		server.HTTPTestServer.Client(),
+		server.Client(),
 		ratelimit.New(),
 		parsedURL.String(),
 		"Bearer test-token",
@@ -278,13 +261,12 @@ func TestFetchManifestForAge_MultiPlatformIndex(t *testing.T) {
 func TestFetchManifestForAge_AuthFailure(t *testing.T) {
 	t.Parallel()
 
-	server := ghttp.NewServer()
-	t.Cleanup(server.Close)
+	server := httpstub.New(t)
 
 	server.AppendHandlers(
-		ghttp.CombineHandlers(
-			ghttp.VerifyRequest("GET", "/v2/test/manifests/latest"),
-			ghttp.RespondWith(http.StatusUnauthorized, "unauthorized"),
+		httpstub.CombineHandlers(
+			httpstub.VerifyRequest(t, http.MethodGet, httpstub.Path("/v2/test/manifests/latest")),
+			httpstub.RespondWith(http.StatusUnauthorized, "unauthorized", nil),
 		),
 	)
 
@@ -292,7 +274,7 @@ func TestFetchManifestForAge_AuthFailure(t *testing.T) {
 	require.NoError(t, err)
 
 	_, _, err = fetchManifestForAge(newTestLogger(t), context.Background(),
-		server.HTTPTestServer.Client(),
+		server.Client(),
 		ratelimit.New(),
 		parsedURL.String(),
 		"Bearer test-token",
@@ -310,13 +292,12 @@ func TestFetchManifestForAge_AuthFailure(t *testing.T) {
 func TestFetchManifestForAge_NotFound(t *testing.T) {
 	t.Parallel()
 
-	server := ghttp.NewServer()
-	t.Cleanup(server.Close)
+	server := httpstub.New(t)
 
 	server.AppendHandlers(
-		ghttp.CombineHandlers(
-			ghttp.VerifyRequest("GET", "/v2/test/manifests/latest"),
-			ghttp.RespondWith(http.StatusNotFound, "not found"),
+		httpstub.CombineHandlers(
+			httpstub.VerifyRequest(t, http.MethodGet, httpstub.Path("/v2/test/manifests/latest")),
+			httpstub.RespondWith(http.StatusNotFound, "not found", nil),
 		),
 	)
 
@@ -324,7 +305,7 @@ func TestFetchManifestForAge_NotFound(t *testing.T) {
 	require.NoError(t, err)
 
 	_, _, err = fetchManifestForAge(newTestLogger(t), context.Background(),
-		server.HTTPTestServer.Client(),
+		server.Client(),
 		ratelimit.New(),
 		parsedURL.String(),
 		"Bearer test-token",
@@ -342,13 +323,12 @@ func TestFetchManifestForAge_NotFound(t *testing.T) {
 func TestFetchManifestForAge_MissingConfigDigest(t *testing.T) {
 	t.Parallel()
 
-	server := ghttp.NewServer()
-	t.Cleanup(server.Close)
+	server := httpstub.New(t)
 
 	server.AppendHandlers(
-		ghttp.CombineHandlers(
-			ghttp.VerifyRequest("GET", "/v2/test/manifests/latest"),
-			ghttp.RespondWith(http.StatusOK, `{
+		httpstub.CombineHandlers(
+			httpstub.VerifyRequest(t, http.MethodGet, httpstub.Path("/v2/test/manifests/latest")),
+			httpstub.RespondWith(http.StatusOK, `{
 				"schemaVersion": 2,
 				"mediaType": "application/vnd.docker.distribution.manifest.v2+json",
 				"config": {}
@@ -360,7 +340,7 @@ func TestFetchManifestForAge_MissingConfigDigest(t *testing.T) {
 	require.NoError(t, err)
 
 	_, _, err = fetchManifestForAge(newTestLogger(t), context.Background(),
-		server.HTTPTestServer.Client(),
+		server.Client(),
 		ratelimit.New(),
 		parsedURL.String(),
 		"Bearer test-token",
@@ -380,15 +360,14 @@ func TestFetchManifestForAge_MissingConfigDigest(t *testing.T) {
 func TestFetchConfigBlob_Success(t *testing.T) {
 	t.Parallel()
 
-	server := ghttp.NewServer()
-	t.Cleanup(server.Close)
+	server := httpstub.New(t)
 
 	configDigest := "sha256:abc123def456789012345678901234567890123456789012345678901234567890"
 
 	server.AppendHandlers(
-		ghttp.CombineHandlers(
-			ghttp.VerifyRequest("GET", "/v2/myrepo/blobs/"+configDigest),
-			ghttp.RespondWith(http.StatusOK, validConfigJSON(testCreatedTimestamp)),
+		httpstub.CombineHandlers(
+			httpstub.VerifyRequest(t, http.MethodGet, httpstub.Path("/v2/myrepo/blobs/"+configDigest)),
+			httpstub.RespondWith(http.StatusOK, validConfigJSON(testCreatedTimestamp), nil),
 		),
 	)
 
@@ -396,7 +375,7 @@ func TestFetchConfigBlob_Success(t *testing.T) {
 	require.NoError(t, err)
 
 	body, err := fetchConfigBlob(newTestLogger(t), context.Background(),
-		server.HTTPTestServer.Client(),
+		server.Client(),
 		ratelimit.New(),
 		parsedURL,
 		configDigest,
@@ -420,15 +399,14 @@ func TestFetchConfigBlob_Success(t *testing.T) {
 func TestFetchConfigBlob_Failure500(t *testing.T) {
 	t.Parallel()
 
-	server := ghttp.NewServer()
-	t.Cleanup(server.Close)
+	server := httpstub.New(t)
 
 	configDigest := "sha256:fail567890123456789012345678901234567890123456789012345678901234"
 
 	server.AppendHandlers(
-		ghttp.CombineHandlers(
-			ghttp.VerifyRequest("GET", "/v2/myrepo/blobs/"+configDigest),
-			ghttp.RespondWith(http.StatusInternalServerError, "internal error"),
+		httpstub.CombineHandlers(
+			httpstub.VerifyRequest(t, http.MethodGet, httpstub.Path("/v2/myrepo/blobs/"+configDigest)),
+			httpstub.RespondWith(http.StatusInternalServerError, "internal error", nil),
 		),
 	)
 
@@ -436,7 +414,7 @@ func TestFetchConfigBlob_Failure500(t *testing.T) {
 	require.NoError(t, err)
 
 	_, err = fetchConfigBlob(newTestLogger(t), context.Background(),
-		server.HTTPTestServer.Client(),
+		server.Client(),
 		ratelimit.New(),
 		parsedURL,
 		configDigest,
@@ -451,22 +429,21 @@ func TestFetchConfigBlob_Failure500(t *testing.T) {
 func TestFetchConfigBlob_Redirect(t *testing.T) {
 	t.Parallel()
 
-	server := ghttp.NewServer()
-	t.Cleanup(server.Close)
+	server := httpstub.New(t)
 
 	configDigest := "sha256:redir789012345678901234567890123456789012345678901234567890123456"
 	redirectPath := "/redirected-config"
 
 	server.AppendHandlers(
-		ghttp.CombineHandlers(
-			ghttp.VerifyRequest("GET", "/v2/myrepo/blobs/"+configDigest),
-			ghttp.RespondWith(http.StatusFound, nil,
+		httpstub.CombineHandlers(
+			httpstub.VerifyRequest(t, http.MethodGet, httpstub.Path("/v2/myrepo/blobs/"+configDigest)),
+			httpstub.RespondWith(http.StatusFound, "",
 				http.Header{"Location": {server.URL() + redirectPath}},
 			),
 		),
-		ghttp.CombineHandlers(
-			ghttp.VerifyRequest("GET", redirectPath),
-			ghttp.RespondWith(http.StatusOK, validConfigJSON(testCreatedTimestamp)),
+		httpstub.CombineHandlers(
+			httpstub.VerifyRequest(t, http.MethodGet, httpstub.Path(redirectPath)),
+			httpstub.RespondWith(http.StatusOK, validConfigJSON(testCreatedTimestamp), nil),
 		),
 	)
 
@@ -474,7 +451,7 @@ func TestFetchConfigBlob_Redirect(t *testing.T) {
 	require.NoError(t, err)
 
 	body, err := fetchConfigBlob(newTestLogger(t), context.Background(),
-		server.HTTPTestServer.Client(),
+		server.Client(),
 		ratelimit.New(),
 		parsedURL,
 		configDigest,
@@ -680,16 +657,15 @@ func TestBuildManifestURLForAge(t *testing.T) {
 func TestSelectPlatformManifest_PlatformMatch(t *testing.T) {
 	t.Parallel()
 
-	server := ghttp.NewServer()
-	t.Cleanup(server.Close)
+	server := httpstub.New(t)
 
 	configDigest := "sha256:cfgmatch56789012345678901234567890123456789012345678901234567890123"
 	platformDigest := fmt.Sprintf("sha256:pltmatch%s%s90123456789012345678901234567890123456789012", runtime.GOOS, runtime.GOARCH)
 
 	server.AppendHandlers(
-		ghttp.CombineHandlers(
-			ghttp.VerifyRequest("GET", gomega.MatchRegexp(`/v2/repo/manifests/sha256:pltmatch.*`)),
-			ghttp.RespondWith(http.StatusOK, platformManifestJSON(configDigest),
+		httpstub.CombineHandlers(
+			httpstub.VerifyRequest(t, http.MethodGet, httpstub.PathRegexp(`/v2/repo/manifests/sha256:pltmatch.*`)),
+			httpstub.RespondWith(http.StatusOK, platformManifestJSON(configDigest),
 				http.Header{"Content-Type": {"application/vnd.oci.image.manifest.v1+json"}},
 			),
 		),
@@ -724,7 +700,7 @@ func TestSelectPlatformManifest_PlatformMatch(t *testing.T) {
 	}
 
 	got, _, err := selectPlatformManifest(newTestLogger(t), context.Background(),
-		server.HTTPTestServer.Client(),
+		server.Client(),
 		ratelimit.New(),
 		idx,
 		parsedURL,
@@ -778,16 +754,15 @@ func TestSelectPlatformManifest_NoMatch(t *testing.T) {
 func TestSelectPlatformManifest_SkipsAttestationManifests(t *testing.T) {
 	t.Parallel()
 
-	server := ghttp.NewServer()
-	t.Cleanup(server.Close)
+	server := httpstub.New(t)
 
 	configDigest := "sha256:cfgnoattest01abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
 	platformDigest := fmt.Sprintf("sha256:pltnoattest%s%s345678901234567890123456789012345678901234", runtime.GOOS, runtime.GOARCH)
 
 	server.AppendHandlers(
-		ghttp.CombineHandlers(
-			ghttp.VerifyRequest("GET", gomega.MatchRegexp(`/v2/repo/manifests/sha256:pltnoattest.*`)),
-			ghttp.RespondWith(http.StatusOK, platformManifestJSON(configDigest),
+		httpstub.CombineHandlers(
+			httpstub.VerifyRequest(t, http.MethodGet, httpstub.PathRegexp(`/v2/repo/manifests/sha256:pltnoattest.*`)),
+			httpstub.RespondWith(http.StatusOK, platformManifestJSON(configDigest),
 				http.Header{"Content-Type": {"application/vnd.oci.image.manifest.v1+json"}},
 			),
 		),
@@ -825,7 +800,7 @@ func TestSelectPlatformManifest_SkipsAttestationManifests(t *testing.T) {
 	}
 
 	got, _, err := selectPlatformManifest(newTestLogger(t), context.Background(),
-		server.HTTPTestServer.Client(),
+		server.Client(),
 		ratelimit.New(),
 		idx,
 		parsedURL,
@@ -842,15 +817,14 @@ func TestSelectPlatformManifest_SkipsAttestationManifests(t *testing.T) {
 func TestSelectPlatformManifest_MissingConfigDigest(t *testing.T) {
 	t.Parallel()
 
-	server := ghttp.NewServer()
-	t.Cleanup(server.Close)
+	server := httpstub.New(t)
 
 	platformDigest := fmt.Sprintf("sha256:pltnodgst%s%s56789012345678901234567890123456789012345678", runtime.GOOS, runtime.GOARCH)
 
 	server.AppendHandlers(
-		ghttp.CombineHandlers(
-			ghttp.VerifyRequest("GET", gomega.MatchRegexp(`/v2/repo/manifests/sha256:pltnodgst.*`)),
-			ghttp.RespondWith(http.StatusOK, `{
+		httpstub.CombineHandlers(
+			httpstub.VerifyRequest(t, http.MethodGet, httpstub.PathRegexp(`/v2/repo/manifests/sha256:pltnodgst.*`)),
+			httpstub.RespondWith(http.StatusOK, `{
 				"schemaVersion": 2,
 				"mediaType": "application/vnd.oci.image.manifest.v1+json",
 				"config": {}
@@ -878,7 +852,7 @@ func TestSelectPlatformManifest_MissingConfigDigest(t *testing.T) {
 	}
 
 	_, _, err = selectPlatformManifest(newTestLogger(t), context.Background(),
-		server.HTTPTestServer.Client(),
+		server.Client(),
 		ratelimit.New(),
 		idx,
 		parsedURL,
@@ -897,28 +871,27 @@ func TestSelectPlatformManifest_MissingConfigDigest(t *testing.T) {
 func TestPipeline_SinglePlatformManifest_ReturnsCreationTime(t *testing.T) {
 	t.Parallel()
 
-	server := ghttp.NewServer()
-	t.Cleanup(server.Close)
+	server := httpstub.New(t)
 
 	configDigest := "sha256:ab4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4"
 
 	server.AppendHandlers(
-		ghttp.CombineHandlers(
-			ghttp.VerifyRequest("GET", "/v2/library/alpine/manifests/3.19"),
-			ghttp.RespondWith(http.StatusOK, validManifestJSON(configDigest),
+		httpstub.CombineHandlers(
+			httpstub.VerifyRequest(t, http.MethodGet, httpstub.Path("/v2/library/alpine/manifests/3.19")),
+			httpstub.RespondWith(http.StatusOK, validManifestJSON(configDigest),
 				http.Header{"Content-Type": {"application/vnd.docker.distribution.manifest.v2+json"}},
 			),
 		),
-		ghttp.CombineHandlers(
-			ghttp.VerifyRequest("GET", "/v2/library/alpine/blobs/"+configDigest),
-			ghttp.RespondWith(http.StatusOK, validConfigJSON(testCreatedTimestamp)),
+		httpstub.CombineHandlers(
+			httpstub.VerifyRequest(t, http.MethodGet, httpstub.Path("/v2/library/alpine/blobs/"+configDigest)),
+			httpstub.RespondWith(http.StatusOK, validConfigJSON(testCreatedTimestamp), nil),
 		),
 	)
 
 	parsedURL, err := url.Parse(server.URL() + "/v2/library/alpine/manifests/3.19")
 	require.NoError(t, err)
 
-	client := server.HTTPTestServer.Client()
+	client := server.Client()
 	ctx := context.Background()
 	fields := map[string]any{"test": "pipeline_single"}
 
@@ -943,36 +916,35 @@ func TestPipeline_SinglePlatformManifest_ReturnsCreationTime(t *testing.T) {
 func TestPipeline_MultiPlatformIndex_ReturnsCreationTime(t *testing.T) {
 	t.Parallel()
 
-	server := ghttp.NewServer()
-	t.Cleanup(server.Close)
+	server := httpstub.New(t)
 
 	expectedTime := "2024-02-20T14:00:00Z"
 	configDigest := "sha256:configdef4567890abcdef1234567890abcdef1234567890abcdef1234567890ab"
 	platformDigest := fmt.Sprintf("sha256:platform%s%s7890abcdef1234567890abcdef1234567890abcdef12345678", runtime.GOOS, runtime.GOARCH)
 
 	server.AppendHandlers(
-		ghttp.CombineHandlers(
-			ghttp.VerifyRequest("GET", "/v2/library/alpine/manifests/3.19"),
-			ghttp.RespondWith(http.StatusOK, multiPlatformIndexJSON(platformDigest, "sha256:arm64digest"),
+		httpstub.CombineHandlers(
+			httpstub.VerifyRequest(t, http.MethodGet, httpstub.Path("/v2/library/alpine/manifests/3.19")),
+			httpstub.RespondWith(http.StatusOK, multiPlatformIndexJSON(platformDigest, "sha256:arm64digest"),
 				http.Header{"Content-Type": {"application/vnd.oci.image.index.v1+json"}},
 			),
 		),
-		ghttp.CombineHandlers(
-			ghttp.VerifyRequest("GET", gomega.MatchRegexp(`/v2/library/alpine/manifests/sha256:platform.*`)),
-			ghttp.RespondWith(http.StatusOK, platformManifestJSON(configDigest),
+		httpstub.CombineHandlers(
+			httpstub.VerifyRequest(t, http.MethodGet, httpstub.PathRegexp(`/v2/library/alpine/manifests/sha256:platform.*`)),
+			httpstub.RespondWith(http.StatusOK, platformManifestJSON(configDigest),
 				http.Header{"Content-Type": {"application/vnd.oci.image.manifest.v1+json"}},
 			),
 		),
-		ghttp.CombineHandlers(
-			ghttp.VerifyRequest("GET", "/v2/library/alpine/blobs/"+configDigest),
-			ghttp.RespondWith(http.StatusOK, validConfigJSON(expectedTime)),
+		httpstub.CombineHandlers(
+			httpstub.VerifyRequest(t, http.MethodGet, httpstub.Path("/v2/library/alpine/blobs/"+configDigest)),
+			httpstub.RespondWith(http.StatusOK, validConfigJSON(expectedTime), nil),
 		),
 	)
 
 	parsedURL, err := url.Parse(server.URL() + "/v2/library/alpine/manifests/3.19")
 	require.NoError(t, err)
 
-	client := server.HTTPTestServer.Client()
+	client := server.Client()
 	ctx := context.Background()
 	fields := map[string]any{"test": "pipeline_multi"}
 
@@ -997,28 +969,27 @@ func TestPipeline_MultiPlatformIndex_ReturnsCreationTime(t *testing.T) {
 func TestPipeline_MissingCreationTimestamp(t *testing.T) {
 	t.Parallel()
 
-	server := ghttp.NewServer()
-	t.Cleanup(server.Close)
+	server := httpstub.New(t)
 
 	configDigest := "sha256:confignocr890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
 
 	server.AppendHandlers(
-		ghttp.CombineHandlers(
-			ghttp.VerifyRequest("GET", "/v2/library/alpine/manifests/3.19"),
-			ghttp.RespondWith(http.StatusOK, validManifestJSON(configDigest),
+		httpstub.CombineHandlers(
+			httpstub.VerifyRequest(t, http.MethodGet, httpstub.Path("/v2/library/alpine/manifests/3.19")),
+			httpstub.RespondWith(http.StatusOK, validManifestJSON(configDigest),
 				http.Header{"Content-Type": {"application/vnd.docker.distribution.manifest.v2+json"}},
 			),
 		),
-		ghttp.CombineHandlers(
-			ghttp.VerifyRequest("GET", "/v2/library/alpine/blobs/"+configDigest),
-			ghttp.RespondWith(http.StatusOK, configJSONWithoutCreated()),
+		httpstub.CombineHandlers(
+			httpstub.VerifyRequest(t, http.MethodGet, httpstub.Path("/v2/library/alpine/blobs/"+configDigest)),
+			httpstub.RespondWith(http.StatusOK, configJSONWithoutCreated(), nil),
 		),
 	)
 
 	parsedURL, err := url.Parse(server.URL() + "/v2/library/alpine/manifests/3.19")
 	require.NoError(t, err)
 
-	client := server.HTTPTestServer.Client()
+	client := server.Client()
 	ctx := context.Background()
 	fields := map[string]any{"test": "pipeline_missing_created"}
 
@@ -1039,22 +1010,22 @@ func TestPipeline_MissingCreationTimestamp(t *testing.T) {
 func TestPipeline_ConfigBlobNotFound(t *testing.T) {
 	t.Parallel()
 
-	server := ghttp.NewServer()
-	t.Cleanup(server.Close)
+	server := httpstub.New(t)
 
 	configDigest := "sha256:configfail01abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
 
 	server.AppendHandlers(
-		ghttp.CombineHandlers(
-			ghttp.VerifyRequest("GET", "/v2/library/alpine/manifests/3.19"),
-			ghttp.RespondWith(http.StatusOK, validManifestJSON(configDigest),
+		httpstub.CombineHandlers(
+			httpstub.VerifyRequest(t, http.MethodGet, httpstub.Path("/v2/library/alpine/manifests/3.19")),
+			httpstub.RespondWith(http.StatusOK, validManifestJSON(configDigest),
 				http.Header{"Content-Type": {"application/vnd.docker.distribution.manifest.v2+json"}},
 			),
 		),
-		ghttp.CombineHandlers(
-			ghttp.VerifyRequest("GET", "/v2/library/alpine/blobs/"+configDigest),
-			ghttp.RespondWith(http.StatusInternalServerError,
+		httpstub.CombineHandlers(
+			httpstub.VerifyRequest(t, http.MethodGet, httpstub.Path("/v2/library/alpine/blobs/"+configDigest)),
+			httpstub.RespondWith(http.StatusInternalServerError,
 				`{"errors":[{"code":"UNKNOWN","message":"internal error"}]}`,
+				nil,
 			),
 		),
 	)
@@ -1062,7 +1033,7 @@ func TestPipeline_ConfigBlobNotFound(t *testing.T) {
 	parsedURL, err := url.Parse(server.URL() + "/v2/library/alpine/manifests/3.19")
 	require.NoError(t, err)
 
-	client := server.HTTPTestServer.Client()
+	client := server.Client()
 	ctx := context.Background()
 	fields := map[string]any{"test": "pipeline_config_fail"}
 
@@ -1077,28 +1048,27 @@ func TestPipeline_ConfigBlobNotFound(t *testing.T) {
 func TestPipeline_InvalidConfigJSON(t *testing.T) {
 	t.Parallel()
 
-	server := ghttp.NewServer()
-	t.Cleanup(server.Close)
+	server := httpstub.New(t)
 
 	configDigest := "sha256:configinval01abcdef1234567890abcdef1234567890abcdef1234567890abcd"
 
 	server.AppendHandlers(
-		ghttp.CombineHandlers(
-			ghttp.VerifyRequest("GET", "/v2/library/alpine/manifests/3.19"),
-			ghttp.RespondWith(http.StatusOK, validManifestJSON(configDigest),
+		httpstub.CombineHandlers(
+			httpstub.VerifyRequest(t, http.MethodGet, httpstub.Path("/v2/library/alpine/manifests/3.19")),
+			httpstub.RespondWith(http.StatusOK, validManifestJSON(configDigest),
 				http.Header{"Content-Type": {"application/vnd.docker.distribution.manifest.v2+json"}},
 			),
 		),
-		ghttp.CombineHandlers(
-			ghttp.VerifyRequest("GET", "/v2/library/alpine/blobs/"+configDigest),
-			ghttp.RespondWith(http.StatusOK, "not valid json"),
+		httpstub.CombineHandlers(
+			httpstub.VerifyRequest(t, http.MethodGet, httpstub.Path("/v2/library/alpine/blobs/"+configDigest)),
+			httpstub.RespondWith(http.StatusOK, "not valid json", nil),
 		),
 	)
 
 	parsedURL, err := url.Parse(server.URL() + "/v2/library/alpine/manifests/3.19")
 	require.NoError(t, err)
 
-	client := server.HTTPTestServer.Client()
+	client := server.Client()
 	ctx := context.Background()
 	fields := map[string]any{"test": "pipeline_invalid_json"}
 
@@ -1118,36 +1088,35 @@ func TestPipeline_InvalidConfigJSON(t *testing.T) {
 func TestPipeline_RedirectOnBlob(t *testing.T) {
 	t.Parallel()
 
-	server := ghttp.NewServer()
-	t.Cleanup(server.Close)
+	server := httpstub.New(t)
 
 	expectedTime := "2024-03-10T08:00:00Z"
 	configDigest := "sha256:configredir01abcdef1234567890abcdef1234567890abcdef1234567890abcde"
 	redirectPath := "/redirected-blob"
 
 	server.AppendHandlers(
-		ghttp.CombineHandlers(
-			ghttp.VerifyRequest("GET", "/v2/library/alpine/manifests/3.19"),
-			ghttp.RespondWith(http.StatusOK, validManifestJSON(configDigest),
+		httpstub.CombineHandlers(
+			httpstub.VerifyRequest(t, http.MethodGet, httpstub.Path("/v2/library/alpine/manifests/3.19")),
+			httpstub.RespondWith(http.StatusOK, validManifestJSON(configDigest),
 				http.Header{"Content-Type": {"application/vnd.docker.distribution.manifest.v2+json"}},
 			),
 		),
-		ghttp.CombineHandlers(
-			ghttp.VerifyRequest("GET", "/v2/library/alpine/blobs/"+configDigest),
-			ghttp.RespondWith(http.StatusFound, nil,
+		httpstub.CombineHandlers(
+			httpstub.VerifyRequest(t, http.MethodGet, httpstub.Path("/v2/library/alpine/blobs/"+configDigest)),
+			httpstub.RespondWith(http.StatusFound, "",
 				http.Header{"Location": {server.URL() + redirectPath}},
 			),
 		),
-		ghttp.CombineHandlers(
-			ghttp.VerifyRequest("GET", redirectPath),
-			ghttp.RespondWith(http.StatusOK, validConfigJSON(expectedTime)),
+		httpstub.CombineHandlers(
+			httpstub.VerifyRequest(t, http.MethodGet, httpstub.Path(redirectPath)),
+			httpstub.RespondWith(http.StatusOK, validConfigJSON(expectedTime), nil),
 		),
 	)
 
 	parsedURL, err := url.Parse(server.URL() + "/v2/library/alpine/manifests/3.19")
 	require.NoError(t, err)
 
-	client := server.HTTPTestServer.Client()
+	client := server.Client()
 	ctx := context.Background()
 	fields := map[string]any{"test": "pipeline_redirect"}
 
@@ -1171,14 +1140,14 @@ func TestPipeline_RedirectOnBlob(t *testing.T) {
 func TestPipeline_ManifestNotFound(t *testing.T) {
 	t.Parallel()
 
-	server := ghttp.NewServer()
-	t.Cleanup(server.Close)
+	server := httpstub.New(t)
 
 	server.AppendHandlers(
-		ghttp.CombineHandlers(
-			ghttp.VerifyRequest("GET", "/v2/library/alpine/manifests/3.19"),
-			ghttp.RespondWith(http.StatusNotFound,
+		httpstub.CombineHandlers(
+			httpstub.VerifyRequest(t, http.MethodGet, httpstub.Path("/v2/library/alpine/manifests/3.19")),
+			httpstub.RespondWith(http.StatusNotFound,
 				`{"errors":[{"code":"MANIFEST_UNKNOWN","message":"manifest unknown"}]}`,
+				nil,
 			),
 		),
 	)
@@ -1187,7 +1156,7 @@ func TestPipeline_ManifestNotFound(t *testing.T) {
 	require.NoError(t, err)
 
 	_, _, err = fetchManifestForAge(newTestLogger(t), context.Background(),
-		server.HTTPTestServer.Client(),
+		server.Client(),
 		ratelimit.New(),
 		parsedURL.String(),
 		"",
@@ -1205,14 +1174,14 @@ func TestPipeline_ManifestNotFound(t *testing.T) {
 func TestPipeline_AuthFailure(t *testing.T) {
 	t.Parallel()
 
-	server := ghttp.NewServer()
-	t.Cleanup(server.Close)
+	server := httpstub.New(t)
 
 	server.AppendHandlers(
-		ghttp.CombineHandlers(
-			ghttp.VerifyRequest("GET", "/v2/library/alpine/manifests/3.19"),
-			ghttp.RespondWith(http.StatusUnauthorized,
+		httpstub.CombineHandlers(
+			httpstub.VerifyRequest(t, http.MethodGet, httpstub.Path("/v2/library/alpine/manifests/3.19")),
+			httpstub.RespondWith(http.StatusUnauthorized,
 				`{"errors":[{"code":"UNAUTHORIZED","message":"authentication required"}]}`,
+				nil,
 			),
 		),
 	)
@@ -1221,7 +1190,7 @@ func TestPipeline_AuthFailure(t *testing.T) {
 	require.NoError(t, err)
 
 	_, _, err = fetchManifestForAge(newTestLogger(t), context.Background(),
-		server.HTTPTestServer.Client(),
+		server.Client(),
 		ratelimit.New(),
 		parsedURL.String(),
 		"Bearer invalid",
@@ -1239,8 +1208,7 @@ func TestPipeline_AuthFailure(t *testing.T) {
 func TestFetchManifestForAge_OversizedManifest(t *testing.T) {
 	t.Parallel()
 
-	server := ghttp.NewServer()
-	t.Cleanup(server.Close)
+	server := httpstub.New(t)
 
 	// Build a JSON manifest larger than maxManifestSize (1 MiB) by padding the digest field.
 	oversizedDigest := "sha256:" + strings.Repeat("a", maxManifestSize+1024)
@@ -1255,9 +1223,9 @@ func TestFetchManifestForAge_OversizedManifest(t *testing.T) {
 	}`, oversizedDigest, len(oversizedDigest))
 
 	server.AppendHandlers(
-		ghttp.CombineHandlers(
-			ghttp.VerifyRequest("GET", "/v2/test/manifests/latest"),
-			ghttp.RespondWith(http.StatusOK, oversizedManifest,
+		httpstub.CombineHandlers(
+			httpstub.VerifyRequest(t, http.MethodGet, httpstub.Path("/v2/test/manifests/latest")),
+			httpstub.RespondWith(http.StatusOK, oversizedManifest,
 				http.Header{"Content-Type": {"application/vnd.docker.distribution.manifest.v2+json"}},
 			),
 		),
@@ -1267,7 +1235,7 @@ func TestFetchManifestForAge_OversizedManifest(t *testing.T) {
 	require.NoError(t, err)
 
 	_, _, err = fetchManifestForAge(newTestLogger(t), context.Background(),
-		server.HTTPTestServer.Client(),
+		server.Client(),
 		ratelimit.New(),
 		parsedURL.String(),
 		"Bearer test-token",
@@ -1335,16 +1303,15 @@ func TestSelectPlatformManifest_AmbiguousPlatformMatch(t *testing.T) {
 func TestSelectPlatformManifest_VariantSelection(t *testing.T) {
 	t.Parallel()
 
-	server := ghttp.NewServer()
-	t.Cleanup(server.Close)
+	server := httpstub.New(t)
 
 	configDigest := "sha256:cfgvariantsel01abcdef1234567890abcdef1234567890abcdef1234567890abc"
 	platformDigestV8 := "sha256:pltv8variant01abcdef1234567890abcdef1234567890abcdef123456789012"
 
 	server.AppendHandlers(
-		ghttp.CombineHandlers(
-			ghttp.VerifyRequest("GET", gomega.MatchRegexp(`/v2/repo/manifests/sha256:pltv8.*`)),
-			ghttp.RespondWith(http.StatusOK, platformManifestJSON(configDigest),
+		httpstub.CombineHandlers(
+			httpstub.VerifyRequest(t, http.MethodGet, httpstub.PathRegexp(`/v2/repo/manifests/sha256:pltv8.*`)),
+			httpstub.RespondWith(http.StatusOK, platformManifestJSON(configDigest),
 				http.Header{"Content-Type": {"application/vnd.oci.image.manifest.v1+json"}},
 			),
 		),
@@ -1383,7 +1350,7 @@ func TestSelectPlatformManifest_VariantSelection(t *testing.T) {
 	}
 
 	got, _, err := selectPlatformManifest(newTestLogger(t), context.Background(),
-		server.HTTPTestServer.Client(),
+		server.Client(),
 		ratelimit.New(),
 		idx,
 		parsedURL,
@@ -1502,23 +1469,22 @@ func indexJSONWithoutMediaType(digestCurrentPlatform, digestOther string) string
 func TestFetchManifestForAge_IndexWithoutMediaType_ContentTypeFallback(t *testing.T) {
 	t.Parallel()
 
-	server := ghttp.NewServer()
-	t.Cleanup(server.Close)
+	server := httpstub.New(t)
 
 	configDigest := "sha256:cfgnometype01abcdef1234567890abcdef1234567890abcdef1234567890abcde"
 	platformDigest := fmt.Sprintf("sha256:pltnometype%s%s01abcdef1234567890abcdef1234567890abcdef", runtime.GOOS, runtime.GOARCH)
 
 	// First response: index JSON WITHOUT top-level mediaType, but Content-Type header indicates an index.
 	server.AppendHandlers(
-		ghttp.CombineHandlers(
-			ghttp.VerifyRequest("GET", "/v2/test/manifests/latest"),
-			ghttp.RespondWith(http.StatusOK, indexJSONWithoutMediaType(platformDigest, "sha256:arm64digest"),
+		httpstub.CombineHandlers(
+			httpstub.VerifyRequest(t, http.MethodGet, httpstub.Path("/v2/test/manifests/latest")),
+			httpstub.RespondWith(http.StatusOK, indexJSONWithoutMediaType(platformDigest, "sha256:arm64digest"),
 				http.Header{"Content-Type": {"application/vnd.oci.image.index.v1+json"}},
 			),
 		),
-		ghttp.CombineHandlers(
-			ghttp.VerifyRequest("GET", gomega.MatchRegexp(`/v2/test/manifests/sha256:pltnometype.*`)),
-			ghttp.RespondWith(http.StatusOK, platformManifestJSON(configDigest),
+		httpstub.CombineHandlers(
+			httpstub.VerifyRequest(t, http.MethodGet, httpstub.PathRegexp(`/v2/test/manifests/sha256:pltnometype.*`)),
+			httpstub.RespondWith(http.StatusOK, platformManifestJSON(configDigest),
 				http.Header{"Content-Type": {"application/vnd.oci.image.manifest.v1+json"}},
 			),
 		),
@@ -1528,7 +1494,7 @@ func TestFetchManifestForAge_IndexWithoutMediaType_ContentTypeFallback(t *testin
 	require.NoError(t, err)
 
 	got, _, err := fetchManifestForAge(newTestLogger(t), context.Background(),
-		server.HTTPTestServer.Client(),
+		server.Client(),
 		ratelimit.New(),
 		parsedURL.String(),
 		"Bearer test-token",
