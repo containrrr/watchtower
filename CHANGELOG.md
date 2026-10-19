@@ -74,6 +74,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Chores
 
+- Update google.golang.org/genproto/googleapis/api digest to ce908d2 by @renovate[bot] in [#2931](https://github.com/nicholas-fedor/watchtower/pull/2931)
 - Update step-security/harden-runner action to v2.22.2 by @renovate[bot] in [#2926](https://github.com/nicholas-fedor/watchtower/pull/2926)
 - Update module github.com/valyala/fasthttp to v1.76.0 by @renovate[bot] in [#2917](https://github.com/nicholas-fedor/watchtower/pull/2917)
 - Update module github.com/knadh/koanf/v2 to v2.4.1 by @renovate[bot] in [#2913](https://github.com/nicholas-fedor/watchtower/pull/2913)
