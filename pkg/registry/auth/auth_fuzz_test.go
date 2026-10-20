@@ -6,9 +6,12 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"net/url"
 	"testing"
 
 	"github.com/distribution/reference"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	registryConfig "github.com/nicholas-fedor/watchtower/internal/config/registry"
 	"github.com/nicholas-fedor/watchtower/pkg/types"
@@ -243,5 +246,66 @@ func FuzzExtractChallengeHost(f *testing.F) {
 
 	f.Fuzz(func(_ *testing.T, realm string) {
 		_ = extractChallengeHost(newNopLogger(), realm)
+	})
+}
+
+// FuzzResolveEndpoint checks that a resolved registry endpoint is a host that
+// parses back unchanged from the URL built with it, with an http or https
+// scheme, and that every rejected endpoint is an invalid registry endpoint.
+//
+// The seeds cover http and https URLs with and without ports, a
+// scheme-relative URL, bare hosts, IPv4 and IPv6 addresses with ports, an empty
+// endpoint, and endpoints with spaces, paths, queries, user info, a bad port,
+// and an unsupported scheme.
+func FuzzResolveEndpoint(f *testing.F) {
+	for _, seed := range []string{
+		"https://mirror.example.com",
+		"http://mirror.example.com:5000",
+		"//mirror.example.com",
+		"mirror.example.com",
+		"mirror.example.com:5000",
+		"127.0.0.1:5000",
+		"[::1]:5000",
+		"",
+		"bad host",
+		"https://bad host",
+		"mirror.example.com/v2",
+		"mirror.example.com?x=1",
+		"user@mirror.example.com",
+		"mirror.example.com:abc",
+		"ftp://mirror.example.com",
+	} {
+		f.Add(seed, false)
+	}
+
+	f.Fuzz(func(t *testing.T, endpoint string, tlsSkip bool) {
+		scheme := "https"
+		if tlsSkip {
+			scheme = "http"
+		}
+
+		host, gotScheme, err := ResolveEndpoint(endpoint, "index.docker.io", scheme)
+		if err != nil {
+			require.ErrorIs(t, err, errInvalidEndpoint)
+			assert.Empty(t, host)
+			assert.Empty(t, gotScheme)
+
+			return
+		}
+
+		assert.Contains(t, []string{"http", "https"}, gotScheme)
+
+		if endpoint == "" {
+			assert.Equal(t, "index.docker.io", host)
+
+			return
+		}
+
+		require.NotEmpty(t, host)
+
+		built := url.URL{Scheme: gotScheme, Host: host, Path: "/v2/"}
+		parsed, parseErr := url.Parse(built.String())
+		require.NoError(t, parseErr, "URL %q built from endpoint %q does not parse", built.String(), endpoint)
+		assert.Equal(t, host, parsed.Host)
 	})
 }

@@ -188,8 +188,9 @@ func FuzzDigestsMatch(f *testing.F) {
 
 // FuzzBuildManifestURLForImage checks that a manifest URL built for an image
 // reference is a /v2/ manifest URL on the registry's host with the scheme the
-// TLS setting selects, that a host override that parses as a URL with a host
-// replaces its host, and that every failure is a manifest URL build error.
+// TLS setting selects, that the URL parses back to the host it was built with,
+// that a host override replaces its host, and that every failure, including an
+// override that is not a host, is a manifest URL build error.
 //
 // The seeds cover registries with and without ports, Docker Hub, lscr.io,
 // invalid references, an empty reference, long values, and host overrides as
@@ -222,25 +223,28 @@ func FuzzBuildManifestURLForImage(f *testing.F) {
 		assert.True(t, strings.HasPrefix(parsed.Path, "/v2/"), "path %q is not under /v2/", parsed.Path)
 		assert.Contains(t, parsed.Path, "/manifests/")
 
+		// The returned URL parses back to the same host, with or without an override.
+		u, parseErr := url.Parse(got)
+		require.NoError(t, parseErr)
+		assert.NotEmpty(t, u.Host)
+		assert.Equal(t, parsed.Host, u.Host)
+
+		wantScheme := "https"
+		if tlsSkip {
+			wantScheme = "http"
+		}
+
 		overrideURL, overrideErr := url.Parse(hostOverride)
 
 		switch {
 		case hostOverride == "":
-			u, parseErr := url.Parse(got)
-			require.NoError(t, parseErr)
-			assert.NotEmpty(t, u.Host)
-
-			wantScheme := "https"
-			if tlsSkip {
-				wantScheme = "http"
-			}
-
 			assert.Equal(t, wantScheme, u.Scheme)
 		case overrideErr == nil && overrideURL.Host != "":
-			assert.Equal(t, overrideURL.Host, parsed.Host)
+			assert.Equal(t, overrideURL.Host, u.Host)
 		default:
-			// The host built from an override that does not parse as a URL
-			// with a host is not checked.
+			// A bare host override is the URL's host and keeps the TLS scheme.
+			assert.Equal(t, hostOverride, u.Host)
+			assert.Equal(t, wantScheme, u.Scheme)
 		}
 	})
 }

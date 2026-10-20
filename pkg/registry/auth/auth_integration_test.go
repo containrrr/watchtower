@@ -1280,11 +1280,11 @@ var _ = ginkgo.Describe("the auth module", func() {
 			gomega.Expect(getChallengeURL(newNopLogger(), imageRef, testRegistry, "https://mirror.example.com:5000")).To(gomega.Equal(expected))
 		})
 
-		// Test case: Verifies getChallengeURL uses endpoint as bare host when URL parsing fails.
-		ginkgo.It("should use endpoint as bare host when URL parsing fails", func() {
-			expected := url.URL{Host: "invalid url with spaces", Scheme: "https", Path: "/v2/"}
+		// Test case: Verifies getChallengeURL rejects an endpoint that is neither a URL with a host nor a bare host.
+		ginkgo.It("should reject an endpoint that is not a host", func() {
 			imageRef, _ := reference.ParseNormalizedNamed("docker.io/library/nginx:latest")
-			gomega.Expect(getChallengeURL(newNopLogger(), imageRef, testRegistry, "invalid url with spaces")).To(gomega.Equal(expected))
+			_, err := getChallengeURL(newNopLogger(), imageRef, testRegistry, "invalid url with spaces")
+			gomega.Expect(err).To(gomega.MatchError(errInvalidEndpoint))
 		})
 
 		// Test case: Verifies endpoint takes precedence over lscr.io special handling.

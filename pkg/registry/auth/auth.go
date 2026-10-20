@@ -25,6 +25,7 @@ var (
 	errUnsupportedChallenge          = errors.New("unsupported challenge type from registry")
 	errUnexpectedStatus              = errors.New("unexpected status with empty WWW-Authenticate header")
 	errCrossOriginRedirect           = errors.New("cross-origin redirect not allowed for basic auth")
+	errInvalidEndpoint               = errors.New("invalid registry endpoint")
 )
 
 // TokenResult holds the result of a token acquisition operation.
@@ -71,35 +72,69 @@ func resolveChallengeScheme(log *zerolog.Logger, host string, settings registryC
 	return scheme
 }
 
-// resolveEndpointHost extracts the host and scheme from an endpoint override.
+// ResolveEndpoint returns the host and scheme of a registry endpoint override,
+// such as a registry mirror.
+//
+// An endpoint is either an http or https URL with a host, such as
+// "https://mirror.example.com:5000", or a bare host with an optional port, such
+// as "mirror.example.com:5000", "127.0.0.1:5000", or "[::1]:5000". A bare host
+// or a scheme-relative URL keeps the given scheme. An empty endpoint selects the
+// canonical host over https.
 //
 // Parameters:
-//   - endpoint: Optional registry host override, possibly with scheme.
-//   - canonical: The canonical host to use when endpoint parsing fails.
-//   - scheme: Default scheme to use when endpoint has no explicit scheme.
+//   - endpoint: Registry endpoint override, or empty for the canonical host.
+//   - canonical: Canonical registry host, used when endpoint is empty.
+//   - scheme: Scheme for an endpoint that does not name one.
 //
 // Returns:
 //   - string: The resolved host.
 //   - string: The resolved scheme.
-func resolveEndpointHost(endpoint, canonical, scheme string) (string, string) {
+//   - error: Wraps errInvalidEndpoint when endpoint is neither an http or https
+//     URL with a host nor a bare host, nil otherwise.
+func ResolveEndpoint(endpoint, canonical, scheme string) (string, string, error) {
 	if endpoint == "" {
-		return canonical, "https"
+		return canonical, "https", nil
 	}
+
+	// A bare host[:port] does not parse as a URL with a host, so it is the
+	// whole endpoint, with the given scheme.
+	host, hostScheme := endpoint, scheme
 
 	endpointURL, err := url.Parse(endpoint)
 	if err == nil && endpointURL.Host != "" {
-		host := endpointURL.Host
+		host = endpointURL.Host
 
-		s := endpointURL.Scheme
-		if s == "" {
-			s = scheme
+		switch endpointURL.Scheme {
+		case "":
+		case "http", "https":
+			hostScheme = endpointURL.Scheme
+		default:
+			return "", "", fmt.Errorf("%w: unsupported scheme %q", errInvalidEndpoint, endpointURL.Scheme)
 		}
-
-		return host, s
 	}
 
-	// If parsing fails, use the endpoint as a bare host.
-	return endpoint, scheme
+	// The errors leave out the endpoint, which can carry credentials.
+	if !isRequestHost(host, hostScheme) {
+		return "", "", fmt.Errorf("%w: not a URL with a host or a bare host", errInvalidEndpoint)
+	}
+
+	return host, hostScheme, nil
+}
+
+// isRequestHost reports whether host, with an optional port, is the whole
+// authority of a request URL with the given scheme. A URL built with it then
+// parses back to the same host.
+//
+// Parameters:
+//   - host: Host with an optional port, such as "mirror.example.com:5000".
+//   - scheme: Request scheme.
+//
+// Returns:
+//   - bool: True when the URL built with host parses back to it.
+func isRequestHost(host, scheme string) bool {
+	parsed, err := url.Parse(scheme + "://" + host + "/v2/")
+
+	return err == nil && parsed.Host == host && parsed.Hostname() != ""
 }
 
 // getChallengeURL generates a challenge URL for accessing an image's registry.
@@ -116,18 +151,23 @@ func resolveEndpointHost(endpoint, canonical, scheme string) (string, string) {
 //
 // Returns:
 //   - url.URL: Generated challenge URL.
+//   - error: Wraps errInvalidEndpoint when endpoint is not a valid registry endpoint.
 func getChallengeURL(
 	log *zerolog.Logger,
 	imageRef reference.Named,
 	settings registryConfig.Registry,
 	endpoint string,
-) url.URL {
+) (url.URL, error) {
 	host, _ := GetRegistryAddress(log, imageRef.Name())
 
 	scheme := resolveChallengeScheme(log, host, settings)
 
-	endpointHost, endpointScheme := resolveEndpointHost(endpoint, host, scheme)
 	if endpoint != "" {
+		endpointHost, endpointScheme, err := ResolveEndpoint(endpoint, host, scheme)
+		if err != nil {
+			return url.URL{}, err
+		}
+
 		host = endpointHost
 		scheme = endpointScheme
 	}
@@ -142,7 +182,7 @@ func getChallengeURL(
 		Str("url", challengeURL.String()).
 		Msg("Generated challenge URL")
 
-	return challengeURL
+	return challengeURL, nil
 }
 
 // getChallengeRequest creates a request for retrieving challenge instructions.
@@ -536,7 +576,15 @@ func GetToken(
 	}
 
 	// Generate the challenge URL, using the endpoint override if provided.
-	challengeURL := getChallengeURL(&clog, normalizedRef, settings, endpoint)
+	challengeURL, err := getChallengeURL(&clog, normalizedRef, settings, endpoint)
+	if err != nil {
+		clog.Debug().
+			Err(err).
+			Msg("Failed to build challenge URL")
+
+		return TokenResult{}, fmt.Errorf("%w: %w", errFailedCreateChallengeRequest, err)
+	}
+
 	clog.Debug().
 		Str("url", challengeURL.String()).
 		Msg("Constructed challenge URL")

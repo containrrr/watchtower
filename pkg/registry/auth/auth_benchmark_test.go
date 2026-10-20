@@ -106,7 +106,7 @@ func BenchmarkGetChallengeURL(b *testing.B) {
 
 	for b.Loop() {
 		for _, ref := range refs {
-			_ = getChallengeURL(newNopLogger(), ref, registryConfig.Registry{}, "")
+			_, _ = getChallengeURL(newNopLogger(), ref, registryConfig.Registry{}, "")
 		}
 	}
 }

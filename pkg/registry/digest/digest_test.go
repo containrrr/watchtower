@@ -845,6 +845,29 @@ func TestCompareDigestWithRemote(t *testing.T) {
 	assert.Equal(t, "sha256:"+remoteHash, remoteDigest)
 }
 
+// TestCompareDigestWithRemote_SkipsInvalidEndpoint verifies that a registry
+// endpoint override that is not a host is skipped for the next endpoint
+// without a request to it.
+func TestCompareDigestWithRemote_SkipsInvalidEndpoint(t *testing.T) {
+	t.Parallel()
+
+	const remoteHash = "sha256:abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"
+
+	server := httpstub.New(t)
+	server.AppendHandlers(
+		anonymousRegistryHandler(t),
+		manifestHandler(t, http.MethodHead, "/v2/myapp/manifests/latest", http.StatusOK, digestHeader(remoteHash)),
+	)
+
+	container := newRegistryContainer(t, server.Addr()+"/myapp:latest", "registry.example.com/myapp@"+remoteHash)
+
+	match, _, err := CompareDigestWithRemote(newTestLogger(t), context.Background(),
+		container, "", registryConfig.Registry{}, ratelimit.New(), "bad host", server.URL())
+	require.NoError(t, err)
+	assert.True(t, match)
+	assert.Len(t, server.ReceivedRequests(), 2)
+}
+
 // TestCompareDigestWithRemote_Head429DoesNotFallBackToGET verifies that a rate
 // limited HEAD request returns the rate limit error instead of retrying the
 // manifest with GET, which would spend more of the registry's quota.
@@ -1413,6 +1436,7 @@ func TestBuildManifestURL(t *testing.T) {
 		hostOverride string
 		expectedURL  string
 		expectedHost string
+		wantErr      bool
 	}{
 		{
 			name:         "builds HTTPS manifest URL with empty override",
@@ -1447,6 +1471,19 @@ func TestBuildManifestURL(t *testing.T) {
 			expectedURL:  "https://ghcr.io/v2/linuxserver/radarr/manifests/latest",
 			expectedHost: "lscr.io",
 		},
+		{
+			name:         "overrides host with a bare host and port",
+			image:        "nginx:latest",
+			hostOverride: "127.0.0.1:5000",
+			expectedURL:  "https://127.0.0.1:5000/v2/library/nginx/manifests/latest",
+			expectedHost: "index.docker.io",
+		},
+		{
+			name:         "rejects a host override that is not a host",
+			image:        "nginx:latest",
+			hostOverride: "bad host",
+			wantErr:      true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -1456,6 +1493,13 @@ func TestBuildManifestURL(t *testing.T) {
 			settings := registryConfig.Registry{TLSSkip: tt.tlsSkip}
 
 			gotURL, gotHost, _, err := buildManifestURL(newTestLogger(t), newRegistryContainer(t, tt.image), settings, tt.hostOverride)
+			if tt.wantErr {
+				require.ErrorIs(t, err, errFailedBuildManifestURL)
+				assert.Empty(t, gotURL)
+
+				return
+			}
+
 			require.NoError(t, err)
 			assert.Equal(t, tt.expectedURL, gotURL)
 			assert.Equal(t, tt.expectedHost, gotHost)

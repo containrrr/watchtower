@@ -80,62 +80,125 @@ func Test_resolveChallengeScheme(t *testing.T) {
 	}
 }
 
-func Test_resolveEndpointHost(t *testing.T) {
+// TestResolveEndpoint verifies the host and scheme taken from registry
+// endpoint overrides, as http and https URLs, scheme-relative URLs, and bare
+// hosts with and without ports, and that any other endpoint is rejected.
+func TestResolveEndpoint(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
-		name      string
-		endpoint  string
-		canonical string
-		scheme    string
-		want      string
-		want1     string
+		name       string
+		endpoint   string
+		canonical  string
+		scheme     string
+		wantHost   string
+		wantScheme string
+		wantErr    bool
 	}{
 		{
-			name:      "returns endpoint and http when endpoint is provided",
-			endpoint:  "http://custom.example.com",
-			canonical: "index.docker.io",
-			scheme:    "https",
-			want:      "custom.example.com",
-			want1:     "http",
+			name:       "returns endpoint and http when endpoint is provided",
+			endpoint:   "http://custom.example.com",
+			canonical:  "index.docker.io",
+			scheme:     "https",
+			wantHost:   "custom.example.com",
+			wantScheme: "http",
 		},
 		{
-			name:      "returns canonical host and https when endpoint is empty",
-			endpoint:  "",
-			canonical: "index.docker.io",
-			scheme:    "https",
-			want:      "index.docker.io",
-			want1:     "https",
+			name:       "returns canonical host and https when endpoint is empty",
+			endpoint:   "",
+			canonical:  "index.docker.io",
+			scheme:     "https",
+			wantHost:   "index.docker.io",
+			wantScheme: "https",
 		},
 		{
-			name:      "returns empty host and https when both are empty",
-			endpoint:  "",
-			canonical: "",
-			scheme:    "https",
-			want:      "",
-			want1:     "https",
+			name:       "returns empty host and https when both are empty",
+			endpoint:   "",
+			canonical:  "",
+			scheme:     "https",
+			wantHost:   "",
+			wantScheme: "https",
 		},
 		{
-			name:      "bare endpoint preserves provided scheme",
-			endpoint:  "custom.example.com",
-			canonical: "index.docker.io",
-			scheme:    "http",
-			want:      "custom.example.com",
-			want1:     "http",
+			name:       "bare endpoint preserves provided scheme",
+			endpoint:   "custom.example.com",
+			canonical:  "index.docker.io",
+			scheme:     "http",
+			wantHost:   "custom.example.com",
+			wantScheme: "http",
 		},
 		{
-			name:      "bare endpoint falls back to https when scheme is https",
-			endpoint:  "custom.example.com",
-			canonical: "index.docker.io",
-			scheme:    "https",
-			want:      "custom.example.com",
-			want1:     "https",
+			name:       "bare endpoint falls back to https when scheme is https",
+			endpoint:   "custom.example.com",
+			canonical:  "index.docker.io",
+			scheme:     "https",
+			wantHost:   "custom.example.com",
+			wantScheme: "https",
 		},
+		{
+			name:       "URL endpoint keeps its port",
+			endpoint:   "https://mirror.example.com:5000",
+			scheme:     "http",
+			wantHost:   "mirror.example.com:5000",
+			wantScheme: "https",
+		},
+		{
+			name:       "scheme-relative endpoint keeps the provided scheme",
+			endpoint:   "//mirror.example.com",
+			scheme:     "http",
+			wantHost:   "mirror.example.com",
+			wantScheme: "http",
+		},
+		{
+			name:       "bare host with port",
+			endpoint:   "mirror.example.com:5000",
+			scheme:     "https",
+			wantHost:   "mirror.example.com:5000",
+			wantScheme: "https",
+		},
+		{
+			name:       "bare IPv4 address with port",
+			endpoint:   "127.0.0.1:5000",
+			scheme:     "http",
+			wantHost:   "127.0.0.1:5000",
+			wantScheme: "http",
+		},
+		{
+			name:       "bare IPv6 address with port",
+			endpoint:   "[::1]:5000",
+			scheme:     "http",
+			wantHost:   "[::1]:5000",
+			wantScheme: "http",
+		},
+		{name: "rejects a host with spaces", endpoint: "bad host", scheme: "https", wantErr: true},
+		{name: "rejects a URL whose host has spaces", endpoint: "https://bad host", scheme: "https", wantErr: true},
+		{name: "rejects a bare host with a path", endpoint: "mirror.example.com/v2", scheme: "https", wantErr: true},
+		{name: "rejects a bare host with a query", endpoint: "mirror.example.com?x=1", scheme: "https", wantErr: true},
+		{name: "rejects a bare host with user info", endpoint: "user@mirror.example.com", scheme: "https", wantErr: true},
+		{name: "rejects a bare host with a non-numeric port", endpoint: "mirror.example.com:abc", scheme: "https", wantErr: true},
+		{name: "rejects a URL with an unsupported scheme", endpoint: "ftp://mirror.example.com", scheme: "https", wantErr: true},
+		{name: "rejects a port without a host", endpoint: ":5000", scheme: "https", wantErr: true},
+		{name: "rejects a bare IPv6 address without brackets", endpoint: "::", scheme: "http", wantErr: true},
+		{name: "rejects a host made of colons and digits", endpoint: ":0:0", scheme: "https", wantErr: true},
+		{name: "rejects a URL whose host has no name", endpoint: "http://:5000", scheme: "https", wantErr: true},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, got1 := resolveEndpointHost(tt.endpoint, tt.canonical, tt.scheme)
-			assert.Equal(t, tt.want, got)
-			assert.Equal(t, tt.want1, got1)
+			t.Parallel()
+
+			gotHost, gotScheme, err := ResolveEndpoint(tt.endpoint, tt.canonical, tt.scheme)
+			if tt.wantErr {
+				require.ErrorIs(t, err, errInvalidEndpoint)
+				assert.Empty(t, gotHost)
+				assert.Empty(t, gotScheme)
+
+				return
+			}
+
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantHost, gotHost)
+			assert.Equal(t, tt.wantScheme, gotScheme)
 		})
 	}
 }
@@ -195,6 +258,12 @@ func TestGetChallengeURL(t *testing.T) {
 			endpoint: "",
 			wantErr:  true,
 		},
+		{
+			name:     "invalid endpoint returns error",
+			imageRef: "docker.io/library/nginx:latest",
+			endpoint: "invalid url with spaces",
+			wantErr:  true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -208,12 +277,15 @@ func TestGetChallengeURL(t *testing.T) {
 				return
 			}
 
-			got := getChallengeURL(newTestLogger(t), ref, registryConfig.Registry{}, tt.endpoint)
+			got, err := getChallengeURL(newTestLogger(t), ref, registryConfig.Registry{}, tt.endpoint)
 			if tt.wantErr {
+				require.ErrorIs(t, err, errInvalidEndpoint)
 				assert.Empty(t, got.Host)
 
 				return
 			}
+
+			require.NoError(t, err)
 
 			assert.Equal(t, tt.wantHost, got.Host)
 			assert.Equal(t, tt.wantScheme, got.Scheme)

@@ -646,18 +646,15 @@ func buildManifestURLForImage(log *zerolog.Logger,
 	}
 
 	if hostOverride != "" {
-		// Parse hostOverride to support full endpoint URLs (with scheme) in addition to bare hosts.
-		// Mirrors from daemon.json may include schemes and mirrors the logic in auth.getChallengeURL.
-		overrideURL, parseErr := url.Parse(hostOverride)
-		if parseErr == nil && overrideURL.Host != "" {
-			parsedURL.Host = overrideURL.Host
-			if overrideURL.Scheme != "" {
-				parsedURL.Scheme = overrideURL.Scheme
-			}
-		} else {
-			parsedURL.Host = hostOverride
+		// Resolve the override as the challenge request does, so a mirror given
+		// as a URL or as a bare host reaches the same host for both requests.
+		host, scheme, err := auth.ResolveEndpoint(hostOverride, parsedURL.Host, parsedURL.Scheme)
+		if err != nil {
+			return "", "", nil, fmt.Errorf("%w: %w", errFailedBuildManifestURL, err)
 		}
 
+		parsedURL.Host = host
+		parsedURL.Scheme = scheme
 		manifestURLStr = parsedURL.String()
 	}
 
