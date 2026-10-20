@@ -9,8 +9,22 @@ import (
 	"github.com/nicholas-fedor/watchtower/pkg/container"
 )
 
-// FuzzExtractDigest verifies that ExtractImageDigest never panics and correctly
-// extracts digests from RepoDigests strings in various formats.
+// repoDigestPart returns the digest part of a RepoDigest, after its first @.
+//
+// Parameters:
+//   - repoDigest: RepoDigest in the format "name@digest".
+//
+// Returns:
+//   - string: The part after the first @, empty when there is none.
+func repoDigestPart(repoDigest string) string {
+	_, digest, _ := strings.Cut(repoDigest, "@")
+
+	return digest
+}
+
+// FuzzExtractDigest verifies that ExtractImageDigest never panics and returns
+// either nothing or the non-empty digest part of the RepoDigest. Docker reports
+// RepoDigests as "name@sha256:...", so the digest is passed on as it is.
 func FuzzExtractDigest(f *testing.F) {
 	f.Add("nginx@sha256:abc123")
 	f.Add("my-registry.com/nginx@sha256:abc123def456")
@@ -31,13 +45,12 @@ func FuzzExtractDigest(f *testing.F) {
 			return
 		}
 
-		assert.True(t, digest == "" || strings.HasPrefix(digest, "sha256:"),
-			"digest should be empty or start with sha256:, got %q", digest)
+		assert.Equal(t, repoDigestPart(repoDigest), digest)
 	})
 }
 
-// FuzzExtractDigestMultiple verifies that ExtractImageDigest correctly selects
-// a valid digest from a list of RepoDigests.
+// FuzzExtractDigestMultiple verifies that ExtractImageDigest selects the digest
+// of one of the RepoDigests, or nothing when none has a digest part.
 func FuzzExtractDigestMultiple(f *testing.F) {
 	f.Add("nginx@sha256:abc123")
 	f.Add("sha256:invalid,nginx@sha256:valid")
@@ -51,8 +64,20 @@ func FuzzExtractDigestMultiple(f *testing.F) {
 
 		result := container.ExtractImageDigest(digests, "nginx:latest")
 
-		assert.True(t, result == "" || strings.HasPrefix(result, "sha256:"),
-			"result should be empty or start with sha256:, got %q", result)
+		candidates := make([]string, 0, len(digests))
+		for _, d := range digests {
+			if part := repoDigestPart(d); part != "" {
+				candidates = append(candidates, part)
+			}
+		}
+
+		if len(candidates) == 0 {
+			assert.Empty(t, result)
+
+			return
+		}
+
+		assert.Contains(t, candidates, result)
 	})
 }
 

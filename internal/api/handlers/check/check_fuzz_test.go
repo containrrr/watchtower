@@ -3,6 +3,7 @@ package check
 import (
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -10,6 +11,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// maxFuzzQueryLength bounds the encoded query of a fuzzed request, so the request
+// line fits the server's 8 KiB read buffer, which rejects longer request lines
+// before any handler runs.
+const maxFuzzQueryLength = 4096
 
 // FuzzExtractFilterParams verifies that extractFilterParams never panics and
 // correctly parses query parameters with various delimiters and encodings.
@@ -37,8 +43,14 @@ func FuzzExtractFilterParams(f *testing.F) {
 			return c.SendString("ok")
 		})
 
-		encodedValue := strings.ReplaceAll(rawValue, " ", "%20")
-		req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/test?"+key+"="+encodedValue, nil)
+		// Encode both the key and the value, so any fuzzed string reaches the
+		// handler as it is instead of breaking the request line.
+		query := url.Values{key: {rawValue}}.Encode()
+		if len(query) > maxFuzzQueryLength {
+			t.Skip("request line longer than the server reads")
+		}
+
+		req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/test?"+query, nil)
 		resp, err := app.Test(req)
 		require.NoError(t, err)
 

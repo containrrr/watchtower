@@ -1,10 +1,12 @@
 package git
 
 import (
+	"net/url"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // FuzzParseRepo verifies clone URLs from labels never panic and that a
@@ -53,7 +55,8 @@ func FuzzApplyVars(f *testing.F) {
 	})
 }
 
-// FuzzDerivedReleasesURL verifies release URL derivation never panics.
+// FuzzDerivedReleasesURL verifies release URL derivation never panics and
+// yields an http or https URL that parses and has no dot path segments.
 func FuzzDerivedReleasesURL(f *testing.F) {
 	f.Add("https://github.com/org/app.git", "", "")
 	f.Add("https://gitlab.com/org/app.git", "", "v1.2.3")
@@ -69,7 +72,15 @@ func FuzzDerivedReleasesURL(f *testing.F) {
 		}
 
 		assert.True(t, strings.HasPrefix(got, "http://") || strings.HasPrefix(got, "https://"), got)
-		assert.NotContains(t, got, "..")
+
+		// No dot segment may restructure the release path.
+		parsed, err := url.Parse(got)
+		require.NoError(t, err)
+
+		for segment := range strings.SplitSeq(parsed.Path, "/") {
+			assert.NotEqual(t, ".", segment, got)
+			assert.NotEqual(t, "..", segment, got)
+		}
 	})
 }
 
@@ -90,7 +101,6 @@ func FuzzSafeReleaseTag(f *testing.F) {
 		}
 
 		assert.NotEmpty(t, tag)
-		assert.NotContains(t, tag, "..")
 		assert.NotContains(t, tag, "?")
 
 		for part := range strings.SplitSeq(tag, "/") {

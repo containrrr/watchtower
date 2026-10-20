@@ -53,6 +53,22 @@ tasks:
     cmds:
       - go test -count=2 -shuffle=on -timeout 120s $(go list ./... | grep -Ev '{{.REPEAT_EXCLUDE}}')
 
+  fuzz:
+    desc: "Run each fuzz target for 10s (FUZZTIME), in FUZZPKGS (default ./...), with FUZZPARALLEL workers (default 8)"
+    cmds:
+      - |
+        set -eu
+        pkgs=$(go list {{.FUZZPKGS | default "./..."}})
+        for pkg in $pkgs; do
+          case "$pkg" in */mocks) continue ;; esac
+          listing=$(go test -list '^Fuzz' "$pkg")
+          targets=$(printf '%s\n' "$listing" | grep '^Fuzz' || true)
+          for target in $targets; do
+            echo "fuzzing $pkg $target"
+            go test -run='^$' -fuzz="^${target}\$" -fuzztime={{.FUZZTIME | default "10s"}} -parallel={{.FUZZPARALLEL | default "8"}} "$pkg"
+          done
+        done
+
   test:update-golden:
     desc: Rewrite golden test files from the current output (review the diff before committing)
     env:

@@ -17,6 +17,11 @@ import (
 	"github.com/nicholas-fedor/watchtower/internal/scheduling"
 )
 
+// maxFuzzQueryLength bounds the encoded query of a fuzzed request, so the request
+// line fits the server's 8 KiB read buffer, which rejects longer request lines
+// before any handler runs.
+const maxFuzzQueryLength = 4096
+
 // FuzzExtractImagesHandler fuzzes the image-name parsing logic through the
 // Handler struct with arbitrary query parameter values.
 func FuzzExtractImagesHandler(f *testing.F) {
@@ -55,7 +60,12 @@ func FuzzExtractImagesHandler(f *testing.F) {
 			return nil
 		})
 
-		req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/test?image="+url.QueryEscape(raw), nil)
+		query := "image=" + url.QueryEscape(raw)
+		if len(query) > maxFuzzQueryLength {
+			t.Skip("request line longer than the server reads")
+		}
+
+		req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/test?"+query, nil)
 
 		resp, err := app.Test(req)
 		if err != nil && !errors.Is(err, context.DeadlineExceeded) {
@@ -104,7 +114,12 @@ func FuzzExtractContainersHandler(f *testing.F) {
 			return nil
 		})
 
-		req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/test?container="+url.QueryEscape(raw), nil)
+		query := "container=" + url.QueryEscape(raw)
+		if len(query) > maxFuzzQueryLength {
+			t.Skip("request line longer than the server reads")
+		}
+
+		req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/test?"+query, nil)
 
 		resp, err := app.Test(req)
 		if err != nil && !errors.Is(err, context.DeadlineExceeded) {

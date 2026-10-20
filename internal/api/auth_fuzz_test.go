@@ -170,6 +170,14 @@ func FuzzAPIAuthMiddleware_CookieFallback(f *testing.F) {
 		}
 
 		provided := strings.TrimPrefix(cookie, "access_token=")
+
+		// RFC 6265 cookie values exclude whitespace, quotes, commas, semicolons,
+		// backslashes, and control characters, which the server does not carry
+		// over, so only a valid cookie value can be compared as it was sent.
+		if !isCookieValue(provided) {
+			return
+		}
+
 		expectedHash := sha256.Sum256([]byte(token))
 		providedHash := sha256.Sum256([]byte(provided))
 
@@ -253,4 +261,22 @@ func FuzzAPIAuthMiddleware_NoPanic(f *testing.F) {
 		assert.True(t, resp.StatusCode >= 200 && resp.StatusCode < 600,
 			"expected valid HTTP status code, got %d", resp.StatusCode)
 	})
+}
+
+// isCookieValue reports whether value consists only of RFC 6265 cookie-octets.
+//
+// Parameters:
+//   - value: Candidate cookie value.
+//
+// Returns:
+//   - bool: True when every byte is a cookie-octet.
+func isCookieValue(value string) bool {
+	for i := range len(value) {
+		b := value[i]
+		if b < 0x21 || b > 0x7e || b == '"' || b == ',' || b == ';' || b == '\\' {
+			return false
+		}
+	}
+
+	return true
 }

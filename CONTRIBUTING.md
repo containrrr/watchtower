@@ -132,6 +132,23 @@ Two further tasks help catch concurrency and test-isolation bugs:
 * `task test:race` - runs the tests with the race detector
 * `task test:repeat` - runs the repeat-safe packages twice in shuffled order to catch state leaking between tests
 
+### Fuzzing
+
+`task test` runs each fuzz target's seed corpus only.
+To fuzz the targets, run:
+
+```bash
+task fuzz
+```
+
+This fuzzes every target in the module for 10 seconds each, one after another, and stops at the first failing input.
+Go saves that input under the package's `testdata/fuzz` directory, where `go test` replays it as a regression case until it is removed.
+Three variables adjust the run:
+
+* `FUZZTIME` - how long to fuzz each target, for example `task fuzz FUZZTIME=1m`
+* `FUZZPKGS` - the packages to fuzz, for example `task fuzz FUZZPKGS=./pkg/registry/...`
+* `FUZZPARALLEL` - the number of fuzzing workers, 8 by default
+
 ### Golden Files
 
 Some tests compare output against golden files in `testdata/` directories, such as the `--help` output, the flag manifest, and the inventory of environment variables and container labels.
