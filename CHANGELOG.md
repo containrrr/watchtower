@@ -68,6 +68,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- Convert the logging suite to testify by @nicholas-fedor in [#2965](https://github.com/nicholas-fedor/watchtower/pull/2965)
 - Convert the compose suite to testify by @nicholas-fedor in [#2963](https://github.com/nicholas-fedor/watchtower/pull/2963)
 - Convert the registry auth suite to testify by @nicholas-fedor in [#2949](https://github.com/nicholas-fedor/watchtower/pull/2949)
 - Convert the registry digest and manifest suites to testify by @nicholas-fedor in [#2925](https://github.com/nicholas-fedor/watchtower/pull/2925)
