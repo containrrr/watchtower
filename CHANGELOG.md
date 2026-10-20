@@ -84,6 +84,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Chores
 
+- Update module github.com/docker/docker-credential-helpers to v0.9.12 by @renovate[bot] in [#2968](https://github.com/nicholas-fedor/watchtower/pull/2968)
 - Update module github.com/docker/cli to v29.9.2+incompatible by @renovate[bot] in [#2967](https://github.com/nicholas-fedor/watchtower/pull/2967)
 - Update module github.com/gofiber/schema to v1.9.0 by @renovate[bot] in [#2961](https://github.com/nicholas-fedor/watchtower/pull/2961)
 - Update module github.com/huandu/xstrings to v1.6.3 by @renovate[bot] in [#2958](https://github.com/nicholas-fedor/watchtower/pull/2958)
