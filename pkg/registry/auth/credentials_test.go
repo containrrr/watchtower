@@ -10,7 +10,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TestTransformAuth verifies that base64 JSON credentials with a password
+// become a base64 "username:password" credential, and that any other input,
+// including credentials without a password, is returned as it is.
 func TestTransformAuth(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name         string
 		registryAuth string
@@ -47,6 +52,11 @@ func TestTransformAuth(t *testing.T) {
 			want:         "OnBhc3M=", // ":pass"
 		},
 		{
+			name:         "valid base64 JSON with empty username and password returns original",
+			registryAuth: "eyJ1c2VybmFtZSI6IiIsInBhc3N3b3JkIjoiIn0=",
+			want:         "eyJ1c2VybmFtZSI6IiIsInBhc3N3b3JkIjoiIn0=",
+		},
+		{
 			name:         "valid base64 empty JSON object returns original",
 			registryAuth: "e30=",
 			want:         "e30=",
@@ -65,13 +75,19 @@ func TestTransformAuth(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := TransformAuth(newTestLogger(t), tt.registryAuth)
 			assert.Equal(t, tt.want, got)
 		})
 	}
 }
 
+// TestTransformAuthURLEncodedJSONCredentials verifies that credentials in
+// URL-safe base64, as Watchtower encodes them, are transformed too.
 func TestTransformAuthURLEncodedJSONCredentials(t *testing.T) {
+	t.Parallel()
+
 	// Password '?' (0x3f) yields URL-safe '-' in the JSON blob when URL-encoded,
 	// which StdEncoding alone cannot decode.
 	creds := map[string]string{
@@ -91,7 +107,11 @@ func TestTransformAuthURLEncodedJSONCredentials(t *testing.T) {
 	assert.Equal(t, "u:"+strings.Repeat("?", 8), string(decoded))
 }
 
+// TestTransformAuthIdentityToken verifies that an identity token from a
+// credential helper is used as the password.
 func TestTransformAuthIdentityToken(t *testing.T) {
+	t.Parallel()
+
 	creds := map[string]string{
 		"identitytoken": "ecr-session-token",
 	}
@@ -105,7 +125,11 @@ func TestTransformAuthIdentityToken(t *testing.T) {
 	assert.Equal(t, ":ecr-session-token", string(decoded))
 }
 
+// TestTransformAuthPasswordOnly verifies that a password without a username
+// becomes a credential with an empty username.
 func TestTransformAuthPasswordOnly(t *testing.T) {
+	t.Parallel()
+
 	creds := map[string]string{
 		"password": "ghcr-pat-token",
 	}

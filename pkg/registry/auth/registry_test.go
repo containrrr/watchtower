@@ -7,7 +7,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// Test_parseChallenge verifies that a bearer challenge's realm, service, and
+// scope are read case-insensitively by key, unquoted, with commas inside quotes
+// kept, and that a header that is not a bearer challenge yields nothing.
 func Test_parseChallenge(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name   string
 		header string
@@ -97,13 +102,19 @@ func Test_parseChallenge(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := parseChallenge(tt.header)
 			assert.Equal(t, tt.want, got)
 		})
 	}
 }
 
+// Test_extractChallengeHost verifies that the challenge host is the host of an
+// HTTP or HTTPS realm URL, and empty for any other realm.
 func Test_extractChallengeHost(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name  string
 		realm string
@@ -168,19 +179,26 @@ func Test_extractChallengeHost(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := extractChallengeHost(newTestLogger(t), tt.realm)
 			assert.Equal(t, tt.want, got)
 		})
 	}
 }
 
+// TestGetRegistryAddress verifies the registry host of an image reference:
+// Docker Hub references, with or without a registry, use index.docker.io,
+// lscr.io references use ghcr.io, other hosts pass through, and a reference
+// that does not parse is an error.
 func TestGetRegistryAddress(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
-		name      string
-		imageRef  string
-		want      string
-		wantErr   bool
-		errSubstr string
+		name     string
+		imageRef string
+		want     string
+		wantErr  bool
 	}{
 		{
 			name:     "docker.io maps to index.docker.io",
@@ -190,6 +208,16 @@ func TestGetRegistryAddress(t *testing.T) {
 		{
 			name:     "docker.io without path maps to index.docker.io",
 			imageRef: "docker.io/nginx",
+			want:     "index.docker.io",
+		},
+		{
+			name:     "official image without a registry uses Docker Hub",
+			imageRef: "watchtower",
+			want:     "index.docker.io",
+		},
+		{
+			name:     "user image without a registry uses Docker Hub",
+			imageRef: "nickfedor/watchtower",
 			want:     "index.docker.io",
 		},
 		{
@@ -228,33 +256,45 @@ func TestGetRegistryAddress(t *testing.T) {
 			want:     "localhost:5000",
 		},
 		{
+			name:     "localhost without a port passes through",
+			imageRef: "localhost/watchtower",
+			want:     "localhost",
+		},
+		{
+			name:     "local host with a port passes through",
+			imageRef: "henk:80/watchtower",
+			want:     "henk:80",
+		},
+		{
+			name:     "fully qualified host passes through",
+			imageRef: "github.com/nicholas-fedor/config",
+			want:     "github.com",
+		},
+		{
 			name:     "127.0.0.1 passes through",
 			imageRef: "127.0.0.1:5000/myimage:latest",
 			want:     "127.0.0.1:5000",
 		},
 		{
-			name:      "empty image ref returns error",
-			imageRef:  "",
-			wantErr:   true,
-			errSubstr: "failed to parse image reference",
+			name:     "empty image ref returns error",
+			imageRef: "",
+			wantErr:  true,
 		},
 		{
-			name:      "invalid image ref returns error",
-			imageRef:  ":::invalid:::",
-			wantErr:   true,
-			errSubstr: "failed to parse image reference",
+			name:     "invalid image ref returns error",
+			imageRef: ":::invalid:::",
+			wantErr:  true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got, err := GetRegistryAddress(newTestLogger(t), tt.imageRef)
 			if tt.wantErr {
-				assert.Error(t, err)
-
-				if tt.errSubstr != "" {
-					assert.Contains(t, err.Error(), tt.errSubstr)
-				}
+				require.ErrorIs(t, err, errFailedParseImageReference)
+				assert.Empty(t, got)
 
 				return
 			}

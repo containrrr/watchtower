@@ -2,226 +2,357 @@ package auth
 
 import (
 	"bytes"
-	"context"
+	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"testing"
+	"time"
+	"unicode/utf8"
 
 	"github.com/distribution/reference"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
 	registryConfig "github.com/nicholas-fedor/watchtower/internal/config/registry"
+	mockAuth "github.com/nicholas-fedor/watchtower/pkg/registry/auth/mocks"
 	"github.com/nicholas-fedor/watchtower/pkg/types"
 )
 
-// mockClient is a mock implementation of the Client interface for fuzz testing.
-type mockClient struct {
-	body []byte
+// maxFuzzTokenResponseSize is the largest token response body that
+// readBearerTokenWithExpiry reads.
+const maxFuzzTokenResponseSize = 1 << 20
+
+// expectedToken returns the token that readBearerTokenWithExpiry reads from a
+// token response body, or the error it must wrap for the body.
+//
+// Parameters:
+//   - body: Token response body.
+//
+// Returns:
+//   - string: The token, or the access token when the token is empty.
+//   - error: Sentinel the error must wrap, nil when the body is a JSON token response.
+func expectedToken(body []byte) (string, error) {
+	if len(body) > maxFuzzTokenResponseSize {
+		return "", errFailedDecodeResponse
+	}
+
+	var response types.TokenResponse
+
+	err := json.Unmarshal(body, &response)
+	if err != nil {
+		return "", errFailedUnmarshalBearerResponse
+	}
+
+	if response.Token != "" {
+		return response.Token, nil
+	}
+
+	return response.AccessToken, nil
 }
 
-func (m *mockClient) Do(_ *http.Request) (*http.Response, error) {
-	return &http.Response{
-		StatusCode: http.StatusOK,
-		Body:       io.NopCloser(bytes.NewReader(m.body)),
-	}, nil
-}
-
-// FuzzGetBearerToken fuzzes the JSON unmarshaling in getBearerToken to ensure robust parsing
-// of token responses from registries. It tests various JSON inputs including valid responses,
-// malformed JSON, missing fields, and edge cases to prevent crashes or unexpected behavior.
+// FuzzGetBearerToken checks that a bearer token fetched from a token response
+// is "Bearer " followed by the response's token, or its access_token when the
+// token is empty, and that a response that is not a JSON token response, or
+// that has neither token, is an error.
+//
+// The seeds cover valid responses, malformed JSON, missing fields, a token of
+// another type, null, an empty body, and a long token.
 func FuzzGetBearerToken(f *testing.F) {
-	// Seed with valid JSON responses
-	f.Add([]byte(`{"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"}`))
-	f.Add([]byte(`{"token":""}`))
-	f.Add([]byte(`{"token":null}`))
+	for _, seed := range []string{
+		`{"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"}`,
+		`{"access_token":"fallback"}`,
+		`{"token":""}`,
+		`{"token":null}`,
+		`{"token":"test"`,
+		`invalid json`,
+		`{"token":}`,
+		`{"token": "test",}`,
+		`{}`,
+		`{"other":"field"}`,
+		`[]`,
+		`{"token":123}`,
+		`{"token":true}`,
+		`{"token":{"nested":"object"}}`,
+		`{"token":["array"]}`,
+		`null`,
+		``,
+		`{"token":"very long token string that might cause issues if not handled properly in some parsers but json should handle it fine"}`,
+	} {
+		f.Add([]byte(seed))
+	}
 
-	// Seed with malformed JSON
-	f.Add([]byte(`{"token":"test"`))
-	f.Add([]byte(`invalid json`))
-	f.Add([]byte(`{"token":}`))
-	f.Add([]byte(`{"token": "test",}`))
+	imageRef, err := reference.ParseNormalizedNamed("test/image")
+	require.NoError(f, err)
 
-	// Seed with missing fields
-	f.Add([]byte(`{}`))
-	f.Add([]byte(`{"other":"field"}`))
-	f.Add([]byte(`[]`))
-
-	// Seed with edge cases
-	f.Add([]byte(`{"token":123}`))
-	f.Add([]byte(`{"token":true}`))
-	f.Add([]byte(`{"token":{"nested":"object"}}`))
-	f.Add([]byte(`{"token":["array"]}`))
-	f.Add([]byte(`null`))
-	f.Add([]byte(``))
-	f.Add(
-		[]byte(
-			`{"token":"very long token string that might cause issues if not handled properly in some parsers but json should handle it fine"}`,
-		),
-	)
-
-	f.Fuzz(func(t *testing.T, jsonData []byte) {
+	f.Fuzz(func(t *testing.T, body []byte) {
+		// Each input starts without a cached token for the fixed realm.
 		initTokenCache(newNopLogger())
 		tokenCache.InvalidateAll()
 
-		// Attempt to unmarshal the JSON data into a TokenResponse struct
-		var tokenResponse types.TokenResponse
-
-		_ = json.Unmarshal(jsonData, &tokenResponse)
-
-		// Call getBearerToken with a mock client that returns the fuzzed JSON data as the response body
-		// to exercise the auth package logic
-		ctx := context.Background()
-
-		imageRef, err := reference.ParseNormalizedNamed("test/image")
-		if err != nil {
-			t.Fatal(err)
-		}
+		client := mockAuth.NewMockClient(t)
+		client.EXPECT().Do(mock.Anything).RunAndReturn(func(*http.Request) (*http.Response, error) {
+			return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(bytes.NewReader(body))}, nil
+		}).Once()
 
 		challenge := `bearer realm="https://test.com/token",service="test.com"`
-		registryAuth := ""
-		client := &mockClient{body: jsonData}
-		_, _ = getBearerToken(newNopLogger(), ctx, challenge, imageRef, registryAuth, client, registryConfig.Registry{})
+
+		got, err := getBearerToken(newNopLogger(), t.Context(), challenge, imageRef, "", client, registryConfig.Registry{})
+
+		want, wantErr := expectedToken(body)
+		if wantErr == nil && want == "" {
+			wantErr = errFailedDecodeResponse
+		}
+
+		if wantErr != nil {
+			require.ErrorIs(t, err, wantErr)
+			assert.Empty(t, got)
+
+			return
+		}
+
+		require.NoError(t, err)
+		assert.Equal(t, "Bearer "+want, got)
 	})
 }
 
-// FuzzTransformAuth fuzzes the TransformAuth function to test for crashes or unexpected behavior
-// with various base64-encoded inputs. It ensures robust decoding and unmarshaling of JSON credentials,
-// covering valid inputs, malformed base64, invalid JSON, and edge cases.
+// FuzzTransformAuth checks that TransformAuth turns base64 JSON credentials,
+// in standard or URL-safe encoding, with a password or identity token into a
+// base64 "username:password" credential, and returns any other input as it is.
+//
+// The seeds cover credentials with a username and password, with only a
+// username or a password, an empty object, truncated JSON, input that is not
+// base64, base64 text that is not JSON, an empty string, and a null username.
 func FuzzTransformAuth(f *testing.F) {
-	// Seed with valid base64-encoded JSON credentials
-	f.Add(
-		"eyJ1c2VybmFtZSI6InRlc3R1c2VyIiwicGFzc3dvcmQiOiJ0ZXN0cGFzcyJ9",
-	) // {"username":"testuser","password":"testpass"}
-	// Seed with valid base64 but incomplete JSON (missing password)
-	f.Add("eyJ1c2VybmFtZSI6InVzZXIifQ==") // {"username":"user"}
-	// Seed with valid base64 but password only
-	f.Add("eyJwYXNzd29yZCI6InBhc3MifQ==") // {"password":"pass"}
-	// Seed with valid base64 but empty JSON
-	f.Add("e30=") // {}
-	// Seed with invalid JSON (malformed)
-	f.Add("eyJ1c2VybmFtZSI6InVzZXIi") // {"username":"user" (missing closing)
-	// Seed with invalid base64
-	f.Add("notbase64")
-	f.Add("aGVsbG8=") // "hello" base64, not JSON
-	// Seed with empty string
-	f.Add("")
-	// Seed with edge cases
-	f.Add("dGVzdA==") // "test" base64
-	f.Add(
-		"eyJ1c2VybmFtZSI6bnVsbCwgcGFzc3dvcmQiOiJwYXNzIn0=",
-	) // {"username":null, "password":"pass"}
-	f.Fuzz(func(_ *testing.T, input string) {
-		// Call TransformAuth because we don't care about the result, only that it doesn't panic
-		TransformAuth(newNopLogger(), input)
-	})
-}
-
-// FuzzGetAuthURL fuzzes the getAuthURL function to test for crashes or unexpected behavior
-// with malformed authentication challenge strings. It ensures robust URL construction from
-// challenge headers, covering valid challenges, malformed headers, missing fields, and edge cases.
-func FuzzGetAuthURL(f *testing.F) {
-	// Parse a fixed image reference for fuzzing
-	imageRef, err := reference.ParseNormalizedNamed("ghcr.io/test/image")
-	if err != nil {
-		panic(err)
+	for _, seed := range []string{
+		"eyJ1c2VybmFtZSI6InRlc3R1c2VyIiwicGFzc3dvcmQiOiJ0ZXN0cGFzcyJ9", // {"username":"testuser","password":"testpass"}
+		"eyJ1c2VybmFtZSI6InVzZXIifQ==",                                 // {"username":"user"}
+		"eyJwYXNzd29yZCI6InBhc3MifQ==",                                 // {"password":"pass"}
+		"e30=",                                                         // {}
+		"eyJ1c2VybmFtZSI6InVzZXIi",                                     // {"username":"user"
+		"notbase64",
+		"aGVsbG8=", // hello
+		"",
+		"dGVzdA==", // test
+		"eyJ1c2VybmFtZSI6bnVsbCwgcGFzc3dvcmQiOiJwYXNzIn0=", // {"username":null, "password":"pass"}
+	} {
+		f.Add(seed)
 	}
 
-	// Seed with valid challenge headers
-	f.Add(
+	f.Fuzz(func(t *testing.T, input string) {
+		want := input
+
+		decoded, err := base64.StdEncoding.DecodeString(input)
+		if err != nil {
+			decoded, err = base64.URLEncoding.DecodeString(input)
+		}
+
+		var credentials types.RegistryCredentials
+		if input != "" && err == nil && json.Unmarshal(decoded, &credentials) == nil {
+			password := credentials.Password
+			if password == "" {
+				password = credentials.IdentityToken
+			}
+
+			if password != "" {
+				want = base64.StdEncoding.EncodeToString([]byte(credentials.Username + ":" + password))
+			}
+		}
+
+		assert.Equal(t, want, TransformAuth(newNopLogger(), input))
+	})
+}
+
+// FuzzTransformAuthRoundTrip checks that credentials Docker encodes as base64
+// JSON, in standard or URL-safe encoding, come back from TransformAuth as
+// "username:password" when they have a password, and unchanged otherwise.
+//
+// The seeds cover a username and password, a password alone, a username
+// alone, empty credentials, and characters that differ between the encodings.
+func FuzzTransformAuthRoundTrip(f *testing.F) {
+	f.Add("user", "pass", false)
+	f.Add("", "token", true)
+	f.Add("user", "", false)
+	f.Add("", "", true)
+	f.Add("u:s>e?r", "p??a>ss", true)
+
+	f.Fuzz(func(t *testing.T, username, password string, urlEncoding bool) {
+		// JSON carries each invalid UTF-8 byte as a replacement character, so
+		// such credentials do not come back as they were.
+		if !utf8.ValidString(username) || !utf8.ValidString(password) {
+			t.Skip("credentials are not valid UTF-8")
+		}
+
+		raw, err := json.Marshal(types.RegistryCredentials{Username: username, Password: password})
+		require.NoError(t, err)
+
+		encoding := base64.StdEncoding
+		if urlEncoding {
+			encoding = base64.URLEncoding
+		}
+
+		encoded := encoding.EncodeToString(raw)
+
+		got := TransformAuth(newNopLogger(), encoded)
+		if password == "" {
+			assert.Equal(t, encoded, got)
+
+			return
+		}
+
+		decoded, err := base64.StdEncoding.DecodeString(got)
+		require.NoError(t, err)
+		assert.Equal(t, username+":"+password, string(decoded))
+	})
+}
+
+// FuzzGetAuthURL checks that a token URL built from a challenge is an HTTP or
+// HTTPS URL with a host name, a service, and the image's pull scope, and that
+// any challenge it rejects is an invalid challenge or realm error.
+//
+// The seeds cover valid challenges for several registries, challenges missing
+// the realm or service, empty and non-bearer headers, a trailing comma, a
+// wrong separator, a valueless key, an empty scope, an uppercase scheme, extra
+// fields, and a local registry.
+func FuzzGetAuthURL(f *testing.F) {
+	for _, seed := range []string{
 		`bearer realm="https://ghcr.io/token",service="ghcr.io",scope="repository:test/image:pull"`,
-	)
-	f.Add(
 		`bearer realm="https://registry.example.com/token",service="registry.example.com",scope="repository:user/repo:pull"`,
-	)
-	f.Add(
 		`bearer realm="https://auth.docker.io/token",service="registry.docker.io",scope="repository:library/alpine:pull"`,
-	)
-
-	// Seed with malformed headers - missing fields
-	f.Add(`bearer realm="https://ghcr.io/token"`)      // Missing service
-	f.Add(`bearer service="ghcr.io"`)                  // Missing realm
-	f.Add(`bearer scope="repository:test/image:pull"`) // Missing realm and service
-
-	// Seed with empty or invalid headers
-	f.Add(``)                   // Empty header
-	f.Add(`basic realm="test"`) // Wrong auth type
-	f.Add(`bearer`)             // Just bearer
-	f.Add(`bearer realm=""`)    // Empty realm
-	f.Add(`bearer service=""`)  // Empty service
-
-	// Seed with malformed syntax
-	f.Add(
+		`bearer realm="https://ghcr.io/token"`,
+		`bearer service="ghcr.io"`,
+		`bearer scope="repository:test/image:pull"`,
+		``,
+		`basic realm="test"`,
+		`bearer`,
+		`bearer realm=""`,
+		`bearer service=""`,
 		`bearer realm="https://ghcr.io/token",service="ghcr.io",scope="repository:test/image:pull",`,
-	) // Trailing comma
-	f.Add(
 		`bearer realm="https://ghcr.io/token" service="ghcr.io"`,
-	) // Wrong separator
-	f.Add(
 		`bearer realm="https://ghcr.io/token",service="ghcr.io",invalidkey`,
-	) // Valueless key
-	f.Add(
 		`bearer realm="https://ghcr.io/token",service="ghcr.io",scope=`,
-	) // Empty scope
-
-	// Seed with edge cases
-	f.Add(
 		`BEARER realm="https://ghcr.io/token",service="ghcr.io",scope="repository:test/image:pull"`,
-	) // Uppercase
-	f.Add(
 		`bearer realm="https://ghcr.io/token",service="ghcr.io",scope="repository:test/image:pull",extra="value"`,
-	) // Extra fields
-	f.Add(
 		`bearer realm="http://localhost:5000/token",service="localhost:5000",scope="repository:test/image:pull"`,
-	) // Local registry
+	} {
+		f.Add(seed)
+	}
 
-	f.Fuzz(func(_ *testing.T, challenge string) {
-		// Call getAuthURL because we don't care about the result, only that it doesn't panic
-		_, _ = getAuthURL(newNopLogger(), challenge, imageRef, "", registryConfig.Registry{})
+	imageRef, err := reference.ParseNormalizedNamed("ghcr.io/test/image")
+	require.NoError(f, err)
+
+	f.Fuzz(func(t *testing.T, challenge string) {
+		got, err := getAuthURL(newNopLogger(), challenge, imageRef, "", registryConfig.Registry{})
+		if err != nil {
+			assert.Nil(t, got)
+
+			if !errors.Is(err, errInvalidChallengeHeader) {
+				require.ErrorIs(t, err, errInvalidRealmURL)
+			}
+
+			return
+		}
+
+		require.NotNil(t, got)
+		assert.Contains(t, []string{"http", "https"}, got.Scheme)
+		assert.NotEmpty(t, got.Hostname(), "token URL %q names no host", got)
+
+		query := got.Query()
+		assert.NotEmpty(t, query.Get("service"))
+		assert.Equal(t, "repository:test/image:pull", query.Get("scope"))
+
+		_, err = url.Parse(got.String())
+		require.NoError(t, err)
 	})
 }
 
-// FuzzComputeTokenExpiry fuzzes the computeTokenExpiry function to test for
-// panics or unexpected behavior with various TokenResponse inputs.
+// FuzzComputeTokenExpiry checks that a token expires expires_in seconds, or
+// the default TTL when expires_in is not positive, after its issued_at time,
+// or after the current time when issued_at is missing or not RFC 3339, and
+// never before that time.
+//
+// The seeds cover a positive, zero, and negative expires_in, with and without
+// a valid issued_at, and an issued_at that is not a time.
 func FuzzComputeTokenExpiry(f *testing.F) {
-	f.Add([]byte(`{"expires_in":3600}`))
-	f.Add([]byte(`{"expires_in":0}`))
-	f.Add([]byte(`{"expires_in":-1}`))
-	f.Add([]byte(`{"issued_at":"2024-01-01T00:00:00Z"}`))
-	f.Add([]byte(`{"issued_at":"not-a-date"}`))
-	f.Add([]byte(`{}`))
-	f.Add([]byte(`null`))
-	f.Add([]byte(``))
+	f.Add(3600, "")
+	f.Add(0, "")
+	f.Add(-1, "")
+	f.Add(0, "2024-01-01T00:00:00Z")
+	f.Add(3600, "2024-01-01T00:00:00Z")
+	f.Add(60, "not-a-date")
 
-	f.Fuzz(func(_ *testing.T, jsonData []byte) {
-		var tokenResponse types.TokenResponse
+	f.Fuzz(func(t *testing.T, expiresIn int, issuedAt string) {
+		ttl := defaultTokenTTL
+		if expiresIn > 0 {
+			ttl = time.Duration(expiresIn) * time.Second
+		}
 
-		_ = json.Unmarshal(jsonData, &tokenResponse)
+		before := time.Now()
+		got := computeTokenExpiry(newNopLogger(), &types.TokenResponse{ExpiresIn: expiresIn, IssuedAt: issuedAt})
+		after := time.Now()
 
-		_ = computeTokenExpiry(newNopLogger(), &tokenResponse)
+		issued, err := time.Parse(time.RFC3339, issuedAt)
+		if issuedAt != "" && err == nil {
+			assert.False(t, got.Before(issued), "expiry %v is before issued_at %v", got, issued)
+			assert.True(t, got.Equal(issued.Add(ttl)), "expiry %v, want %v", got, issued.Add(ttl))
+
+			return
+		}
+
+		assert.False(t, got.Before(before), "expiry %v is before the request at %v", got, before)
+		assert.False(t, got.Before(before.Add(ttl)), "expiry %v is before %v", got, before.Add(ttl))
+		assert.False(t, got.After(after.Add(ttl)), "expiry %v is after %v", got, after.Add(ttl))
 	})
 }
 
-// FuzzReadBearerTokenWithExpiry fuzzes the readBearerTokenWithExpiry function
-// to test for panics or unexpected behavior with various JSON inputs.
+// FuzzReadBearerTokenWithExpiry checks that the token read from a response body
+// is its token, or its access_token when the token is empty, with an expiry,
+// and that a body that is not a JSON token response is an error.
+//
+// The seeds cover a token with expires_in, an empty and a null token, an empty
+// object, an array, input that is not JSON, and an empty body.
 func FuzzReadBearerTokenWithExpiry(f *testing.F) {
-	f.Add([]byte(`{"token":"test","expires_in":3600}`))
-	f.Add([]byte(`{"token":""}`))
-	f.Add([]byte(`{"token":null}`))
-	f.Add([]byte(`{}`))
-	f.Add([]byte(`[]`))
-	f.Add([]byte(`invalid`))
-	f.Add([]byte(``))
+	for _, seed := range []string{
+		`{"token":"test","expires_in":3600}`,
+		`{"access_token":"fallback"}`,
+		`{"token":""}`,
+		`{"token":null}`,
+		`{}`,
+		`[]`,
+		`invalid`,
+		``,
+	} {
+		f.Add([]byte(seed))
+	}
 
-	f.Fuzz(func(_ *testing.T, jsonData []byte) {
-		_, _, _ = readBearerTokenWithExpiry(newNopLogger(), bytes.NewReader(jsonData), "test/image")
+	f.Fuzz(func(t *testing.T, body []byte) {
+		got, expiresAt, err := readBearerTokenWithExpiry(newNopLogger(), bytes.NewReader(body), "test/image")
+
+		want, wantErr := expectedToken(body)
+		if wantErr != nil {
+			require.ErrorIs(t, err, wantErr)
+			assert.Empty(t, got)
+			assert.True(t, expiresAt.IsZero())
+
+			return
+		}
+
+		require.NoError(t, err)
+		assert.Equal(t, want, got)
+		assert.False(t, expiresAt.IsZero())
 	})
 }
 
-// FuzzParseChallenge fuzzes the parseChallenge function to test for panics
-// with various challenge header inputs.
+// FuzzParseChallenge checks that the realm, service, and scope parsed from a
+// header are unquoted parts of it, and that a header that is not a bearer
+// challenge yields none.
+//
+// The seeds cover a bearer challenge in lower and upper case, an empty header,
+// a bare scheme, an empty realm, and a Basic challenge.
 func FuzzParseChallenge(f *testing.F) {
 	f.Add(`bearer realm="https://ghcr.io/token",service="ghcr.io"`)
 	f.Add(`BEARER realm="https://ghcr.io/token"`)
@@ -230,13 +361,34 @@ func FuzzParseChallenge(f *testing.F) {
 	f.Add(`bearer realm=""`)
 	f.Add(`basic realm="test"`)
 
-	f.Fuzz(func(_ *testing.T, header string) {
-		_ = parseChallenge(header)
+	f.Fuzz(func(t *testing.T, header string) {
+		// The parser reads the header as runes, so invalid UTF-8 comes back as
+		// replacement characters rather than as part of the header.
+		if !utf8.ValidString(header) {
+			t.Skip("header is not valid UTF-8")
+		}
+
+		got := parseChallenge(header)
+
+		scheme := strings.ToLower(strings.TrimSpace(header))
+		if scheme != "bearer" && !strings.HasPrefix(scheme, "bearer ") && !strings.HasPrefix(scheme, "bearer\t") {
+			assert.Equal(t, challengeValues{}, got)
+
+			return
+		}
+
+		for _, value := range []string{got.realm, got.service, got.scope} {
+			assert.Contains(t, header, value)
+			assert.False(t, strings.HasPrefix(value, `"`) || strings.HasSuffix(value, `"`), "value %q keeps a quote", value)
+		}
 	})
 }
 
-// FuzzExtractChallengeHost fuzzes the extractChallengeHost function to test
-// for panics with various realm URL inputs.
+// FuzzExtractChallengeHost checks that a host is extracted only from an HTTP or
+// HTTPS realm URL, and that it has no path, user info, query, or fragment.
+//
+// The seeds cover HTTPS and HTTP realms, a realm with a port, a realm without
+// a scheme, and an empty realm.
 func FuzzExtractChallengeHost(f *testing.F) {
 	f.Add("https://ghcr.io/token")
 	f.Add("http://localhost:5000/token")
@@ -244,8 +396,15 @@ func FuzzExtractChallengeHost(f *testing.F) {
 	f.Add("")
 	f.Add("https://registry.example.com:5000/token")
 
-	f.Fuzz(func(_ *testing.T, realm string) {
-		_ = extractChallengeHost(newNopLogger(), realm)
+	f.Fuzz(func(t *testing.T, realm string) {
+		got := extractChallengeHost(newNopLogger(), realm)
+		if got == "" {
+			return
+		}
+
+		scheme := strings.ToLower(strings.TrimSpace(realm))
+		assert.True(t, strings.HasPrefix(scheme, "http://") || strings.HasPrefix(scheme, "https://"), "host %q from realm %q", got, realm)
+		assert.False(t, strings.ContainsAny(got, "/@?#"), "host %q from realm %q", got, realm)
 	})
 }
 

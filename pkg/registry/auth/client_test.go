@@ -2,9 +2,9 @@ package auth
 
 import (
 	"bytes"
-	"context"
 	"crypto/tls"
 	"net/http"
+	"sync"
 	"testing"
 
 	"github.com/rs/zerolog"
@@ -12,66 +12,67 @@ import (
 	"github.com/stretchr/testify/require"
 
 	registryConfig "github.com/nicholas-fedor/watchtower/internal/config/registry"
+	"github.com/nicholas-fedor/watchtower/internal/testutil/httpstub"
 )
 
+// mustNewRequest creates an HTTP GET request with the test's context and fails
+// the test on error.
+//
+// Parameters:
+//   - t: Test that owns the request.
+//   - url: URL to request.
+//
+// Returns:
+//   - *http.Request: GET request for url.
+func mustNewRequest(t *testing.T, url string) *http.Request {
+	t.Helper()
+
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, url, nil)
+	require.NoError(t, err)
+
+	return req
+}
+
+// Test_registryClient_Do verifies that the registry client returns the
+// server's response, and wraps the error of a request that fails.
 func Test_registryClient_Do(t *testing.T) {
-	tests := []struct {
-		name       string
-		client     *registryClient
-		req        *http.Request
-		wantBody   string
-		wantStatus int
-		wantErr    bool
-	}{
-		{
-			name: "successful request returns response",
-			client: &registryClient{
-				client: &http.Client{
-					Transport: &mockRoundTripper{
-						response: &http.Response{
-							StatusCode: http.StatusOK,
-							Body:       http.NoBody,
-						},
-					},
-				},
-			},
-			req:        mustNewRequest(t, "http://example.com/v2/"),
-			wantStatus: http.StatusOK,
-		},
-		{
-			name: "request failure returns error",
-			client: &registryClient{
-				client: &http.Client{
-					Transport: &mockRoundTripper{
-						err: assert.AnError,
-					},
-				},
-			},
-			req:     mustNewRequest(t, "http://example.com/v2/"),
-			wantErr: true,
-		},
-	}
+	t.Parallel()
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			resp, err := tt.client.Do(tt.req)
-			if tt.wantErr {
-				assert.Error(t, err)
+	t.Run("successful request returns response", func(t *testing.T) {
+		t.Parallel()
 
-				return
-			}
+		server := httpstub.New(t)
+		server.AppendHandlers(httpstub.CombineHandlers(
+			httpstub.VerifyRequest(t, http.MethodGet, httpstub.Path("/v2/")),
+			httpstub.RespondWith(http.StatusOK, "", nil),
+		))
 
-			require.NoError(t, err)
-			assert.Equal(t, tt.wantStatus, resp.StatusCode)
-			resp.Body.Close()
-		})
-	}
+		resp, err := (&registryClient{client: server.Client()}).Do(mustNewRequest(t, server.URL()+"/v2/"))
+		require.NoError(t, err)
+
+		defer resp.Body.Close()
+
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+	})
+
+	t.Run("request failure returns error", func(t *testing.T) {
+		t.Parallel()
+
+		server := httpstub.New(t)
+		server.Close()
+
+		resp, err := (&registryClient{client: server.Client()}).Do(mustNewRequest(t, server.URL()+"/v2/")) //nolint:bodyclose // The request fails, so there is no response.
+		require.ErrorContains(t, err, "failed to execute HTTP request")
+		assert.Nil(t, resp)
+	})
 }
 
 // Test_configureTLS verifies that configureTLS applies the minimum TLS version
 // from the settings, and falls back to TLS 1.2 with a warning for a version it
 // does not accept.
 func Test_configureTLS(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name           string
 		tlsConfig      *tls.Config
@@ -104,10 +105,21 @@ func Test_configureTLS(t *testing.T) {
 			wantMin:        tls.VersionTLS12,
 			wantWarnSubstr: "Invalid WATCHTOWER_REGISTRY_TLS_MIN_VERSION",
 		},
+		{
+			name: "unknown override lowers a higher version to TLS 1.2 and warns",
+			tlsConfig: &tls.Config{
+				MinVersion: tls.VersionTLS13,
+			},
+			minVersion:     "TLS9.9",
+			wantMin:        tls.VersionTLS12,
+			wantWarnSubstr: "Invalid WATCHTOWER_REGISTRY_TLS_MIN_VERSION",
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			var logBuf bytes.Buffer
 
 			log := zerolog.New(&logBuf).Level(zerolog.WarnLevel)
@@ -130,7 +142,11 @@ func Test_configureTLS(t *testing.T) {
 // Test_configureTLS_TLSSkip verifies that configureTLS disables certificate
 // verification only when the settings skip TLS verification.
 func Test_configureTLS_TLSSkip(t *testing.T) {
+	t.Parallel()
+
 	t.Run("enabled with non-nil logger emits debug", func(t *testing.T) {
+		t.Parallel()
+
 		var logBuf bytes.Buffer
 
 		log := zerolog.New(&logBuf).Level(zerolog.DebugLevel)
@@ -143,6 +159,8 @@ func Test_configureTLS_TLSSkip(t *testing.T) {
 	})
 
 	t.Run("enabled with nil logger does not panic", func(t *testing.T) {
+		t.Parallel()
+
 		tlsConfig := &tls.Config{MinVersion: tls.VersionTLS12}
 
 		assert.NotPanics(t, func() {
@@ -152,6 +170,8 @@ func Test_configureTLS_TLSSkip(t *testing.T) {
 	})
 
 	t.Run("disabled leaves verification enabled", func(t *testing.T) {
+		t.Parallel()
+
 		var logBuf bytes.Buffer
 
 		log := zerolog.New(&logBuf).Level(zerolog.DebugLevel)
@@ -164,7 +184,11 @@ func Test_configureTLS_TLSSkip(t *testing.T) {
 	})
 }
 
+// Test_buildRegistryTransport verifies that the registry transport uses the
+// TLS configuration it is given.
 func Test_buildRegistryTransport(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name      string
 		tlsConfig *tls.Config
@@ -186,6 +210,8 @@ func Test_buildRegistryTransport(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := buildRegistryTransport(tt.tlsConfig)
 			if tt.wantNil {
 				assert.Nil(t, got)
@@ -202,7 +228,11 @@ func Test_buildRegistryTransport(t *testing.T) {
 	}
 }
 
+// Test_buildRegistryClient verifies that the registry client has a transport
+// for any TLS configuration.
 func Test_buildRegistryClient(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name      string
 		tlsConfig *tls.Config
@@ -224,6 +254,8 @@ func Test_buildRegistryClient(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := buildRegistryClient(tt.tlsConfig)
 			if tt.wantNil {
 				assert.Nil(t, got)
@@ -239,8 +271,11 @@ func Test_buildRegistryClient(t *testing.T) {
 
 // TestNewAuthClient verifies that NewAuthClient shares one client between calls
 // with the same TLS settings, and builds each client from the settings it is
-// given rather than from those of an earlier call.
+// given rather than from those of an earlier call, including when it is called
+// concurrently.
 func TestNewAuthClient(t *testing.T) {
+	t.Parallel()
+
 	transportTLS := func(t *testing.T, client Client) *tls.Config {
 		t.Helper()
 
@@ -255,6 +290,8 @@ func TestNewAuthClient(t *testing.T) {
 	}
 
 	t.Run("same settings share a client", func(t *testing.T) {
+		t.Parallel()
+
 		settings := registryConfig.Registry{TLSMinVersion: "TLS1.2"}
 
 		first := NewAuthClient(nil, settings)
@@ -264,6 +301,8 @@ func TestNewAuthClient(t *testing.T) {
 	})
 
 	t.Run("each client follows its settings", func(t *testing.T) {
+		t.Parallel()
+
 		verified := transportTLS(t, NewAuthClient(nil, registryConfig.Registry{}))
 		skipped := transportTLS(t, NewAuthClient(nil, registryConfig.Registry{TLSSkip: true}))
 		strict := transportTLS(t, NewAuthClient(nil, registryConfig.Registry{TLSMinVersion: "TLS1.3"}))
@@ -275,6 +314,8 @@ func TestNewAuthClient(t *testing.T) {
 	})
 
 	t.Run("settings that resolve to the same TLS version share a client", func(t *testing.T) {
+		t.Parallel()
+
 		tls12 := NewAuthClient(nil, registryConfig.Registry{})
 
 		for _, name := range []string{"TLS1.2", "tls1.2", "TLS9.9"} {
@@ -288,39 +329,58 @@ func TestNewAuthClient(t *testing.T) {
 	})
 
 	t.Run("cooldown platform shares the TLS client", func(t *testing.T) {
+		t.Parallel()
+
 		platform := registryConfig.Registry{CooldownPlatform: registryConfig.Platform{OS: "windows"}}
 
 		assert.Same(t, NewAuthClient(nil, registryConfig.Registry{}), NewAuthClient(nil, platform))
+	})
+
+	t.Run("concurrent calls share a client", func(t *testing.T) {
+		t.Parallel()
+
+		const callers = 100
+
+		clients := make([]Client, callers)
+
+		var wg sync.WaitGroup
+
+		for i := range callers {
+			wg.Go(func() {
+				clients[i] = NewAuthClient(nil, registryConfig.Registry{})
+			})
+		}
+
+		wg.Wait()
+
+		for i := 1; i < callers; i++ {
+			assert.Same(t, clients[0], clients[i])
+		}
+	})
+
+	t.Run("shared client makes requests", func(t *testing.T) {
+		t.Parallel()
+
+		server := httpstub.New(t)
+		server.AppendHandlers(httpstub.CombineHandlers(
+			httpstub.VerifyRequest(t, http.MethodGet, httpstub.Path("/get")),
+			httpstub.RespondWith(http.StatusOK, "", nil),
+		))
+
+		resp, err := NewAuthClient(nil, registryConfig.Registry{}).Do(mustNewRequest(t, server.URL()+"/get"))
+		require.NoError(t, err)
+
+		defer resp.Body.Close()
+
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
 	})
 }
 
 // TestScheme verifies that registry requests use plain HTTP only when the
 // settings skip TLS verification.
 func TestScheme(t *testing.T) {
+	t.Parallel()
+
 	assert.Equal(t, "https", Scheme(registryConfig.Registry{}))
 	assert.Equal(t, "http", Scheme(registryConfig.Registry{TLSSkip: true}))
-}
-
-// mockRoundTripper is a test helper that implements http.RoundTripper.
-type mockRoundTripper struct {
-	response *http.Response
-	err      error
-}
-
-func (m *mockRoundTripper) RoundTrip(_ *http.Request) (*http.Response, error) {
-	if m.err != nil {
-		return nil, m.err
-	}
-
-	return m.response, nil
-}
-
-// mustNewRequest creates an HTTP GET request and fails the test on error.
-func mustNewRequest(t *testing.T, url string) *http.Request {
-	t.Helper()
-
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
-	require.NoError(t, err)
-
-	return req
 }
