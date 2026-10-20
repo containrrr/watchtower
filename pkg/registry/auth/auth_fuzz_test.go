@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"math"
 	"net/http"
 	"net/url"
 	"strings"
@@ -274,10 +275,11 @@ func FuzzGetAuthURL(f *testing.F) {
 // FuzzComputeTokenExpiry checks that a token expires expires_in seconds, or
 // the default TTL when expires_in is not positive, after its issued_at time,
 // or after the current time when issued_at is missing or not RFC 3339, and
-// never before that time.
+// never before that time, with an expires_in too long for a duration capped
+// at the longest whole number of seconds a duration holds.
 //
-// The seeds cover a positive, zero, and negative expires_in, with and without
-// a valid issued_at, and an issued_at that is not a time.
+// The seeds cover a positive, zero, negative, and overflowing expires_in, with
+// and without a valid issued_at, and an issued_at that is not a time.
 func FuzzComputeTokenExpiry(f *testing.F) {
 	f.Add(3600, "")
 	f.Add(0, "")
@@ -285,11 +287,15 @@ func FuzzComputeTokenExpiry(f *testing.F) {
 	f.Add(0, "2024-01-01T00:00:00Z")
 	f.Add(3600, "2024-01-01T00:00:00Z")
 	f.Add(60, "not-a-date")
+	f.Add(math.MaxInt, "")
+	f.Add(math.MaxInt, "2024-01-01T00:00:00Z")
 
 	f.Fuzz(func(t *testing.T, expiresIn int, issuedAt string) {
+		const maxSeconds = int64(math.MaxInt64) / int64(time.Second)
+
 		ttl := defaultTokenTTL
 		if expiresIn > 0 {
-			ttl = time.Duration(expiresIn) * time.Second
+			ttl = time.Duration(min(int64(expiresIn), maxSeconds)) * time.Second
 		}
 
 		before := time.Now()

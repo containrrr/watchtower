@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"net/url"
 	"sync"
@@ -35,6 +36,10 @@ var (
 
 // Default token TTL when the registry does not provide expires_in.
 const defaultTokenTTL = 60 * time.Second
+
+// maxTokenLifetimeSeconds is the longest token lifetime, in seconds, that fits
+// in a [time.Duration].
+const maxTokenLifetimeSeconds = int64(math.MaxInt64 / time.Second)
 
 // Cache configuration constants.
 const (
@@ -571,9 +576,9 @@ func readBearerTokenWithExpiry(log *zerolog.Logger, body io.Reader, imageName st
 
 // computeTokenExpiry calculates the absolute expiry time from a token response.
 //
-// It prefers the registry-provided expires_in combined with issued_at when both
-// are available. It falls back to current time when issued_at is absent or invalid,
-// and finally defaults to defaultTokenTTL.
+// The token lives for its expires_in lifetime, or defaultTokenTTL without one,
+// counted from issued_at when it is a valid time and from the current time
+// otherwise.
 //
 // Parameters:
 //   - tokenResponse: Parsed token response from the registry.
@@ -582,6 +587,7 @@ func readBearerTokenWithExpiry(log *zerolog.Logger, body io.Reader, imageName st
 //   - time.Time: The absolute expiry time for the token.
 func computeTokenExpiry(log *zerolog.Logger, tokenResponse *types.TokenResponse) time.Time {
 	now := time.Now()
+	lifetime := tokenLifetime(tokenResponse.ExpiresIn)
 
 	if tokenResponse.IssuedAt != "" {
 		issuedAt, parseErr := time.Parse(
@@ -589,11 +595,7 @@ func computeTokenExpiry(log *zerolog.Logger, tokenResponse *types.TokenResponse)
 			tokenResponse.IssuedAt,
 		)
 		if parseErr == nil {
-			if tokenResponse.ExpiresIn > 0 {
-				return issuedAt.Add(time.Duration(tokenResponse.ExpiresIn) * time.Second)
-			}
-
-			return issuedAt.Add(defaultTokenTTL)
+			return issuedAt.Add(lifetime)
 		}
 
 		log.Debug().
@@ -602,11 +604,26 @@ func computeTokenExpiry(log *zerolog.Logger, tokenResponse *types.TokenResponse)
 			Msg("Failed to parse issued_at - using current time as base")
 	}
 
-	if tokenResponse.ExpiresIn > 0 {
-		return now.Add(time.Duration(tokenResponse.ExpiresIn) * time.Second)
+	return now.Add(lifetime)
+}
+
+// tokenLifetime returns how long a token lives after it is issued.
+//
+// A lifetime longer than a [time.Duration] can hold is capped, so it cannot
+// overflow into one that has already ended.
+//
+// Parameters:
+//   - expiresIn: The token response's expires_in, in seconds.
+//
+// Returns:
+//   - time.Duration: expiresIn seconds, at most maxTokenLifetimeSeconds, or
+//     defaultTokenTTL when expiresIn is not positive.
+func tokenLifetime(expiresIn int) time.Duration {
+	if expiresIn <= 0 {
+		return defaultTokenTTL
 	}
 
-	return now.Add(defaultTokenTTL)
+	return time.Duration(min(int64(expiresIn), maxTokenLifetimeSeconds)) * time.Second
 }
 
 // resolveService resolves the service identifier from challenge values,

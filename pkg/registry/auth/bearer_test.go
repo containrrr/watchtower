@@ -1,7 +1,9 @@
 package auth
 
 import (
+	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"net/url"
 	"strings"
@@ -148,12 +150,18 @@ func Test_initTokenCache(t *testing.T) {
 
 // Test_computeTokenExpiry verifies that a token expires expires_in seconds
 // after issued_at, falling back to the current time for a missing or invalid
-// issued_at and to the default TTL for a missing or negative expires_in.
+// issued_at and to the default TTL for a missing or negative expires_in, and
+// that an expires_in too long for a duration is capped rather than overflowing.
 func Test_computeTokenExpiry(t *testing.T) {
 	t.Parallel()
 
 	now := time.Now()
 	truncatedToSeconds := now.Truncate(time.Second)
+	issuedAt := time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)
+
+	// longestLifetime is the lifetime of the longest expires_in an int holds,
+	// capped at the longest whole number of seconds a duration holds.
+	longestLifetime := time.Duration(min(int64(math.MaxInt), int64(math.MaxInt64)/int64(time.Second))) * time.Second
 
 	tests := []struct {
 		name string
@@ -192,6 +200,16 @@ func Test_computeTokenExpiry(t *testing.T) {
 			name: "falls back to default TTL when issued_at is invalid",
 			args: &types.TokenResponse{IssuedAt: "not-a-date"},
 			want: truncatedToSeconds.Add(defaultTokenTTL),
+		},
+		{
+			name: "caps an expires_in too long for a duration",
+			args: &types.TokenResponse{ExpiresIn: math.MaxInt},
+			want: truncatedToSeconds.Add(longestLifetime),
+		},
+		{
+			name: "caps an expires_in too long for a duration after issued_at",
+			args: &types.TokenResponse{ExpiresIn: math.MaxInt, IssuedAt: issuedAt.Format(time.RFC3339)},
+			want: issuedAt.Add(longestLifetime),
 		},
 	}
 
@@ -726,6 +744,28 @@ func Test_executeBearerTokenRequest_cacheHit(t *testing.T) {
 	got, err := executeBearerTokenRequest(newTestLogger(t), t.Context(), authURL, "test/image", "", mockAuth.NewMockClient(t), registryConfig.Registry{})
 	require.NoError(t, err)
 	assert.Equal(t, "Bearer cached-token", got)
+}
+
+// Test_executeBearerTokenRequest_cachesLongLivedToken verifies that a token
+// whose expires_in is too long for a duration is cached and reused rather than
+// fetched again.
+//
+// The test resets the shared token cache, so it does not run in parallel.
+func Test_executeBearerTokenRequest_cachesLongLivedToken(t *testing.T) {
+	resetTokenCache(t)
+
+	body := fmt.Sprintf(`{"token":"long-lived-token","expires_in":%d}`, math.MaxInt)
+
+	client := mockAuth.NewMockClient(t)
+	client.EXPECT().Do(mock.Anything).Return(&http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader(body))}, nil).Once()
+
+	authURL := mustParseURL("https://long-lived.test.com/token?service=long-lived.test.com")
+
+	for range 2 {
+		got, err := executeBearerTokenRequest(newTestLogger(t), t.Context(), authURL, "test/image", "", client, registryConfig.Registry{})
+		require.NoError(t, err)
+		assert.Equal(t, "Bearer long-lived-token", got)
+	}
 }
 
 // Test_bearerCacheKey verifies that anonymous GHCR tokens, including those for
