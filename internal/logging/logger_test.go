@@ -1,4 +1,4 @@
-package logging_test
+package logging
 
 import (
 	"bytes"
@@ -8,15 +8,15 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/nicholas-fedor/watchtower/internal/logging"
 )
 
+// TestNew verifies that a new logger writes JSON events with a level, message,
+// and time, and drops events below its level.
 func TestNew(t *testing.T) {
 	t.Parallel()
 
 	buf := &bytes.Buffer{}
-	log := logging.New(buf, logging.InfoLevel)
+	log := New(buf, InfoLevel)
 	require.NotNil(t, log)
 
 	log.Info().Msg("hello")
@@ -30,11 +30,12 @@ func TestNew(t *testing.T) {
 	assert.NotContains(t, buf.String(), "hidden")
 }
 
+// TestNew_LevelFilter verifies that a logger at warn level drops info events.
 func TestNew_LevelFilter(t *testing.T) {
 	t.Parallel()
 
 	buf := &bytes.Buffer{}
-	log := logging.New(buf, logging.WarnLevel)
+	log := New(buf, WarnLevel)
 
 	log.Info().Msg("info")
 	log.Warn().Msg("warn")
@@ -43,6 +44,8 @@ func TestNew_LevelFilter(t *testing.T) {
 	assert.Contains(t, buf.String(), "warn")
 }
 
+// TestParseLevel verifies that level names are parsed case-insensitively and
+// trimmed, with warning accepted for warn, and that any other name is an error.
 func TestParseLevel(t *testing.T) {
 	t.Parallel()
 
@@ -70,9 +73,9 @@ func TestParseLevel(t *testing.T) {
 		t.Run(tt.in, func(t *testing.T) {
 			t.Parallel()
 
-			got, err := logging.ParseLevel(tt.in)
+			got, err := ParseLevel(tt.in)
 			if tt.wantErr {
-				require.Error(t, err)
+				require.ErrorIs(t, err, errUnknownLogLevel)
 				assert.Equal(t, tt.want, got)
 
 				return

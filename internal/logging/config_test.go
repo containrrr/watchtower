@@ -1,4 +1,4 @@
-package logging_test
+package logging
 
 import (
 	"bytes"
@@ -9,22 +9,24 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/nicholas-fedor/watchtower/internal/logging"
 )
 
+// TestConfigureWriter_JSON verifies that the json format writes events to
+// stderr unchanged.
 func TestConfigureWriter_JSON(t *testing.T) {
 	t.Parallel()
 
-	w, err := logging.ConfigureWriter("json", false)
+	w, err := ConfigureWriter("json", false)
 	require.NoError(t, err)
 	assert.Equal(t, os.Stderr, w)
 }
 
+// TestConfigureWriter_Pretty verifies that the pretty format writes colored
+// console output to stderr unless color is turned off.
 func TestConfigureWriter_Pretty(t *testing.T) {
 	t.Parallel()
 
-	w, err := logging.ConfigureWriter("pretty", false)
+	w, err := ConfigureWriter("pretty", false)
 	require.NoError(t, err)
 
 	cw, ok := w.(zerolog.ConsoleWriter)
@@ -32,7 +34,7 @@ func TestConfigureWriter_Pretty(t *testing.T) {
 	assert.False(t, cw.NoColor)
 	assert.Equal(t, os.Stderr, cw.Out)
 
-	wNoColor, err := logging.ConfigureWriter("pretty", true)
+	wNoColor, err := ConfigureWriter("pretty", true)
 	require.NoError(t, err)
 
 	cwNoColor, ok := wNoColor.(zerolog.ConsoleWriter)
@@ -40,10 +42,12 @@ func TestConfigureWriter_Pretty(t *testing.T) {
 	assert.True(t, cwNoColor.NoColor)
 }
 
+// TestConfigureWriter_Logfmt verifies that the logfmt format writes uncolored
+// key=value output to stderr, with the time, level, and message first.
 func TestConfigureWriter_Logfmt(t *testing.T) {
 	t.Parallel()
 
-	w, err := logging.ConfigureWriter("logfmt", false)
+	w, err := ConfigureWriter("logfmt", false)
 	require.NoError(t, err)
 
 	cw, ok := w.(zerolog.ConsoleWriter)
@@ -71,7 +75,7 @@ func TestConfigureWriter_Logfmt(t *testing.T) {
 func TestConfigureWriter_LogfmtWriteThrough(t *testing.T) {
 	t.Parallel()
 
-	w, err := logging.ConfigureWriter("logfmt", false)
+	w, err := ConfigureWriter("logfmt", false)
 	require.NoError(t, err)
 
 	cw, ok := w.(zerolog.ConsoleWriter)
@@ -102,7 +106,7 @@ func TestConfigureWriter_LogfmtWriteThrough(t *testing.T) {
 func TestConfigureWriter_LogfmtTypedFields(t *testing.T) {
 	t.Parallel()
 
-	w, err := logging.ConfigureWriter("logfmt", false)
+	w, err := ConfigureWriter("logfmt", false)
 	require.NoError(t, err)
 
 	cw, ok := w.(zerolog.ConsoleWriter)
@@ -133,11 +137,14 @@ func TestConfigureWriter_LogfmtTypedFields(t *testing.T) {
 	assert.NotContains(t, line, "[91 34")
 }
 
+// TestConfigureWriter_Auto_NoColorEnv verifies that the auto format falls back
+// to logfmt when NO_COLOR is set.
+//
+// The test sets an environment variable, so it does not run in parallel.
 func TestConfigureWriter_Auto_NoColorEnv(t *testing.T) {
-	// Not parallel: mutates NO_COLOR.
 	t.Setenv("NO_COLOR", "1")
 
-	w, err := logging.ConfigureWriter("auto", false)
+	w, err := ConfigureWriter("auto", false)
 	require.NoError(t, err)
 
 	cw, ok := w.(zerolog.ConsoleWriter)
@@ -147,11 +154,14 @@ func TestConfigureWriter_Auto_NoColorEnv(t *testing.T) {
 	assert.NotNil(t, cw.FormatTimestamp)
 }
 
+// TestConfigureWriter_Auto_EmptyNoColorEnv verifies that the auto format falls
+// back to logfmt when NO_COLOR is present, even when it is empty.
+//
+// The test sets an environment variable, so it does not run in parallel.
 func TestConfigureWriter_Auto_EmptyNoColorEnv(t *testing.T) {
-	// Presence of NO_COLOR (even empty) forces non-pretty (logfmt) for auto.
 	t.Setenv("NO_COLOR", "")
 
-	w, err := logging.ConfigureWriter("auto", false)
+	w, err := ConfigureWriter("auto", false)
 	require.NoError(t, err)
 
 	cw, ok := w.(zerolog.ConsoleWriter)
@@ -160,10 +170,12 @@ func TestConfigureWriter_Auto_EmptyNoColorEnv(t *testing.T) {
 	assert.NotNil(t, cw.FormatTimestamp)
 }
 
+// TestConfigureWriter_Auto_NoColorFlag verifies that the auto format writes
+// uncolored output when color is turned off.
 func TestConfigureWriter_Auto_NoColorFlag(t *testing.T) {
 	t.Parallel()
 
-	w, err := logging.ConfigureWriter("auto", true)
+	w, err := ConfigureWriter("auto", true)
 	require.NoError(t, err)
 
 	cw, ok := w.(zerolog.ConsoleWriter)
@@ -171,28 +183,34 @@ func TestConfigureWriter_Auto_NoColorFlag(t *testing.T) {
 	assert.True(t, cw.NoColor)
 }
 
+// TestConfigureWriter_CaseInsensitive verifies that format names are matched
+// case-insensitively.
 func TestConfigureWriter_CaseInsensitive(t *testing.T) {
 	t.Parallel()
 
-	w, err := logging.ConfigureWriter("JSON", false)
+	w, err := ConfigureWriter("JSON", false)
 	require.NoError(t, err)
 	assert.Equal(t, os.Stderr, w)
 }
 
+// TestConfigureWriter_Invalid verifies that an unknown format is an invalid
+// log format error.
 func TestConfigureWriter_Invalid(t *testing.T) {
 	t.Parallel()
 
-	w, err := logging.ConfigureWriter("cowsay", false)
-	require.Error(t, err)
+	w, err := ConfigureWriter("cowsay", false)
+	require.ErrorIs(t, err, errInvalidLogFormat)
 	assert.Nil(t, w)
-	assert.Contains(t, err.Error(), `invalid log format: "cowsay"`)
+	assert.Contains(t, err.Error(), `"cowsay"`)
 }
 
+// TestConfigureWriter_Empty verifies that an empty format is an invalid log
+// format error.
 func TestConfigureWriter_Empty(t *testing.T) {
 	t.Parallel()
 
-	w, err := logging.ConfigureWriter("", false)
-	require.Error(t, err)
+	w, err := ConfigureWriter("", false)
+	require.ErrorIs(t, err, errInvalidLogFormat)
 	assert.Nil(t, w)
-	assert.Contains(t, err.Error(), `invalid log format: ""`)
+	assert.Contains(t, err.Error(), `""`)
 }
