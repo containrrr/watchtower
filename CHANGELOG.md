@@ -77,6 +77,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Chores
 
+- Update go module directive to v1.27.3 by @renovate[bot] in [#2943](https://github.com/nicholas-fedor/watchtower/pull/2943)
 - Update module github.com/maypok86/otter/v2 to v2.4.0 by @renovate[bot] in [#2937](https://github.com/nicholas-fedor/watchtower/pull/2937)
 - Update google.golang.org/genproto/googleapis/rpc digest to ce908d2 by @renovate[bot] in [#2932](https://github.com/nicholas-fedor/watchtower/pull/2932)
 - Update google.golang.org/genproto/googleapis/api digest to ce908d2 by @renovate[bot] in [#2931](https://github.com/nicholas-fedor/watchtower/pull/2931)
