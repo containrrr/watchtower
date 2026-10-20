@@ -1,9 +1,10 @@
 package compose
 
 import (
-	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
+	"testing"
+
 	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/assert"
 
 	dockerImage "github.com/moby/moby/api/types/image"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
@@ -34,218 +35,269 @@ func imageManifest(id, architecture string, available bool) dockerImage.Manifest
 	return manifest
 }
 
-// newNopLogger returns a logger that discards every event, for Ginkgo specs,
-// benchmarks, and fuzz targets.
+// newTestLogger returns a logger that writes each event to the test's log, so a
+// failing test shows what it logged.
+//
+// Parameters:
+//   - t: Test that receives the log lines.
 //
 // Returns:
-//   - *zerolog.Logger: Logger that discards all events.
-func newNopLogger() *zerolog.Logger {
-	return new(zerolog.Nop())
+//   - *zerolog.Logger: Logger writing to t.
+func newTestLogger(t *testing.T) *zerolog.Logger {
+	t.Helper()
+
+	// Frame 4 skips zerolog's write path, so each line names the log call.
+	w := zerolog.TestWriter{T: t, Frame: 4}
+
+	return new(zerolog.New(w))
 }
 
-var _ = ginkgo.Describe("Compose", func() {
-	ginkgo.DescribeTable(
-		"ParseDependsOnLabel",
-		func(input string, expected []string) {
-			result := ParseDependsOnLabel(newNopLogger(), input)
-			gomega.Expect(result).To(gomega.Equal(expected))
+// TestParseDependsOnLabel verifies that a Compose depends_on label yields its
+// service names, from the comma-separated form with or without conditions and
+// from the JSON form, sorted, trimmed, and without empty entries.
+func TestParseDependsOnLabel(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		input string
+		want  []string
+	}{
+		{name: "returns nil for empty label", input: "", want: nil},
+		{name: "parses single service", input: "postgres", want: []string{"postgres"}},
+		{name: "parses multiple services", input: "postgres,redis", want: []string{"postgres", "redis"}},
+		{name: "trims whitespace", input: " postgres , redis ", want: []string{"postgres", "redis"}},
+		{
+			name:  "parses colon-separated format",
+			input: "postgres:service_started:required,redis:service_healthy",
+			want:  []string{"postgres", "redis"},
 		},
-		ginkgo.Entry("returns nil for empty label", "", nil),
-		ginkgo.Entry("parses single service", "postgres", []string{"postgres"}),
-		ginkgo.Entry("parses multiple services", "postgres,redis", []string{"postgres", "redis"}),
-		ginkgo.Entry("trims whitespace", " postgres , redis ", []string{"postgres", "redis"}),
-		ginkgo.Entry(
-			"parses colon-separated format",
-			"postgres:service_started:required,redis:service_healthy",
-			[]string{"postgres", "redis"},
-		),
-		ginkgo.Entry("ignores empty parts", "postgres,,redis", []string{"postgres", "redis"}),
-		ginkgo.Entry(
-			"parses JSON format",
-			`{"database":{"condition":"service_started"}}`,
-			[]string{"database"},
-		),
-		ginkgo.Entry(
-			"parses JSON format with multiple services",
-			`{"database":{"condition":"service_started"},"cache":{"condition":"service_healthy"}}`,
-			[]string{"cache", "database"}, // Sorted alphabetically
-		),
-	)
-
-	ginkgo.DescribeTable(
-		"GetServiceName",
-		func(labels map[string]string, expected string) {
-			result := GetServiceName(labels)
-			gomega.Expect(result).To(gomega.Equal(expected))
+		{name: "ignores empty parts", input: "postgres,,redis", want: []string{"postgres", "redis"}},
+		{
+			name:  "parses JSON format",
+			input: `{"database":{"condition":"service_started"}}`,
+			want:  []string{"database"},
 		},
-		ginkgo.Entry("returns empty string for nil labels", nil, ""),
-		ginkgo.Entry("returns empty string for empty labels", map[string]string{}, ""),
-		ginkgo.Entry(
-			"returns empty string when label not present",
-			map[string]string{"other": "value"},
-			"",
-		),
-		ginkgo.Entry(
-			"returns service name when label present",
-			map[string]string{ComposeServiceLabel: "web"},
-			"web",
-		),
-	)
-
-	ginkgo.DescribeTable(
-		"GetProjectName",
-		func(labels map[string]string, expected string) {
-			result := GetProjectName(labels)
-			gomega.Expect(result).To(gomega.Equal(expected))
+		{
+			name:  "parses JSON format with multiple services",
+			input: `{"database":{"condition":"service_started"},"cache":{"condition":"service_healthy"}}`,
+			want:  []string{"cache", "database"},
 		},
-		ginkgo.Entry("returns empty string for nil labels", nil, ""),
-		ginkgo.Entry("returns empty string for empty labels", map[string]string{}, ""),
-		ginkgo.Entry(
-			"returns empty string when label not present",
-			map[string]string{"other": "value"},
-			"",
-		),
-		ginkgo.Entry(
-			"returns project name when label present",
-			map[string]string{ComposeProjectLabel: "myproject"},
-			"myproject",
-		),
-	)
+	}
 
-	ginkgo.DescribeTable(
-		"GetContainerNumber",
-		func(labels map[string]string, expected string) {
-			result := GetContainerNumber(labels)
-			gomega.Expect(result).To(gomega.Equal(expected))
-		},
-		ginkgo.Entry("returns empty string for nil labels", nil, ""),
-		ginkgo.Entry("returns empty string for empty labels", map[string]string{}, ""),
-		ginkgo.Entry(
-			"returns empty string when label not present",
-			map[string]string{"other": "value"},
-			"",
-		),
-		ginkgo.Entry(
-			"returns container number when label present",
-			map[string]string{ComposeContainerNumber: "1"},
-			"1",
-		),
-	)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 
-	ginkgo.Describe("ImageLabelValue", func() {
-		const (
-			oldImageID = "sha256:old-index"
-			newImageID = "sha256:new-index"
-			oldAmd64   = "sha256:old-amd64"
-			oldArm64   = "sha256:old-arm64"
-			newAmd64   = "sha256:new-amd64"
-			newArm64   = "sha256:new-arm64"
-		)
+			assert.Equal(t, tt.want, ParseDependsOnLabel(newTestLogger(t), tt.input))
+		})
+	}
+}
 
-		// multiPlatformOld is an old image holding amd64 and arm64 manifests.
-		multiPlatformOld := &dockerImage.InspectResponse{
-			ID: oldImageID,
-			Manifests: []dockerImage.ManifestSummary{
-				imageManifest(oldAmd64, "amd64", true),
-				imageManifest(oldArm64, "arm64", true),
-			},
+// TestComposeLabelGetters verifies that the service name, project name, and
+// container number are read from their Compose labels, and are empty when the
+// labels are nil, empty, or lack the label.
+func TestComposeLabelGetters(t *testing.T) {
+	t.Parallel()
+
+	getters := []struct {
+		name  string
+		get   func(map[string]string) string
+		label string
+		value string
+		// presentName names the case where the label is present.
+		presentName string
+	}{
+		{name: "GetServiceName", get: GetServiceName, label: ComposeServiceLabel, value: "web", presentName: "returns service name when label present"},
+		{name: "GetProjectName", get: GetProjectName, label: ComposeProjectLabel, value: "myproject", presentName: "returns project name when label present"},
+		{name: "GetContainerNumber", get: GetContainerNumber, label: ComposeContainerNumber, value: "1", presentName: "returns container number when label present"},
+	}
+
+	for _, getter := range getters {
+		tests := []struct {
+			name   string
+			labels map[string]string
+			want   string
+		}{
+			{name: "returns empty string for nil labels", labels: nil, want: ""},
+			{name: "returns empty string for empty labels", labels: map[string]string{}, want: ""},
+			{name: "returns empty string when label not present", labels: map[string]string{"other": "value"}, want: ""},
+			{name: getter.presentName, labels: map[string]string{getter.label: getter.value}, want: getter.value},
 		}
 
-		// multiPlatformNew is a new image holding arm64 and amd64 manifests
-		// and an attestation.
-		multiPlatformNew := &dockerImage.InspectResponse{
-			ID: newImageID,
-			Manifests: []dockerImage.ManifestSummary{
-				imageManifest(newArm64, "arm64", true),
-				imageManifest(newAmd64, "amd64", true),
-				{ID: "sha256:new-attestation", Kind: dockerImage.ManifestKindAttestation, Available: true},
-			},
-		}
+		t.Run(getter.name, func(t *testing.T) {
+			t.Parallel()
 
-		ginkgo.DescribeTable("maps the label to the new image in the same form",
-			func(label string, oldImage, newImage *dockerImage.InspectResponse, expected string, expectedOK bool) {
-				value, ok := ImageLabelValue(label, oldImage, newImage)
-				gomega.Expect(ok).To(gomega.Equal(expectedOK))
-				gomega.Expect(value).To(gomega.Equal(expected))
+			for _, tt := range tests {
+				t.Run(tt.name, func(t *testing.T) {
+					t.Parallel()
+
+					assert.Equal(t, tt.want, getter.get(tt.labels))
+				})
+			}
+		})
+	}
+}
+
+// TestImageLabelValue verifies that a com.docker.compose.image label naming the
+// old image ID maps to the new image ID, and one naming a platform manifest maps
+// to the new image's available manifest for the same platform, and that no
+// value is found when the mapping is ambiguous, unavailable, or lacks data.
+func TestImageLabelValue(t *testing.T) {
+	t.Parallel()
+
+	const (
+		oldImageID = "sha256:old-index"
+		newImageID = "sha256:new-index"
+		oldAmd64   = "sha256:old-amd64"
+		oldArm64   = "sha256:old-arm64"
+		newAmd64   = "sha256:new-amd64"
+		newArm64   = "sha256:new-arm64"
+	)
+
+	// multiPlatformOld is an old image holding amd64 and arm64 manifests.
+	multiPlatformOld := &dockerImage.InspectResponse{
+		ID: oldImageID,
+		Manifests: []dockerImage.ManifestSummary{
+			imageManifest(oldAmd64, "amd64", true),
+			imageManifest(oldArm64, "arm64", true),
+		},
+	}
+
+	// multiPlatformNew is a new image holding arm64 and amd64 manifests and an
+	// attestation.
+	multiPlatformNew := &dockerImage.InspectResponse{
+		ID: newImageID,
+		Manifests: []dockerImage.ManifestSummary{
+			imageManifest(newArm64, "arm64", true),
+			imageManifest(newAmd64, "amd64", true),
+			{ID: "sha256:new-attestation", Kind: dockerImage.ManifestKindAttestation, Available: true},
+		},
+	}
+
+	tests := []struct {
+		name     string
+		label    string
+		oldImage *dockerImage.InspectResponse
+		newImage *dockerImage.InspectResponse
+		want     string
+		wantOK   bool
+	}{
+		{
+			name:     "maps an image ID to the new image ID",
+			label:    oldImageID,
+			oldImage: multiPlatformOld,
+			newImage: multiPlatformNew,
+			want:     newImageID,
+			wantOK:   true,
+		},
+		{
+			name:     "maps an image ID when inspected without manifests",
+			label:    oldImageID,
+			oldImage: &dockerImage.InspectResponse{ID: oldImageID},
+			newImage: &dockerImage.InspectResponse{ID: newImageID},
+			want:     newImageID,
+			wantOK:   true,
+		},
+		{
+			name:     "maps an arm64 manifest digest to the new arm64 manifest",
+			label:    oldArm64,
+			oldImage: multiPlatformOld,
+			newImage: multiPlatformNew,
+			want:     newArm64,
+			wantOK:   true,
+		},
+		{
+			name:     "maps an amd64 manifest digest to the new amd64 manifest",
+			label:    oldAmd64,
+			oldImage: multiPlatformOld,
+			newImage: multiPlatformNew,
+			want:     newAmd64,
+			wantOK:   true,
+		},
+		{
+			name:  "maps a manifest without platform data to a lone available manifest",
+			label: oldAmd64,
+			oldImage: &dockerImage.InspectResponse{
+				ID:        oldImageID,
+				Manifests: []dockerImage.ManifestSummary{imageManifest(oldAmd64, "", true)},
 			},
-			ginkgo.Entry("maps an image ID to the new image ID",
-				oldImageID, multiPlatformOld, multiPlatformNew, newImageID, true,
-			),
-			ginkgo.Entry("maps an image ID when inspected without manifests",
-				oldImageID,
-				&dockerImage.InspectResponse{ID: oldImageID},
-				&dockerImage.InspectResponse{ID: newImageID},
-				newImageID, true,
-			),
-			ginkgo.Entry("maps an arm64 manifest digest to the new arm64 manifest",
-				oldArm64, multiPlatformOld, multiPlatformNew, newArm64, true,
-			),
-			ginkgo.Entry("maps an amd64 manifest digest to the new amd64 manifest",
-				oldAmd64, multiPlatformOld, multiPlatformNew, newAmd64, true,
-			),
-			ginkgo.Entry("maps a manifest without platform data to a lone available manifest",
-				oldAmd64,
-				&dockerImage.InspectResponse{
-					ID:        oldImageID,
-					Manifests: []dockerImage.ManifestSummary{imageManifest(oldAmd64, "", true)},
+			newImage: &dockerImage.InspectResponse{
+				ID: newImageID,
+				Manifests: []dockerImage.ManifestSummary{
+					imageManifest(newAmd64, "", true),
+					imageManifest(newArm64, "", false),
 				},
-				&dockerImage.InspectResponse{
-					ID: newImageID,
-					Manifests: []dockerImage.ManifestSummary{
-						imageManifest(newAmd64, "", true),
-						imageManifest(newArm64, "", false),
-					},
+			},
+			want:   newAmd64,
+			wantOK: true,
+		},
+		{
+			name:  "finds no value for a manifest without platform data and several candidates",
+			label: oldAmd64,
+			oldImage: &dockerImage.InspectResponse{
+				ID:        oldImageID,
+				Manifests: []dockerImage.ManifestSummary{imageManifest(oldAmd64, "", true)},
+			},
+			newImage: &dockerImage.InspectResponse{
+				ID: newImageID,
+				Manifests: []dockerImage.ManifestSummary{
+					imageManifest(newAmd64, "", true),
+					imageManifest(newArm64, "", true),
 				},
-				newAmd64, true,
-			),
-			ginkgo.Entry("finds no value for a manifest without platform data and several candidates",
-				oldAmd64,
-				&dockerImage.InspectResponse{
-					ID:        oldImageID,
-					Manifests: []dockerImage.ManifestSummary{imageManifest(oldAmd64, "", true)},
-				},
-				&dockerImage.InspectResponse{
-					ID: newImageID,
-					Manifests: []dockerImage.ManifestSummary{
-						imageManifest(newAmd64, "", true),
-						imageManifest(newArm64, "", true),
-					},
-				},
-				"", false,
-			),
-			ginkgo.Entry("finds no value when the new image lacks the label's platform",
-				oldArm64,
-				multiPlatformOld,
-				&dockerImage.InspectResponse{
-					ID:        newImageID,
-					Manifests: []dockerImage.ManifestSummary{imageManifest(newAmd64, "amd64", true)},
-				},
-				"", false,
-			),
-			ginkgo.Entry("finds no value when the new image's matching manifest is unavailable",
-				oldArm64,
-				multiPlatformOld,
-				&dockerImage.InspectResponse{
-					ID:        newImageID,
-					Manifests: []dockerImage.ManifestSummary{imageManifest(newArm64, "arm64", false)},
-				},
-				"", false,
-			),
-			ginkgo.Entry("finds no value for a manifest digest when inspected without manifests",
-				oldAmd64,
-				&dockerImage.InspectResponse{ID: oldImageID},
-				&dockerImage.InspectResponse{ID: newImageID},
-				"", false,
-			),
-			ginkgo.Entry("finds no value for a label naming neither the old image nor its manifests",
-				"sha256:unknown", multiPlatformOld, multiPlatformNew, "", false,
-			),
-			ginkgo.Entry("finds no value without old image data",
-				oldImageID, nil, multiPlatformNew, "", false,
-			),
-			ginkgo.Entry("finds no value without new image data",
-				oldImageID, multiPlatformOld, nil, "", false,
-			),
-		)
-	})
-})
+			},
+		},
+		{
+			name:     "finds no value when the new image lacks the label's platform",
+			label:    oldArm64,
+			oldImage: multiPlatformOld,
+			newImage: &dockerImage.InspectResponse{
+				ID:        newImageID,
+				Manifests: []dockerImage.ManifestSummary{imageManifest(newAmd64, "amd64", true)},
+			},
+		},
+		{
+			name:     "finds no value when the new image's matching manifest is unavailable",
+			label:    oldArm64,
+			oldImage: multiPlatformOld,
+			newImage: &dockerImage.InspectResponse{
+				ID:        newImageID,
+				Manifests: []dockerImage.ManifestSummary{imageManifest(newArm64, "arm64", false)},
+			},
+		},
+		{
+			name:     "finds no value for a manifest digest when inspected without manifests",
+			label:    oldAmd64,
+			oldImage: &dockerImage.InspectResponse{ID: oldImageID},
+			newImage: &dockerImage.InspectResponse{ID: newImageID},
+		},
+		{
+			name:     "finds no value for a label naming neither the old image nor its manifests",
+			label:    "sha256:unknown",
+			oldImage: multiPlatformOld,
+			newImage: multiPlatformNew,
+		},
+		{
+			name:     "finds no value without old image data",
+			label:    oldImageID,
+			oldImage: nil,
+			newImage: multiPlatformNew,
+		},
+		{
+			name:     "finds no value without new image data",
+			label:    oldImageID,
+			oldImage: multiPlatformOld,
+			newImage: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, ok := ImageLabelValue(tt.label, tt.oldImage, tt.newImage)
+			assert.Equal(t, tt.wantOK, ok)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}

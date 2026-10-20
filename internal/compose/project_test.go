@@ -10,6 +10,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TestResolveProjectDir verifies how a container's Compose project directory is
+// found: the compose-dir label wins over the process map, either must be
+// readable, a working directory alone does not opt in, and config files must
+// stay inside the project, with host paths mapped to the mounted project.
 func TestResolveProjectDir(t *testing.T) {
 	t.Parallel()
 
@@ -229,6 +233,8 @@ func TestResolveProjectDir(t *testing.T) {
 	})
 }
 
+// TestConfigFiles verifies that the config_files label yields project paths,
+// skipping blank entries, and that a path outside the project is an error.
 func TestConfigFiles(t *testing.T) {
 	t.Parallel()
 
@@ -282,6 +288,8 @@ func TestConfigFiles(t *testing.T) {
 	})
 }
 
+// TestReadableProjectDir verifies that a project directory is readable when it
+// is a directory holding one of the default Compose file names.
 func TestReadableProjectDir(t *testing.T) {
 	t.Parallel()
 
@@ -314,6 +322,8 @@ func TestReadableProjectDir(t *testing.T) {
 	})
 }
 
+// TestLabelValue verifies that a label's value is trimmed, and empty when the
+// labels are nil or lack it.
 func TestLabelValue(t *testing.T) {
 	t.Parallel()
 
@@ -323,6 +333,7 @@ func TestLabelValue(t *testing.T) {
 	assert.Equal(t, "/proj", labelValue(map[string]string{WatchtowerComposeDirLabel: "  /proj  "}, WatchtowerComposeDirLabel))
 }
 
+// TestFileExists verifies that only an existing regular file exists.
 func TestFileExists(t *testing.T) {
 	t.Parallel()
 

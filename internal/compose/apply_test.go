@@ -17,6 +17,9 @@ import (
 	"github.com/nicholas-fedor/watchtower/pkg/types"
 )
 
+// TestLoad verifies that a project loads from its directory's default Compose
+// file, or from explicit files under a given name, and that an empty directory
+// is an error.
 func TestLoad(t *testing.T) {
 	t.Parallel()
 
@@ -68,6 +71,11 @@ services:
 	})
 }
 
+// TestLoadIgnoresProcessSecrets verifies that a project interpolates variables
+// from its .env file and not from Watchtower's own environment, so Watchtower's
+// secrets never reach a service.
+//
+// The test sets an environment variable, so it does not run in parallel.
 func TestLoadIgnoresProcessSecrets(t *testing.T) {
 	t.Setenv("WATCHTOWER_GIT_AUTH_TOKEN", "supersecret")
 
@@ -90,6 +98,9 @@ services:
 	assert.NotContains(t, fmt.Sprint(api.Environment), "supersecret")
 }
 
+// TestInjectLabels verifies that labels are merged onto the named service only,
+// that no labels leave the project unchanged, and that a nil project is an
+// error.
 func TestInjectLabels(t *testing.T) {
 	t.Parallel()
 
@@ -149,6 +160,9 @@ services:
 	})
 }
 
+// TestAppliedImageID verifies that a container's image ID comes from the
+// Compose image summary for the container, or from the container's image when
+// that is an ID.
 func TestAppliedImageID(t *testing.T) {
 	t.Parallel()
 
@@ -406,6 +420,11 @@ func TestStampComposeIdentity(t *testing.T) {
 }
 
 // assertComposeIdentity checks the labels compose start uses to find service containers.
+//
+// Parameters:
+//   - t: Test that receives the failures.
+//   - project: Project whose services are checked.
+//   - dir: Working directory the project must have.
 func assertComposeIdentity(t *testing.T, project *composetypes.Project, dir string) {
 	t.Helper()
 
@@ -429,6 +448,12 @@ func assertComposeIdentity(t *testing.T, project *composetypes.Project, dir stri
 }
 
 // writeIdentityComposeDir writes a project whose file labels are not compose identity labels.
+//
+// Parameters:
+//   - t: Test that owns the directory.
+//
+// Returns:
+//   - string: Project directory path.
 func writeIdentityComposeDir(t *testing.T) string {
 	t.Helper()
 
@@ -466,12 +491,18 @@ func TestScopeComposeProjectRejectsMissingService(t *testing.T) {
 	assert.ErrorContains(t, err, `no such service: missing`)
 }
 
+// composeServiceStub is a Compose service whose Up, Build, Ps, and Images calls
+// run the test's functions. Any other call panics on the nil embedded service.
 type composeServiceStub struct {
 	api.Compose
 
-	up     func(context.Context, *composetypes.Project, api.UpOptions) error
-	build  func(context.Context, *composetypes.Project, api.BuildOptions) error
-	ps     func(context.Context, string, api.PsOptions) ([]api.ContainerSummary, error)
+	// up answers Up.
+	up func(context.Context, *composetypes.Project, api.UpOptions) error
+	// build answers Build.
+	build func(context.Context, *composetypes.Project, api.BuildOptions) error
+	// ps answers Ps.
+	ps func(context.Context, string, api.PsOptions) ([]api.ContainerSummary, error)
+	// images answers Images.
 	images func(context.Context, string, api.ImagesOptions) (map[string]api.ImageSummary, error)
 }
 

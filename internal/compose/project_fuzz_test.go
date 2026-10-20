@@ -2,14 +2,19 @@ package compose
 
 import (
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-// FuzzConfigFiles verifies Compose config_files labels never panic and that
-// accepted paths stay inside the project directory.
+// FuzzConfigFiles verifies that a Compose config_files label yields one path
+// inside the project directory for each non-blank entry, and that a rejected
+// label is a config file error.
+//
+// The seeds cover relative and nested paths, blank entries, an empty label, a
+// single file, an absolute path, and a parent path.
 func FuzzConfigFiles(f *testing.F) {
 	f.Add("compose.yaml,nested/app.yml")
 	f.Add(",  ,compose.yaml,")
@@ -28,6 +33,16 @@ func FuzzConfigFiles(f *testing.F) {
 
 			return
 		}
+
+		entries := 0
+
+		for part := range strings.SplitSeq(raw, ",") {
+			if strings.TrimSpace(part) != "" {
+				entries++
+			}
+		}
+
+		assert.Len(t, got, entries)
 
 		for _, path := range got {
 			assert.NotEmpty(t, path)

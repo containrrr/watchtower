@@ -12,7 +12,7 @@ vars:
   # Packages that cannot run under -count yet: Ginkgo suites reject -count>1.
   # Packages leave this list as their suites are converted.
   REPEAT_EXCLUDE: >-
-    /internal/actions$|/internal/compose$|/internal/logging$|/pkg/container$|/pkg/notifications$|/pkg/sorter$
+    /internal/actions$|/internal/logging$|/pkg/container$|/pkg/notifications$|/pkg/sorter$
 
 tasks:
   default:
