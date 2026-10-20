@@ -82,6 +82,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Chores
 
+- Update module github.com/gofiber/schema to v1.9.0 by @renovate[bot] in [#2961](https://github.com/nicholas-fedor/watchtower/pull/2961)
 - Update module github.com/huandu/xstrings to v1.6.3 by @renovate[bot] in [#2958](https://github.com/nicholas-fedor/watchtower/pull/2958)
 - Update golang docker tag to v1.27.3 by @renovate[bot] in [#2955](https://github.com/nicholas-fedor/watchtower/pull/2955)
 - Update golang:alpine3.24 docker digest to f2c872b by @renovate[bot] in [#2954](https://github.com/nicholas-fedor/watchtower/pull/2954)
