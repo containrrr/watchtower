@@ -66,6 +66,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- Convert the registry auth suite to testify by @nicholas-fedor in [#2949](https://github.com/nicholas-fedor/watchtower/pull/2949)
 - Convert the registry digest and manifest suites to testify by @nicholas-fedor in [#2925](https://github.com/nicholas-fedor/watchtower/pull/2925)
 - Stop sharing internal/actions test mocks with other packages by @nicholas-fedor in [#2923](https://github.com/nicholas-fedor/watchtower/pull/2923)
 - Add an httptest-based stub server for HTTP tests by @nicholas-fedor in [#2919](https://github.com/nicholas-fedor/watchtower/pull/2919)
