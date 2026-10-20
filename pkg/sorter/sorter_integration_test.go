@@ -1,9 +1,11 @@
 package sorter_test
 
 import (
-	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
+	"testing"
+
 	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	dockerContainer "github.com/moby/moby/api/types/container"
 
@@ -12,11 +14,22 @@ import (
 	mockTypes "github.com/nicholas-fedor/watchtower/pkg/types/mocks"
 )
 
-var _ = ginkgo.Describe("Container Sorting", func() {
-	ginkgo.Describe("SortByDependencies", func() {
-		ginkgo.When("sorting by dependencies", func() {
-			ginkgo.It("sorts containers with no links first", func() {
-				c1 := mockTypes.NewMockContainer(ginkgo.GinkgoT())
+// TestContainerSorting verifies through the exported API that containers are
+// sorted after their dependencies, including chained, multiple, and diamond
+// dependencies given as slash-prefixed links, with Watchtower containers last.
+func TestContainerSorting(t *testing.T) {
+	t.Parallel()
+
+	t.Run("SortByDependencies", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("sorting by dependencies", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("sorts containers with no links first", func(t *testing.T) {
+				t.Parallel()
+
+				c1 := mockTypes.NewMockContainer(t)
 				c1.EXPECT().Name().Return("c1")
 				c1.EXPECT().ID().Return(types.ContainerID("id-c1"))
 				c1.EXPECT().Links(true).Return([]string{"c2"})
@@ -27,7 +40,7 @@ var _ = ginkgo.Describe("Container Sorting", func() {
 					},
 				})
 
-				c2 := mockTypes.NewMockContainer(ginkgo.GinkgoT())
+				c2 := mockTypes.NewMockContainer(t)
 				c2.EXPECT().Name().Return("c2")
 				c2.EXPECT().ID().Return(types.ContainerID("id-c2"))
 				c2.EXPECT().Links(true).Return([]string(nil))
@@ -38,15 +51,17 @@ var _ = ginkgo.Describe("Container Sorting", func() {
 					},
 				})
 				containers := []types.Container{c1, c2}
-				err := sorter.SortByDependencies(newNopLogger(), containers, true)
-				gomega.Expect(err).ToNot(gomega.HaveOccurred())
-				gomega.Expect(containers).To(gomega.HaveLen(2))
-				gomega.Expect(containers[0].Name()).To(gomega.Equal("c2")) // No links
-				gomega.Expect(containers[1].Name()).To(gomega.Equal("c1")) // Depends on c2
+				err := sorter.SortByDependencies(newTestLogger(t), containers, true)
+				require.NoError(t, err)
+				require.Len(t, containers, 2)
+				assert.Equal(t, "c2", containers[0].Name()) // No links
+				assert.Equal(t, "c1", containers[1].Name()) // Depends on c2
 			})
 
-			ginkgo.It("handles multiple dependencies", func() {
-				c1 := mockTypes.NewMockContainer(ginkgo.GinkgoT())
+			t.Run("handles multiple dependencies", func(t *testing.T) {
+				t.Parallel()
+
+				c1 := mockTypes.NewMockContainer(t)
 				c1.EXPECT().Name().Return("c1")
 				c1.EXPECT().ID().Return(types.ContainerID("id-c1"))
 				c1.EXPECT().Links(true).Return([]string{"c2", "c3"})
@@ -57,7 +72,7 @@ var _ = ginkgo.Describe("Container Sorting", func() {
 					},
 				})
 
-				c2 := mockTypes.NewMockContainer(ginkgo.GinkgoT())
+				c2 := mockTypes.NewMockContainer(t)
 				c2.EXPECT().Name().Return("c2")
 				c2.EXPECT().ID().Return(types.ContainerID("id-c2"))
 				c2.EXPECT().Links(true).Return([]string{"c3"})
@@ -68,7 +83,7 @@ var _ = ginkgo.Describe("Container Sorting", func() {
 					},
 				})
 
-				c3 := mockTypes.NewMockContainer(ginkgo.GinkgoT())
+				c3 := mockTypes.NewMockContainer(t)
 				c3.EXPECT().Name().Return("c3")
 				c3.EXPECT().ID().Return(types.ContainerID("id-c3"))
 				c3.EXPECT().Links(true).Return([]string(nil))
@@ -79,16 +94,18 @@ var _ = ginkgo.Describe("Container Sorting", func() {
 					},
 				})
 				containers := []types.Container{c1, c2, c3}
-				err := sorter.SortByDependencies(newNopLogger(), containers, true)
-				gomega.Expect(err).ToNot(gomega.HaveOccurred())
-				gomega.Expect(containers).To(gomega.HaveLen(3))
-				gomega.Expect(containers[0].Name()).To(gomega.Equal("c3")) // No links
-				gomega.Expect(containers[1].Name()).To(gomega.Equal("c2")) // Links to c3
-				gomega.Expect(containers[2].Name()).To(gomega.Equal("c1")) // Links to c2, c3
+				err := sorter.SortByDependencies(newTestLogger(t), containers, true)
+				require.NoError(t, err)
+				require.Len(t, containers, 3)
+				assert.Equal(t, "c3", containers[0].Name()) // No links
+				assert.Equal(t, "c2", containers[1].Name()) // Links to c3
+				assert.Equal(t, "c1", containers[2].Name()) // Links to c2, c3
 			})
 
-			ginkgo.It("detects circular references", func() {
-				c1 := mockTypes.NewMockContainer(ginkgo.GinkgoT())
+			t.Run("detects circular references", func(t *testing.T) {
+				t.Parallel()
+
+				c1 := mockTypes.NewMockContainer(t)
 				c1.EXPECT().Name().Return("c1")
 				c1.EXPECT().ID().Return(types.ContainerID("id-c1")).Maybe()
 				c1.EXPECT().Links(true).Return([]string{"c2"})
@@ -99,7 +116,7 @@ var _ = ginkgo.Describe("Container Sorting", func() {
 					},
 				})
 
-				c2 := mockTypes.NewMockContainer(ginkgo.GinkgoT())
+				c2 := mockTypes.NewMockContainer(t)
 				c2.EXPECT().Name().Return("c2")
 				c2.EXPECT().ID().Return(types.ContainerID("id-c2")).Maybe()
 				c2.EXPECT().Links(true).Return([]string{"c1"})
@@ -110,15 +127,16 @@ var _ = ginkgo.Describe("Container Sorting", func() {
 					},
 				})
 				containers := []types.Container{c1, c2}
-				err := sorter.SortByDependencies(newNopLogger(), containers, true)
-				gomega.Expect(err).To(gomega.HaveOccurred())
-				gomega.Expect(err.Error()).
-					To(gomega.ContainSubstring("circular reference detected"))
-				gomega.Expect(err.Error()).To(gomega.ContainSubstring("c1 -> c2 -> c1"))
+				err := sorter.SortByDependencies(newTestLogger(t), containers, true)
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "circular reference detected")
+				assert.Contains(t, err.Error(), "c1 -> c2 -> c1")
 			})
 
-			ginkgo.It("handles missing dependencies gracefully", func() {
-				c1 := mockTypes.NewMockContainer(ginkgo.GinkgoT())
+			t.Run("handles missing dependencies gracefully", func(t *testing.T) {
+				t.Parallel()
+
+				c1 := mockTypes.NewMockContainer(t)
 				c1.EXPECT().Name().Return("c1")
 				c1.EXPECT().ID().Return(types.ContainerID("id-c1"))
 				c1.EXPECT().Links(true).Return([]string{"c2"})
@@ -129,7 +147,7 @@ var _ = ginkgo.Describe("Container Sorting", func() {
 					},
 				})
 
-				c3 := mockTypes.NewMockContainer(ginkgo.GinkgoT())
+				c3 := mockTypes.NewMockContainer(t)
 				c3.EXPECT().Name().Return("c3")
 				c3.EXPECT().ID().Return(types.ContainerID("id-c3"))
 				c3.EXPECT().Links(true).Return([]string(nil))
@@ -140,26 +158,30 @@ var _ = ginkgo.Describe("Container Sorting", func() {
 					},
 				})
 				containers := []types.Container{c1, c3}
-				err := sorter.SortByDependencies(newNopLogger(), containers, true)
-				gomega.Expect(err).ToNot(gomega.HaveOccurred())
-				gomega.Expect(containers).To(gomega.HaveLen(2))
-				gomega.Expect(containers[0].Name()).To(gomega.Equal("c3")) // No links
-				gomega.Expect(containers[1].Name()).To(gomega.Equal("c1")) // Links to missing c2
+				err := sorter.SortByDependencies(newTestLogger(t), containers, true)
+				require.NoError(t, err)
+				require.Len(t, containers, 2)
+				assert.Equal(t, "c3", containers[0].Name()) // No links
+				assert.Equal(t, "c1", containers[1].Name()) // Links to missing c2
 			})
 
-			ginkgo.It("handles empty list", func() {
+			t.Run("handles empty list", func(t *testing.T) {
+				t.Parallel()
+
 				containers := []types.Container{}
-				err := sorter.SortByDependencies(newNopLogger(), containers, true)
-				gomega.Expect(err).ToNot(gomega.HaveOccurred())
-				gomega.Expect(containers).To(gomega.BeEmpty())
+				err := sorter.SortByDependencies(newTestLogger(t), containers, true)
+				require.NoError(t, err)
+				assert.Empty(t, containers)
 			})
 
-			ginkgo.It("places Watchtower containers last", func() {
-				watchtower := mockTypes.NewMockContainer(ginkgo.GinkgoT())
+			t.Run("places Watchtower containers last", func(t *testing.T) {
+				t.Parallel()
+
+				watchtower := mockTypes.NewMockContainer(t)
 				watchtower.EXPECT().Name().Return("watchtower")
 				watchtower.EXPECT().IsWatchtower().Return(true)
 
-				c1 := mockTypes.NewMockContainer(ginkgo.GinkgoT())
+				c1 := mockTypes.NewMockContainer(t)
 				c1.EXPECT().Name().Return("c1")
 				c1.EXPECT().ID().Return(types.ContainerID("id-c1"))
 				c1.EXPECT().Links(true).Return([]string{"c2"})
@@ -170,7 +192,7 @@ var _ = ginkgo.Describe("Container Sorting", func() {
 					},
 				})
 
-				c2 := mockTypes.NewMockContainer(ginkgo.GinkgoT())
+				c2 := mockTypes.NewMockContainer(t)
 				c2.EXPECT().Name().Return("c2")
 				c2.EXPECT().ID().Return(types.ContainerID("id-c2"))
 				c2.EXPECT().Links(true).Return([]string(nil))
@@ -181,22 +203,23 @@ var _ = ginkgo.Describe("Container Sorting", func() {
 					},
 				})
 				containers := []types.Container{watchtower, c1, c2}
-				err := sorter.SortByDependencies(newNopLogger(), containers, true)
-				gomega.Expect(err).ToNot(gomega.HaveOccurred())
-				gomega.Expect(containers).To(gomega.HaveLen(3))
-				gomega.Expect(containers[0].Name()).To(gomega.Equal("c2")) // No links
-				gomega.Expect(containers[1].Name()).To(gomega.Equal("c1")) // Depends on c2
-				gomega.Expect(containers[2].Name()).
-					To(gomega.Equal("watchtower"))
+				err := sorter.SortByDependencies(newTestLogger(t), containers, true)
+				require.NoError(t, err)
+				require.Len(t, containers, 3)
+				assert.Equal(t, "c2", containers[0].Name()) // No links
+				assert.Equal(t, "c1", containers[1].Name()) // Depends on c2
+				assert.Equal(t, "watchtower", containers[2].Name())
 				// Watchtower last
 			})
 
-			ginkgo.It("places multiple Watchtower containers last", func() {
-				watchtower1 := mockTypes.NewMockContainer(ginkgo.GinkgoT())
+			t.Run("places multiple Watchtower containers last", func(t *testing.T) {
+				t.Parallel()
+
+				watchtower1 := mockTypes.NewMockContainer(t)
 				watchtower1.EXPECT().Name().Return("watchtower1")
 				watchtower1.EXPECT().IsWatchtower().Return(true)
 
-				c1 := mockTypes.NewMockContainer(ginkgo.GinkgoT())
+				c1 := mockTypes.NewMockContainer(t)
 				c1.EXPECT().Name().Return("c1")
 				c1.EXPECT().ID().Return(types.ContainerID("id-c1"))
 				c1.EXPECT().Links(true).Return([]string{"c2"})
@@ -207,11 +230,11 @@ var _ = ginkgo.Describe("Container Sorting", func() {
 					},
 				})
 
-				watchtower2 := mockTypes.NewMockContainer(ginkgo.GinkgoT())
+				watchtower2 := mockTypes.NewMockContainer(t)
 				watchtower2.EXPECT().Name().Return("watchtower2")
 				watchtower2.EXPECT().IsWatchtower().Return(true)
 
-				c2 := mockTypes.NewMockContainer(ginkgo.GinkgoT())
+				c2 := mockTypes.NewMockContainer(t)
 				c2.EXPECT().Name().Return("c2")
 				c2.EXPECT().ID().Return(types.ContainerID("id-c2"))
 				c2.EXPECT().Links(true).Return([]string(nil))
@@ -222,19 +245,23 @@ var _ = ginkgo.Describe("Container Sorting", func() {
 					},
 				})
 				containers := []types.Container{watchtower1, c1, watchtower2, c2}
-				err := sorter.SortByDependencies(newNopLogger(), containers, true)
-				gomega.Expect(err).ToNot(gomega.HaveOccurred())
-				gomega.Expect(containers).To(gomega.HaveLen(4))
-				gomega.Expect(containers[0].Name()).To(gomega.Equal("c2")) // No links
-				gomega.Expect(containers[1].Name()).To(gomega.Equal("c1")) // Depends on c2
+				err := sorter.SortByDependencies(newTestLogger(t), containers, true)
+				require.NoError(t, err)
+				require.Len(t, containers, 4)
+				assert.Equal(t, "c2", containers[0].Name()) // No links
+				assert.Equal(t, "c1", containers[1].Name()) // Depends on c2
 				// Watchtower containers at the end (order may vary)
 				watchtowerNames := []string{containers[2].Name(), containers[3].Name()}
-				gomega.Expect(watchtowerNames).To(gomega.ContainElement("watchtower1"))
-				gomega.Expect(watchtowerNames).To(gomega.ContainElement("watchtower2"))
+				assert.Contains(t, watchtowerNames, "watchtower1")
+				assert.Contains(t, watchtowerNames, "watchtower2")
 			})
 
-			ginkgo.It("handles chained dependencies with slash-prefixed links", func() {
-				newMockContainer := func(t ginkgo.GinkgoTInterface, name, id string, links []string, labels map[string]string) types.Container {
+			t.Run("handles chained dependencies with slash-prefixed links", func(t *testing.T) {
+				t.Parallel()
+
+				newMockContainer := func(t *testing.T, name, id string, links []string, labels map[string]string) types.Container {
+					t.Helper()
+
 					c := mockTypes.NewMockContainer(t)
 					c.EXPECT().Name().Return(name)
 					c.EXPECT().ID().Return(types.ContainerID(id))
@@ -249,7 +276,9 @@ var _ = ginkgo.Describe("Container Sorting", func() {
 					return c
 				}
 
-				makeSimpleChainContainers := func(t ginkgo.GinkgoTInterface) []types.Container {
+				makeSimpleChainContainers := func(t *testing.T) []types.Container {
+					t.Helper()
+
 					c := newMockContainer(t, "c", "id-c", nil, map[string]string{})
 					b := newMockContainer(t, "b", "id-b", []string{"/c"}, map[string]string{})
 					a := newMockContainer(t, "a", "id-a", []string{"/b"}, map[string]string{})
@@ -257,7 +286,9 @@ var _ = ginkgo.Describe("Container Sorting", func() {
 					return []types.Container{c, b, a}
 				}
 
-				makeMultipleDepsContainers := func(t ginkgo.GinkgoTInterface) []types.Container {
+				makeMultipleDepsContainers := func(t *testing.T) []types.Container {
+					t.Helper()
+
 					d := newMockContainer(t, "d", "id-d", nil, map[string]string{})
 					c := newMockContainer(t, "c", "id-c", nil, map[string]string{})
 					b := newMockContainer(t, "b", "id-b", []string{"/d"}, map[string]string{})
@@ -266,7 +297,9 @@ var _ = ginkgo.Describe("Container Sorting", func() {
 					return []types.Container{d, c, b, a}
 				}
 
-				makeDiamondContainers := func(t ginkgo.GinkgoTInterface) []types.Container {
+				makeDiamondContainers := func(t *testing.T) []types.Container {
+					t.Helper()
+
 					d := newMockContainer(t, "d", "id-d", nil, map[string]string{})
 					b := newMockContainer(t, "b", "id-b", []string{"/d"}, map[string]string{})
 					c := newMockContainer(t, "c", "id-c", []string{"/d"}, map[string]string{})
@@ -275,7 +308,9 @@ var _ = ginkgo.Describe("Container Sorting", func() {
 					return []types.Container{d, b, c, a}
 				}
 
-				makeNoDepsContainers := func(t ginkgo.GinkgoTInterface) []types.Container {
+				makeNoDepsContainers := func(t *testing.T) []types.Container {
+					t.Helper()
+
 					c := newMockContainer(t, "c", "id-c", nil, map[string]string{})
 					b := newMockContainer(t, "b", "id-b", nil, map[string]string{})
 					a := newMockContainer(t, "a", "id-a", nil, map[string]string{})
@@ -285,28 +320,22 @@ var _ = ginkgo.Describe("Container Sorting", func() {
 
 				testCases := []struct {
 					name          string
-					containers    func() []types.Container
+					containers    func(*testing.T) []types.Container
 					expectedOrder []string
 				}{
 					{
-						name: "simple chain with slashes",
-						containers: func() []types.Container {
-							return makeSimpleChainContainers(ginkgo.GinkgoT())
-						},
+						name:          "simple chain with slashes",
+						containers:    makeSimpleChainContainers,
 						expectedOrder: []string{"c", "b", "a"},
 					},
 					{
-						name: "multiple dependencies with slashes",
-						containers: func() []types.Container {
-							return makeMultipleDepsContainers(ginkgo.GinkgoT())
-						},
+						name:          "multiple dependencies with slashes",
+						containers:    makeMultipleDepsContainers,
 						expectedOrder: []string{"d", "c", "b", "a"},
 					},
 					{
-						name: "diamond dependency graph",
-						containers: func() []types.Container {
-							return makeDiamondContainers(ginkgo.GinkgoT())
-						},
+						name:       "diamond dependency graph",
+						containers: makeDiamondContainers,
 						expectedOrder: []string{
 							"d",
 							"b",
@@ -315,29 +344,29 @@ var _ = ginkgo.Describe("Container Sorting", func() {
 						}, // D first, then B and C (order may vary), then A
 					},
 					{
-						name: "no dependencies",
-						containers: func() []types.Container {
-							return makeNoDepsContainers(ginkgo.GinkgoT())
-						},
+						name:          "no dependencies",
+						containers:    makeNoDepsContainers,
 						expectedOrder: []string{"c", "b", "a"},
 					},
 				}
 				for _, tc := range testCases {
-					ginkgo.By(tc.name, func() {
-						containers := tc.containers()
-						err := sorter.SortByDependencies(newNopLogger(), containers, true)
-						gomega.Expect(err).ToNot(gomega.HaveOccurred())
-						gomega.Expect(containers).To(gomega.HaveLen(len(tc.expectedOrder)))
+					t.Run(tc.name, func(t *testing.T) {
+						t.Parallel()
+
+						containers := tc.containers(t)
+						err := sorter.SortByDependencies(newTestLogger(t), containers, true)
+						require.NoError(t, err)
+						require.Len(t, containers, len(tc.expectedOrder))
 						// For diamond, check that D is first, A is last, and B/C are in middle
 						if tc.name == "diamond dependency graph" {
-							gomega.Expect(containers[0].Name()).To(gomega.Equal("d"))
-							gomega.Expect(containers[3].Name()).To(gomega.Equal("a"))
+							assert.Equal(t, "d", containers[0].Name())
+							assert.Equal(t, "a", containers[3].Name())
 							middleNames := []string{containers[1].Name(), containers[2].Name()}
-							gomega.Expect(middleNames).To(gomega.ContainElement("b"))
-							gomega.Expect(middleNames).To(gomega.ContainElement("c"))
+							assert.Contains(t, middleNames, "b")
+							assert.Contains(t, middleNames, "c")
 						} else {
 							for i, name := range tc.expectedOrder {
-								gomega.Expect(containers[i].Name()).To(gomega.Equal(name))
+								assert.Equal(t, name, containers[i].Name())
 							}
 						}
 					})
@@ -345,13 +374,21 @@ var _ = ginkgo.Describe("Container Sorting", func() {
 			})
 		})
 	})
-})
+}
 
-// newNopLogger returns a logger that discards every event, for Ginkgo specs,
-// benchmarks, and fuzz targets.
+// newTestLogger returns a logger that writes each event to the test's log, so a
+// failing test shows what it logged.
+//
+// Parameters:
+//   - t: Test that receives the log lines.
 //
 // Returns:
-//   - *zerolog.Logger: Logger that discards all events.
-func newNopLogger() *zerolog.Logger {
-	return new(zerolog.Nop())
+//   - *zerolog.Logger: Logger writing to t.
+func newTestLogger(t *testing.T) *zerolog.Logger {
+	t.Helper()
+
+	// Frame 4 skips zerolog's write path, so each line names the log call.
+	w := zerolog.TestWriter{T: t, Frame: 4}
+
+	return new(zerolog.New(w))
 }
