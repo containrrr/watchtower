@@ -64,6 +64,7 @@ func FuzzDerivedReleasesURL(f *testing.F) {
 	f.Add("https://git.example.com/org/app.git", "https://git.example.com/api/v1", "")
 	f.Add("https://unknown.example/org/app.git", "", "v1.2.3")
 	f.Add("", "", "")
+	f.Add("gitlAB.Com/0/0", "", "\x01")
 
 	f.Fuzz(func(t *testing.T, repo, extra, tag string) {
 		got := derivedReleasesURL(repo, extra, tag)
@@ -85,7 +86,8 @@ func FuzzDerivedReleasesURL(f *testing.F) {
 }
 
 // FuzzSafeReleaseTag verifies tag admission never panics and never admits a
-// tag that could restructure the derived release path.
+// tag that could restructure the derived release path or contains an ASCII
+// control character.
 func FuzzSafeReleaseTag(f *testing.F) {
 	f.Add("v1.2.3")
 	f.Add("1.2.3")
@@ -94,6 +96,7 @@ func FuzzSafeReleaseTag(f *testing.F) {
 	f.Add("/")
 	f.Add("")
 	f.Add("1.2.3?a=b")
+	f.Add("1.2.3\x01")
 
 	f.Fuzz(func(t *testing.T, tag string) {
 		if !safeReleaseTag(tag) {
@@ -102,6 +105,7 @@ func FuzzSafeReleaseTag(f *testing.F) {
 
 		assert.NotEmpty(t, tag)
 		assert.NotContains(t, tag, "?")
+		assert.False(t, strings.ContainsFunc(tag, isASCIIControl), "%q", tag)
 
 		for part := range strings.SplitSeq(tag, "/") {
 			assert.NotEqual(t, ".", part)

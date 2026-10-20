@@ -232,7 +232,9 @@ func releaseTagSuffix(kind, tag string) string {
 //
 // Git permits slashes in tag names, so a hierarchical tag such as
 // "release/1.2.3" stays usable. Empty, dot, and parent segments are rejected so
-// a tag cannot alter the path structure of the derived URL.
+// a tag cannot alter the path structure of the derived URL. ASCII control
+// characters, which Git forbids in ref names, are rejected so the derived URL
+// always parses.
 //
 // Parameters:
 //   - tag: Candidate release tag.
@@ -240,7 +242,7 @@ func releaseTagSuffix(kind, tag string) string {
 // Returns:
 //   - bool: True when the tag is safe to embed.
 func safeReleaseTag(tag string) bool {
-	if tag == "" || strings.ContainsAny(tag, " ?#\\%\x00") {
+	if tag == "" || strings.ContainsAny(tag, " ?#\\%") || strings.ContainsFunc(tag, isASCIIControl) {
 		return false
 	}
 
@@ -251,6 +253,17 @@ func safeReleaseTag(tag string) bool {
 	}
 
 	return true
+}
+
+// isASCIIControl reports whether r is an ASCII control character.
+//
+// Parameters:
+//   - r: Rune to check.
+//
+// Returns:
+//   - bool: True for U+0000 to U+001F and U+007F.
+func isASCIIControl(r rune) bool {
+	return r < 0x20 || r == 0x7f
 }
 
 // sameChangelogHost reports whether a clone host and API origin share a hostname.

@@ -141,6 +141,7 @@ func TestDerivedReleasesURL(t *testing.T) {
 		{name: "tag with query", repo: "https://github.com/org/app.git", tag: "1.2.3?a=b", want: "https://github.com/org/app/releases"},
 		{name: "tag with space", repo: "https://github.com/org/app.git", tag: "1.2.3 x", want: "https://github.com/org/app/releases"},
 		{name: "tag with fragment", repo: "https://github.com/org/app.git", tag: "1.2.3#f", want: "https://github.com/org/app/releases"},
+		{name: "tag with control character", repo: "https://gitlab.com/org/app.git", tag: "\x01", want: "https://gitlab.com/org/app/-/releases"},
 		{name: "gitlab traversal", repo: "https://gitlab.com/org/app.git", tag: "..", want: "https://gitlab.com/org/app/-/releases"},
 		{
 			name:      "git-host label origin",
@@ -230,6 +231,10 @@ func TestSafeReleaseTag(t *testing.T) {
 		{tag: "1.2.3\\x"},
 		{tag: "1.2.3%2f"},
 		{tag: "1.2.3\x00"},
+		{tag: "1.2.3\x01"},
+		{tag: "1.2.3\n"},
+		{tag: "1.2.3\x1f"},
+		{tag: "1.2.3\x7f"},
 	}
 
 	for _, tt := range tests {
