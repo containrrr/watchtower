@@ -9,6 +9,8 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/nicholas-fedor/watchtower/pkg/registry/auth"
 )
 
 // unnamedDigested is a [reference.Digested] whose String returns an empty
@@ -351,7 +353,8 @@ func TestBuildManifestURLForImage(t *testing.T) {
 		imageRef string
 		scheme   string
 		want     string
-		wantErr  bool
+		// wantErr is the sentinel the error must wrap, nil when no error is expected.
+		wantErr error
 	}{
 		{
 			name:     "should return a valid url given a fully qualified image",
@@ -387,7 +390,7 @@ func TestBuildManifestURLForImage(t *testing.T) {
 			name:     "should return an error for invalid image references",
 			imageRef: "invalid:image:ref:!!",
 			scheme:   "https",
-			wantErr:  true,
+			wantErr:  errFailedParseImageName,
 		},
 		{
 			name:     "should prepend library/ for Docker Hub official images",
@@ -423,7 +426,7 @@ func TestBuildManifestURLForImage(t *testing.T) {
 			name:     "should return an error for uppercase registry names",
 			imageRef: "REGISTRY.EXAMPLE.COM/IMAGE:TAG",
 			scheme:   "https",
-			wantErr:  true,
+			wantErr:  errFailedParseImageName,
 		},
 		{
 			name:     "should handle image names with dots and dashes",
@@ -438,10 +441,22 @@ func TestBuildManifestURLForImage(t *testing.T) {
 			want:     "https://index.docker.io/v2/library/nginx/manifests/latest",
 		},
 		{
+			name:     "should return an error for a tagged reference without a registry host",
+			imageRef: "a_b.example.com/repo:tag",
+			scheme:   "https",
+			wantErr:  auth.ErrMissingRegistryHost,
+		},
+		{
+			name:     "should return an error for a digested reference without a registry host",
+			imageRef: "a_b.example.com/repo@sha256:daf7034c5c89775afe3008393ae033529913548243b84926931d7c84398ecda7",
+			scheme:   "https",
+			wantErr:  auth.ErrMissingRegistryHost,
+		},
+		{
 			name:     "should return an error for references with invalid digest format",
 			imageRef: "registry.example.com/image@sha256:invalid-digest",
 			scheme:   "https",
-			wantErr:  true,
+			wantErr:  errFailedParseImageName,
 		},
 	}
 
@@ -450,8 +465,8 @@ func TestBuildManifestURLForImage(t *testing.T) {
 			t.Parallel()
 
 			got, err := BuildManifestURLForImage(newTestLogger(t), tt.imageRef, "mock-container", tt.scheme)
-			if tt.wantErr {
-				require.ErrorIs(t, err, errFailedParseImageName)
+			if tt.wantErr != nil {
+				require.ErrorIs(t, err, tt.wantErr)
 				assert.Empty(t, got)
 
 				return

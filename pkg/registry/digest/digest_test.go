@@ -25,6 +25,7 @@ import (
 	registryConfig "github.com/nicholas-fedor/watchtower/internal/config/registry"
 	"github.com/nicholas-fedor/watchtower/internal/meta"
 	"github.com/nicholas-fedor/watchtower/internal/testutil/httpstub"
+	"github.com/nicholas-fedor/watchtower/pkg/registry/auth"
 	mockAuth "github.com/nicholas-fedor/watchtower/pkg/registry/auth/mocks"
 	"github.com/nicholas-fedor/watchtower/pkg/registry/ratelimit"
 	mockTypes "github.com/nicholas-fedor/watchtower/pkg/types/mocks"
@@ -1437,6 +1438,8 @@ func TestBuildManifestURL(t *testing.T) {
 		expectedURL  string
 		expectedHost string
 		wantErr      bool
+		// errIs is the cause the build error must also wrap, nil to skip the check.
+		errIs error
 	}{
 		{
 			name:         "builds HTTPS manifest URL with empty override",
@@ -1479,6 +1482,12 @@ func TestBuildManifestURL(t *testing.T) {
 			expectedHost: "index.docker.io",
 		},
 		{
+			name:    "rejects an image reference without a registry host",
+			image:   "a_b.example.com/repo:tag",
+			wantErr: true,
+			errIs:   auth.ErrMissingRegistryHost,
+		},
+		{
 			name:         "rejects a host override that is not a host",
 			image:        "nginx:latest",
 			hostOverride: "bad host",
@@ -1495,6 +1504,11 @@ func TestBuildManifestURL(t *testing.T) {
 			gotURL, gotHost, _, err := buildManifestURL(newTestLogger(t), newRegistryContainer(t, tt.image), settings, tt.hostOverride)
 			if tt.wantErr {
 				require.ErrorIs(t, err, errFailedBuildManifestURL)
+
+				if tt.errIs != nil {
+					require.ErrorIs(t, err, tt.errIs)
+				}
+
 				assert.Empty(t, gotURL)
 
 				return

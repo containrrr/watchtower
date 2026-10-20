@@ -637,14 +637,6 @@ func buildManifestURLForImage(log *zerolog.Logger,
 		manifestURLStr = parsedURL.String()
 	}
 
-	if parsedURL.Host == "" {
-		return "", "", nil, fmt.Errorf(
-			"%w: manifest URL has no host: %s",
-			errFailedBuildManifestURL,
-			manifestURLStr,
-		)
-	}
-
 	if hostOverride != "" {
 		// Resolve the override as the challenge request does, so a mirror given
 		// as a URL or as a bare host reaches the same host for both requests.

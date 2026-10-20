@@ -9,12 +9,14 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/nicholas-fedor/watchtower/pkg/registry/auth"
 )
 
 // FuzzBuildManifestURLForImage checks that a manifest URL built for an image
-// reference parses as a /v2/ manifest URL with the requested scheme and no
-// query or fragment, and that a reference that cannot be used is a parse or
-// missing-tag error.
+// reference parses as a /v2/ manifest URL with a host, the requested scheme,
+// and no query or fragment, and that a reference that cannot be used is a
+// parse, missing-tag, or missing-host error.
 //
 // The seeds cover valid references on Docker Hub, GHCR, and registries with
 // ports, digest references, malformed and empty strings, whitespace and
@@ -79,7 +81,8 @@ func FuzzBuildManifestURLForImage(f *testing.F) {
 		got, err := BuildManifestURLForImage(new(zerolog.Nop()), imageRef, "fuzz-container", "https")
 		if err != nil {
 			assert.True(t,
-				errors.Is(err, errFailedParseImageName) || errors.Is(err, errMissingTag),
+				errors.Is(err, errFailedParseImageName) || errors.Is(err, errMissingTag) ||
+					errors.Is(err, auth.ErrMissingRegistryHost),
 				"unexpected error: %v", err)
 			assert.Empty(t, got)
 
@@ -89,6 +92,7 @@ func FuzzBuildManifestURLForImage(f *testing.F) {
 		u, err := url.Parse(got)
 		require.NoError(t, err)
 		assert.Equal(t, "https", u.Scheme)
+		assert.NotEmpty(t, u.Host)
 		assert.True(t, strings.HasPrefix(u.Path, "/v2/"), "path %q is not under /v2/", u.Path)
 		assert.Contains(t, u.Path, "/manifests/")
 		assert.Empty(t, u.RawQuery)

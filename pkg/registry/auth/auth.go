@@ -28,6 +28,11 @@ var (
 	errInvalidEndpoint               = errors.New("invalid registry endpoint")
 )
 
+// ErrMissingRegistryHost indicates an image reference whose name resolves to no
+// registry host, such as "a_b.example.com/repo", whose first segment is neither
+// a valid domain nor a Docker Hub path.
+var ErrMissingRegistryHost = errors.New("image reference names no registry host")
+
 // TokenResult holds the result of a token acquisition operation.
 type TokenResult struct {
 	// Token is the authentication token (for example "Basic ..." or "Bearer ...").
@@ -151,7 +156,9 @@ func isRequestHost(host, scheme string) bool {
 //
 // Returns:
 //   - url.URL: Generated challenge URL.
-//   - error: Wraps errInvalidEndpoint when endpoint is not a valid registry endpoint.
+//   - error: Wraps errInvalidEndpoint when endpoint is not a valid registry
+//     endpoint, or ErrMissingRegistryHost when neither the reference nor the
+//     endpoint names a registry host.
 func getChallengeURL(
 	log *zerolog.Logger,
 	imageRef reference.Named,
@@ -170,6 +177,10 @@ func getChallengeURL(
 
 		host = endpointHost
 		scheme = endpointScheme
+	}
+
+	if host == "" {
+		return url.URL{}, fmt.Errorf("%w: %s", ErrMissingRegistryHost, imageRef.Name())
 	}
 
 	challengeURL := url.URL{

@@ -1487,6 +1487,10 @@ func buildManifestURLForContainer(log *zerolog.Logger, container types.Container
 		return "", fmt.Errorf("failed to get registry address for %s: %w", container.ImageName(), err)
 	}
 
+	if host == "" {
+		return "", fmt.Errorf("%w: %s", auth.ErrMissingRegistryHost, container.ImageName())
+	}
+
 	img := reference.Path(normalizedTaggedRef)
 	tag := normalizedTaggedRef.Tag()
 

@@ -211,6 +211,8 @@ func TestGetChallengeURL(t *testing.T) {
 		wantHost   string
 		wantScheme string
 		wantErr    bool
+		// errIs is the sentinel the error must wrap, nil to skip the check.
+		errIs error
 	}{
 		{
 			name:       "docker.io maps to index.docker.io",
@@ -263,6 +265,20 @@ func TestGetChallengeURL(t *testing.T) {
 			imageRef: "docker.io/library/nginx:latest",
 			endpoint: "invalid url with spaces",
 			wantErr:  true,
+			errIs:    errInvalidEndpoint,
+		},
+		{
+			name:     "reference without a registry host returns error",
+			imageRef: "a_b.example.com/repo:tag",
+			wantErr:  true,
+			errIs:    ErrMissingRegistryHost,
+		},
+		{
+			name:       "endpoint supplies the host for a reference without one",
+			imageRef:   "a_b.example.com/repo:tag",
+			endpoint:   "mirror.example.com",
+			wantHost:   "mirror.example.com",
+			wantScheme: "https",
 		},
 	}
 
@@ -279,7 +295,7 @@ func TestGetChallengeURL(t *testing.T) {
 
 			got, err := getChallengeURL(newTestLogger(t), ref, registryConfig.Registry{}, tt.endpoint)
 			if tt.wantErr {
-				require.ErrorIs(t, err, errInvalidEndpoint)
+				require.ErrorIs(t, err, tt.errIs)
 				assert.Empty(t, got.Host)
 
 				return
