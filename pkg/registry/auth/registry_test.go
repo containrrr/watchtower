@@ -156,6 +156,16 @@ func Test_extractChallengeHost(t *testing.T) {
 			want:  "ghcr.io",
 		},
 		{
+			name:  "URL with an IPv6 host and port",
+			realm: "https://[::1]:5000/token",
+			want:  "[::1]:5000",
+		},
+		{
+			name:  "URL with a port but no host name returns empty",
+			realm: "https://:5000/token",
+			want:  "",
+		},
+		{
 			name:  "unsupported scheme returns empty",
 			realm: "ftp://ghcr.io/token",
 			want:  "",

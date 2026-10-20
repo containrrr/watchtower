@@ -124,7 +124,8 @@ func splitQuoted(input string, delim rune) []string {
 //
 // For example, "https://ghcr.io/token" yields "ghcr.io". It parses the trimmed
 // realm with the URL parser and returns the parsed URL's Host for valid http or
-// https URLs. Invalid or unsupported realms return an empty string.
+// https URLs that name a host. Invalid or unsupported realms, and realms with a
+// port but no host name, return an empty string.
 //
 // Parameters:
 //   - log: Contextual logger.
@@ -139,7 +140,7 @@ func extractChallengeHost(log *zerolog.Logger, realm string) string {
 		Msg("Trimmed realm for host extraction")
 
 	parsed, err := url.Parse(realm)
-	if err != nil || parsed.Host == "" {
+	if err != nil || parsed.Hostname() == "" {
 		log.Debug().
 			Str("realm", realm).
 			Msg("Failed to extract challenge host from realm")

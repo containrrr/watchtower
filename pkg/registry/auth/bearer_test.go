@@ -555,6 +555,24 @@ func TestGetAuthURL(t *testing.T) {
 			wantErr:   errInvalidRealmURL,
 		},
 		{
+			name:      "realm with a port but no host name returns error",
+			challenge: `bearer realm="https://:5000/token",service="ghcr.io"`,
+			image:     "ghcr.io/user/repo:latest",
+			wantErr:   errInvalidRealmURL,
+		},
+		{
+			name:      "realm with an empty authority returns error",
+			challenge: `bearer realm="http://:",service="ghcr.io"`,
+			image:     "ghcr.io/user/repo:latest",
+			wantErr:   errInvalidRealmURL,
+		},
+		{
+			name:      "realm with an IPv6 host is allowed",
+			challenge: `bearer realm="https://[::1]:5000/token",service="registry"`,
+			image:     "ghcr.io/user/repo:latest",
+			want:      "https://[::1]:5000/token?scope=repository%3Auser%2Frepo%3Apull&service=registry",
+		},
+		{
 			name:         "http realm with registry auth is rejected without TLS skip",
 			challenge:    `bearer realm="http://insecure-registry.local/token",service="insecure-registry.local"`,
 			image:        "ghcr.io/user/repo:latest",

@@ -750,8 +750,10 @@ func getAuthURL(
 		return nil, fmt.Errorf("%w: %s", errInvalidRealmURL, values.realm)
 	}
 
-	// Reject realms without a host or with a non-HTTP(S) scheme.
-	if authURL.Host == "" || (authURL.Scheme != "http" && authURL.Scheme != "https") {
+	// Reject realms without a host name or with a non-HTTP(S) scheme. A realm
+	// with only a port names no server, and its token request would go to the
+	// local machine.
+	if authURL.Hostname() == "" || (authURL.Scheme != "http" && authURL.Scheme != "https") {
 		log.Debug().
 			Str("image", imageRef.Name()).
 			Str("realm", values.realm).

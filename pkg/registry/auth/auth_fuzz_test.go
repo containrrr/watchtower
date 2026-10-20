@@ -217,7 +217,7 @@ func FuzzTransformAuthRoundTrip(f *testing.F) {
 // The seeds cover valid challenges for several registries, challenges missing
 // the realm or service, empty and non-bearer headers, a trailing comma, a
 // wrong separator, a valueless key, an empty scope, an uppercase scheme, extra
-// fields, and a local registry.
+// fields, a local registry, and a realm with no host name.
 func FuzzGetAuthURL(f *testing.F) {
 	for _, seed := range []string{
 		`bearer realm="https://ghcr.io/token",service="ghcr.io",scope="repository:test/image:pull"`,
@@ -238,6 +238,7 @@ func FuzzGetAuthURL(f *testing.F) {
 		`BEARER realm="https://ghcr.io/token",service="ghcr.io",scope="repository:test/image:pull"`,
 		`bearer realm="https://ghcr.io/token",service="ghcr.io",scope="repository:test/image:pull",extra="value"`,
 		`bearer realm="http://localhost:5000/token",service="localhost:5000",scope="repository:test/image:pull"`,
+		`BeArer reAlm=http://:`,
 	} {
 		f.Add(seed)
 	}
@@ -385,16 +386,18 @@ func FuzzParseChallenge(f *testing.F) {
 }
 
 // FuzzExtractChallengeHost checks that a host is extracted only from an HTTP or
-// HTTPS realm URL, and that it has no path, user info, query, or fragment.
+// HTTPS realm URL that names a host, and that it has no path, user info, query,
+// or fragment.
 //
-// The seeds cover HTTPS and HTTP realms, a realm with a port, a realm without
-// a scheme, and an empty realm.
+// The seeds cover HTTPS and HTTP realms, a realm with a port, a realm with a
+// port but no host name, a realm without a scheme, and an empty realm.
 func FuzzExtractChallengeHost(f *testing.F) {
 	f.Add("https://ghcr.io/token")
 	f.Add("http://localhost:5000/token")
 	f.Add("ghcr.io/token")
 	f.Add("")
 	f.Add("https://registry.example.com:5000/token")
+	f.Add("http://:5000/token")
 
 	f.Fuzz(func(t *testing.T, realm string) {
 		got := extractChallengeHost(newNopLogger(), realm)
@@ -405,6 +408,10 @@ func FuzzExtractChallengeHost(f *testing.F) {
 		scheme := strings.ToLower(strings.TrimSpace(realm))
 		assert.True(t, strings.HasPrefix(scheme, "http://") || strings.HasPrefix(scheme, "https://"), "host %q from realm %q", got, realm)
 		assert.False(t, strings.ContainsAny(got, "/@?#"), "host %q from realm %q", got, realm)
+
+		parsed, err := url.Parse(strings.TrimSpace(realm))
+		require.NoError(t, err)
+		assert.NotEmpty(t, parsed.Hostname(), "host %q from realm %q names no host", got, realm)
 	})
 }
 
