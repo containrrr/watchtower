@@ -87,7 +87,7 @@ func RemoteContext(repo, commit, contextRel string) (string, error) {
 //
 // Returns:
 //   - string: URL with userinfo, or the original remote.
-//   - error: Non-nil when remote is not HTTP(S) or cannot be parsed.
+//   - error: Non-nil when remote is not HTTPS, has no host, or cannot be parsed.
 func WithAuth(remote, username, token string) (string, error) {
 	token = strings.TrimSpace(token)
 	if token == "" {
@@ -101,6 +101,12 @@ func WithAuth(remote, username, token string) (string, error) {
 
 	if parsed.Scheme != "https" {
 		return "", fmt.Errorf("%w: remote scheme must be https", errNeedsHTTPS)
+	}
+
+	// An opaque URL such as https:host has no host, and its string form drops
+	// userinfo, so the token would be lost. A port alone names no server.
+	if parsed.Hostname() == "" {
+		return "", fmt.Errorf("%w: missing host", errMalformedRemote)
 	}
 
 	if username == "" {

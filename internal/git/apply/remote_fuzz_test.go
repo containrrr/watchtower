@@ -104,8 +104,8 @@ func FuzzSafeRelPath(f *testing.F) {
 	})
 }
 
-// FuzzWithAuth verifies token embedding never panics and empty tokens leave
-// the remote unchanged.
+// FuzzWithAuth verifies token embedding never panics, empty tokens leave the
+// remote unchanged, and a successful result carries the token.
 func FuzzWithAuth(f *testing.F) {
 	f.Add("https://github.com/org/app.git#abc", "x-access-token", "secret")
 	f.Add("https://github.com/org/app.git#abc", "git", "")
@@ -113,6 +113,7 @@ func FuzzWithAuth(f *testing.F) {
 	f.Add("ssh://git@github.com/org/app.git", "git", "secret")
 	f.Add("://", "git", "secret")
 	f.Add("", "user", "pw")
+	f.Add("https:0", "0", "0")
 
 	f.Fuzz(func(t *testing.T, remote, username, token string) {
 		got, err := WithAuth(remote, username, token)
@@ -127,10 +128,8 @@ func FuzzWithAuth(f *testing.F) {
 			return
 		}
 
-		parsed, parseErr := url.Parse(got)
-		if parseErr != nil {
-			return
-		}
+		parsed, err := url.Parse(got)
+		require.NoError(t, err)
 
 		assert.Equal(t, "https", parsed.Scheme)
 		require.NotNil(t, parsed.User)

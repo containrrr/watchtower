@@ -127,6 +127,23 @@ func TestWithAuth(t *testing.T) {
 
 	_, err = WithAuth("://", "git", "secret")
 	require.Error(t, err)
+
+	_, err = WithAuth("https:github.com/org/app.git#abc", "git", "secret")
+	require.ErrorIs(t, err, errMalformedRemote)
+
+	_, err = WithAuth("https:///org/app.git#abc", "git", "secret")
+	require.ErrorIs(t, err, errMalformedRemote)
+
+	_, err = WithAuth("https://:443/org/app.git", "git", "secret")
+	require.ErrorIs(t, err, errMalformedRemote)
+
+	got, err = WithAuth("https://git.example.com:8443/org/app.git#abc", "git", "secret")
+	require.NoError(t, err)
+	assert.Equal(t, "https://git:secret@git.example.com:8443/org/app.git#abc", got)
+
+	got, err = WithAuth("https://[::1]/org/app.git#abc", "git", "secret")
+	require.NoError(t, err)
+	assert.Equal(t, "https://git:secret@[::1]/org/app.git#abc", got)
 }
 
 // TestWithAuthErrorsDoNotExposeRemoteCredentials verifies that authentication errors omit remote credentials for unsupported or malformed URLs.
