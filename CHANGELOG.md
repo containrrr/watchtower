@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Reject build remotes without a hostname when embedding credentials by @nicholas-fedor in [#2945](https://github.com/nicholas-fedor/watchtower/pull/2945)
 - Reject manifest and challenge URLs without a registry host by @nicholas-fedor in [#2939](https://github.com/nicholas-fedor/watchtower/pull/2939)
 - Reject registry endpoints that are not hosts by @nicholas-fedor in [#2935](https://github.com/nicholas-fedor/watchtower/pull/2935)
 - Reject empty digests from registry GET responses by @nicholas-fedor in [#2929](https://github.com/nicholas-fedor/watchtower/pull/2929)
