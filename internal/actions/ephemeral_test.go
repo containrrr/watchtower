@@ -1,4 +1,4 @@
-package actions_test
+package actions
 
 import (
 	"bytes"
@@ -9,8 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -18,7 +16,6 @@ import (
 
 	dockerContainer "github.com/moby/moby/api/types/container"
 
-	"github.com/nicholas-fedor/watchtower/internal/actions"
 	mockActions "github.com/nicholas-fedor/watchtower/internal/actions/mocks"
 	mockContainer "github.com/nicholas-fedor/watchtower/pkg/container/mocks"
 	"github.com/nicholas-fedor/watchtower/pkg/types"
@@ -26,7 +23,7 @@ import (
 
 // createDefaultMockContainer wraps mockActions.CreateMockContainerWithConfig with
 // common defaults for ephemeral self-update tests. It sets the container to running,
-// not restarting, with a current timestamp and the provided labels.
+// not restarting, on watchtower:latest, with a current timestamp and the provided labels.
 //
 // Parameters:
 //   - id: Container ID for the mock.
@@ -42,202 +39,151 @@ func createDefaultMockContainer(id string, labels map[string]string) types.Conta
 		true,
 		false,
 		time.Now(),
-		&dockerContainer.Config{Labels: labels},
+		&dockerContainer.Config{Image: "watchtower:latest", Labels: labels},
 	)
 }
 
-// createDefaultMockClient wraps mockActions.CreateMockClient with common defaults
-// for ephemeral self-update tests. It uses an empty TestData, no image pulling,
-// and no volume removal.
+// expectOrchestrator expects one orchestrator to be created for source with
+// the given container chain and cleanup setting, and answers it with err.
+//
+// The mock has no other expectations, so a stop, start, or rename of the
+// source fails the test.
 //
 // Parameters:
-//   - td: Test data structure for capturing orchestrator parameters.
+//   - t: Test the mock belongs to.
+//   - source: Watchtower container being replaced.
+//   - chain: Container chain the orchestrator is expected to receive.
+//   - cleanup: Cleanup setting the orchestrator is expected to receive.
+//   - err: Error the creation returns.
 //
 // Returns:
-//   - mockActions.MockClient: Configured mock client.
-func createDefaultMockClient(td *mockActions.TestData) mockActions.MockClient {
-	return mockActions.CreateMockClient(td, false, false)
+//   - *mockContainer.MockClient: Mocked container client.
+func expectOrchestrator(t *testing.T, source types.Container, chain string, cleanup bool, err error) *mockContainer.MockClient {
+	t.Helper()
+
+	client := mockContainer.NewMockClient(t)
+	client.EXPECT().
+		CreateEphemeralOrchestrator(mock.Anything, source, "watchtower:latest", chain, cleanup).
+		Return(types.ContainerID("orchestrator-id"), err).Once()
+
+	return client
 }
 
-var _ = ginkgo.Describe("EphemeralSelfUpdate", func() {
-	ginkgo.When("the orchestrator is created successfully", func() {
-		ginkgo.It("should return empty container ID and true so the dying process skips cleanup", func() {
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			defer cancel()
+// Test_ephemeralSelfUpdate verifies that an ephemeral self-update only creates
+// the orchestrator, passing it the new image, the container chain extended
+// with the source container, and the cleanup setting, and that it reports the
+// source as handed off.
+func Test_ephemeralSelfUpdate(t *testing.T) {
+	t.Parallel()
 
-			sourceContainer := createDefaultMockContainer("source-123", map[string]string{
-				"com.centurylinklabs.watchtower": "true",
-			})
+	watchtowerLabels := map[string]string{"com.centurylinklabs.watchtower": "true"}
 
-			client := createDefaultMockClient(&mockActions.TestData{})
+	t.Run("the orchestrator is created successfully", func(t *testing.T) {
+		t.Parallel()
 
-			newID, renamed, err := actions.EphemeralSelfUpdate(newNopLogger(),
-				ctx,
-				client,
-				sourceContainer,
-				types.UpdateParams{},
-			)
+		t.Run("should return empty container ID and true so the dying process skips cleanup", func(t *testing.T) {
+			t.Parallel()
 
-			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-			gomega.Expect(newID).To(gomega.BeEmpty())
-			gomega.Expect(renamed).To(gomega.BeTrue())
+			source := createDefaultMockContainer("source-123", watchtowerLabels)
+			client := expectOrchestrator(t, source, "source-123", false, nil)
+
+			newID, renamed, err := ephemeralSelfUpdate(newTestLogger(t), t.Context(), client, source, types.UpdateParams{})
+			require.NoError(t, err)
+			assert.Empty(t, newID)
+			assert.True(t, renamed)
 		})
 	})
 
-	ginkgo.When("the source container has no existing chain", func() {
-		ginkgo.It("should use the source container ID as the new chain", func() {
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			defer cancel()
+	t.Run("the source container has no existing chain", func(t *testing.T) {
+		t.Parallel()
 
-			sourceContainer := createDefaultMockContainer("source-456", map[string]string{
-				"com.centurylinklabs.watchtower": "true",
-			})
+		t.Run("should use the source container ID as the new chain", func(t *testing.T) {
+			t.Parallel()
 
-			client := createDefaultMockClient(&mockActions.TestData{})
+			source := createDefaultMockContainer("source-456", watchtowerLabels)
+			client := expectOrchestrator(t, source, "source-456", false, nil)
 
-			newID, renamed, err := actions.EphemeralSelfUpdate(newNopLogger(),
-				ctx,
-				client,
-				sourceContainer,
-				types.UpdateParams{},
-			)
-
-			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-			gomega.Expect(newID).To(gomega.BeEmpty())
-			gomega.Expect(renamed).To(gomega.BeTrue())
-
-			// Verify the orchestrator's chain was set to the source container ID.
-			gomega.Expect(client.TestData.LastContainerChain).To(
-				gomega.Equal("source-456"),
-				"orchestrator chain should be the source container ID when no existing chain is present",
-			)
+			newID, renamed, err := ephemeralSelfUpdate(newTestLogger(t), t.Context(), client, source, types.UpdateParams{})
+			require.NoError(t, err)
+			assert.Empty(t, newID)
+			assert.True(t, renamed)
 		})
 	})
 
-	ginkgo.When("the source container has an existing chain", func() {
-		ginkgo.It("should append the source ID to the existing chain", func() {
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			defer cancel()
+	t.Run("the source container has an existing chain", func(t *testing.T) {
+		t.Parallel()
 
-			existingChain := "old-id-1,old-id-2"
+		t.Run("should append the source ID to the existing chain", func(t *testing.T) {
+			t.Parallel()
 
-			sourceContainer := createDefaultMockContainer("source-789", map[string]string{
+			const existingChain = "old-id-1,old-id-2"
+
+			source := createDefaultMockContainer("source-789", map[string]string{
 				"com.centurylinklabs.watchtower":                 "true",
 				"com.centurylinklabs.watchtower.container-chain": existingChain,
 			})
 
-			// Verify the mock container has the expected chain label.
-			chain, present := sourceContainer.GetContainerChain()
-			gomega.Expect(present).To(gomega.BeTrue())
-			gomega.Expect(chain).To(gomega.Equal(existingChain))
+			chain, present := source.GetContainerChain()
+			require.True(t, present)
+			require.Equal(t, existingChain, chain)
 
-			client := createDefaultMockClient(&mockActions.TestData{})
+			client := expectOrchestrator(t, source, "old-id-1,old-id-2,source-789", false, nil)
 
-			newID, renamed, err := actions.EphemeralSelfUpdate(newNopLogger(),
-				ctx,
-				client,
-				sourceContainer,
-				types.UpdateParams{},
-			)
-
-			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-			gomega.Expect(newID).To(gomega.BeEmpty())
-			gomega.Expect(renamed).To(gomega.BeTrue())
-
-			// Verify the orchestrator's chain has the source ID appended to the existing chain.
-			gomega.Expect(client.TestData.LastContainerChain).To(
-				gomega.Equal("old-id-1,old-id-2,source-789"),
-				"orchestrator chain should have source container ID appended to existing chain",
-			)
+			newID, renamed, err := ephemeralSelfUpdate(newTestLogger(t), t.Context(), client, source, types.UpdateParams{})
+			require.NoError(t, err)
+			assert.Empty(t, newID)
+			assert.True(t, renamed)
 		})
 	})
 
-	ginkgo.When("CreateEphemeralOrchestrator fails", func() {
-		ginkgo.It("should return an error containing the orchestrator failure message", func() {
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			defer cancel()
+	t.Run("CreateEphemeralOrchestrator fails", func(t *testing.T) {
+		t.Parallel()
 
-			sourceContainer := createDefaultMockContainer("source-err", map[string]string{
-				"com.centurylinklabs.watchtower": "true",
-			})
+		t.Run("should return an error containing the orchestrator failure message", func(t *testing.T) {
+			t.Parallel()
 
-			// Use an already-cancelled client context to force CreateEphemeralOrchestrator to fail.
-			cancelledCtx, cancelCancelled := context.WithCancel(context.Background())
-			cancelCancelled()
+			source := createDefaultMockContainer("source-err", watchtowerLabels)
+			client := expectOrchestrator(t, source, "source-err", false, errors.New("create failed"))
 
-			// Note: CreateMockClientWithContext is used here instead of createDefaultMockClient
-			// because this test requires a pre-cancelled context to trigger the failure path.
-			client := mockActions.CreateMockClientWithContext(
-				cancelledCtx,
-				&mockActions.TestData{},
-				false,
-				false,
-			)
-
-			_, _, err := actions.EphemeralSelfUpdate(newNopLogger(),
-				ctx,
-				client,
-				sourceContainer,
-				types.UpdateParams{},
-			)
-
-			gomega.Expect(err).To(gomega.HaveOccurred())
-			gomega.Expect(err.Error()).To(gomega.ContainSubstring("ephemeral orchestrator failed"))
+			_, _, err := ephemeralSelfUpdate(newTestLogger(t), t.Context(), client, source, types.UpdateParams{})
+			require.ErrorContains(t, err, "ephemeral orchestrator failed")
 		})
 	})
 
-	ginkgo.When("cleanup is enabled on the update params", func() {
-		ginkgo.It("should pass cleanup=true to the orchestrator", func() {
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			defer cancel()
+	t.Run("cleanup is enabled on the update params", func(t *testing.T) {
+		t.Parallel()
 
-			sourceContainer := createDefaultMockContainer("source-cleanup", map[string]string{
-				"com.centurylinklabs.watchtower": "true",
-			})
+		t.Run("should pass cleanup=true to the orchestrator", func(t *testing.T) {
+			t.Parallel()
 
-			client := createDefaultMockClient(&mockActions.TestData{})
+			source := createDefaultMockContainer("source-cleanup", watchtowerLabels)
+			client := expectOrchestrator(t, source, "source-cleanup", true, nil)
 
-			_, renamed, err := actions.EphemeralSelfUpdate(newNopLogger(),
-				ctx,
-				client,
-				sourceContainer,
-				types.UpdateParams{Cleanup: true},
-			)
-
-			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-			gomega.Expect(renamed).To(gomega.BeTrue())
-			gomega.Expect(client.TestData.LastCleanup).To(gomega.BeTrue())
+			_, renamed, err := ephemeralSelfUpdate(newTestLogger(t), t.Context(), client, source, types.UpdateParams{Cleanup: true})
+			require.NoError(t, err)
+			assert.True(t, renamed)
 		})
 	})
 
-	// EphemeralSelfUpdate only starts the orchestrator. Replacement is asynchronous.
-	ginkgo.When("the orchestrator launches successfully", func() {
-		ginkgo.It("returns without performing stop or start on the source client path", func() {
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			defer cancel()
+	// The self-update only starts the orchestrator. Replacement is asynchronous.
+	t.Run("the orchestrator launches successfully", func(t *testing.T) {
+		t.Parallel()
 
-			sourceContainer := createDefaultMockContainer("source-async", map[string]string{
-				"com.centurylinklabs.watchtower": "true",
-			})
+		t.Run("returns without performing stop or start on the source client path", func(t *testing.T) {
+			t.Parallel()
 
-			client := createDefaultMockClient(&mockActions.TestData{})
+			// expectOrchestrator allows no other calls, so a stop, start, or
+			// rename fails the test.
+			source := createDefaultMockContainer("source-async", watchtowerLabels)
+			client := expectOrchestrator(t, source, "source-async", false, nil)
 
-			newID, renamed, err := actions.EphemeralSelfUpdate(newNopLogger(),
-				ctx,
-				client,
-				sourceContainer,
-				types.UpdateParams{},
-			)
-
-			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-			gomega.Expect(newID).To(gomega.BeEmpty())
-			gomega.Expect(renamed).To(gomega.BeTrue())
-			gomega.Expect(client.TestData.StopContainerCount.Load()).To(gomega.Equal(int32(0)))
-			gomega.Expect(client.TestData.StartContainerCount.Load()).To(gomega.Equal(int32(0)))
-			gomega.Expect(client.TestData.RenameContainerCount.Load()).To(gomega.Equal(int32(0)))
+			newID, renamed, err := ephemeralSelfUpdate(newTestLogger(t), t.Context(), client, source, types.UpdateParams{})
+			require.NoError(t, err)
+			assert.Empty(t, newID)
+			assert.True(t, renamed)
 		})
 	})
-})
+}
 
 // TestEphemeralSelfUpdate_StoppingContainerLog verifies that the "Stopping
 // container" entry, which notifications include, is logged only once the
@@ -273,7 +219,7 @@ func TestEphemeralSelfUpdate_StoppingContainerLog(t *testing.T) {
 
 			log := zerolog.New(&out).Level(zerolog.DebugLevel)
 
-			_, _, err := actions.EphemeralSelfUpdate(&log, t.Context(), client, source, types.UpdateParams{})
+			_, _, err := ephemeralSelfUpdate(&log, t.Context(), client, source, types.UpdateParams{})
 			if tt.createErr != nil {
 				require.Error(t, err)
 			} else {
@@ -302,4 +248,38 @@ func TestEphemeralSelfUpdate_StoppingContainerLog(t *testing.T) {
 			assert.Equal(t, tt.wantLevels, levels)
 		})
 	}
+}
+
+// TestEphemeralSelfUpdate_OutlivesCanceledUpdate verifies that the orchestrator
+// is created with a context the update's cancellation does not reach, so a
+// canceled update still hands Watchtower off, and that the context keeps the
+// update context's values.
+func TestEphemeralSelfUpdate_OutlivesCanceledUpdate(t *testing.T) {
+	t.Parallel()
+
+	// parentKey is a context key only this test uses.
+	type parentKey struct{}
+
+	ctx, cancel := context.WithCancel(context.WithValue(t.Context(), parentKey{}, "parent-value"))
+	cancel()
+
+	source := createDefaultMockContainer("source-canceled", map[string]string{
+		"com.centurylinklabs.watchtower": "true",
+	})
+
+	client := mockContainer.NewMockClient(t)
+	client.EXPECT().
+		CreateEphemeralOrchestrator(
+			mock.MatchedBy(func(created context.Context) bool {
+				_, hasDeadline := created.Deadline()
+
+				return created.Err() == nil && hasDeadline && created.Value(parentKey{}) == "parent-value"
+			}),
+			source, "watchtower:latest", "source-canceled", false,
+		).
+		Return(types.ContainerID("orchestrator-id"), nil).Once()
+
+	_, renamed, err := ephemeralSelfUpdate(newTestLogger(t), ctx, client, source, types.UpdateParams{})
+	require.NoError(t, err)
+	assert.True(t, renamed)
 }

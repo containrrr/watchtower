@@ -38,10 +38,6 @@ func Update(
 	return update(log, ctx, client, config, ratelimit.New(), gitClient...)
 }
 
-// EphemeralSelfUpdate exposes ephemeralSelfUpdate to the external test
-// package, so the orchestrator handoff can be run against a mock client.
-var EphemeralSelfUpdate = ephemeralSelfUpdate
-
 // SetRemovalRetryDelay sets the delay between removal retries until the test
 // ends, so retried removals do not wait in real time.
 //

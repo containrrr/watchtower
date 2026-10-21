@@ -79,7 +79,8 @@ var fullContainerIDPattern = regexp.MustCompile(`^[a-f0-9]{64}$`)
 //
 // Parameters:
 //   - log: Process logger. Required and must be non-nil. A nil logger panics on the first log call.
-//   - ctx: Context for cancellation and timeouts.
+//   - ctx: Parent context. Its values carry over to the orchestrator creation, but its
+//     cancellation does not.
 //   - client: Container client for Docker operations.
 //   - sourceContainer: Current Watchtower container being replaced.
 //   - config: Update parameters.
@@ -102,10 +103,10 @@ func ephemeralSelfUpdate(log *zerolog.Logger, ctx context.Context,
 
 	clog.Debug().Msg("Initiating ephemeral self-update for Watchtower")
 
-	// Create a detached context for the orchestrator creation to survive parent cancellation.
-	// Uses a 60-second timeout to prevent indefinite hangs during orchestrator creation.
+	// Detach the orchestrator creation from the parent's cancellation so it survives a
+	// canceled update. The timeout prevents indefinite hangs during orchestrator creation.
 	detachedCtx, cancelDetached := context.WithTimeout(
-		context.Background(),
+		context.WithoutCancel(ctx),
 		orchestratorCreateTimeout,
 	)
 	defer cancelDetached()
@@ -133,7 +134,7 @@ func ephemeralSelfUpdate(log *zerolog.Logger, ctx context.Context,
 	clog.Debug().Msg("Creating ephemeral orchestrator for self-update")
 
 	// Create the ephemeral orchestrator container.
-	//nolint:contextcheck // detached context is intentional for orchestrator lifecycle
+
 	orchestratorID, err := client.CreateEphemeralOrchestrator(
 		detachedCtx,
 		sourceContainer,
