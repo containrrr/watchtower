@@ -46,6 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Run the self-update tests on the generated client mock by @nicholas-fedor in [#2987](https://github.com/nicholas-fedor/watchtower/pull/2987)
 - Replace Docker API fakes with a generated SDK mock by @nicholas-fedor in [#2985](https://github.com/nicholas-fedor/watchtower/pull/2985)
 - Create the self-update orchestrator through an EphemeralAPI port by @nicholas-fedor in [#2979](https://github.com/nicholas-fedor/watchtower/pull/2979)
 - Depend on a Docker API port in the image client by @nicholas-fedor in [#2921](https://github.com/nicholas-fedor/watchtower/pull/2921)
