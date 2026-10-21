@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Accept docker manifest lists in digest checks by @nicholas-fedor in [#3017](https://github.com/nicholas-fedor/watchtower/pull/3017)
 - End registry pacing three minutes after a rate limit by @nicholas-fedor in [#3013](https://github.com/nicholas-fedor/watchtower/pull/3013)
 - Cap bearer token lifetimes that overflow a duration by @nicholas-fedor in [#2953](https://github.com/nicholas-fedor/watchtower/pull/2953)
 - Reject bearer token realms without a host name by @nicholas-fedor in [#2951](https://github.com/nicholas-fedor/watchtower/pull/2951)
