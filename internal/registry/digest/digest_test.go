@@ -654,6 +654,34 @@ func TestCompareDigest_StubRegistry(t *testing.T) {
 			wantRequests: 3,
 		},
 		{
+			name: "should match an image pulled from a Docker manifest list",
+			handlers: func(t *testing.T, addr string) []http.HandlerFunc {
+				t.Helper()
+
+				// Like the reference registry, the stub answers a request that
+				// does not accept Docker manifest lists with the manifest of
+				// one platform, whose digest differs from the list's.
+				const platformDigest = "sha256:f9086bfda061100361fc2bacf069585678d760d705cf390918ccdbda8a00980b"
+
+				return append(bearerChallengeHandlers(t, addr, "repository:test/image:pull"),
+					httpstub.CombineHandlers(
+						httpstub.VerifyRequest(t, http.MethodHead, httpstub.Path(manifestPath)),
+						func(w http.ResponseWriter, r *http.Request) {
+							digest := platformDigest
+							if strings.Contains(r.Header.Get("Accept"), "application/vnd.docker.distribution.manifest.list.v2+json") {
+								digest = testDigestHash
+							}
+
+							w.Header().Set(ContentDigestHeader, digest)
+							w.WriteHeader(http.StatusOK)
+						},
+					),
+				)
+			},
+			want:         true,
+			wantRequests: 3,
+		},
+		{
 			name: "should not fall back to GET when HEAD returns 404",
 			handlers: func(t *testing.T, addr string) []http.HandlerFunc {
 				t.Helper()

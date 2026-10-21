@@ -1460,11 +1460,17 @@ func makeManifestRequest(
 		req.Header.Set("Authorization", token)
 	}
 
-	// Set Accept header for Docker Distribution API manifest requests, supporting v1, v2, OCI v1, and OCI index.
-	req.Header.Set(
-		"Accept",
-		"application/vnd.docker.distribution.manifest.v1+json, application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.manifest.v1+json, application/vnd.oci.image.index.v1+json",
-	)
+	// Accept every manifest type a tag can point to. A registry that does not
+	// see a multi-platform image's list type accepted can answer with one
+	// platform's manifest, whose digest does not match the list digest a pull
+	// records in RepoDigests.
+	req.Header.Set("Accept", strings.Join([]string{
+		"application/vnd.docker.distribution.manifest.v1+json",
+		"application/vnd.docker.distribution.manifest.v2+json",
+		"application/vnd.docker.distribution.manifest.list.v2+json",
+		"application/vnd.oci.image.manifest.v1+json",
+		"application/vnd.oci.image.index.v1+json",
+	}, ", "))
 	req.Header.Set("User-Agent", meta.UserAgent)
 
 	return req, nil
