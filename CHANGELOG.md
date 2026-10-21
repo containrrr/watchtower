@@ -46,6 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Move pkg/registry to internal/registry by @nicholas-fedor in [#3011](https://github.com/nicholas-fedor/watchtower/pull/3011)
 - Run the self-update tests on the generated client mock by @nicholas-fedor in [#2987](https://github.com/nicholas-fedor/watchtower/pull/2987)
 - Replace Docker API fakes with a generated SDK mock by @nicholas-fedor in [#2985](https://github.com/nicholas-fedor/watchtower/pull/2985)
 - Create the self-update orchestrator through an EphemeralAPI port by @nicholas-fedor in [#2979](https://github.com/nicholas-fedor/watchtower/pull/2979)
