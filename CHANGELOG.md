@@ -88,6 +88,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Chores
 
+- Update module github.com/docker/compose/v5 to v5.6.1 by @renovate[bot] in [#2981](https://github.com/nicholas-fedor/watchtower/pull/2981)
 - Update module github.com/moby/buildkit to v0.34.1 by @renovate[bot] in [#2973](https://github.com/nicholas-fedor/watchtower/pull/2973)
 - Update module github.com/docker/docker-credential-helpers to v0.9.12 by @renovate[bot] in [#2968](https://github.com/nicholas-fedor/watchtower/pull/2968)
 - Update module github.com/docker/cli to v29.9.2+incompatible by @renovate[bot] in [#2967](https://github.com/nicholas-fedor/watchtower/pull/2967)
