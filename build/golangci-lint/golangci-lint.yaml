@@ -106,7 +106,6 @@ linters:
     - errorlint # Errorlint is a linter for that can be used to find code that will cause problems with the error wrapping scheme introduced in Go 1.13.
     - exptostd # Detects functions from golang.org/x/exp/ that can be replaced by std functions.
     - fatcontext # Detects nested contexts in loops and function literals.
-    - ginkgolinter # Enforces standards of using ginkgo and gomega.
     - gocritic # Provides diagnostics that check for bugs, performance and style issues.
     - godot # Check if comments end in a period.
     - goheader # Checks if file header matches to pattern.
@@ -196,6 +195,7 @@ linters:
     - depguard # Checks if package imports are in a list of acceptable packages.
     - exhaustruct # Checks if all structure fields are initialized.
     - funlen # Checks for long functions.
+    - ginkgolinter # Enforces standards of using ginkgo and gomega.
     - gochecknoglobals # Check that no global variables exist.
     - gochecknoinits # Checks that no init functions are present in Go code.
     - gocognit # Computes and checks the cognitive complexity of functions.

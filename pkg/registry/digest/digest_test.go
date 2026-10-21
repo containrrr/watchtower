@@ -48,8 +48,8 @@ func newTestLogger(t *testing.T) *zerolog.Logger {
 	return new(zerolog.New(w))
 }
 
-// newNopLogger returns a logger that discards every event, for Ginkgo specs,
-// benchmarks, and fuzz targets.
+// newNopLogger returns a logger that discards every event, for benchmarks and
+// fuzz targets.
 //
 // Returns:
 //   - *zerolog.Logger: Logger that discards all events.
@@ -1252,7 +1252,7 @@ func TestFetchDigestWithGet_StubRegistry(t *testing.T) {
 					),
 				)
 			},
-			want: NormalizeDigest(newNopLogger(), testDigestHash),
+			want: NormalizeDigest(newTestLogger(t), testDigestHash),
 		},
 		{
 			name: "should handle no authentication required",
@@ -1267,7 +1267,7 @@ func TestFetchDigestWithGet_StubRegistry(t *testing.T) {
 					),
 				}
 			},
-			want: NormalizeDigest(newNopLogger(), testDigestHash),
+			want: NormalizeDigest(newTestLogger(t), testDigestHash),
 		},
 		{
 			name: "should return an error if GET request fails after token",
@@ -2043,7 +2043,7 @@ func TestExtractGetDigest(t *testing.T) {
 					Body:       io.NopCloser(strings.NewReader("invalid-json")),
 				}
 			},
-			expected: NormalizeDigest(newNopLogger(), testDigestHash),
+			expected: NormalizeDigest(newTestLogger(t), testDigestHash),
 		},
 		{
 			name: "extracts digest from JSON body with application/json content type",
@@ -2055,7 +2055,7 @@ func TestExtractGetDigest(t *testing.T) {
 					Body:       io.NopCloser(strings.NewReader(fmt.Sprintf(`{"digest": "%s"}`, testDigestHash))),
 				}
 			},
-			expected: NormalizeDigest(newNopLogger(), testDigestHash),
+			expected: NormalizeDigest(newTestLogger(t), testDigestHash),
 		},
 		{
 			name: "extracts digest from OCI image index JSON body",
@@ -2107,7 +2107,7 @@ func TestExtractGetDigest(t *testing.T) {
 					Body:       io.NopCloser(strings.NewReader(testDigestHash)),
 				}
 			},
-			expected: NormalizeDigest(newNopLogger(), testDigestHash),
+			expected: NormalizeDigest(newTestLogger(t), testDigestHash),
 		},
 		{
 			name: "returns error when the digest header has no hash and the body is empty",

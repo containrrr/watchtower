@@ -38,8 +38,7 @@ func newTestLogger(t *testing.T) *zerolog.Logger {
 	return new(zerolog.New(w))
 }
 
-// newNopLogger returns a logger that discards every event, for Ginkgo specs,
-// benchmarks, and fuzz targets.
+// newNopLogger returns a logger that discards every event, for fuzz targets.
 //
 // Returns:
 //   - *zerolog.Logger: Logger that discards all events.
