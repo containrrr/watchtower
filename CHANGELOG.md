@@ -68,6 +68,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- Convert the container image suites to testify by @nicholas-fedor in [#2977](https://github.com/nicholas-fedor/watchtower/pull/2977)
 - Convert the container model suites to testify by @nicholas-fedor in [#2975](https://github.com/nicholas-fedor/watchtower/pull/2975)
 - Convert the sorter suite to testify by @nicholas-fedor in [#2971](https://github.com/nicholas-fedor/watchtower/pull/2971)
 - Convert the logging suite to testify by @nicholas-fedor in [#2965](https://github.com/nicholas-fedor/watchtower/pull/2965)
