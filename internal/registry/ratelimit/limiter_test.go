@@ -5,6 +5,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"github.com/stretchr/testify/assert"
@@ -452,4 +453,154 @@ func TestNewUsesProductionRetryBudgets(t *testing.T) {
 
 	assert.Equal(t, maxRetryElapsed, l.retryElapsed)
 	assert.Equal(t, maxBucketRetryElapsed, l.bucketRetryElapsed)
+}
+
+// recoveryHost is the registry host the recovery tests throttle.
+const recoveryHost = "registry.example"
+
+// waitTime returns how long l.Wait blocks for recoveryHost on the synctest
+// clock.
+//
+// Parameters:
+//   - t: Test inside a synctest bubble.
+//   - l: Limiter to wait on.
+//
+// Returns:
+//   - time.Duration: Time the wait took.
+func waitTime(t *testing.T, l *Limiter) time.Duration {
+	t.Helper()
+
+	started := time.Now()
+
+	require.NoError(t, l.Wait(t.Context(), recoveryHost))
+
+	return time.Since(started)
+}
+
+// TestObserve_RecoveryEndsPacing verifies that the pacing a 429 starts lasts
+// until throttleRecovery after the cooldown ends, then stops, and that a quota
+// made up from the cooldown goes with it.
+func TestObserve_RecoveryEndsPacing(t *testing.T) {
+	t.Parallel()
+
+	synctest.Test(t, func(t *testing.T) {
+		l := New()
+
+		l.Observe(recoveryHost, &Error{RetryAfter: time.Second})
+		assert.Equal(t, time.Second, waitTime(t, l), "the cooldown holds the first request")
+
+		time.Sleep(throttleRecovery - 2*time.Second)
+		assert.Zero(t, waitTime(t, l), "one token is available during recovery")
+		assert.Equal(t, time.Second, waitTime(t, l), "the next request waits for the made-up quota")
+
+		time.Sleep(time.Second)
+
+		for range 20 {
+			assert.Zero(t, waitTime(t, l), "requests are not paced after recovery")
+		}
+
+		state := l.hostStates[recoveryHost]
+		assert.Zero(t, state.allowed)
+		assert.Zero(t, state.burst)
+		assert.False(t, state.synthesized)
+		assert.True(t, state.recoverAt.IsZero())
+	})
+}
+
+// TestObserve_RecoveryKeepsAdvertisedQuota verifies that recovery lifts the
+// one-token cap but keeps a quota the registry advertised, so the host refills
+// to its full budget and is then paced at the advertised rate.
+func TestObserve_RecoveryKeepsAdvertisedQuota(t *testing.T) {
+	t.Parallel()
+
+	synctest.Test(t, func(t *testing.T) {
+		l := New()
+
+		l.Observe(recoveryHost, &Error{Allowed: 2, AllowedWindow: time.Minute})
+
+		time.Sleep(throttleRecovery)
+
+		assert.Zero(t, waitTime(t, l))
+		assert.Zero(t, waitTime(t, l), "the full advertised budget is available")
+		assert.Equal(t, 30*time.Second, waitTime(t, l), "the advertised rate paces the rest")
+
+		state := l.hostStates[recoveryHost]
+		assert.Equal(t, 2, state.allowed)
+		assert.Equal(t, time.Minute, state.window)
+		assert.Zero(t, state.burst)
+	})
+}
+
+// TestObserve_ThrottleDuringRecoveryExtendsIt verifies that a 429 while the
+// host is recovering moves the end of recovery later.
+func TestObserve_ThrottleDuringRecoveryExtendsIt(t *testing.T) {
+	t.Parallel()
+
+	synctest.Test(t, func(t *testing.T) {
+		l := New()
+
+		l.Observe(recoveryHost, &Error{RetryAfter: time.Second})
+		time.Sleep(throttleRecovery / 2)
+		l.Observe(recoveryHost, &Error{RetryAfter: time.Second})
+
+		// Past the first throttle's recovery, within the second's.
+		time.Sleep(throttleRecovery/2 + 10*time.Second)
+
+		assert.Zero(t, waitTime(t, l))
+		assert.Equal(t, time.Second, waitTime(t, l), "the host is still paced")
+	})
+}
+
+// TestObserve_ThrottleDuringRecoveryUpdatesMadeUpQuota verifies that a 429
+// while the host is recovering paces it by that 429's cooldown when the quota
+// was made up, and keeps an advertised quota.
+func TestObserve_ThrottleDuringRecoveryUpdatesMadeUpQuota(t *testing.T) {
+	t.Parallel()
+
+	t.Run("made-up quota follows the latest cooldown", func(t *testing.T) {
+		t.Parallel()
+
+		synctest.Test(t, func(t *testing.T) {
+			l := New()
+
+			l.Observe(recoveryHost, &Error{RetryAfter: time.Second})
+			l.Observe(recoveryHost, &Error{RetryAfter: 5 * time.Second})
+
+			assert.Equal(t, 5*time.Second, waitTime(t, l), "the longer cooldown holds the next request")
+			assert.Equal(t, 5*time.Second, waitTime(t, l), "the latest cooldown paces the rest")
+		})
+	})
+
+	t.Run("advertised quota is kept", func(t *testing.T) {
+		t.Parallel()
+
+		synctest.Test(t, func(t *testing.T) {
+			l := New()
+
+			l.Observe(recoveryHost, &Error{Allowed: 2, AllowedWindow: time.Minute})
+			l.Observe(recoveryHost, &Error{RetryAfter: 5 * time.Second})
+
+			assert.Equal(t, 5*time.Second, waitTime(t, l), "the cooldown holds the next request")
+			assert.Equal(t, 30*time.Second, waitTime(t, l), "the advertised rate paces the rest")
+		})
+	})
+}
+
+// TestObserve_ThrottleAfterRecoveryPacesAgain verifies that a 429 after the host
+// recovered starts pacing again with a quota made up from the new cooldown.
+func TestObserve_ThrottleAfterRecoveryPacesAgain(t *testing.T) {
+	t.Parallel()
+
+	synctest.Test(t, func(t *testing.T) {
+		l := New()
+
+		l.Observe(recoveryHost, &Error{RetryAfter: time.Second})
+		time.Sleep(time.Second + throttleRecovery)
+		assert.Zero(t, waitTime(t, l), "the host recovered")
+
+		l.Observe(recoveryHost, &Error{RetryAfter: 2 * time.Second})
+
+		assert.Equal(t, 2*time.Second, waitTime(t, l), "the new cooldown holds the next request")
+		assert.Equal(t, 2*time.Second, waitTime(t, l), "the new made-up quota paces the rest")
+	})
 }

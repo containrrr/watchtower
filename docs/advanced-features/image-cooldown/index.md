@@ -322,6 +322,13 @@ Watchtower reads the `retry-after` value of a `429` response and handles it in o
 | 100ms to 30 seconds    | A wait the registry asked for        | Honors the wait as sent, with jitter, for up to 30 seconds                                                            |
 | Longer than 30 seconds | A backoff beyond one cycle           | Logs a warning and leaves the image for the next run                                                                  |
 
+After a `429`, Watchtower also paces later requests to that registry so they cannot empty the bucket again in a burst. Pacing depends on whether the `429` advertised a rate:
+
+| `429` advertised a rate | For 3 minutes after the wait                                                                             | Afterwards                                        |
+|-------------------------|----------------------------------------------------------------------------------------------------------|---------------------------------------------------|
+| Yes                     | One request at a time, at the advertised rate                                                            | The advertised rate, with bursts up to its budget |
+| No                      | One request per `retry-after` wait, held between 100ms and 30 seconds, or 100ms when the `429` sent none | Not paced                                         |
+
 Retries within a cycle are logged at debug so they do not become notifications. When the retry window is exhausted:
 
 - The container is marked **Failed** for the cycle.

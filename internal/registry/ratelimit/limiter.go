@@ -20,6 +20,12 @@ type hostState struct {
 	window time.Duration
 	// burst is the maximum tokens held. Zero uses the advertised allowance.
 	burst int
+	// recoverAt is when the pacing that follows a 429 ends. Zero when the host
+	// is not recovering from a throttle.
+	recoverAt time.Time
+	// synthesized reports that allowed and window come from a cooldown rather
+	// than a quota the registry advertised.
+	synthesized bool
 	// tokens is the remaining budget in the current window.
 	tokens float64
 	// lastRefill is when tokens were last replenished.
@@ -51,6 +57,10 @@ type Limiter struct {
 const (
 	// anonSuffix marks limiter keys for unauthenticated GHCR traffic.
 	anonSuffix = "|anon"
+	// throttleRecovery is how long a host stays paced after its 429 cooldown
+	// ends. It matches the token-bucket retry budget, so pacing covers every
+	// retry one update cycle can make, and a later cycle starts unpaced.
+	throttleRecovery = maxBucketRetryElapsed
 )
 
 // New returns a Limiter with no recorded throttles and the production retry
@@ -143,9 +153,12 @@ func (l *Limiter) HoldAnonymous(ctx context.Context, host string, authenticated 
 // Observe records a 429 against host so later Wait calls honor it.
 //
 // Advertised "allowed: N/window" values are treated as a fill rate, not a
-// burst size. After a throttle, the host is limited to one outstanding token
-// so concurrent waiters cannot dump the advertised budget at once.
-// Cooldown time does not accrue tokens.
+// burst size. Until the host recovers, throttleRecovery after its cooldown
+// ends, it is limited to one outstanding token so concurrent waiters cannot
+// dump the advertised budget at once. Without an advertised quota, the host is
+// paced to one request per cooldown, using the latest 429's cooldown, during
+// recovery. Recovery keeps an advertised quota and drops a quota made up from
+// the cooldown. Cooldown time does not accrue tokens.
 //
 // Parameters:
 //   - host: Registry host. Empty values are ignored.
@@ -183,10 +196,17 @@ func (l *Limiter) Observe(host string, info *Error) {
 		state.lastRefill = now
 	}
 
+	if recoverAt := state.lastRefill.Add(throttleRecovery); recoverAt.After(state.recoverAt) {
+		state.recoverAt = recoverAt
+	}
+
 	if info.Allowed > 0 && info.AllowedWindow > 0 {
 		state.allowed = info.Allowed
 		state.window = info.AllowedWindow
-	} else if state.allowed <= 0 || state.window <= 0 {
+		state.synthesized = false
+	} else if state.synthesized || state.allowed <= 0 || state.window <= 0 {
+		// A made-up quota follows the latest cooldown, so a later 429 that asks
+		// for a different wait sets the pace.
 		window := cooldown
 		if window <= 0 {
 			window = minHonorWait
@@ -194,6 +214,7 @@ func (l *Limiter) Observe(host string, info *Error) {
 
 		state.allowed = 1
 		state.window = window
+		state.synthesized = true
 	}
 }
 
@@ -341,11 +362,18 @@ func (l *Limiter) observeSuccess(host string) {
 	defer l.hostsMu.Unlock()
 
 	state := l.hostStates[host]
-	if state == nil || state.allowed <= 0 || state.window <= 0 {
+	if state == nil {
 		return
 	}
 
-	state.refillLocked(time.Now())
+	now := time.Now()
+	state.recoverLocked(now)
+
+	if state.allowed <= 0 || state.window <= 0 {
+		return
+	}
+
+	state.refillLocked(now)
 }
 
 // nextWait computes how long the caller must wait before contacting host.
@@ -365,6 +393,8 @@ func (l *Limiter) nextWait(host string) time.Duration {
 	if now.Before(state.cooldownUntil) {
 		return time.Until(state.cooldownUntil)
 	}
+
+	state.recoverLocked(now)
 
 	if state.allowed <= 0 || state.window <= 0 {
 		return 0
@@ -421,6 +451,31 @@ func (l *Limiter) hostLocked(host string) *hostState {
 	return state
 }
 
+// recoverLocked ends the pacing that follows a 429 once its recovery time has
+// passed. The burst cap lifts, so an advertised quota refills to its full
+// budget, and a quota made up from the cooldown is dropped.
+//
+// The caller must hold hostsMu.
+//
+// Parameters:
+//   - now: Current time compared with the recovery time.
+func (s *hostState) recoverLocked(now time.Time) {
+	if s.recoverAt.IsZero() || now.Before(s.recoverAt) {
+		return
+	}
+
+	s.burst = 0
+
+	if s.synthesized {
+		s.allowed = 0
+		s.window = 0
+		s.tokens = 0
+		s.synthesized = false
+	}
+
+	s.recoverAt = time.Time{}
+}
+
 // refillLocked adds tokens earned since the last refill.
 //
 // The caller must hold hostsMu.
@@ -454,9 +509,9 @@ func (s *hostState) refillLocked(now time.Time) {
 
 // tokenCap is the maximum tokens this host may hold.
 //
-// After a throttle, burst is 1 so an advertised fill rate cannot rebuild a
-// large dump of tokens. Before any throttle, burst is 0 and the cap is the
-// advertised budget when a quota is present.
+// While a host recovers from a throttle, burst is 1 so an advertised fill rate
+// cannot rebuild a large dump of tokens. Otherwise burst is 0 and the cap is
+// the advertised budget when a quota is present.
 //
 // Returns:
 //   - float64: Token ceiling used by refillLocked.
