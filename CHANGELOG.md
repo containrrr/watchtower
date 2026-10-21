@@ -71,6 +71,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- Convert the rebuild suite to testify by @nicholas-fedor in [#2991](https://github.com/nicholas-fedor/watchtower/pull/2991)
 - Convert the cleanup suite to testify by @nicholas-fedor in [#2989](https://github.com/nicholas-fedor/watchtower/pull/2989)
 - Convert the container ID and ephemeral suites to testify by @nicholas-fedor in [#2983](https://github.com/nicholas-fedor/watchtower/pull/2983)
 - Convert the container image suites to testify by @nicholas-fedor in [#2977](https://github.com/nicholas-fedor/watchtower/pull/2977)
