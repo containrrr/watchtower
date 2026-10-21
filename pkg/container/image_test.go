@@ -41,7 +41,7 @@ const rateLimitedMessage = "toomanyrequests: retry-after: 2h, allowed: 44000/min
 //
 // Returns:
 //   - imageClient: Client ready for the test.
-func newTestImageClient(api ImageAPI, log *zerolog.Logger, settings registryConfig.Registry, limiter *ratelimit.Limiter) imageClient {
+func newTestImageClient(api dockerClient.APIClient, log *zerolog.Logger, settings registryConfig.Registry, limiter *ratelimit.Limiter) imageClient {
 	client := newImageClient(api, log, settings, limiter)
 	client.daemonInfo = &daemonInfoCache{}
 
@@ -54,11 +54,11 @@ func newTestImageClient(api ImageAPI, log *zerolog.Logger, settings registryConf
 //   - t: Test that owns the mock.
 //
 // Returns:
-//   - *mockContainer.MockImageAPI: Mock answering Info with an empty daemon configuration.
-func newImageAPI(t *testing.T) *mockContainer.MockImageAPI {
+//   - *mockContainer.MockAPIClient: Mock answering Info with an empty daemon configuration.
+func newImageAPI(t *testing.T) *mockContainer.MockAPIClient {
 	t.Helper()
 
-	api := mockContainer.NewMockImageAPI(t)
+	api := mockContainer.NewMockAPIClient(t)
 	api.EXPECT().Info(mock.Anything, mock.Anything).Return(dockerClient.SystemInfoResult{}, nil).Maybe()
 
 	return api
@@ -378,7 +378,7 @@ func TestImageClient_PullImage(t *testing.T) {
 		t.Run("should handle Info() API failure gracefully and fall back to canonical", func(t *testing.T) {
 			image := failingRegistry(t) + "/app:latest"
 
-			api := mockContainer.NewMockImageAPI(t)
+			api := mockContainer.NewMockAPIClient(t)
 			api.EXPECT().Info(mock.Anything, mock.Anything).Return(dockerClient.SystemInfoResult{}, errors.New("daemon error")).Maybe()
 			api.EXPECT().ImagePull(mock.Anything, image, mock.Anything).
 				Return(nil, cerrdefs.ErrUnauthenticated.WithMessage("unauthorized")).Once()

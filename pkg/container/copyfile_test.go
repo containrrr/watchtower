@@ -344,7 +344,7 @@ func TestSnapshotCopyFiles(t *testing.T) {
 	t.Run("no label returns empty snapshot", func(t *testing.T) {
 		t.Parallel()
 
-		api := mockContainer.NewMockArchiveAPI(t)
+		api := mockContainer.NewMockAPIClient(t)
 		snap, err := snapshotCopyFiles(newTestLogger(t), t.Context(), api, MockContainer())
 		require.NoError(t, err)
 		assert.True(t, snap.empty())
@@ -354,7 +354,7 @@ func TestSnapshotCopyFiles(t *testing.T) {
 		t.Parallel()
 
 		tarBytes := mustFileTar(t, "config.yaml", []byte("setting=1"))
-		api := mockContainer.NewMockArchiveAPI(t)
+		api := mockContainer.NewMockAPIClient(t)
 		api.EXPECT().
 			CopyFromContainer(mock.Anything, "container_id", copyFromPath("/app/config.yaml")).
 			Return(dockerClient.CopyFromContainerResult{
@@ -384,7 +384,7 @@ func TestSnapshotCopyFiles(t *testing.T) {
 	t.Run("skips missing path", func(t *testing.T) {
 		t.Parallel()
 
-		api := mockContainer.NewMockArchiveAPI(t)
+		api := mockContainer.NewMockAPIClient(t)
 		api.EXPECT().
 			CopyFromContainer(mock.Anything, "container_id", copyFromPath("/etc/missing.conf")).
 			Return(dockerClient.CopyFromContainerResult{}, cerrdefs.ErrNotFound)
@@ -401,7 +401,7 @@ func TestSnapshotCopyFiles(t *testing.T) {
 	t.Run("skips path a mount provides", func(t *testing.T) {
 		t.Parallel()
 
-		api := mockContainer.NewMockArchiveAPI(t)
+		api := mockContainer.NewMockAPIClient(t)
 		c := MockContainer(
 			WithLabels(map[string]string{
 				copyFileLabel: "/app/config.yaml",
@@ -417,7 +417,7 @@ func TestSnapshotCopyFiles(t *testing.T) {
 	t.Run("skips path under read-only mount", func(t *testing.T) {
 		t.Parallel()
 
-		api := mockContainer.NewMockArchiveAPI(t)
+		api := mockContainer.NewMockAPIClient(t)
 		c := MockContainer(
 			WithLabels(map[string]string{
 				copyFileLabel: "/etc/searxng/settings.yml",
@@ -435,7 +435,7 @@ func TestSnapshotCopyFiles(t *testing.T) {
 	t.Run("skips path when root filesystem is read-only", func(t *testing.T) {
 		t.Parallel()
 
-		api := mockContainer.NewMockArchiveAPI(t)
+		api := mockContainer.NewMockAPIClient(t)
 		c := MockContainer(
 			WithLabels(map[string]string{
 				copyFileLabel: "/etc/searxng/settings.yml",
@@ -455,7 +455,7 @@ func TestSnapshotCopyFiles(t *testing.T) {
 		t.Parallel()
 
 		tarBytes := mustFileTar(t, "settings.yml", []byte("use_default_settings: false"))
-		api := mockContainer.NewMockArchiveAPI(t)
+		api := mockContainer.NewMockAPIClient(t)
 		api.EXPECT().
 			CopyFromContainer(mock.Anything, "container_id", copyFromPath("/etc/searxng/settings.yml")).
 			Return(dockerClient.CopyFromContainerResult{
@@ -488,7 +488,7 @@ func TestSnapshotCopyFiles(t *testing.T) {
 	t.Run("rejects directory", func(t *testing.T) {
 		t.Parallel()
 
-		api := mockContainer.NewMockArchiveAPI(t)
+		api := mockContainer.NewMockAPIClient(t)
 		api.EXPECT().
 			CopyFromContainer(mock.Anything, "container_id", copyFromPath("/app/data")).
 			Return(dockerClient.CopyFromContainerResult{
@@ -510,7 +510,7 @@ func TestSnapshotCopyFiles(t *testing.T) {
 	t.Run("rejects oversized file", func(t *testing.T) {
 		t.Parallel()
 
-		api := mockContainer.NewMockArchiveAPI(t)
+		api := mockContainer.NewMockAPIClient(t)
 		api.EXPECT().
 			CopyFromContainer(mock.Anything, "container_id", copyFromPath("/etc/huge.conf")).
 			Return(dockerClient.CopyFromContainerResult{
@@ -533,7 +533,7 @@ func TestSnapshotCopyFiles(t *testing.T) {
 	t.Run("rejects symlink", func(t *testing.T) {
 		t.Parallel()
 
-		api := mockContainer.NewMockArchiveAPI(t)
+		api := mockContainer.NewMockAPIClient(t)
 		api.EXPECT().
 			CopyFromContainer(mock.Anything, "container_id", copyFromPath("/app/config.yaml")).
 			Return(dockerClient.CopyFromContainerResult{
@@ -556,7 +556,7 @@ func TestSnapshotCopyFiles(t *testing.T) {
 	t.Run("rejects nil archive stream", func(t *testing.T) {
 		t.Parallel()
 
-		api := mockContainer.NewMockArchiveAPI(t)
+		api := mockContainer.NewMockAPIClient(t)
 		api.EXPECT().
 			CopyFromContainer(mock.Anything, "container_id", copyFromPath("/app/config.yaml")).
 			Return(dockerClient.CopyFromContainerResult{
@@ -578,7 +578,7 @@ func TestSnapshotCopyFiles(t *testing.T) {
 	t.Run("invalid label fails before copy", func(t *testing.T) {
 		t.Parallel()
 
-		api := mockContainer.NewMockArchiveAPI(t)
+		api := mockContainer.NewMockAPIClient(t)
 		c := MockContainer(WithLabels(map[string]string{
 			copyFileLabel: "relative.conf",
 		}))
@@ -594,7 +594,7 @@ func TestSnapshotCopyFiles(t *testing.T) {
 
 		body := bytes.Repeat([]byte("x"), maxCopyFileBytes)
 		paths := make([]string, fileCount)
-		api := mockContainer.NewMockArchiveAPI(t)
+		api := mockContainer.NewMockAPIClient(t)
 
 		for i := range fileCount {
 			name := strconv.Itoa(i)
@@ -631,7 +631,7 @@ func TestInjectCopyFiles(t *testing.T) {
 	t.Run("empty snapshot is a no-op", func(t *testing.T) {
 		t.Parallel()
 
-		api := mockContainer.NewMockArchiveAPI(t)
+		api := mockContainer.NewMockAPIClient(t)
 		err := injectCopyFiles(
 			newTestLogger(t),
 			t.Context(),
@@ -647,7 +647,7 @@ func TestInjectCopyFiles(t *testing.T) {
 		t.Parallel()
 
 		tarBytes := mustFileTar(t, "config.yaml", []byte("setting=1"))
-		api := mockContainer.NewMockArchiveAPI(t)
+		api := mockContainer.NewMockAPIClient(t)
 		expectDaemonInfo(api, "name=seccomp,profile=builtin", "name=rootless", "name=cgroupns")
 		api.EXPECT().
 			CopyToContainer(mock.Anything, "new-id", mock.Anything).
@@ -683,7 +683,7 @@ func TestInjectCopyFiles(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		api := mockContainer.NewMockArchiveAPI(t)
+		api := mockContainer.NewMockAPIClient(t)
 		expectDaemonInfo(api)
 		api.EXPECT().
 			CopyToContainer(mock.Anything, "new-id", mock.Anything).
@@ -715,7 +715,7 @@ func TestInjectCopyFiles(t *testing.T) {
 	t.Run("copy failure is returned", func(t *testing.T) {
 		t.Parallel()
 
-		api := mockContainer.NewMockArchiveAPI(t)
+		api := mockContainer.NewMockAPIClient(t)
 		expectDaemonInfo(api)
 		api.EXPECT().
 			CopyToContainer(mock.Anything, "new-id", mock.Anything).
@@ -740,7 +740,7 @@ func TestInjectCopyFiles(t *testing.T) {
 	t.Run("userns daemon applies container user ownership", func(t *testing.T) {
 		t.Parallel()
 
-		api := mockContainer.NewMockArchiveAPI(t)
+		api := mockContainer.NewMockAPIClient(t)
 		expectDaemonInfo(api, "name=seccomp,profile=builtin", "name=userns", "name=cgroupns")
 		api.EXPECT().
 			CopyToContainer(mock.Anything, "new-id", mock.Anything).
@@ -767,7 +767,7 @@ func TestInjectCopyFiles(t *testing.T) {
 	t.Run("daemon info failure keeps captured ownership", func(t *testing.T) {
 		t.Parallel()
 
-		api := mockContainer.NewMockArchiveAPI(t)
+		api := mockContainer.NewMockAPIClient(t)
 		api.EXPECT().
 			Info(mock.Anything, dockerClient.InfoOptions{}).
 			Return(dockerClient.SystemInfoResult{}, errors.New("unavailable")).
@@ -1102,7 +1102,7 @@ func TestSnapshotCopyFileErrors(t *testing.T) {
 	t.Run("copy from failure", func(t *testing.T) {
 		t.Parallel()
 
-		api := mockContainer.NewMockArchiveAPI(t)
+		api := mockContainer.NewMockAPIClient(t)
 		api.EXPECT().
 			CopyFromContainer(mock.Anything, "container_id", copyFromPath("/app/config.yaml")).
 			Return(dockerClient.CopyFromContainerResult{}, errors.New("denied"))
@@ -1117,7 +1117,7 @@ func TestSnapshotCopyFileErrors(t *testing.T) {
 	t.Run("symlink mode without link target", func(t *testing.T) {
 		t.Parallel()
 
-		api := mockContainer.NewMockArchiveAPI(t)
+		api := mockContainer.NewMockAPIClient(t)
 		api.EXPECT().
 			CopyFromContainer(mock.Anything, "container_id", copyFromPath("/app/config.yaml")).
 			Return(dockerClient.CopyFromContainerResult{
@@ -1138,7 +1138,7 @@ func TestSnapshotCopyFileErrors(t *testing.T) {
 	t.Run("archive stream read error", func(t *testing.T) {
 		t.Parallel()
 
-		api := mockContainer.NewMockArchiveAPI(t)
+		api := mockContainer.NewMockAPIClient(t)
 		api.EXPECT().
 			CopyFromContainer(mock.Anything, "container_id", copyFromPath("/app/config.yaml")).
 			Return(dockerClient.CopyFromContainerResult{
@@ -1160,7 +1160,7 @@ func TestSnapshotCopyFileErrors(t *testing.T) {
 	t.Run("archive stream exceeds tar cap", func(t *testing.T) {
 		t.Parallel()
 
-		api := mockContainer.NewMockArchiveAPI(t)
+		api := mockContainer.NewMockAPIClient(t)
 		api.EXPECT().
 			CopyFromContainer(mock.Anything, "container_id", copyFromPath("/app/config.yaml")).
 			Return(dockerClient.CopyFromContainerResult{
@@ -1186,8 +1186,8 @@ func TestClientCopyFileStore(t *testing.T) {
 	t.Run("snapshot empty label is a no-op", func(t *testing.T) {
 		t.Parallel()
 
-		api := mockContainer.NewMockArchiveAPI(t)
-		cli := &client{log: newTestLogger(t), copyAPI: api}
+		api := mockContainer.NewMockAPIClient(t)
+		cli := &client{log: newTestLogger(t), api: api}
 		require.NoError(t, cli.SnapshotCopyFiles(t.Context(), MockContainer()))
 		assert.Empty(t, cli.copyFiles)
 	})
@@ -1196,7 +1196,7 @@ func TestClientCopyFileStore(t *testing.T) {
 		t.Parallel()
 
 		tarBytes := mustFileTar(t, "config.yaml", []byte("setting=1"))
-		api := mockContainer.NewMockArchiveAPI(t)
+		api := mockContainer.NewMockAPIClient(t)
 		api.EXPECT().
 			CopyFromContainer(mock.Anything, "container_id", copyFromPath("/app/config.yaml")).
 			Return(dockerClient.CopyFromContainerResult{
@@ -1208,7 +1208,7 @@ func TestClientCopyFileStore(t *testing.T) {
 				},
 			}, nil)
 
-		cli := &client{log: newTestLogger(t), copyAPI: api}
+		cli := &client{log: newTestLogger(t), api: api}
 		source := MockContainer(WithLabels(map[string]string{
 			copyFileLabel: "/app/config.yaml",
 		}))
@@ -1220,7 +1220,7 @@ func TestClientCopyFileStore(t *testing.T) {
 	t.Run("snapshot invalid label fails", func(t *testing.T) {
 		t.Parallel()
 
-		cli := &client{log: newTestLogger(t), copyAPI: mockContainer.NewMockArchiveAPI(t)}
+		cli := &client{log: newTestLogger(t), api: mockContainer.NewMockAPIClient(t)}
 		err := cli.SnapshotCopyFiles(t.Context(), MockContainer(WithLabels(map[string]string{
 			copyFileLabel: "relative.conf",
 		})))
@@ -1230,7 +1230,7 @@ func TestClientCopyFileStore(t *testing.T) {
 	t.Run("inject missing snapshot is a no-op", func(t *testing.T) {
 		t.Parallel()
 
-		cli := &client{log: newTestLogger(t), copyAPI: mockContainer.NewMockArchiveAPI(t)}
+		cli := &client{log: newTestLogger(t), api: mockContainer.NewMockAPIClient(t)}
 		require.NoError(t, cli.injectStoredCopyFiles(t.Context(), MockContainer(), "new-id"))
 	})
 
@@ -1239,15 +1239,15 @@ func TestClientCopyFileStore(t *testing.T) {
 
 		tarBytes := mustFileTar(t, "config.yaml", []byte("setting=1"))
 		source := MockContainer()
-		api := mockContainer.NewMockArchiveAPI(t)
+		api := mockContainer.NewMockAPIClient(t)
 		expectDaemonInfo(api)
 		api.EXPECT().
 			CopyToContainer(mock.Anything, "new-id", mock.Anything).
 			Return(dockerClient.CopyToContainerResult{}, nil)
 
 		cli := &client{
-			log:     newTestLogger(t),
-			copyAPI: api,
+			log: newTestLogger(t),
+			api: api,
 			copyFiles: map[types.ContainerID]copyFileSnapshot{
 				source.ID(): {files: []copyFileEntry{{
 					target:  "/app/config.yaml",
@@ -1265,15 +1265,15 @@ func TestClientCopyFileStore(t *testing.T) {
 		t.Parallel()
 
 		source := MockContainer()
-		api := mockContainer.NewMockArchiveAPI(t)
+		api := mockContainer.NewMockAPIClient(t)
 		expectDaemonInfo(api)
 		api.EXPECT().
 			CopyToContainer(mock.Anything, "new-id", mock.Anything).
 			Return(dockerClient.CopyToContainerResult{}, errors.New("denied"))
 
 		cli := &client{
-			log:     newTestLogger(t),
-			copyAPI: api,
+			log: newTestLogger(t),
+			api: api,
 			copyFiles: map[types.ContainerID]copyFileSnapshot{
 				source.ID(): {files: []copyFileEntry{{
 					target:  "/app/config.yaml",
@@ -1286,13 +1286,6 @@ func TestClientCopyFileStore(t *testing.T) {
 		require.ErrorIs(t, err, errCopyFileInjectFailed)
 		assert.Empty(t, cli.copyFiles)
 		assert.Equal(t, int64(0), cli.copyFileBytes)
-	})
-
-	t.Run("copyArchiveAPI falls back to docker client", func(t *testing.T) {
-		t.Parallel()
-
-		cli := &client{}
-		assert.Nil(t, cli.copyArchiveAPI())
 	})
 
 	t.Run("store clamps negative byte count", func(t *testing.T) {
@@ -1328,7 +1321,7 @@ func (e errReader) Read(_ []byte) (int, error) {
 }
 
 // expectDaemonInfo stubs the single daemon info call made by one injection.
-func expectDaemonInfo(api *mockContainer.MockArchiveAPI, securityOptions ...string) {
+func expectDaemonInfo(api *mockContainer.MockAPIClient, securityOptions ...string) {
 	api.EXPECT().
 		Info(mock.Anything, dockerClient.InfoOptions{}).
 		Return(dockerClient.SystemInfoResult{

@@ -66,21 +66,6 @@ type CopyFileStore interface {
 
 var _ CopyFileStore = (*client)(nil)
 
-// ArchiveAPI is the Docker API subset used to snapshot and inject labeled files.
-type ArchiveAPI interface {
-	Info(ctx context.Context, options dockerClient.InfoOptions) (dockerClient.SystemInfoResult, error)
-	CopyFromContainer(
-		ctx context.Context,
-		containerID string,
-		options dockerClient.CopyFromContainerOptions,
-	) (dockerClient.CopyFromContainerResult, error)
-	CopyToContainer(
-		ctx context.Context,
-		containerID string,
-		options dockerClient.CopyToContainerOptions,
-	) (dockerClient.CopyToContainerResult, error)
-}
-
 // copyFileEntry is one labeled file captured from a container.
 type copyFileEntry struct {
 	target  string
@@ -418,7 +403,7 @@ func bindIsReadOnly(bind string) bool {
 func snapshotCopyFiles(
 	log *zerolog.Logger,
 	ctx context.Context,
-	api ArchiveAPI,
+	api dockerClient.APIClient,
 	source types.Container,
 ) (copyFileSnapshot, error) {
 	paths, err := copyFilePaths(source)
@@ -481,7 +466,7 @@ func snapshotCopyFiles(
 func snapshotCopyFile(
 	ctx context.Context,
 	clog *zerolog.Logger,
-	api ArchiveAPI,
+	api dockerClient.APIClient,
 	containerID string,
 	filePath string,
 ) (copyFileEntry, bool, error) {
@@ -699,7 +684,7 @@ func writeSanitizedCopyFileTar(destPath string, body []byte, src *tar.Header) ([
 func injectCopyFiles(
 	log *zerolog.Logger,
 	ctx context.Context,
-	api ArchiveAPI,
+	api dockerClient.APIClient,
 	containerID string,
 	source types.Container,
 	snapshot copyFileSnapshot,
@@ -749,7 +734,7 @@ func injectCopyFiles(
 //
 // Returns:
 //   - bool: True when the daemon remaps user namespaces.
-func copyFileUIDGID(ctx context.Context, clog *zerolog.Logger, api ArchiveAPI) bool {
+func copyFileUIDGID(ctx context.Context, clog *zerolog.Logger, api dockerClient.APIClient) bool {
 	result, err := api.Info(ctx, dockerClient.InfoOptions{})
 	if err != nil {
 		clog.Debug().
@@ -787,18 +772,6 @@ func daemonRemapsUserNamespaces(securityOptions []string) bool {
 	return false
 }
 
-// copyArchiveAPI returns the Docker copy API used for snapshot and inject.
-//
-// Returns:
-//   - ArchiveAPI: Test override when set, otherwise the Docker client.
-func (c *client) copyArchiveAPI() ArchiveAPI {
-	if c.copyAPI != nil {
-		return c.copyAPI
-	}
-
-	return c.api
-}
-
 // SnapshotCopyFiles captures labeled files before the source is removed.
 //
 // Parameters:
@@ -808,7 +781,7 @@ func (c *client) copyArchiveAPI() ArchiveAPI {
 // Returns:
 //   - error: Non-nil if a labeled path cannot be snapshotted.
 func (c *client) SnapshotCopyFiles(ctx context.Context, source types.Container) error {
-	snapshot, err := snapshotCopyFiles(c.logger(), ctx, c.copyArchiveAPI(), source)
+	snapshot, err := snapshotCopyFiles(c.logger(), ctx, c.api, source)
 	if err != nil {
 		return err
 	}
@@ -885,7 +858,7 @@ func (c *client) injectStoredCopyFiles(
 		return nil
 	}
 
-	return injectCopyFiles(c.logger(), ctx, c.copyArchiveAPI(), string(newID), source, snapshot)
+	return injectCopyFiles(c.logger(), ctx, c.api, string(newID), source, snapshot)
 }
 
 // DiscardCopyFiles drops a leftover snapshot for the source container.

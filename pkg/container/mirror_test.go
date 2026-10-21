@@ -208,7 +208,7 @@ func Test_newImageClient_nilLogger_noMirrors(t *testing.T) {
 	resetDaemonInfoCache()
 	t.Cleanup(resetDaemonInfoCache)
 
-	api := mockContainer.NewMockImageAPI(t)
+	api := mockContainer.NewMockAPIClient(t)
 	api.EXPECT().Info(mock.Anything, dockerClient.InfoOptions{}).
 		Return(dockerClient.SystemInfoResult{}, nil).
 		Once()
@@ -226,7 +226,7 @@ func TestResolveRegistryMirrorConfig_CachesInfo(t *testing.T) {
 	resetDaemonInfoCache()
 	t.Cleanup(resetDaemonInfoCache)
 
-	api := mockContainer.NewMockImageAPI(t)
+	api := mockContainer.NewMockAPIClient(t)
 	api.EXPECT().Info(mock.Anything, dockerClient.InfoOptions{}).
 		Return(mirrorInfoResult(), nil).
 		Once()
@@ -248,7 +248,7 @@ func TestResolveRegistryMirrorConfig_InfoErrorNotCached(t *testing.T) {
 	resetDaemonInfoCache()
 	t.Cleanup(resetDaemonInfoCache)
 
-	api := mockContainer.NewMockImageAPI(t)
+	api := mockContainer.NewMockAPIClient(t)
 	api.EXPECT().Info(mock.Anything, dockerClient.InfoOptions{}).
 		Return(dockerClient.SystemInfoResult{}, errors.New("daemon unavailable")).
 		Times(2)
@@ -265,7 +265,7 @@ func TestResolveRegistryMirrorConfig_NilDaemonInfoUsesShared(t *testing.T) {
 	resetDaemonInfoCache()
 	t.Cleanup(resetDaemonInfoCache)
 
-	api := mockContainer.NewMockImageAPI(t)
+	api := mockContainer.NewMockAPIClient(t)
 	api.EXPECT().Info(mock.Anything, dockerClient.InfoOptions{}).
 		Return(mirrorInfoResult(), nil).
 		Once()
@@ -291,7 +291,7 @@ func TestResolveRegistryMirrorConfig_CoalescesConcurrentFetches(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		release := make(chan struct{})
 
-		api := mockContainer.NewMockImageAPI(t)
+		api := mockContainer.NewMockAPIClient(t)
 		api.EXPECT().Info(mock.Anything, dockerClient.InfoOptions{}).
 			RunAndReturn(func(context.Context, dockerClient.InfoOptions) (dockerClient.SystemInfoResult, error) {
 				<-release

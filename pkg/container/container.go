@@ -1,7 +1,6 @@
 package container
 
 import (
-	"context"
 	"fmt"
 	"maps"
 	"slices"
@@ -13,7 +12,6 @@ import (
 	dockerContainer "github.com/moby/moby/api/types/container"
 	dockerImage "github.com/moby/moby/api/types/image"
 	dockerNetwork "github.com/moby/moby/api/types/network"
-	dockerClient "github.com/moby/moby/client"
 
 	"github.com/nicholas-fedor/watchtower/internal/compose"
 	"github.com/nicholas-fedor/watchtower/internal/util"
@@ -24,44 +22,6 @@ import (
 const (
 	linkPartsCount = 2 // Number of parts expected in a link (name:alias)
 )
-
-// Operations defines the minimal interface for container Operations in Watchtower.
-type Operations interface {
-	ContainerCreate(
-		ctx context.Context,
-		options dockerClient.ContainerCreateOptions,
-	) (dockerClient.ContainerCreateResult, error)
-	ContainerStart(
-		ctx context.Context,
-		containerID string,
-		options dockerClient.ContainerStartOptions,
-	) (dockerClient.ContainerStartResult, error)
-	ContainerInspect(
-		ctx context.Context,
-		containerID string,
-		options dockerClient.ContainerInspectOptions,
-	) (dockerClient.ContainerInspectResult, error)
-	ContainerRemove(
-		ctx context.Context,
-		containerID string,
-		options dockerClient.ContainerRemoveOptions,
-	) (dockerClient.ContainerRemoveResult, error)
-	NetworkConnect(
-		ctx context.Context,
-		networkID string,
-		options dockerClient.NetworkConnectOptions,
-	) (dockerClient.NetworkConnectResult, error)
-	ContainerRename(
-		ctx context.Context,
-		containerID string,
-		options dockerClient.ContainerRenameOptions,
-	) (dockerClient.ContainerRenameResult, error)
-	ImageInspect(
-		ctx context.Context,
-		imageID string,
-		inspectOpts ...dockerClient.ImageInspectOption,
-	) (dockerClient.ImageInspectResult, error)
-}
 
 // nopLog returns a fresh discarded logger for optional construction and fallbacks.
 // It is not a package-level logger store: each call allocates a new Nop instance.

@@ -37,7 +37,7 @@ const (
 //
 // Parameters:
 //   - ctx: Context for cancellation and timeout control.
-//   - api: Interface for container operations (Operations).
+//   - api: Docker API client.
 //   - clog: Logger with container context fields.
 //   - sourceContainer: Source container the new container replaces.
 //   - containerID: ID of the created container to start.
@@ -47,7 +47,7 @@ const (
 //   - error: Non-nil if the start fails, nil on success or when the start is skipped.
 func startTargetContainer(
 	ctx context.Context,
-	api Operations,
+	api dockerClient.APIClient,
 	clog *zerolog.Logger,
 	sourceContainer types.Container,
 	containerID types.ContainerID,
@@ -103,7 +103,7 @@ func startTargetContainer(
 //   - containerID: ID of the container created before the start failure.
 func cleanupFailedStartContainer(
 	parentCtx context.Context,
-	api Operations,
+	api dockerClient.APIClient,
 	clog *zerolog.Logger,
 	containerID types.ContainerID,
 ) {
@@ -155,7 +155,7 @@ func cleanupFailedStartContainer(
 //
 // Parameters:
 //   - ctx: Context for cancellation and timeout control.
-//   - api: Interface for container operations (Operations).
+//   - api: Docker API client.
 //   - sourceContainer: Source container to replicate.
 //   - networkConfig: Network configuration to apply to the new container.
 //   - clientVersion: Docker API version used by the client.
@@ -168,7 +168,7 @@ func cleanupFailedStartContainer(
 //   - error: Non-nil if creation fails, nil on success.
 func createTargetContainer(log *zerolog.Logger,
 	ctx context.Context,
-	api Operations,
+	api dockerClient.APIClient,
 	sourceContainer types.Container,
 	networkConfig *dockerNetwork.NetworkingConfig,
 	clientVersion string,
@@ -344,14 +344,14 @@ func createTargetContainer(log *zerolog.Logger,
 //
 // Parameters:
 //   - ctx: Context for cancellation and timeout control.
-//   - api: Interface for container operations (Operations).
+//   - api: Docker API client.
 //   - clog: Logger with container context fields.
 //   - sourceContainer: Source container the new container replaces.
 //   - config: Creation config for the new container, updated in place.
 //   - clientVersion: Docker API version used by the client.
 func syncComposeImageLabel(
 	ctx context.Context,
-	api Operations,
+	api dockerClient.APIClient,
 	clog *zerolog.Logger,
 	sourceContainer types.Container,
 	config *dockerContainer.Config,
@@ -400,7 +400,7 @@ func syncComposeImageLabel(
 //
 // Parameters:
 //   - ctx: Context for cancellation and timeout control.
-//   - api: Interface for container operations (Operations).
+//   - api: Docker API client.
 //   - label: Compose image label value recorded for the old image.
 //   - oldImageRef: ID of the image the source container runs.
 //   - newImageRef: Reference the new container is created from.
@@ -412,7 +412,7 @@ func syncComposeImageLabel(
 //   - error: Non-nil if an image inspect fails.
 func resolveComposeImageLabel(
 	ctx context.Context,
-	api Operations,
+	api dockerClient.APIClient,
 	label, oldImageRef, newImageRef, clientVersion string,
 ) (string, bool, error) {
 	oldImage, err := inspectImageWithManifests(ctx, api, oldImageRef, clientVersion)
@@ -435,7 +435,7 @@ func resolveComposeImageLabel(
 //
 // Parameters:
 //   - ctx: Context for cancellation and timeout control.
-//   - api: Interface for container operations (Operations).
+//   - api: Docker API client.
 //   - imageRef: Image ID or reference to inspect.
 //   - clientVersion: Docker API version used by the client.
 //
@@ -444,7 +444,7 @@ func resolveComposeImageLabel(
 //   - error: Non-nil if the inspect fails.
 func inspectImageWithManifests(
 	ctx context.Context,
-	api Operations,
+	api dockerClient.APIClient,
 	imageRef, clientVersion string,
 ) (*dockerImage.InspectResponse, error) {
 	var opts []dockerClient.ImageInspectOption
@@ -467,7 +467,7 @@ func inspectImageWithManifests(
 //
 // Parameters:
 //   - ctx: Context for container API operations.
-//   - api: Interface for container operations (Operations).
+//   - api: Docker API client.
 //   - containerID: ID of the container to attach networks to.
 //   - networkConfig: Full network configuration with all desired endpoints.
 //   - initialNetworkConfig: Network configuration used during container creation.
@@ -477,7 +477,7 @@ func inspectImageWithManifests(
 //   - error: Non-nil if attaching any network fails, nil on success.
 func attachNetworks(
 	ctx context.Context,
-	api Operations,
+	api dockerClient.APIClient,
 	containerID string,
 	networkConfig *dockerNetwork.NetworkingConfig,
 	initialNetworkConfig *dockerNetwork.NetworkingConfig,
@@ -528,7 +528,7 @@ func attachNetworks(
 //
 // Parameters:
 //   - ctx: Context for cancellation and timeout control.
-//   - api: Interface for container operations (Operations).
+//   - api: Docker API client.
 //   - targetContainer: Container to be renamed.
 //   - targetName: New name for the container.
 //
@@ -536,7 +536,7 @@ func attachNetworks(
 //   - error: Non-nil if rename fails, nil on success.
 func renameTargetContainer(log *zerolog.Logger,
 	ctx context.Context,
-	api Operations,
+	api dockerClient.APIClient,
 	targetContainer types.Container,
 	targetName string,
 ) error {

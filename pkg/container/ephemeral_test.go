@@ -746,7 +746,7 @@ func TestEphemeralOrchestrator(t *testing.T) {
 			t.Run("should return the orchestrator container ID", func(t *testing.T) {
 				t.Parallel()
 
-				api := mockContainer.NewMockEphemeralAPI(t)
+				api := mockContainer.NewMockAPIClient(t)
 				api.EXPECT().ContainerCreate(mock.Anything, createOptions).
 					Return(dockerClient.ContainerCreateResult{ID: "orchestrator-id-123"}, nil).Once()
 				api.EXPECT().ContainerStart(mock.Anything, "orchestrator-id-123", dockerClient.ContainerStartOptions{}).
@@ -767,7 +767,7 @@ func TestEphemeralOrchestrator(t *testing.T) {
 			t.Run("should return an error wrapping errEphemeralCreateFailed", func(t *testing.T) {
 				t.Parallel()
 
-				api := mockContainer.NewMockEphemeralAPI(t)
+				api := mockContainer.NewMockAPIClient(t)
 				api.EXPECT().ContainerCreate(mock.Anything, createOptions).
 					Return(dockerClient.ContainerCreateResult{}, serverError).Once()
 
@@ -786,7 +786,7 @@ func TestEphemeralOrchestrator(t *testing.T) {
 			t.Run("should attempt cleanup and return errEphemeralStartFailed", func(t *testing.T) {
 				t.Parallel()
 
-				api := mockContainer.NewMockEphemeralAPI(t)
+				api := mockContainer.NewMockAPIClient(t)
 				api.EXPECT().ContainerCreate(mock.Anything, createOptions).
 					Return(dockerClient.ContainerCreateResult{ID: "orchestrator-fail-start"}, nil).Once()
 				api.EXPECT().ContainerStart(mock.Anything, "orchestrator-fail-start", dockerClient.ContainerStartOptions{}).

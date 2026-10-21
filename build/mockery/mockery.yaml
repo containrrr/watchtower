@@ -70,14 +70,16 @@ packages:
   # Top-level internal directory, recursively includes all subpackages (e.g., internal/actions)
   github.com/nicholas-fedor/watchtower/internal: {}
 
-  # The Docker SDK's image pull response, which a mocked ImageAPI.ImagePull returns in the
-  # container package's tests. Only this interface is generated, into pkg/container/mocks.
+  # The Docker SDK's client, which the container package's tests use in place of a Docker
+  # daemon, and the image pull response a mocked ImagePull returns. Only these interfaces
+  # are generated, into pkg/container/mocks.
   github.com/moby/moby/client:
     config:
       all: false
       recursive: false
       dir: pkg/container/mocks
     interfaces:
+      APIClient: {}
       ImagePullResponse: {}
 
 # Generate mocks for every interface in the configured packages, exported or not.

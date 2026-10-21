@@ -1,14 +1,15 @@
 package container
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"net/netip"
+	"testing"
 
-	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
 	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 
 	cerrdefs "github.com/containerd/errdefs"
 	dockerContainer "github.com/moby/moby/api/types/container"
@@ -17,9 +18,12 @@ import (
 	dockerClient "github.com/moby/moby/client"
 	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 
-	"github.com/nicholas-fedor/watchtower/internal/logging"
+	mockContainer "github.com/nicholas-fedor/watchtower/pkg/container/mocks"
 	"github.com/nicholas-fedor/watchtower/pkg/types"
 )
+
+// testTargetID is the ID the mocked daemon gives a created target container.
+const testTargetID = "new_container_id"
 
 // WithCPUSettings configures CPU settings for the mock container.
 func WithCPUSettings(nanoCPUs, cpuShares, cpuQuota, cpuPeriod int64, cpusetCpus, cpusetMems string) MockContainerUpdate {
@@ -37,20 +41,64 @@ func WithCPUSettings(nanoCPUs, cpuShares, cpuQuota, cpuPeriod int64, cpusetCpus,
 	}
 }
 
-var _ = ginkgo.Describe("Target Container Operations", func() {
-	var (
-		logOutput *bytes.Buffer
-		targetLog *zerolog.Logger
-	)
+// expectCreateAndRename expects the target container to be created as
+// testTargetID and renamed to the source container's name.
+//
+// Parameters:
+//   - api: Mocked Docker API.
+//   - source: Source container whose name the target takes.
+func expectCreateAndRename(api *mockContainer.MockAPIClient, source *Container) {
+	api.EXPECT().ContainerCreate(mock.Anything, mock.Anything).
+		Return(dockerClient.ContainerCreateResult{ID: testTargetID}, nil).Once()
+	api.EXPECT().
+		ContainerRename(mock.Anything, testTargetID, dockerClient.ContainerRenameOptions{NewName: source.Name()}).
+		Return(dockerClient.ContainerRenameResult{}, nil).Once()
+}
 
-	ginkgo.BeforeEach(func() {
-		logOutput = &bytes.Buffer{}
-		w := logging.LogfmtWriter(logOutput)
-		l := zerolog.New(w).Level(zerolog.DebugLevel).With().Timestamp().Logger()
-		targetLog = &l
-	})
+// expectForceRemove expects the target container to be force-removed with a
+// context that is not canceled, so cleanup survives a canceled parent.
+//
+// Parameters:
+//   - api: Mocked Docker API.
+func expectForceRemove(api *mockContainer.MockAPIClient) {
+	api.EXPECT().
+		ContainerRemove(
+			mock.MatchedBy(func(ctx context.Context) bool { return ctx.Err() == nil }),
+			testTargetID,
+			dockerClient.ContainerRemoveOptions{Force: true},
+		).
+		Return(dockerClient.ContainerRemoveResult{}, nil).Once()
+}
 
-	ginkgo.Describe("handleCPUSettings", func() {
+// expectInspectState expects the cleanup inspect of the target container and
+// returns it in the given state.
+//
+// Parameters:
+//   - api: Mocked Docker API.
+//   - running: Whether the target container is running.
+func expectInspectState(api *mockContainer.MockAPIClient, running bool) {
+	status := dockerContainer.StateCreated
+	if running {
+		status = dockerContainer.StateRunning
+	}
+
+	api.EXPECT().ContainerInspect(mock.Anything, testTargetID, dockerClient.ContainerInspectOptions{}).
+		Return(dockerClient.ContainerInspectResult{Container: dockerContainer.InspectResponse{
+			ID:    testTargetID,
+			State: &dockerContainer.State{Status: status, Running: running},
+		}}, nil).Once()
+}
+
+// TestTargetContainerOperations verifies how replacement containers are
+// created, renamed, started, and attached to networks, how failures clean up
+// the created container, and how CPU settings and the Compose image label are
+// carried over from the source container.
+func TestTargetContainerOperations(t *testing.T) {
+	t.Parallel()
+
+	t.Run("handleCPUSettings", func(t *testing.T) {
+		t.Parallel()
+
 		var (
 			defaultNanoCPUs   int64 = 2000000000
 			defaultCPUShares  int64 = 1024
@@ -60,10 +108,10 @@ var _ = ginkgo.Describe("Target Container Operations", func() {
 			defaultCpusetMems       = "0"
 		)
 
-		var hostConfig *dockerContainer.HostConfig
-
-		ginkgo.BeforeEach(func() {
-			mockCont := MockContainer(
+		// newHostConfig returns the create host config of a container with
+		// every CPU setting populated.
+		newHostConfig := func() *dockerContainer.HostConfig {
+			return MockContainer(
 				WithCPUSettings(
 					defaultNanoCPUs,
 					defaultCPUShares,
@@ -72,65 +120,87 @@ var _ = ginkgo.Describe("Target Container Operations", func() {
 					defaultCpusetCpus,
 					defaultCpusetMems,
 				),
-			)
-			hostConfig = mockCont.GetCreateHostConfig()
+			).GetCreateHostConfig()
+		}
+
+		t.Run("should strip all CPU settings when mode is 'none'", func(t *testing.T) {
+			t.Parallel()
+
+			log, logOutput := newCapturedLogger(zerolog.DebugLevel)
+			hostConfig := newHostConfig()
+
+			handleCPUSettings(hostConfig, "none", false, log)
+			assert.Equal(t, int64(0), hostConfig.NanoCPUs)
+			assert.Equal(t, int64(0), hostConfig.CPUShares)
+			assert.Equal(t, int64(0), hostConfig.CPUQuota)
+			assert.Equal(t, int64(0), hostConfig.CPUPeriod)
+			assert.Empty(t, hostConfig.CpusetCpus)
+			assert.Empty(t, hostConfig.CpusetMems)
+			assert.Contains(t, logOutput.String(), "Stripped all CPU settings")
 		})
 
-		ginkgo.It("should strip all CPU settings when mode is 'none'", func() {
-			handleCPUSettings(hostConfig, "none", false, targetLog)
-			gomega.Expect(hostConfig.NanoCPUs).To(gomega.Equal(int64(0)))
-			gomega.Expect(hostConfig.CPUShares).To(gomega.Equal(int64(0)))
-			gomega.Expect(hostConfig.CPUQuota).To(gomega.Equal(int64(0)))
-			gomega.Expect(hostConfig.CPUPeriod).To(gomega.Equal(int64(0)))
-			gomega.Expect(hostConfig.CpusetCpus).To(gomega.BeEmpty())
-			gomega.Expect(hostConfig.CpusetMems).To(gomega.BeEmpty())
-			gomega.Expect(logOutput.String()).To(gomega.ContainSubstring("Stripped all CPU settings"))
+		t.Run("should preserve all CPU settings when mode is 'full'", func(t *testing.T) {
+			t.Parallel()
+
+			log, logOutput := newCapturedLogger(zerolog.DebugLevel)
+			hostConfig := newHostConfig()
+
+			handleCPUSettings(hostConfig, "full", false, log)
+			assert.Equal(t, defaultNanoCPUs, hostConfig.NanoCPUs)
+			assert.Equal(t, defaultCPUShares, hostConfig.CPUShares)
+			assert.Equal(t, defaultCPUQuota, hostConfig.CPUQuota)
+			assert.Equal(t, defaultCPUPeriod, hostConfig.CPUPeriod)
+			assert.Equal(t, defaultCpusetCpus, hostConfig.CpusetCpus)
+			assert.Equal(t, defaultCpusetMems, hostConfig.CpusetMems)
+			assert.Contains(t, logOutput.String(), "Copied all CPU settings unchanged")
 		})
 
-		ginkgo.It("should preserve all CPU settings when mode is 'full'", func() {
-			handleCPUSettings(hostConfig, "full", false, targetLog)
-			gomega.Expect(hostConfig.NanoCPUs).To(gomega.Equal(defaultNanoCPUs))
-			gomega.Expect(hostConfig.CPUShares).To(gomega.Equal(defaultCPUShares))
-			gomega.Expect(hostConfig.CPUQuota).To(gomega.Equal(defaultCPUQuota))
-			gomega.Expect(hostConfig.CPUPeriod).To(gomega.Equal(defaultCPUPeriod))
-			gomega.Expect(hostConfig.CpusetCpus).To(gomega.Equal(defaultCpusetCpus))
-			gomega.Expect(hostConfig.CpusetMems).To(gomega.Equal(defaultCpusetMems))
-			gomega.Expect(logOutput.String()).To(gomega.ContainSubstring("Copied all CPU settings unchanged"))
+		t.Run("should filter NanoCPUs when mode is 'auto' and isPodman is true", func(t *testing.T) {
+			t.Parallel()
+
+			log, logOutput := newCapturedLogger(zerolog.DebugLevel)
+			hostConfig := newHostConfig()
+
+			handleCPUSettings(hostConfig, "auto", true, log)
+			assert.Equal(t, int64(0), hostConfig.NanoCPUs)
+			assert.Equal(t, defaultCPUShares, hostConfig.CPUShares)
+			assert.Equal(t, defaultCPUQuota, hostConfig.CPUQuota)
+			assert.Contains(t, logOutput.String(), "Detected Podman, filtered NanoCPUs for compatibility")
 		})
 
-		ginkgo.It("should filter NanoCPUs when mode is 'auto' and isPodman is true", func() {
-			handleCPUSettings(hostConfig, "auto", true, targetLog)
-			gomega.Expect(hostConfig.NanoCPUs).To(gomega.Equal(int64(0)))
-			gomega.Expect(hostConfig.CPUShares).To(gomega.Equal(defaultCPUShares))
-			gomega.Expect(hostConfig.CPUQuota).To(gomega.Equal(defaultCPUQuota))
-			gomega.Expect(logOutput.String()).To(gomega.ContainSubstring("Detected Podman, filtered NanoCPUs for compatibility"))
+		t.Run("should preserve all CPU settings when mode is 'auto' and isPodman is false", func(t *testing.T) {
+			t.Parallel()
+
+			log, logOutput := newCapturedLogger(zerolog.DebugLevel)
+			hostConfig := newHostConfig()
+
+			handleCPUSettings(hostConfig, "auto", false, log)
+			assert.Equal(t, defaultNanoCPUs, hostConfig.NanoCPUs)
+			assert.Equal(t, defaultCPUShares, hostConfig.CPUShares)
+			assert.Contains(t, logOutput.String(), "Detected Docker, copied all CPU settings")
 		})
 
-		ginkgo.It("should preserve all CPU settings when mode is 'auto' and isPodman is false", func() {
-			handleCPUSettings(hostConfig, "auto", false, targetLog)
-			gomega.Expect(hostConfig.NanoCPUs).To(gomega.Equal(defaultNanoCPUs))
-			gomega.Expect(hostConfig.CPUShares).To(gomega.Equal(defaultCPUShares))
-			gomega.Expect(logOutput.String()).To(gomega.ContainSubstring("Detected Docker, copied all CPU settings"))
-		})
+		t.Run("should default to 'full' mode for unknown CPU copy mode", func(t *testing.T) {
+			t.Parallel()
 
-		ginkgo.It("should default to 'full' mode for unknown CPU copy mode", func() {
-			handleCPUSettings(hostConfig, "unknown", false, targetLog)
-			gomega.Expect(hostConfig.NanoCPUs).To(gomega.Equal(defaultNanoCPUs))
-			gomega.Expect(logOutput.String()).To(gomega.ContainSubstring("Unknown CPU copy mode, defaulting to full"))
+			log, logOutput := newCapturedLogger(zerolog.DebugLevel)
+			hostConfig := newHostConfig()
+
+			handleCPUSettings(hostConfig, "unknown", false, log)
+			assert.Equal(t, defaultNanoCPUs, hostConfig.NanoCPUs)
+			assert.Contains(t, logOutput.String(), "Unknown CPU copy mode, defaulting to full")
 		})
 	})
 
-	ginkgo.Describe("creating and starting a target container", func() {
-		var (
-			client        *MockClient
-			mockCont      *Container
-			networkConfig *dockerNetwork.NetworkingConfig
-			defaultMem    int64 = 60
-		)
+	t.Run("creating and starting a target container", func(t *testing.T) {
+		t.Parallel()
 
-		ginkgo.BeforeEach(func() {
-			client = &MockClient{}
-			mockCont = MockContainer(
+		var defaultMem int64 = 60
+
+		// newRunningSource returns a running source container on the bridge
+		// network with a MAC address and a memory swappiness setting.
+		newRunningSource := func() *Container {
+			return MockContainer(
 				WithNetworkMode("bridge"),
 				WithContainerState(dockerContainer.State{Running: true, Status: "running"}),
 				WithNetworkSettings(map[string]*dockerNetwork.EndpointSettings{
@@ -149,416 +219,434 @@ var _ = ginkgo.Describe("Target Container Operations", func() {
 					c.HostConfig.MemorySwappiness = &defaultMem
 				},
 			)
-			networkConfig = getNetworkConfig(targetLog, mockCont, "1.44")
-		})
+		}
 
-		ginkgo.It("should disable memory swappiness when flag is true", func() {
-			newID, err := createTargetContainer(targetLog, context.Background(), client, mockCont, networkConfig,
+		// newMultiNetworkSource returns a running source container attached
+		// to two networks.
+		newMultiNetworkSource := func() *Container {
+			return MockContainer(
+				WithNetworkMode("bridge"),
+				WithContainerState(dockerContainer.State{Running: true, Status: "running"}),
+				WithNetworks("network1", "network2"),
+			)
+		}
+
+		t.Run("should disable memory swappiness when flag is true", func(t *testing.T) {
+			t.Parallel()
+
+			log, logOutput := newCapturedLogger(zerolog.DebugLevel)
+			source := newRunningSource()
+			api := mockContainer.NewMockAPIClient(t)
+
+			var created dockerClient.ContainerCreateOptions
+
+			api.EXPECT().ContainerCreate(mock.Anything, mock.Anything).RunAndReturn(
+				func(_ context.Context, options dockerClient.ContainerCreateOptions) (dockerClient.ContainerCreateResult, error) {
+					created = options
+
+					return dockerClient.ContainerCreateResult{ID: testTargetID}, nil
+				},
+			).Once()
+			api.EXPECT().
+				ContainerRename(mock.Anything, testTargetID, dockerClient.ContainerRenameOptions{NewName: source.Name()}).
+				Return(dockerClient.ContainerRenameResult{}, nil).Once()
+
+			newID, err := createTargetContainer(log, t.Context(), api, source, getNetworkConfig(log, source, "1.44"),
 				"1.44", true, "auto", false,
 			)
-			gomega.Expect(err).ToNot(gomega.HaveOccurred())
-			gomega.Expect(newID).To(gomega.Equal(types.ContainerID("new_container_id")))
-			gomega.Expect(logOutput.String()).To(gomega.ContainSubstring("Disabled memory swappiness for Podman compatibility"))
+			require.NoError(t, err)
+			assert.Equal(t, types.ContainerID(testTargetID), newID)
+			require.NotNil(t, created.HostConfig)
+			assert.Nil(t, created.HostConfig.MemorySwappiness)
+			assert.Contains(t, logOutput.String(), "Disabled memory swappiness for Podman compatibility")
 		})
 
-		ginkgo.It("should log MAC address details", func() {
-			newID, err := createTargetContainer(targetLog, context.Background(), client, mockCont, networkConfig,
+		t.Run("should log MAC address details", func(t *testing.T) {
+			t.Parallel()
+
+			log, logOutput := newCapturedLogger(zerolog.DebugLevel)
+			source := newRunningSource()
+			api := mockContainer.NewMockAPIClient(t)
+			expectCreateAndRename(api, source)
+
+			newID, err := createTargetContainer(log, t.Context(), api, source, getNetworkConfig(log, source, "1.44"),
 				"1.44", false, "auto", false,
 			)
-			gomega.Expect(err).ToNot(gomega.HaveOccurred())
-			gomega.Expect(newID).To(gomega.Equal(types.ContainerID("new_container_id")))
-			gomega.Expect(logOutput.String()).To(gomega.ContainSubstring("Found MAC address in config"))
+			require.NoError(t, err)
+			assert.Equal(t, types.ContainerID(testTargetID), newID)
+			assert.Contains(t, logOutput.String(), "Found MAC address in config")
 		})
 
-		ginkgo.It("should use full network config for API >= 1.44", func() {
-			newID, err := createTargetContainer(targetLog, context.Background(), client, mockCont, networkConfig,
+		t.Run("should use full network config for API >= 1.44", func(t *testing.T) {
+			t.Parallel()
+
+			log, logOutput := newCapturedLogger(zerolog.DebugLevel)
+			source := newRunningSource()
+			api := mockContainer.NewMockAPIClient(t)
+			expectCreateAndRename(api, source)
+
+			newID, err := createTargetContainer(log, t.Context(), api, source, getNetworkConfig(log, source, "1.44"),
 				"1.44", false, "auto", false,
 			)
-			gomega.Expect(err).ToNot(gomega.HaveOccurred())
-			gomega.Expect(newID).To(gomega.Equal(types.ContainerID("new_container_id")))
-			gomega.Expect(logOutput.String()).
-				To(gomega.ContainSubstring("Using full network config for API version >= 1.44 or single network"))
+			require.NoError(t, err)
+			assert.Equal(t, types.ContainerID(testTargetID), newID)
+			assert.Contains(t, logOutput.String(),
+				"Using full network config for API version >= 1.44 or single network")
 		})
 
-		ginkgo.It("should handle ContainerCreate failure", func() {
-			createErr := errors.New("create failed")
-			client.createFunc = func(_ context.Context, _ *dockerContainer.Config, _ *dockerContainer.HostConfig, _ *dockerNetwork.NetworkingConfig, _ *ocispec.Platform, _ string) (dockerClient.ContainerCreateResult, error) {
-				return dockerClient.ContainerCreateResult{}, createErr
-			}
-			newID, err := createTargetContainer(targetLog, context.Background(), client, mockCont, networkConfig,
+		t.Run("should handle ContainerCreate failure", func(t *testing.T) {
+			t.Parallel()
+
+			log, logOutput := newCapturedLogger(zerolog.DebugLevel)
+			source := newRunningSource()
+			api := mockContainer.NewMockAPIClient(t)
+			api.EXPECT().ContainerCreate(mock.Anything, mock.Anything).
+				Return(dockerClient.ContainerCreateResult{}, errors.New("create failed")).Once()
+
+			newID, err := createTargetContainer(log, t.Context(), api, source, getNetworkConfig(log, source, "1.44"),
 				"1.44", false, "auto", false,
 			)
-			gomega.Expect(newID).To(gomega.BeEmpty())
-			gomega.Expect(err).To(gomega.HaveOccurred())
-			gomega.Expect(err.Error()).To(gomega.ContainSubstring("create failed"))
-			gomega.Expect(logOutput.String()).To(gomega.ContainSubstring("Failed to create new container"))
+			assert.Empty(t, newID)
+			require.ErrorContains(t, err, "create failed")
+			assert.Contains(t, logOutput.String(), "Failed to create new container")
 		})
 
-		ginkgo.It("should log successful container creation", func() {
-			newID, err := createTargetContainer(targetLog, context.Background(), client, mockCont, networkConfig,
+		t.Run("should log successful container creation", func(t *testing.T) {
+			t.Parallel()
+
+			log, logOutput := newCapturedLogger(zerolog.DebugLevel)
+			source := newRunningSource()
+			api := mockContainer.NewMockAPIClient(t)
+			expectCreateAndRename(api, source)
+
+			newID, err := createTargetContainer(log, t.Context(), api, source, getNetworkConfig(log, source, "1.44"),
 				"1.44", false, "auto", false,
 			)
-			gomega.Expect(err).ToNot(gomega.HaveOccurred())
-			gomega.Expect(newID).To(gomega.Equal(types.ContainerID("new_container_id")))
-			gomega.Expect(logOutput.String()).To(gomega.ContainSubstring("Created container successfully"))
+			require.NoError(t, err)
+			assert.Equal(t, types.ContainerID(testTargetID), newID)
+			assert.Contains(t, logOutput.String(), "Created container successfully")
 		})
 
-		ginkgo.It("should skip starting stopped container when reviveStopped is false", func() {
-			mockCont = MockContainer(
+		t.Run("should skip starting stopped container when reviveStopped is false", func(t *testing.T) {
+			t.Parallel()
+
+			log, logOutput := newCapturedLogger(zerolog.DebugLevel)
+			source := MockContainer(
 				WithNetworkMode("bridge"),
 				WithContainerState(dockerContainer.State{Running: false, Status: "exited"}),
 			)
-			networkConfig = getNetworkConfig(targetLog, mockCont, "1.44")
-			err := startTargetContainer(context.Background(), client, targetLog, mockCont, "new_container_id", false)
-			gomega.Expect(err).ToNot(gomega.HaveOccurred())
-			gomega.Expect(logOutput.String()).
-				To(gomega.ContainSubstring("Created container, not starting due to stopped state"))
+
+			err := startTargetContainer(t.Context(), mockContainer.NewMockAPIClient(t), log, source, testTargetID, false)
+			require.NoError(t, err)
+			assert.Contains(t, logOutput.String(), "Created container, not starting due to stopped state")
 		})
 
-		ginkgo.It("should handle ContainerStart failure", func() {
-			startErr := errors.New("start failed")
-			client.startFunc = func(_ context.Context, _ string, _ dockerClient.ContainerStartOptions) (dockerClient.ContainerStartResult, error) {
-				return dockerClient.ContainerStartResult{}, startErr
-			}
+		t.Run("should handle ContainerStart failure", func(t *testing.T) {
+			t.Parallel()
 
-			var removedID string
+			log, logOutput := newCapturedLogger(zerolog.DebugLevel)
+			api := mockContainer.NewMockAPIClient(t)
+			api.EXPECT().ContainerStart(mock.Anything, testTargetID, dockerClient.ContainerStartOptions{}).
+				Return(dockerClient.ContainerStartResult{}, errors.New("start failed")).Once()
+			expectInspectState(api, false)
+			expectForceRemove(api)
 
-			client.removeFunc = func(_ context.Context, id string, _ dockerClient.ContainerRemoveOptions) (dockerClient.ContainerRemoveResult, error) {
-				removedID = id
-
-				client.removeFuncCalled.Store(true)
-
-				return dockerClient.ContainerRemoveResult{}, nil
-			}
-			err := startTargetContainer(context.Background(), client, targetLog, mockCont, "new_container_id", true)
-			gomega.Expect(err).To(gomega.HaveOccurred())
-			gomega.Expect(err.Error()).To(gomega.ContainSubstring("start failed"))
-			gomega.Expect(logOutput.String()).To(gomega.ContainSubstring("Failed to start new container"))
-			gomega.Expect(client.inspectFuncCalled.Load()).To(gomega.BeTrue())
-			gomega.Expect(client.removeFuncCalled.Load()).To(gomega.BeTrue())
-			gomega.Expect(removedID).To(gomega.Equal("new_container_id"))
+			err := startTargetContainer(t.Context(), api, log, newRunningSource(), testTargetID, true)
+			require.ErrorContains(t, err, "start failed")
+			assert.Contains(t, logOutput.String(), "Failed to start new container")
 		})
 
-		ginkgo.It("should skip cleanup when container is running after start timeout", func() {
-			client.startFunc = func(_ context.Context, _ string, _ dockerClient.ContainerStartOptions) (dockerClient.ContainerStartResult, error) {
-				return dockerClient.ContainerStartResult{}, context.DeadlineExceeded
-			}
-			client.inspectFunc = func(_ context.Context, id string, _ dockerClient.ContainerInspectOptions) (dockerClient.ContainerInspectResult, error) {
-				return dockerClient.ContainerInspectResult{
-					Container: dockerContainer.InspectResponse{
-						ID: id,
-						State: &dockerContainer.State{
-							Status:  "running",
-							Running: true,
-						},
-					},
-				}, nil
-			}
+		t.Run("should skip cleanup when container is running after start timeout", func(t *testing.T) {
+			t.Parallel()
 
-			err := startTargetContainer(context.Background(), client, targetLog, mockCont, "new_container_id", true)
-			gomega.Expect(err).To(gomega.HaveOccurred())
-			gomega.Expect(errors.Is(err, context.DeadlineExceeded)).To(gomega.BeTrue())
-			gomega.Expect(client.inspectFuncCalled.Load()).To(gomega.BeTrue())
-			gomega.Expect(client.removeFuncCalled.Load()).To(gomega.BeFalse())
-			gomega.Expect(logOutput.String()).To(gomega.ContainSubstring("Skipped cleanup of running container after start error"))
+			log, logOutput := newCapturedLogger(zerolog.DebugLevel)
+			api := mockContainer.NewMockAPIClient(t)
+			api.EXPECT().ContainerStart(mock.Anything, testTargetID, dockerClient.ContainerStartOptions{}).
+				Return(dockerClient.ContainerStartResult{}, context.DeadlineExceeded).Once()
+			expectInspectState(api, true)
+
+			err := startTargetContainer(t.Context(), api, log, newRunningSource(), testTargetID, true)
+			require.ErrorIs(t, err, context.DeadlineExceeded)
+			assert.Contains(t, logOutput.String(), "Skipped cleanup of running container after start error")
 		})
 
-		ginkgo.It("should skip cleanup when inspect fails after transport error", func() {
-			client.startFunc = func(_ context.Context, _ string, _ dockerClient.ContainerStartOptions) (dockerClient.ContainerStartResult, error) {
-				return dockerClient.ContainerStartResult{}, errors.New("connection reset by peer")
-			}
-			client.inspectFunc = func(_ context.Context, _ string, _ dockerClient.ContainerInspectOptions) (dockerClient.ContainerInspectResult, error) {
-				return dockerClient.ContainerInspectResult{}, errors.New("inspect transport failure")
-			}
+		t.Run("should skip cleanup when inspect fails after transport error", func(t *testing.T) {
+			t.Parallel()
 
-			err := startTargetContainer(context.Background(), client, targetLog, mockCont, "new_container_id", true)
-			gomega.Expect(err).To(gomega.HaveOccurred())
-			gomega.Expect(err.Error()).To(gomega.ContainSubstring("connection reset by peer"))
-			gomega.Expect(client.inspectFuncCalled.Load()).To(gomega.BeTrue())
-			gomega.Expect(client.removeFuncCalled.Load()).To(gomega.BeFalse())
-			gomega.Expect(logOutput.String()).To(gomega.ContainSubstring("Failed to inspect container after start error"))
+			log, logOutput := newCapturedLogger(zerolog.DebugLevel)
+			api := mockContainer.NewMockAPIClient(t)
+			api.EXPECT().ContainerStart(mock.Anything, testTargetID, dockerClient.ContainerStartOptions{}).
+				Return(dockerClient.ContainerStartResult{}, errors.New("connection reset by peer")).Once()
+			api.EXPECT().ContainerInspect(mock.Anything, testTargetID, dockerClient.ContainerInspectOptions{}).
+				Return(dockerClient.ContainerInspectResult{}, errors.New("inspect transport failure")).Once()
+
+			err := startTargetContainer(t.Context(), api, log, newRunningSource(), testTargetID, true)
+			require.ErrorContains(t, err, "connection reset by peer")
+			assert.Contains(t, logOutput.String(), "Failed to inspect container after start error")
 		})
 
-		ginkgo.It("should handle ContainerCreate Conflict error", func() {
-			client.createFunc = func(_ context.Context, _ *dockerContainer.Config, _ *dockerContainer.HostConfig, _ *dockerNetwork.NetworkingConfig, _ *ocispec.Platform, _ string) (dockerClient.ContainerCreateResult, error) {
-				return dockerClient.ContainerCreateResult{}, cerrdefs.ErrConflict
-			}
-			newID, err := createTargetContainer(targetLog, context.Background(), client, mockCont, networkConfig,
+		t.Run("should handle ContainerCreate Conflict error", func(t *testing.T) {
+			t.Parallel()
+
+			log, logOutput := newCapturedLogger(zerolog.DebugLevel)
+			source := newRunningSource()
+			api := mockContainer.NewMockAPIClient(t)
+			api.EXPECT().ContainerCreate(mock.Anything, mock.Anything).
+				Return(dockerClient.ContainerCreateResult{}, cerrdefs.ErrConflict).Once()
+
+			newID, err := createTargetContainer(log, t.Context(), api, source, getNetworkConfig(log, source, "1.44"),
 				"1.44", false, "auto", false,
 			)
-			gomega.Expect(newID).To(gomega.BeEmpty())
-			gomega.Expect(err).To(gomega.HaveOccurred())
-			gomega.Expect(err.Error()).To(gomega.ContainSubstring("failed to create container"))
-			gomega.Expect(cerrdefs.IsConflict(err)).To(gomega.BeTrue(),
-				"wrapped error should be detectable via cerrdefs.IsConflict")
-			gomega.Expect(errors.Is(err, cerrdefs.ErrConflict)).To(gomega.BeTrue(),
-				"wrapped error should be detectable via errors.Is")
-			gomega.Expect(logOutput.String()).To(gomega.ContainSubstring("Failed to create new container"))
+			assert.Empty(t, newID)
+			require.ErrorContains(t, err, "failed to create container")
+			assert.True(t, cerrdefs.IsConflict(err), "wrapped error should be detectable via cerrdefs.IsConflict")
+			require.ErrorIs(t, err, cerrdefs.ErrConflict, "wrapped error should be detectable via errors.Is")
+			assert.Contains(t, logOutput.String(), "Failed to create new container")
 		})
 
-		ginkgo.It("should handle ContainerCreate InvalidArgument error", func() {
-			client.createFunc = func(_ context.Context, _ *dockerContainer.Config, _ *dockerContainer.HostConfig, _ *dockerNetwork.NetworkingConfig, _ *ocispec.Platform, _ string) (dockerClient.ContainerCreateResult, error) {
-				return dockerClient.ContainerCreateResult{}, cerrdefs.ErrInvalidArgument
-			}
-			newID, err := createTargetContainer(targetLog, context.Background(), client, mockCont, networkConfig,
+		t.Run("should handle ContainerCreate InvalidArgument error", func(t *testing.T) {
+			t.Parallel()
+
+			log, _ := newCapturedLogger(zerolog.DebugLevel)
+			source := newRunningSource()
+			api := mockContainer.NewMockAPIClient(t)
+			api.EXPECT().ContainerCreate(mock.Anything, mock.Anything).
+				Return(dockerClient.ContainerCreateResult{}, cerrdefs.ErrInvalidArgument).Once()
+
+			newID, err := createTargetContainer(log, t.Context(), api, source, getNetworkConfig(log, source, "1.44"),
 				"1.44", false, "auto", false,
 			)
-			gomega.Expect(newID).To(gomega.BeEmpty())
-			gomega.Expect(err).To(gomega.HaveOccurred())
-			gomega.Expect(err.Error()).To(gomega.ContainSubstring("failed to create container"))
+			assert.Empty(t, newID)
+			require.ErrorContains(t, err, "failed to create container")
 		})
 
-		ginkgo.It("should handle ContainerStart Conflict error", func() {
-			client.startFunc = func(_ context.Context, _ string, _ dockerClient.ContainerStartOptions) (dockerClient.ContainerStartResult, error) {
-				return dockerClient.ContainerStartResult{}, cerrdefs.ErrConflict
-			}
-			err := startTargetContainer(context.Background(), client, targetLog, mockCont, "new_container_id", true)
-			gomega.Expect(err).To(gomega.HaveOccurred())
-			gomega.Expect(err.Error()).To(gomega.ContainSubstring("failed to start container"))
-			gomega.Expect(cerrdefs.IsConflict(err)).To(gomega.BeTrue(),
-				"wrapped error should be detectable via cerrdefs.IsConflict")
-			gomega.Expect(errors.Is(err, cerrdefs.ErrConflict)).To(gomega.BeTrue(),
-				"wrapped error should be detectable via errors.Is")
-			gomega.Expect(logOutput.String()).To(gomega.ContainSubstring("Failed to start new container"))
-			gomega.Expect(client.removeFuncCalled.Load()).To(gomega.BeTrue())
+		t.Run("should handle ContainerStart Conflict error", func(t *testing.T) {
+			t.Parallel()
+
+			log, logOutput := newCapturedLogger(zerolog.DebugLevel)
+			api := mockContainer.NewMockAPIClient(t)
+			api.EXPECT().ContainerStart(mock.Anything, testTargetID, dockerClient.ContainerStartOptions{}).
+				Return(dockerClient.ContainerStartResult{}, cerrdefs.ErrConflict).Once()
+			expectInspectState(api, false)
+			expectForceRemove(api)
+
+			err := startTargetContainer(t.Context(), api, log, newRunningSource(), testTargetID, true)
+			require.ErrorContains(t, err, "failed to start container")
+			assert.True(t, cerrdefs.IsConflict(err), "wrapped error should be detectable via cerrdefs.IsConflict")
+			require.ErrorIs(t, err, cerrdefs.ErrConflict, "wrapped error should be detectable via errors.Is")
+			assert.Contains(t, logOutput.String(), "Failed to start new container")
 		})
 
-		ginkgo.It("should handle ContainerStart NotFound error", func() {
-			client.startFunc = func(_ context.Context, _ string, _ dockerClient.ContainerStartOptions) (dockerClient.ContainerStartResult, error) {
-				return dockerClient.ContainerStartResult{}, cerrdefs.ErrNotFound
-			}
-			err := startTargetContainer(context.Background(), client, targetLog, mockCont, "new_container_id", true)
-			gomega.Expect(err).To(gomega.HaveOccurred())
-			gomega.Expect(err.Error()).To(gomega.ContainSubstring("failed to start container"))
-			gomega.Expect(client.removeFuncCalled.Load()).To(gomega.BeTrue())
+		t.Run("should handle ContainerStart NotFound error", func(t *testing.T) {
+			t.Parallel()
+
+			log, _ := newCapturedLogger(zerolog.DebugLevel)
+			api := mockContainer.NewMockAPIClient(t)
+			api.EXPECT().ContainerStart(mock.Anything, testTargetID, dockerClient.ContainerStartOptions{}).
+				Return(dockerClient.ContainerStartResult{}, cerrdefs.ErrNotFound).Once()
+			expectInspectState(api, false)
+			expectForceRemove(api)
+
+			err := startTargetContainer(t.Context(), api, log, newRunningSource(), testTargetID, true)
+			require.ErrorContains(t, err, "failed to start container")
 		})
 
-		ginkgo.It("should log successful container start", func() {
-			err := startTargetContainer(context.Background(), client, targetLog, mockCont, "new_container_id", true)
-			gomega.Expect(err).ToNot(gomega.HaveOccurred())
-			gomega.Expect(logOutput.String()).To(gomega.ContainSubstring("Started new container"))
-			gomega.Expect(logOutput.String()).
-				To(gomega.ContainSubstring("new_id=" + types.ContainerID("new_container_id").ShortID()))
+		t.Run("should log successful container start", func(t *testing.T) {
+			t.Parallel()
+
+			log, logOutput := newCapturedLogger(zerolog.DebugLevel)
+			api := mockContainer.NewMockAPIClient(t)
+			api.EXPECT().ContainerStart(mock.Anything, testTargetID, dockerClient.ContainerStartOptions{}).
+				Return(dockerClient.ContainerStartResult{}, nil).Once()
+
+			err := startTargetContainer(t.Context(), api, log, newRunningSource(), testTargetID, true)
+			require.NoError(t, err)
+			assert.Contains(t, logOutput.String(), "Started new container")
+			assert.Contains(t, logOutput.String(), "new_id="+types.ContainerID(testTargetID).ShortID())
 		})
 
-		ginkgo.It("should attach multiple networks for legacy API and handle success", func() {
-			mockCont = MockContainer(
-				WithNetworkMode("bridge"),
-				WithContainerState(dockerContainer.State{Running: true, Status: "running"}),
-				WithNetworks("network1", "network2"),
-			)
-			networkConfig = getNetworkConfig(targetLog, mockCont, "1.23")
-			newID, err := createTargetContainer(targetLog, context.Background(), client, mockCont, networkConfig,
+		t.Run("should attach multiple networks for legacy API and handle success", func(t *testing.T) {
+			t.Parallel()
+
+			log, logOutput := newCapturedLogger(zerolog.DebugLevel)
+			source := newMultiNetworkSource()
+			api := mockContainer.NewMockAPIClient(t)
+			expectCreateAndRename(api, source)
+			api.EXPECT().NetworkConnect(mock.Anything, mock.Anything, mock.MatchedBy(
+				func(options dockerClient.NetworkConnectOptions) bool { return options.Container == testTargetID },
+			)).Return(dockerClient.NetworkConnectResult{}, nil).Once()
+
+			newID, err := createTargetContainer(log, t.Context(), api, source, getNetworkConfig(log, source, "1.23"),
 				"1.23", false, "auto", false,
 			)
-			gomega.Expect(err).ToNot(gomega.HaveOccurred())
-			gomega.Expect(newID).To(gomega.Equal(types.ContainerID("new_container_id")))
-			gomega.Expect(logOutput.String()).
-				To(gomega.ContainSubstring("Selected first network for container creation"))
-			gomega.Expect(logOutput.String()).
-				To(gomega.ContainSubstring("Attaching additional network to container"))
-			gomega.Expect(logOutput.String()).
-				To(gomega.ContainSubstring("Successfully attached additional network"))
+			require.NoError(t, err)
+			assert.Equal(t, types.ContainerID(testTargetID), newID)
+			assert.Contains(t, logOutput.String(), "Selected first network for container creation")
+			assert.Contains(t, logOutput.String(), "Attaching additional network to container")
+			assert.Contains(t, logOutput.String(), "Successfully attached additional network")
 		})
 
-		ginkgo.It("should attach multiple networks for legacy API and handle failure", func() {
-			mockCont = MockContainer(
-				WithNetworkMode("bridge"),
-				WithContainerState(dockerContainer.State{Running: true, Status: "running"}),
-				WithNetworks("network1", "network2"),
-			)
-			networkConfig = getNetworkConfig(targetLog, mockCont, "1.23")
-			connectErr := errors.New("network connect failed")
-			client.connectFunc = func(_ context.Context, _, _ string, _ *dockerNetwork.EndpointSettings) (dockerClient.NetworkConnectResult, error) {
-				return dockerClient.NetworkConnectResult{}, connectErr
-			}
-			client.removeFunc = func(_ context.Context, _ string, _ dockerClient.ContainerRemoveOptions) (dockerClient.ContainerRemoveResult, error) {
-				return dockerClient.ContainerRemoveResult{}, nil
-			}
-			newID, err := createTargetContainer(targetLog, context.Background(), client, mockCont, networkConfig,
+		t.Run("should attach multiple networks for legacy API and handle failure", func(t *testing.T) {
+			t.Parallel()
+
+			log, logOutput := newCapturedLogger(zerolog.DebugLevel)
+			source := newMultiNetworkSource()
+			api := mockContainer.NewMockAPIClient(t)
+			expectCreateAndRename(api, source)
+			api.EXPECT().NetworkConnect(mock.Anything, mock.Anything, mock.Anything).
+				Return(dockerClient.NetworkConnectResult{}, errors.New("network connect failed")).Once()
+			expectForceRemove(api)
+
+			newID, err := createTargetContainer(log, t.Context(), api, source, getNetworkConfig(log, source, "1.23"),
 				"1.23", false, "auto", false,
 			)
-			gomega.Expect(newID).To(gomega.BeEmpty())
-			gomega.Expect(err).To(gomega.HaveOccurred())
-			gomega.Expect(err.Error()).To(gomega.ContainSubstring("network connect failed"))
-			gomega.Expect(logOutput.String()).
-				To(gomega.ContainSubstring("Failed to attach additional network"))
+			assert.Empty(t, newID)
+			require.ErrorContains(t, err, "network connect failed")
+			assert.Contains(t, logOutput.String(), "Failed to attach additional network")
 		})
 
-		ginkgo.Describe("Context Propagation for Cleanup", func() {
-			ginkgo.It("should perform cleanup with non-canceled context after rename failure", func() {
-				ctx, cancel := context.WithCancel(context.Background())
+		t.Run("Context Propagation for Cleanup", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should perform cleanup with non-canceled context after rename failure", func(t *testing.T) {
+				t.Parallel()
+
+				ctx, cancel := context.WithCancel(t.Context())
 				cancel()
 
-				client.renameFunc = func(_ context.Context, _, _ string) (dockerClient.ContainerRenameResult, error) {
-					return dockerClient.ContainerRenameResult{}, errors.New("rename failed")
-				}
+				log, _ := newCapturedLogger(zerolog.DebugLevel)
+				source := newRunningSource()
+				api := mockContainer.NewMockAPIClient(t)
+				api.EXPECT().ContainerCreate(mock.Anything, mock.Anything).
+					Return(dockerClient.ContainerCreateResult{ID: testTargetID}, nil).Once()
+				api.EXPECT().ContainerRename(mock.Anything, testTargetID, mock.Anything).
+					Return(dockerClient.ContainerRenameResult{}, errors.New("rename failed")).Once()
+				expectForceRemove(api)
 
-				client.removeFunc = func(cleanupCtx context.Context, _ string, _ dockerClient.ContainerRemoveOptions) (dockerClient.ContainerRemoveResult, error) {
-					client.removeFuncCalled.Store(true)
-
-					select {
-					case <-cleanupCtx.Done():
-						ginkgo.Fail("Cleanup context should not be canceled")
-					default:
-					}
-
-					return dockerClient.ContainerRemoveResult{}, nil
-				}
-
-				newID, err := createTargetContainer(targetLog, ctx, client, mockCont, networkConfig,
+				newID, err := createTargetContainer(log, ctx, api, source, getNetworkConfig(log, source, "1.44"),
 					"1.44", false, "auto", false,
 				)
-				gomega.Expect(newID).To(gomega.BeEmpty())
-				gomega.Expect(err).To(gomega.HaveOccurred())
-				gomega.Expect(err.Error()).To(gomega.ContainSubstring("rename failed"))
-				gomega.Expect(client.removeFuncCalled.Load()).To(gomega.BeTrue())
+				assert.Empty(t, newID)
+				require.ErrorContains(t, err, "rename failed")
 			})
 
-			ginkgo.It("should perform cleanup with non-canceled context after network attachment failure", func() {
-				mockCont = MockContainer(
-					WithNetworkMode("bridge"),
-					WithContainerState(dockerContainer.State{Running: true, Status: "running"}),
-					WithNetworks("network1", "network2"),
-				)
-				networkConfig = getNetworkConfig(targetLog, mockCont, "1.23")
+			t.Run("should perform cleanup with non-canceled context after network attachment failure", func(t *testing.T) {
+				t.Parallel()
 
-				ctx, cancel := context.WithCancel(context.Background())
+				ctx, cancel := context.WithCancel(t.Context())
 				cancel()
 
-				client.connectFunc = func(_ context.Context, _, _ string, _ *dockerNetwork.EndpointSettings) (dockerClient.NetworkConnectResult, error) {
-					return dockerClient.NetworkConnectResult{}, errors.New("network connect failed")
-				}
+				log, _ := newCapturedLogger(zerolog.DebugLevel)
+				source := newMultiNetworkSource()
+				api := mockContainer.NewMockAPIClient(t)
+				expectCreateAndRename(api, source)
+				api.EXPECT().NetworkConnect(mock.Anything, mock.Anything, mock.Anything).
+					Return(dockerClient.NetworkConnectResult{}, errors.New("network connect failed")).Once()
+				expectForceRemove(api)
 
-				client.removeFunc = func(cleanupCtx context.Context, _ string, _ dockerClient.ContainerRemoveOptions) (dockerClient.ContainerRemoveResult, error) {
-					client.removeFuncCalled.Store(true)
-
-					select {
-					case <-cleanupCtx.Done():
-						ginkgo.Fail("Cleanup context should not be canceled")
-					default:
-					}
-
-					return dockerClient.ContainerRemoveResult{}, nil
-				}
-
-				newID, err := createTargetContainer(targetLog, ctx, client, mockCont, networkConfig,
+				newID, err := createTargetContainer(log, ctx, api, source, getNetworkConfig(log, source, "1.23"),
 					"1.23", false, "auto", false,
 				)
-				gomega.Expect(newID).To(gomega.BeEmpty())
-				gomega.Expect(err).To(gomega.HaveOccurred())
-				gomega.Expect(err.Error()).To(gomega.ContainSubstring("network connect failed"))
-				gomega.Expect(client.removeFuncCalled.Load()).To(gomega.BeTrue())
+				assert.Empty(t, newID)
+				require.ErrorContains(t, err, "network connect failed")
 			})
 		})
 	})
 
-	ginkgo.Describe("renameTargetContainer", func() {
-		var client *MockClient
+	t.Run("renameTargetContainer", func(t *testing.T) {
+		t.Parallel()
 
-		ginkgo.BeforeEach(func() {
-			client = &MockClient{}
+		t.Run("should rename container successfully", func(t *testing.T) {
+			t.Parallel()
+
+			log, logOutput := newCapturedLogger(zerolog.DebugLevel)
+			api := mockContainer.NewMockAPIClient(t)
+			api.EXPECT().ContainerRename(mock.Anything, "test-id", dockerClient.ContainerRenameOptions{NewName: "new-name"}).
+				Return(dockerClient.ContainerRenameResult{}, nil).Once()
+
+			err := renameTargetContainer(log, t.Context(), api, MockContainer(WithName("old-name"), WithID("test-id")), "new-name")
+			require.NoError(t, err)
+			assert.Contains(t, logOutput.String(), "Renamed container successfully")
 		})
 
-		ginkgo.It("should rename container successfully", func() {
-			mockCont := MockContainer(WithName("old-name"), WithID("test-id"))
-			err := renameTargetContainer(targetLog, context.Background(), client, mockCont, "new-name")
-			gomega.Expect(err).ToNot(gomega.HaveOccurred())
-			gomega.Expect(logOutput.String()).To(gomega.ContainSubstring("Renamed container successfully"))
-		})
+		t.Run("should return error when rename fails", func(t *testing.T) {
+			t.Parallel()
 
-		ginkgo.It("should return error when rename fails", func() {
-			client.renameFunc = func(_ context.Context, _, _ string) (dockerClient.ContainerRenameResult, error) {
-				return dockerClient.ContainerRenameResult{}, errors.New("rename failed")
-			}
-			mockCont := MockContainer(WithName("old-name"), WithID("test-id"))
-			err := renameTargetContainer(targetLog, context.Background(), client, mockCont, "new-name")
-			gomega.Expect(err).To(gomega.HaveOccurred())
-			gomega.Expect(err.Error()).To(gomega.ContainSubstring("rename failed"))
-			gomega.Expect(logOutput.String()).To(gomega.ContainSubstring("Failed to rename container"))
-		})
-	})
+			log, logOutput := newCapturedLogger(zerolog.DebugLevel)
+			api := mockContainer.NewMockAPIClient(t)
+			api.EXPECT().ContainerRename(mock.Anything, "test-id", dockerClient.ContainerRenameOptions{NewName: "new-name"}).
+				Return(dockerClient.ContainerRenameResult{}, errors.New("rename failed")).Once()
 
-	ginkgo.Describe("attachNetworks", func() {
-		var client *MockClient
-
-		ginkgo.BeforeEach(func() {
-			client = &MockClient{}
-		})
-
-		ginkgo.It("should attach additional networks successfully", func() {
-			fullConfig := &dockerNetwork.NetworkingConfig{
-				EndpointsConfig: map[string]*dockerNetwork.EndpointSettings{
-					"network1": {NetworkID: "net1"},
-					"network2": {NetworkID: "net2"},
-				},
-			}
-			initialConfig := &dockerNetwork.NetworkingConfig{
-				EndpointsConfig: map[string]*dockerNetwork.EndpointSettings{
-					"network1": {NetworkID: "net1"},
-				},
-			}
-
-			err := attachNetworks(context.Background(), client, "container-id", fullConfig, initialConfig, targetLog)
-			gomega.Expect(err).ToNot(gomega.HaveOccurred())
-			gomega.Expect(logOutput.String()).To(gomega.ContainSubstring("Attaching additional network to container"))
-			gomega.Expect(logOutput.String()).To(gomega.ContainSubstring("Successfully attached additional network"))
-		})
-
-		ginkgo.It("should return error when network connect fails", func() {
-			client.connectFunc = func(_ context.Context, _, _ string, _ *dockerNetwork.EndpointSettings) (dockerClient.NetworkConnectResult, error) {
-				return dockerClient.NetworkConnectResult{}, errors.New("connect failed")
-			}
-			fullConfig := &dockerNetwork.NetworkingConfig{
-				EndpointsConfig: map[string]*dockerNetwork.EndpointSettings{
-					"network1": {NetworkID: "net1"},
-					"network2": {NetworkID: "net2"},
-				},
-			}
-			initialConfig := &dockerNetwork.NetworkingConfig{
-				EndpointsConfig: map[string]*dockerNetwork.EndpointSettings{
-					"network1": {NetworkID: "net1"},
-				},
-			}
-
-			err := attachNetworks(context.Background(), client, "container-id", fullConfig, initialConfig, targetLog)
-			gomega.Expect(err).To(gomega.HaveOccurred())
-			gomega.Expect(err.Error()).To(gomega.ContainSubstring("failed to attach network"))
-			gomega.Expect(logOutput.String()).To(gomega.ContainSubstring("Failed to attach additional network"))
-		})
-
-		ginkgo.It("should skip initial network and only attach additional ones", func() {
-			fullConfig := &dockerNetwork.NetworkingConfig{
-				EndpointsConfig: map[string]*dockerNetwork.EndpointSettings{
-					"network1": {NetworkID: "net1"},
-				},
-			}
-			initialConfig := &dockerNetwork.NetworkingConfig{
-				EndpointsConfig: map[string]*dockerNetwork.EndpointSettings{
-					"network1": {NetworkID: "net1"},
-				},
-			}
-
-			err := attachNetworks(context.Background(), client, "container-id", fullConfig, initialConfig, targetLog)
-			gomega.Expect(err).ToNot(gomega.HaveOccurred())
-			gomega.Expect(logOutput.String()).ToNot(gomega.ContainSubstring("Attaching additional network"))
+			err := renameTargetContainer(log, t.Context(), api, MockContainer(WithName("old-name"), WithID("test-id")), "new-name")
+			require.ErrorContains(t, err, "rename failed")
+			assert.Contains(t, logOutput.String(), "Failed to rename container")
 		})
 	})
 
-	ginkgo.Describe("syncComposeImageLabel", func() {
+	t.Run("attachNetworks", func(t *testing.T) {
+		t.Parallel()
+
+		// networks returns a networking config with an endpoint for each
+		// named network, whose ID is the name with a "-id" suffix.
+		networks := func(names ...string) *dockerNetwork.NetworkingConfig {
+			config := &dockerNetwork.NetworkingConfig{EndpointsConfig: map[string]*dockerNetwork.EndpointSettings{}}
+			for _, name := range names {
+				config.EndpointsConfig[name] = &dockerNetwork.EndpointSettings{NetworkID: name + "-id"}
+			}
+
+			return config
+		}
+
+		t.Run("should attach additional networks successfully", func(t *testing.T) {
+			t.Parallel()
+
+			log, logOutput := newCapturedLogger(zerolog.DebugLevel)
+			api := mockContainer.NewMockAPIClient(t)
+			api.EXPECT().NetworkConnect(mock.Anything, "network2", dockerClient.NetworkConnectOptions{
+				Container:      "container-id",
+				EndpointConfig: &dockerNetwork.EndpointSettings{NetworkID: "network2-id"},
+			}).Return(dockerClient.NetworkConnectResult{}, nil).Once()
+
+			err := attachNetworks(t.Context(), api, "container-id", networks("network1", "network2"), networks("network1"), log)
+			require.NoError(t, err)
+			assert.Contains(t, logOutput.String(), "Attaching additional network to container")
+			assert.Contains(t, logOutput.String(), "Successfully attached additional network")
+		})
+
+		t.Run("should return error when network connect fails", func(t *testing.T) {
+			t.Parallel()
+
+			log, logOutput := newCapturedLogger(zerolog.DebugLevel)
+			api := mockContainer.NewMockAPIClient(t)
+			api.EXPECT().NetworkConnect(mock.Anything, "network2", mock.Anything).
+				Return(dockerClient.NetworkConnectResult{}, errors.New("connect failed")).Once()
+
+			err := attachNetworks(t.Context(), api, "container-id", networks("network1", "network2"), networks("network1"), log)
+			require.ErrorContains(t, err, "failed to attach network")
+			assert.Contains(t, logOutput.String(), "Failed to attach additional network")
+		})
+
+		t.Run("should skip initial network and only attach additional ones", func(t *testing.T) {
+			t.Parallel()
+
+			log, logOutput := newCapturedLogger(zerolog.DebugLevel)
+
+			err := attachNetworks(t.Context(), mockContainer.NewMockAPIClient(t), "container-id",
+				networks("network1"), networks("network1"), log)
+			require.NoError(t, err)
+			assert.NotContains(t, logOutput.String(), "Attaching additional network")
+		})
+	})
+
+	t.Run("syncComposeImageLabel", func(t *testing.T) {
+		t.Parallel()
+
 		const (
 			oldImageID = "sha256:old-index"
 			newImageID = "sha256:new-index"
 			oldAmd64   = "sha256:old-amd64"
 			newAmd64   = "sha256:new-amd64"
 			imageRef   = "example/app:nightly"
-		)
-
-		var (
-			client        *MockClient
-			networkConfig *dockerNetwork.NetworkingConfig
-			createdConfig *dockerContainer.Config
-			inspectedRefs []string
 		)
 
 		// amd64Manifest builds an available linux/amd64 image manifest summary.
@@ -590,31 +678,25 @@ var _ = ginkgo.Describe("Target Container Operations", func() {
 			return MockContainer(updates...)
 		}
 
-		// create runs createTargetContainer at the given API version and
-		// returns the label value sent to ContainerCreate.
-		create := func(source *Container, clientVersion string) string {
-			_, err := createTargetContainer(targetLog, context.Background(), client, source, networkConfig,
-				clientVersion, false, "auto", false,
-			)
-			gomega.Expect(err).ToNot(gomega.HaveOccurred())
-			gomega.Expect(createdConfig).ToNot(gomega.BeNil())
+		// labelAPI is a mocked Docker API that records the config sent to
+		// ContainerCreate and the image references inspected.
+		type labelAPI struct {
+			*mockContainer.MockAPIClient
 
-			return createdConfig.Labels["com.docker.compose.image"]
+			// created is the config the target container was created with.
+			created *dockerContainer.Config
+			// inspected lists the image references inspected, in order.
+			inspected []string
 		}
 
-		ginkgo.BeforeEach(func() {
-			client = &MockClient{}
-			createdConfig = nil
-			inspectedRefs = nil
-			networkConfig = &dockerNetwork.NetworkingConfig{
-				EndpointsConfig: map[string]*dockerNetwork.EndpointSettings{},
-			}
-			client.createFunc = func(_ context.Context, config *dockerContainer.Config, _ *dockerContainer.HostConfig, _ *dockerNetwork.NetworkingConfig, _ *ocispec.Platform, _ string) (dockerClient.ContainerCreateResult, error) {
-				createdConfig = config
+		// newLabelAPI returns a labelAPI that creates and renames any target
+		// container and serves the old and new images, with their manifests
+		// when the inspect asks for them. inspectErr, when set, fails every
+		// image inspect instead.
+		newLabelAPI := func(t *testing.T, inspectErr error) *labelAPI {
+			t.Helper()
 
-				return dockerClient.ContainerCreateResult{ID: "new_container_id"}, nil
-			}
-
+			api := &labelAPI{MockAPIClient: mockContainer.NewMockAPIClient(t)}
 			images := map[string]dockerImage.InspectResponse{
 				imageRef: {
 					ID:        newImageID,
@@ -625,64 +707,114 @@ var _ = ginkgo.Describe("Target Container Operations", func() {
 					Manifests: []dockerImage.ManifestSummary{amd64Manifest(oldAmd64)},
 				},
 			}
-			client.imageInspectFunc = func(_ context.Context, ref string, withManifests bool) (dockerClient.ImageInspectResult, error) {
-				inspectedRefs = append(inspectedRefs, ref)
+			inspect := func(_ context.Context, ref string, options ...dockerClient.ImageInspectOption) (dockerClient.ImageInspectResult, error) {
+				api.inspected = append(api.inspected, ref)
+
+				if inspectErr != nil {
+					return dockerClient.ImageInspectResult{}, inspectErr
+				}
 
 				image, ok := images[ref]
 				if !ok {
 					return dockerClient.ImageInspectResult{}, cerrdefs.ErrNotFound
 				}
 
-				if !withManifests {
+				if len(options) == 0 {
 					image.Manifests = nil
 				}
 
 				return dockerClient.ImageInspectResult{InspectResponse: image}, nil
 			}
+
+			api.EXPECT().ImageInspect(mock.Anything, mock.Anything).RunAndReturn(inspect).Maybe()
+			api.EXPECT().ImageInspect(mock.Anything, mock.Anything, mock.Anything).RunAndReturn(inspect).Maybe()
+			api.EXPECT().ContainerCreate(mock.Anything, mock.Anything).RunAndReturn(
+				func(_ context.Context, options dockerClient.ContainerCreateOptions) (dockerClient.ContainerCreateResult, error) {
+					api.created = options.Config
+
+					return dockerClient.ContainerCreateResult{ID: testTargetID}, nil
+				},
+			)
+			api.EXPECT().ContainerRename(mock.Anything, testTargetID, mock.Anything).
+				Return(dockerClient.ContainerRenameResult{}, nil)
+
+			return api
+		}
+
+		// create runs createTargetContainer at the given API version and
+		// returns the label value sent to ContainerCreate.
+		create := func(t *testing.T, log *zerolog.Logger, api *labelAPI, source *Container, clientVersion string) string {
+			t.Helper()
+
+			networkConfig := &dockerNetwork.NetworkingConfig{EndpointsConfig: map[string]*dockerNetwork.EndpointSettings{}}
+
+			_, err := createTargetContainer(log, t.Context(), api, source, networkConfig,
+				clientVersion, false, "auto", false,
+			)
+			require.NoError(t, err)
+			require.NotNil(t, api.created)
+
+			return api.created.Labels["com.docker.compose.image"]
+		}
+
+		t.Run("should leave containers without the label untouched", func(t *testing.T) {
+			t.Parallel()
+
+			log, _ := newCapturedLogger(zerolog.DebugLevel)
+			api := newLabelAPI(t, nil)
+
+			assert.Empty(t, create(t, log, api, MockContainer(WithImageName(imageRef)), "1.48"))
+			assert.NotContains(t, api.created.Labels, "com.docker.compose.image")
+			assert.Empty(t, api.inspected)
 		})
 
-		ginkgo.It("should leave containers without the label untouched", func() {
-			source := MockContainer(WithImageName(imageRef))
+		t.Run("should create the container with the label pointing at the new image", func(t *testing.T) {
+			t.Parallel()
 
-			gomega.Expect(create(source, "1.48")).To(gomega.BeEmpty())
-			gomega.Expect(createdConfig.Labels).ToNot(gomega.HaveKey("com.docker.compose.image"))
-			gomega.Expect(inspectedRefs).To(gomega.BeEmpty())
+			log, logOutput := newCapturedLogger(zerolog.DebugLevel)
+
+			assert.Equal(t, newImageID, create(t, log, newLabelAPI(t, nil), composeContainer(oldImageID), "1.44"))
+			assert.Contains(t, logOutput.String(), "Updated Compose image label")
 		})
 
-		ginkgo.It("should create the container with the label pointing at the new image", func() {
-			gomega.Expect(create(composeContainer(oldImageID), "1.44")).To(gomega.Equal(newImageID))
-			gomega.Expect(logOutput.String()).To(gomega.ContainSubstring("Updated Compose image label"))
+		t.Run("should pass the client API version through for manifest digest labels", func(t *testing.T) {
+			t.Parallel()
+
+			log, _ := newCapturedLogger(zerolog.DebugLevel)
+			api := newLabelAPI(t, nil)
+
+			assert.Equal(t, newAmd64, create(t, log, api, composeContainer(oldAmd64), "1.48"))
+			assert.Equal(t, oldAmd64, create(t, log, api, composeContainer(oldAmd64), "1.47"))
 		})
 
-		ginkgo.It("should pass the client API version through for manifest digest labels", func() {
-			gomega.Expect(create(composeContainer(oldAmd64), "1.48")).To(gomega.Equal(newAmd64))
-			gomega.Expect(create(composeContainer(oldAmd64), "1.47")).To(gomega.Equal(oldAmd64))
+		t.Run("should keep a label with no matching value for the new image", func(t *testing.T) {
+			t.Parallel()
+
+			log, logOutput := newCapturedLogger(zerolog.DebugLevel)
+
+			assert.Equal(t, "sha256:unknown", create(t, log, newLabelAPI(t, nil), composeContainer("sha256:unknown"), "1.48"))
+			assert.Contains(t, logOutput.String(), "Found no matching value for Compose image label, keeping it unchanged")
 		})
 
-		ginkgo.It("should keep a label with no matching value for the new image", func() {
-			gomega.Expect(create(composeContainer("sha256:unknown"), "1.48")).To(gomega.Equal("sha256:unknown"))
-			gomega.Expect(logOutput.String()).
-				To(gomega.ContainSubstring("Found no matching value for Compose image label, keeping it unchanged"))
+		t.Run("should keep the label and still create the container when the image inspect fails", func(t *testing.T) {
+			t.Parallel()
+
+			log, logOutput := newCapturedLogger(zerolog.DebugLevel)
+
+			assert.Equal(t, oldImageID, create(t, log, newLabelAPI(t, cerrdefs.ErrNotFound), composeContainer(oldImageID), "1.48"))
+			assert.Contains(t, logOutput.String(), "Failed to resolve Compose image label, keeping it unchanged")
 		})
 
-		ginkgo.It("should keep the label and still create the container when the image inspect fails", func() {
-			client.imageInspectFunc = func(context.Context, string, bool) (dockerClient.ImageInspectResult, error) {
-				return dockerClient.ImageInspectResult{}, cerrdefs.ErrNotFound
-			}
+		t.Run("should not modify the source container's labels", func(t *testing.T) {
+			t.Parallel()
 
-			gomega.Expect(create(composeContainer(oldImageID), "1.48")).To(gomega.Equal(oldImageID))
-			gomega.Expect(logOutput.String()).
-				To(gomega.ContainSubstring("Failed to resolve Compose image label, keeping it unchanged"))
-		})
-
-		ginkgo.It("should not modify the source container's labels", func() {
+			log, _ := newCapturedLogger(zerolog.DebugLevel)
 			source := composeContainer(oldImageID, func(_ *dockerContainer.InspectResponse, i *dockerImage.InspectResponse) {
 				i.Config = nil
 			})
 
-			gomega.Expect(create(source, "1.48")).To(gomega.Equal(newImageID))
-			gomega.Expect(source.ContainerInfo().Config.Labels).
-				To(gomega.HaveKeyWithValue("com.docker.compose.image", oldImageID))
+			assert.Equal(t, newImageID, create(t, log, newLabelAPI(t, nil), source, "1.48"))
+			assert.Equal(t, oldImageID, source.ContainerInfo().Config.Labels["com.docker.compose.image"])
 		})
 	})
-})
+}

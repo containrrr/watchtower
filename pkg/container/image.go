@@ -88,39 +88,12 @@ func IsImagePinnedByDigest(imageName string) bool {
 //   - "auto" delegates to registry-specific logic (e.g., WarnOnAPIConsumption).
 type WarningStrategy string
 
-// ImageAPI is the Docker API subset the image client uses to inspect, pull,
-// and remove images and to read the daemon's registry mirrors.
-type ImageAPI interface {
-	Info(ctx context.Context, options dockerClient.InfoOptions) (dockerClient.SystemInfoResult, error)
-	ImageInspect(
-		ctx context.Context,
-		image string,
-		options ...dockerClient.ImageInspectOption,
-	) (dockerClient.ImageInspectResult, error)
-	ImagePull(
-		ctx context.Context,
-		ref string,
-		options dockerClient.ImagePullOptions,
-	) (dockerClient.ImagePullResponse, error)
-	ImageRemove(
-		ctx context.Context,
-		image string,
-		options dockerClient.ImageRemoveOptions,
-	) (dockerClient.ImageRemoveResult, error)
-	ContainerList(
-		ctx context.Context,
-		options dockerClient.ContainerListOptions,
-	) (dockerClient.ContainerListResult, error)
-}
-
-var _ ImageAPI = dockerClient.APIClient(nil)
-
 // imageClient manages image-related operations for Watchtower.
 //
 // It uses a Docker API client for image tasks.
 // imageClient performs image inspect, pull, and stale checks.
 type imageClient struct {
-	api ImageAPI
+	api dockerClient.APIClient
 	log *zerolog.Logger
 	// daemonInfo shares Docker Info and mirrors across check and pull paths.
 	daemonInfo *daemonInfoCache
@@ -685,7 +658,7 @@ func (c imageClient) logger() *zerolog.Logger {
 // Returns:
 //   - imageClient: Initialized client for image operations.
 func newImageClient(
-	api ImageAPI,
+	api dockerClient.APIClient,
 	log *zerolog.Logger,
 	registrySettings registryConfig.Registry,
 	rateLimiter *ratelimit.Limiter,

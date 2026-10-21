@@ -19,6 +19,7 @@ import (
 	cerrdefs "github.com/containerd/errdefs"
 	dockerContainer "github.com/moby/moby/api/types/container"
 	dockerClient "github.com/moby/moby/client"
+	dockerAPIVersion "github.com/moby/moby/client/pkg/versions"
 
 	registryConfig "github.com/nicholas-fedor/watchtower/internal/config/registry"
 	"github.com/nicholas-fedor/watchtower/pkg/container/oci"
@@ -421,8 +422,6 @@ type client struct {
 	copyFiles map[types.ContainerID]copyFileSnapshot
 	// copyFileBytes is the total size of archives currently held in copyFiles.
 	copyFileBytes int64
-	// copyAPI overrides api for copy-file snapshot and inject tests.
-	copyAPI ArchiveAPI
 }
 
 // ClientOptions configures container management behavior for the Docker client.
@@ -498,8 +497,10 @@ func NewClient(log *zerolog.Logger, opts ClientOptions) Client {
 // negotiateDockerAPI pings the daemon to validate connectivity and negotiate the API version.
 //
 // When DOCKER_API_VERSION is incompatible with the server, it recreates the client without a
-// fixed version so negotiation can select a supported API. Other ping failures are non-fatal:
-// the client is returned and version negotiation is deferred until the first API call.
+// fixed version so negotiation can select a supported API. A fixed version is incompatible when
+// the ping fails with a not-found error, or when it is newer than the API version the daemon
+// reports. Other ping failures are non-fatal: the client is returned and version negotiation is
+// deferred until the first API call.
 //
 // Parameters:
 //   - log: Process logger.
@@ -519,33 +520,42 @@ func negotiateDockerAPI(
 	)
 	defer cancel()
 
-	// Ping triggers API version negotiation (or validates DOCKER_API_VERSION if set).
+	// Ping triggers API version negotiation, or only pings when DOCKER_API_VERSION fixes the
+	// version.
 	result, err := cli.Ping(ctx, dockerClient.PingOptions{NegotiateAPIVersion: true})
+
+	// The ping uses the unversioned endpoint, so a daemon older than the fixed version still
+	// answers it. A negotiated version never exceeds the daemon's.
+	tooNew := err == nil && result.APIVersion != "" &&
+		dockerAPIVersion.GreaterThan(cli.ClientVersion(), result.APIVersion)
+
+	if cerrdefs.IsNotFound(err) || tooNew {
+		log.Warn().
+			Err(err).
+			Str("api_version", cli.ClientVersion()).
+			Str("server_api_version", result.APIVersion).
+			Msg("DOCKER_API_VERSION incompatible with server. Falling back to autonegotiation")
+
+		// FromEnv would read DOCKER_API_VERSION again, so the client is recreated from the
+		// host and TLS settings alone.
+		recreated, recreateErr := dockerClient.New(
+			dockerClient.WithTLSClientConfigFromEnv(),
+			dockerClient.WithHostFromEnv(),
+		)
+		if recreateErr != nil {
+			return cli, dockerClient.PingResult{}, fmt.Errorf("%w: %w", errRecreateDockerClient, recreateErr)
+		}
+
+		cli = recreated
+		result, err = cli.Ping(ctx, dockerClient.PingOptions{NegotiateAPIVersion: true})
+	}
+
 	if err != nil {
-		// If DOCKER_API_VERSION was set to an incompatible value, the ping may fail
-		// with a not-found error. Recreate the client without a fixed version to allow
-		// negotiation to find a compatible API version.
-		if cerrdefs.IsNotFound(err) {
-			log.Warn().
-				Err(err).
-				Msg("DOCKER_API_VERSION incompatible with server. Falling back to autonegotiation")
+		log.Warn().
+			Err(err).
+			Msg("Ping failed during initialization. Will negotiate on first API call")
 
-			recreated, recreateErr := dockerClient.New(dockerClient.FromEnv, dockerClient.WithAPIVersion(""))
-			if recreateErr != nil {
-				return cli, dockerClient.PingResult{}, fmt.Errorf("%w: %w", errRecreateDockerClient, recreateErr)
-			}
-
-			cli = recreated
-			result, err = cli.Ping(ctx, dockerClient.PingOptions{NegotiateAPIVersion: true})
-		}
-
-		if err != nil {
-			log.Warn().
-				Err(err).
-				Msg("Ping failed during initialization. Will negotiate on first API call")
-
-			return cli, dockerClient.PingResult{}, nil
-		}
+		return cli, dockerClient.PingResult{}, nil
 	}
 
 	return cli, result, nil

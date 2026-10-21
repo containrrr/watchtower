@@ -1,24 +1,26 @@
 package container
 
 import (
-	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"net/http"
-	"sync/atomic"
+	"os"
+	"path/filepath"
+	"testing"
 
-	"github.com/onsi/gomega"
-	"github.com/onsi/gomega/ghttp"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 
+	cerrdefs "github.com/containerd/errdefs"
 	dockerspec "github.com/moby/docker-image-spec/specs-go/v1"
 	dockerContainer "github.com/moby/moby/api/types/container"
 	dockerImage "github.com/moby/moby/api/types/image"
 	dockerMount "github.com/moby/moby/api/types/mount"
 	dockerNetwork "github.com/moby/moby/api/types/network"
 	dockerClient "github.com/moby/moby/client"
-	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 
 	mockContainer "github.com/nicholas-fedor/watchtower/pkg/container/mocks"
+	"github.com/nicholas-fedor/watchtower/pkg/types"
 )
 
 // MockContainerUpdate defines a function to update mock container or image metadata for testing.
@@ -452,276 +454,267 @@ func WithDevices(devices []dockerContainer.DeviceMapping) MockContainerUpdate {
 	}
 }
 
-// MockClient is a mock implementation of the Operations interface for testing container operations.
-type MockClient struct {
-	createFunc        func(context.Context, *dockerContainer.Config, *dockerContainer.HostConfig, *dockerNetwork.NetworkingConfig, *ocispec.Platform, string) (dockerClient.ContainerCreateResult, error)
-	startFunc         func(context.Context, string, dockerClient.ContainerStartOptions) (dockerClient.ContainerStartResult, error)
-	inspectFunc       func(context.Context, string, dockerClient.ContainerInspectOptions) (dockerClient.ContainerInspectResult, error)
-	removeFunc        func(context.Context, string, dockerClient.ContainerRemoveOptions) (dockerClient.ContainerRemoveResult, error)
-	connectFunc       func(context.Context, string, string, *dockerNetwork.EndpointSettings) (dockerClient.NetworkConnectResult, error)
-	renameFunc        func(context.Context, string, string) (dockerClient.ContainerRenameResult, error)
-	imageInspectFunc  func(context.Context, string, bool) (dockerClient.ImageInspectResult, error)
-	removeFuncCalled  atomic.Bool
-	inspectFuncCalled atomic.Bool
-	createFuncCalled  atomic.Bool
-	startFuncCalled   atomic.Bool
-	connectFuncCalled atomic.Bool
-	renameFuncCalled  atomic.Bool
+// dockerImageFixture is an image whose inspect response is read from testdata.
+type dockerImageFixture struct {
+	// id is the image ID.
+	id types.ImageID
+	// file names testdata/image_<file>.json.
+	file string
 }
 
-// ContainerCreate mocks the creation of a new container.
-//
-// Parameters:
-//   - ctx: Context for the operation.
-//   - config: Container configuration.
-//   - hostConfig: Host configuration.
-//   - networkingConfig: Network configuration.
-//   - platform: Platform specification.
-//   - containerName: Name for the new container.
-//
-// Returns:
-//   - dockerContainerType.CreateResponse: Mocked response with container ID.
-//   - error: Error if the mock create function is set to fail, nil otherwise.
-func (m *MockClient) ContainerCreate(
-	ctx context.Context,
-	options dockerClient.ContainerCreateOptions,
-) (dockerClient.ContainerCreateResult, error) {
-	m.createFuncCalled.Store(true)
-
-	if m.createFunc != nil {
-		return m.createFunc(ctx, options.Config, options.HostConfig, options.NetworkingConfig, options.Platform, options.Name)
-	}
-
-	return dockerClient.ContainerCreateResult{ID: "new_container_id"}, nil
+// dockerContainerFixture is a container whose inspect response is read from
+// testdata, with its image and the containers it references.
+type dockerContainerFixture struct {
+	// image is the container's image. Nil for a missing container.
+	image *dockerImageFixture
+	// id is the container ID.
+	id types.ContainerID
+	// name names testdata/container_<name>.json unless file is set.
+	name string
+	// file overrides name as the testdata file name.
+	file string
+	// references are containers inspected while resolving this one, such as
+	// a network mode container.
+	references []*dockerContainerFixture
+	// missing makes the daemon report the container as not found.
+	missing bool
 }
 
-// ContainerStart mocks the start of a container.
-//
-// Parameters:
-//   - ctx: Context for the operation.
-//   - containerID: ID of the container to start.
-//   - options: Start options.
-//
-// Returns:
-//   - error: Error if the mock start function is set to fail, nil otherwise.
-func (m *MockClient) ContainerStart(
-	ctx context.Context,
-	containerID string,
-	options dockerClient.ContainerStartOptions,
-) (dockerClient.ContainerStartResult, error) {
-	m.startFuncCalled.Store(true)
+const (
+	// fixtureNetSupplierNotFoundID is the ID of a network supplier container
+	// that no longer exists.
+	fixtureNetSupplierNotFoundID = "badc1dbadc1dbadc1dbadc1dbadc1dbadc1dbadc1dbadc1dbadc1dbadc1dbadc"
+	// fixtureNetSupplierContainerName is the Docker name of the network
+	// supplier container.
+	fixtureNetSupplierContainerName = "/wt-contnet-producer-1"
+)
 
-	if m.startFunc != nil {
-		return m.startFunc(ctx, containerID, options)
+// Docker fixtures served from testdata.
+var (
+	// fixtureDefaultImage is the Watchtower image.
+	fixtureDefaultImage = &dockerImageFixture{
+		id:   "sha256:4dbc5f9c07028a985e14d1393e849ea07f68804c4293050d5a641b138db72daa",
+		file: "default",
 	}
-
-	return dockerClient.ContainerStartResult{}, nil
-}
-
-// ContainerInspect mocks inspection of a container.
-//
-// Parameters:
-//   - ctx: Context for the operation.
-//   - containerID: ID of the container to inspect.
-//   - options: Inspect options.
-//
-// Returns:
-//   - dockerClient.ContainerInspectResult: Mocked inspect result.
-//   - error: Error if the mock inspect function is set to fail, nil otherwise.
-func (m *MockClient) ContainerInspect(
-	ctx context.Context,
-	containerID string,
-	options dockerClient.ContainerInspectOptions,
-) (dockerClient.ContainerInspectResult, error) {
-	m.inspectFuncCalled.Store(true)
-
-	if m.inspectFunc != nil {
-		return m.inspectFunc(ctx, containerID, options)
+	// fixtureWatchtower is a running Watchtower container.
+	fixtureWatchtower = &dockerContainerFixture{
+		name:  "watchtower",
+		id:    "3d88e0e3543281c747d88b27e246578b65ae8964ba86c7cd7522cf84e0978134",
+		image: fixtureDefaultImage,
 	}
-
-	// Default: created but not running (typical after a start failure).
-	return dockerClient.ContainerInspectResult{
-		Container: dockerContainer.InspectResponse{
-			ID: containerID,
-			State: &dockerContainer.State{
-				Status:  "created",
-				Running: false,
-			},
+	// fixtureStopped is a stopped container.
+	fixtureStopped = &dockerContainerFixture{
+		name:  "stopped",
+		id:    "ae8964ba86c7cd7522cf84e09781343d88e0e3543281c747d88b27e246578b65",
+		image: fixtureDefaultImage,
+	}
+	// fixtureRunning is a running Portainer container.
+	fixtureRunning = &dockerContainerFixture{
+		name: "running",
+		id:   "b978af0b858aa8855cce46b628817d4ed58e58f2c4f66c9b9c5449134ed4c008",
+		image: &dockerImageFixture{
+			id:   "sha256:19d07168491a3f9e2798a9bed96544e34d57ddc4757a4ac5bb199dea896c87fd",
+			file: "running",
 		},
-	}, nil
-}
-
-// ContainerRemove mocks the removal of a container.
-//
-// Parameters:
-//   - ctx: Context for the operation.
-//   - containerID: ID of the container to remove.
-//   - options: Removal options (e.g., force, remove volumes).
-//
-// Returns:
-//   - error: Error if the mock remove function is set to fail, nil otherwise.
-func (m *MockClient) ContainerRemove(
-	ctx context.Context,
-	containerID string,
-	options dockerClient.ContainerRemoveOptions,
-) (dockerClient.ContainerRemoveResult, error) {
-	m.removeFuncCalled.Store(true)
-
-	if m.removeFunc != nil {
-		return m.removeFunc(ctx, containerID, options)
 	}
-
-	return dockerClient.ContainerRemoveResult{}, nil
-}
-
-// NetworkConnect mocks connecting a container to a network.
-//
-// Parameters:
-//   - ctx: Context for the operation.
-//   - networkID: ID of the network.
-//   - containerID: ID of the container.
-//   - config: Endpoint settings for the network connection.
-//
-// Returns:
-//   - error: Error if the mock connect function is set to fail, nil otherwise.
-func (m *MockClient) NetworkConnect(
-	ctx context.Context,
-	networkID string,
-	options dockerClient.NetworkConnectOptions,
-) (dockerClient.NetworkConnectResult, error) {
-	m.connectFuncCalled.Store(true)
-
-	if m.connectFunc != nil {
-		return m.connectFunc(ctx, networkID, options.Container, options.EndpointConfig)
+	// fixtureRestarting is a restarting container.
+	fixtureRestarting = &dockerContainerFixture{
+		name:  "restarting",
+		id:    "ae8964ba86c7cd7522cf84e09781343d88e0e3543281c747d88b27e246578b67",
+		image: fixtureDefaultImage,
 	}
-
-	return dockerClient.NetworkConnectResult{}, nil
-}
-
-// ContainerRename mocks renaming a container.
-//
-// Parameters:
-//   - ctx: Context for the operation.
-//   - containerID: ID of the container to rename.
-//   - options: Rename options carrying the new name.
-//
-// Returns:
-//   - dockerClient.ContainerRenameResult: Empty rename result.
-//   - error: Error if the mock rename function is set to fail, nil otherwise.
-func (m *MockClient) ContainerRename(
-	ctx context.Context,
-	containerID string,
-	options dockerClient.ContainerRenameOptions,
-) (dockerClient.ContainerRenameResult, error) {
-	m.renameFuncCalled.Store(true)
-
-	if m.renameFunc != nil {
-		return m.renameFunc(ctx, containerID, options.NewName)
-	}
-
-	return dockerClient.ContainerRenameResult{}, nil
-}
-
-// ImageInspect mocks the inspection of an image.
-//
-// Parameters:
-//   - ctx: Context for the operation.
-//   - imageID: ID or reference of the image to inspect.
-//   - inspectOpts: Inspect options. Any option is taken as a request for manifests.
-//
-// Returns:
-//   - dockerClient.ImageInspectResult: Mocked image metadata.
-//   - error: Error if the mock image inspect function is set to fail, nil otherwise.
-func (m *MockClient) ImageInspect(
-	ctx context.Context,
-	imageID string,
-	inspectOpts ...dockerClient.ImageInspectOption,
-) (dockerClient.ImageInspectResult, error) {
-	if m.imageInspectFunc != nil {
-		return m.imageInspectFunc(ctx, imageID, len(inspectOpts) > 0)
-	}
-
-	return dockerClient.ImageInspectResult{}, nil
-}
-
-// APIVersionPingHandler returns a handler that responds to the Docker client's
-// HEAD /_ping request used for API version negotiation.
-func APIVersionPingHandler() http.HandlerFunc {
-	return ghttp.CombineHandlers(
-		ghttp.VerifyRequest("HEAD", "/_ping"),
-		ghttp.RespondWith(http.StatusOK, nil),
-	)
-}
-
-// ContainerUpdateHandler returns a handler that responds to the Docker API's
-// POST /containers/{id}/update endpoint. When expectedPolicy is non-empty, it
-// verifies RestartPolicy.Name matches that value.
-//
-// Parameters:
-//   - containerID: The container ID for the update endpoint.
-//   - status: HTTP status code to return (204 for success, 500 for error).
-//   - expectedPolicy: Restart policy name to verify. Empty skips body checks.
-//
-// Returns:
-//   - http.HandlerFunc: Handler for the container update endpoint.
-func ContainerUpdateHandler(
-	containerID string,
-	status int,
-	expectedPolicy string,
-) http.HandlerFunc {
-	return ghttp.CombineHandlers(
-		ghttp.VerifyRequest("POST", gomega.HaveSuffix(fmt.Sprintf("containers/%s/update", containerID))),
-		func(w http.ResponseWriter, r *http.Request) {
-			if expectedPolicy != "" {
-				var body map[string]any
-
-				err := json.NewDecoder(r.Body).Decode(&body)
-				if err != nil {
-					gomega.Expect(err).NotTo(gomega.HaveOccurred())
-				}
-
-				restartPolicy, ok := body["RestartPolicy"].(map[string]any)
-				gomega.Expect(ok).To(gomega.BeTrue(), "RestartPolicy should be present in update body")
-
-				name, ok := restartPolicy["Name"].(string)
-				gomega.Expect(ok).To(gomega.BeTrue(), "RestartPolicy.Name should be a string")
-				gomega.Expect(name).To(gomega.Equal(expectedPolicy), "RestartPolicy.Name should match")
-
-				if expectedPolicy == "no" {
-					retryCount, hasRetryCount := restartPolicy["MaximumRetryCount"]
-					if hasRetryCount {
-						gomega.Expect(retryCount).To(gomega.BeNumerically("==", 0),
-							"disabled policy should not keep a retry count")
-					}
-				}
-			}
-
-			body := []byte(nil)
-			if status < http.StatusBadRequest {
-				body = []byte("{}")
-			}
-
-			ghttp.RespondWith(status, body)(w, r)
+	// fixtureNetSupplier is a container supplying its network to another.
+	fixtureNetSupplier = &dockerContainerFixture{
+		name: "net_supplier",
+		id:   "25e75393800b5c450a6841212a3b92ed28fa35414a586dec9f2c8a520d4910c2",
+		image: &dockerImageFixture{
+			id:   "sha256:c22b543d33bfdcb9992cbef23961677133cdf09da71d782468ae2517138bad51",
+			file: "net_producer",
 		},
-	)
+	}
+	// fixtureNetSupplierNotFound is a network supplier that no longer exists.
+	fixtureNetSupplierNotFound = &dockerContainerFixture{
+		name:    "net_supplier",
+		id:      fixtureNetSupplierNotFoundID,
+		missing: true,
+	}
+	// fixtureNetConsumerImage is the image of the network consumers.
+	fixtureNetConsumerImage = &dockerImageFixture{
+		id:   "sha256:904b8cb13b932e23230836850610fa45dce9eb0650d5618c2b1487c2a4f577b8",
+		file: "net_consumer",
+	}
+	// fixtureNetConsumer uses the network of fixtureNetSupplier.
+	fixtureNetConsumer = &dockerContainerFixture{
+		name:       "net_consumer",
+		id:         "1f6b79d2aff23244382026c76f4995851322bed5f9c50631620162f6f9aafbd6",
+		image:      fixtureNetConsumerImage,
+		references: []*dockerContainerFixture{fixtureNetSupplier},
+	}
+	// fixtureNetConsumerMissingSupplier uses the network of a container that
+	// no longer exists.
+	fixtureNetConsumerMissingSupplier = &dockerContainerFixture{
+		name:       "net_consumer-missing_supplier",
+		id:         fixtureNetConsumer.id,
+		image:      fixtureNetConsumerImage,
+		references: []*dockerContainerFixture{fixtureNetSupplierNotFound},
+	}
+)
+
+// newDockerAPI returns a mocked Docker API whose client version is available
+// for diagnostic logs.
+//
+// Parameters:
+//   - t: Test the mock belongs to.
+//
+// Returns:
+//   - *mockContainer.MockAPIClient: Mocked Docker API.
+func newDockerAPI(t *testing.T) *mockContainer.MockAPIClient {
+	t.Helper()
+
+	api := mockContainer.NewMockAPIClient(t)
+	api.EXPECT().ClientVersion().Return("1.47").Maybe()
+
+	return api
 }
 
-func StopContainerHandler(
-	containerID string,
-	status mockContainer.FoundStatus,
-) http.HandlerFunc {
-	return ghttp.CombineHandlers(
-		ghttp.VerifyRequest(
-			"POST",
-			gomega.HaveSuffix(fmt.Sprintf("containers/%s/stop", containerID)),
-		),
-		func(w http.ResponseWriter, r *http.Request) {
-			code := 404
-			if status {
-				code = 204
-			}
+// readFixture decodes testdata/name into a value of type T.
+//
+// Parameters:
+//   - t: Test reading the fixture.
+//   - name: File name within testdata.
+//
+// Returns:
+//   - T: Decoded fixture.
+func readFixture[T any](t *testing.T, name string) T {
+	t.Helper()
 
-			ghttp.RespondWith(code, nil)(w, r)
-		},
-	)
+	data, err := os.ReadFile(filepath.Join("testdata", name))
+	require.NoError(t, err)
+
+	var value T
+
+	require.NoError(t, json.Unmarshal(data, &value))
+
+	return value
+}
+
+// daemonError returns an error formatted as the Docker SDK reports a daemon
+// error response.
+//
+// Parameters:
+//   - message: Message the daemon responded with.
+//
+// Returns:
+//   - error: Error with the daemon's message.
+func daemonError(message string) error {
+	return errors.New("Error response from daemon: " + message)
+}
+
+// notFoundError returns a not-found error as the Docker SDK reports a 404.
+//
+// Parameters:
+//   - message: Message the daemon responded with.
+//
+// Returns:
+//   - error: Error matching [cerrdefs.IsNotFound].
+func notFoundError(message string) error {
+	return fmt.Errorf("Error response from daemon: %s: %w", message, cerrdefs.ErrNotFound)
+}
+
+// statusFilters returns list filters for the given container statuses.
+//
+// Parameters:
+//   - statuses: Container statuses to list.
+//
+// Returns:
+//   - dockerClient.Filters: Filters with one status entry per status.
+func statusFilters(statuses ...string) dockerClient.Filters {
+	filters := make(dockerClient.Filters)
+	for _, status := range statuses {
+		filters.Add("status", status)
+	}
+
+	return filters
+}
+
+// expectContainerList expects one container list request filtered by exactly
+// the given statuses, and answers with the testdata containers in them.
+//
+// Parameters:
+//   - t: Test the expectation belongs to.
+//   - api: Mocked Docker API.
+//   - statuses: Statuses the request filters by.
+func expectContainerList(t *testing.T, api *mockContainer.MockAPIClient, statuses ...string) {
+	t.Helper()
+
+	var listed []dockerContainer.Summary
+
+	for _, summary := range readFixture[[]dockerContainer.Summary](t, "containers.json") {
+		for _, status := range statuses {
+			if summary.State == dockerContainer.ContainerState(status) {
+				listed = append(listed, summary)
+			}
+		}
+	}
+
+	api.EXPECT().ContainerList(mock.Anything, dockerClient.ContainerListOptions{Filters: statusFilters(statuses...)}).
+		Return(dockerClient.ContainerListResult{Items: listed}, nil).Once()
+}
+
+// expectContainerFixtures expects one inspect of each container, of each
+// container it references, and of each distinct image, and answers them from
+// testdata.
+//
+// Parameters:
+//   - t: Test the expectations belong to.
+//   - api: Mocked Docker API.
+//   - fixtures: Containers the code under test inspects.
+func expectContainerFixtures(t *testing.T, api *mockContainer.MockAPIClient, fixtures ...*dockerContainerFixture) {
+	t.Helper()
+
+	seenImages := make(map[types.ImageID]bool, len(fixtures))
+
+	for _, fixture := range fixtures {
+		expectContainerFixture(t, api, fixture)
+
+		for _, reference := range fixture.references {
+			expectContainerFixture(t, api, reference)
+		}
+
+		if seenImages[fixture.image.id] {
+			continue
+		}
+
+		seenImages[fixture.image.id] = true
+		image := readFixture[dockerImage.InspectResponse](t, "image_"+fixture.image.file+".json")
+		require.Equal(t, string(fixture.image.id), image.ID, "image fixture file %q", fixture.image.file)
+		api.EXPECT().ImageInspect(mock.Anything, string(fixture.image.id)).
+			Return(dockerClient.ImageInspectResult{InspectResponse: image}, nil).Once()
+	}
+}
+
+// expectContainerFixture expects one inspect of the container and answers it
+// from testdata, or with a not-found error for a missing container.
+//
+// Parameters:
+//   - t: Test the expectation belongs to.
+//   - api: Mocked Docker API.
+//   - fixture: Container to inspect.
+func expectContainerFixture(t *testing.T, api *mockContainer.MockAPIClient, fixture *dockerContainerFixture) {
+	t.Helper()
+
+	call := api.EXPECT().ContainerInspect(mock.Anything, string(fixture.id), dockerClient.ContainerInspectOptions{})
+	if fixture.missing {
+		call.Return(dockerClient.ContainerInspectResult{}, notFoundError("No such container: "+string(fixture.id))).Once()
+
+		return
+	}
+
+	file := fixture.file
+	if file == "" {
+		file = fixture.name
+	}
+
+	info := readFixture[dockerContainer.InspectResponse](t, "container_"+file+".json")
+	call.Return(dockerClient.ContainerInspectResult{Container: info}, nil).Once()
 }

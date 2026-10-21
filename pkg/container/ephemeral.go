@@ -97,27 +97,6 @@ type dockerConnectionConfig struct {
 	CertBinds []string
 }
 
-// EphemeralAPI is the Docker API subset used to create, start, and clean up the
-// ephemeral orchestrator container.
-type EphemeralAPI interface {
-	ContainerCreate(
-		ctx context.Context,
-		options dockerClient.ContainerCreateOptions,
-	) (dockerClient.ContainerCreateResult, error)
-	ContainerStart(
-		ctx context.Context,
-		containerID string,
-		options dockerClient.ContainerStartOptions,
-	) (dockerClient.ContainerStartResult, error)
-	ContainerRemove(
-		ctx context.Context,
-		containerID string,
-		options dockerClient.ContainerRemoveOptions,
-	) (dockerClient.ContainerRemoveResult, error)
-}
-
-var _ EphemeralAPI = dockerClient.APIClient(nil)
-
 // CreateEphemeralOrchestrator creates a short-lived container that orchestrates
 // the Watchtower self-update transition.
 //
@@ -167,7 +146,7 @@ func (c *client) CreateEphemeralOrchestrator(
 func createEphemeralOrchestrator(
 	log *zerolog.Logger,
 	ctx context.Context,
-	api EphemeralAPI,
+	api dockerClient.APIClient,
 	sourceContainer types.Container,
 	newImage string,
 	containerChain string,

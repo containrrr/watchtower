@@ -5,22 +5,21 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
-	"fmt"
 	"net"
-	"net/http"
 	"sync"
 	"testing"
 	"time"
 
-	"github.com/onsi/gomega"
-	"github.com/onsi/gomega/gbytes"
-	"github.com/onsi/gomega/ghttp"
 	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 
 	dockerContainer "github.com/moby/moby/api/types/container"
 	dockerNetwork "github.com/moby/moby/api/types/network"
+	dockerClient "github.com/moby/moby/client"
 
 	"github.com/nicholas-fedor/watchtower/internal/logging"
+	mockContainer "github.com/nicholas-fedor/watchtower/pkg/container/mocks"
 )
 
 // newTestLogger returns a logger that writes each event to the test's log, so a
@@ -53,9 +52,11 @@ func randomSHA256() string {
 //
 // Tests must not construct HardwareAddr from the colon-separated string bytes.
 // That 17-byte value is not what the Engine API produces.
-func mustParseMAC(mac string) dockerNetwork.HardwareAddr {
+func mustParseMAC(t *testing.T, mac string) dockerNetwork.HardwareAddr {
+	t.Helper()
+
 	parsed, err := net.ParseMAC(mac)
-	gomega.Expect(err).ToNot(gomega.HaveOccurred(), "parse MAC %q", mac)
+	require.NoError(t, err, "parse MAC %q", mac)
 
 	return dockerNetwork.HardwareAddr(parsed)
 }
@@ -112,51 +113,31 @@ func newCapturedLogger(level zerolog.Level) (*zerolog.Logger, *lockedBuffer) {
 	return new(zerolog.New(w).Level(level).With().Timestamp().Logger()), buf
 }
 
-// captureLog returns a logfmt *zerolog.Logger writing to a gbytes.Buffer for gomega.Say assertions.
-func captureLog(level zerolog.Level) (*zerolog.Logger, *gbytes.Buffer) {
-	buf := gbytes.NewBuffer()
-	w := logging.LogfmtWriter(buf)
-	// Preserve timestamp style used by production logfmt.
-	w.TimeFormat = time.RFC3339
-	l := zerolog.New(w).Level(level).With().Timestamp().Logger()
-
-	return &l, buf
-}
-
-// missingImageHandlers mocks a running container whose image can no longer be
-// inspected, which happens when the image is removed out from under it.
+// expectMissingImage expects the inspect of a running container whose image can
+// no longer be inspected, which happens when the image is removed out from
+// under it.
 //
-// The container inspect succeeds and the image inspect returns 404, so callers
-// end up with a container whose HasImageInfo reports false.
-func missingImageHandlers(containerID string) []http.HandlerFunc {
-	return []http.HandlerFunc{
-		ghttp.CombineHandlers(
-			ghttp.VerifyRequest(
-				"GET",
-				gomega.MatchRegexp(
-					fmt.Sprintf("^/v[0-9.]+/containers/%s/json$", containerID),
-				),
-			),
-			ghttp.RespondWithJSONEncoded(http.StatusOK, dockerContainer.InspectResponse{
-				ID:    containerID,
-				Name:  "/test-container",
+// The container inspect succeeds and the image inspect reports not found, so
+// callers end up with a container whose HasImageInfo reports false.
+//
+// Parameters:
+//   - api: Mocked Docker API.
+//   - containerID: ID of the container to inspect.
+func expectMissingImage(api *mockContainer.MockAPIClient, containerID string) {
+	api.EXPECT().ContainerInspect(mock.Anything, containerID, dockerClient.ContainerInspectOptions{}).
+		Return(dockerClient.ContainerInspectResult{Container: dockerContainer.InspectResponse{
+			ID:    containerID,
+			Name:  "/test-container",
+			Image: "test-image:latest",
+			State: &dockerContainer.State{
+				Status:  "running",
+				Running: true,
+			},
+			HostConfig: &dockerContainer.HostConfig{},
+			Config: &dockerContainer.Config{
 				Image: "test-image:latest",
-				State: &dockerContainer.State{
-					Status:  "running",
-					Running: true,
-				},
-				HostConfig: &dockerContainer.HostConfig{},
-				Config: &dockerContainer.Config{
-					Image: "test-image:latest",
-				},
-			}),
-		),
-		ghttp.CombineHandlers(
-			ghttp.VerifyRequest(
-				"GET",
-				gomega.MatchRegexp("^/v[0-9.]+/images/test-image:latest/json$"),
-			),
-			ghttp.RespondWith(http.StatusNotFound, `{"message":"No such image"}`),
-		),
-	}
+			},
+		}}, nil).Once()
+	api.EXPECT().ImageInspect(mock.Anything, "test-image:latest").
+		Return(dockerClient.ImageInspectResult{}, notFoundError("No such image")).Once()
 }
