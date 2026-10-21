@@ -102,6 +102,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Chores
 
+- Update alpine docker tag to v3.24.3 by @renovate[bot] in [#3019](https://github.com/nicholas-fedor/watchtower/pull/3019)
 - Update module github.com/nicholas-fedor/shoutrrr to v0.22.1 by @renovate[bot] in [#3015](https://github.com/nicholas-fedor/watchtower/pull/3015)
 - Update nicholas-fedor/govulncheck-action action to v1.1.2 by @renovate[bot] in [#3000](https://github.com/nicholas-fedor/watchtower/pull/3000)
 - Update dependency python to v3.15.1 by @renovate[bot] in [#2995](https://github.com/nicholas-fedor/watchtower/pull/2995)
