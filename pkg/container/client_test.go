@@ -2831,3 +2831,16 @@ func TestStartContainer_StartsCreatedContainer(t *testing.T) {
 	path := <-started
 	assert.True(t, strings.HasSuffix(path, "/containers/"+createdID+"/start"), "started %s", path)
 }
+
+// withContainerImageName creates a Gomega matcher for container image name.
+//
+// Parameters:
+//   - matcher: Matcher for the image name.
+//
+// Returns:
+//   - gomegaTypes.GomegaMatcher: Matcher for verifying image name.
+func withContainerImageName(matcher gomegaTypes.GomegaMatcher) gomegaTypes.GomegaMatcher {
+	return gomega.WithTransform(func(container types.Container) string {
+		return container.ImageName()
+	}, matcher)
+}

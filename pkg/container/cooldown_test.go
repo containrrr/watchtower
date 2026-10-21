@@ -1,91 +1,119 @@
 package container
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"testing/synctest"
 	"time"
 
-	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
-	"github.com/onsi/gomega/ghttp"
-	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	dockerClient "github.com/moby/moby/client"
-
 	registryConfig "github.com/nicholas-fedor/watchtower/internal/config/registry"
+	"github.com/nicholas-fedor/watchtower/internal/testutil/httpstub"
 	"github.com/nicholas-fedor/watchtower/pkg/registry/ratelimit"
 	"github.com/nicholas-fedor/watchtower/pkg/types"
 )
 
-var _ = ginkgo.Describe("CooldownError", func() {
-	ginkgo.Describe("Error()", func() {
-		ginkgo.When("the wrapped error is non-nil", func() {
-			ginkgo.It("returns the wrapped error message", func() {
+func TestCooldownError(t *testing.T) {
+	t.Parallel()
+
+	t.Run("Error()", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("the wrapped error is non-nil", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("returns the wrapped error message", func(t *testing.T) {
+				t.Parallel()
+
 				inner := errors.New("inner failure")
 				e := &CooldownError{Age: "1h", Delay: "2h", err: inner}
-				gomega.Expect(e.Error()).To(gomega.Equal("inner failure"))
+				assert.Equal(t, "inner failure", e.Error())
 			})
 		})
 
-		ginkgo.When("the wrapped error is nil", func() {
-			ginkgo.It("returns the ErrImageCooldown message", func() {
+		t.Run("the wrapped error is nil", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("returns the ErrImageCooldown message", func(t *testing.T) {
+				t.Parallel()
+
 				e := &CooldownError{Age: "1h", Delay: "2h", Remaining: "1h", err: nil}
-				gomega.Expect(e.Error()).To(gomega.Equal(ErrImageCooldown.Error()))
+				assert.Equal(t, ErrImageCooldown.Error(), e.Error())
 			})
 		})
 	})
 
-	ginkgo.Describe("Unwrap()", func() {
-		ginkgo.It("returns the wrapped error when non-nil", func() {
+	t.Run("Unwrap()", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("returns the wrapped error when non-nil", func(t *testing.T) {
+			t.Parallel()
+
 			inner := errors.New("wrapped")
 			e := &CooldownError{err: inner}
-			gomega.Expect(e.Unwrap()).To(gomega.Equal(inner))
+			assert.Equal(t, inner, e.Unwrap())
 		})
 
-		ginkgo.It("returns nil when no wrapped error", func() {
+		t.Run("returns nil when no wrapped error", func(t *testing.T) {
+			t.Parallel()
+
 			e := &CooldownError{}
-			gomega.Expect(e.Unwrap()).To(gomega.Succeed())
+			require.NoError(t, e.Unwrap())
 		})
 	})
 
-	ginkgo.Describe("Is()", func() {
-		ginkgo.It("matches when wrapped error is ErrImageCooldown", func() {
+	t.Run("Is()", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("matches when wrapped error is ErrImageCooldown", func(t *testing.T) {
+			t.Parallel()
+
 			e := &CooldownError{err: ErrImageCooldown}
-			gomega.Expect(e.Is(ErrImageCooldown)).To(gomega.BeTrue())
+			assert.True(t, e.Is(ErrImageCooldown))
 		})
 
-		ginkgo.It("does not match ErrImageCooldown with unrelated wrapped error", func() {
+		t.Run("does not match ErrImageCooldown with unrelated wrapped error", func(t *testing.T) {
+			t.Parallel()
+
 			e := &CooldownError{err: errors.New("some other error")}
-			gomega.Expect(e.Is(ErrImageCooldown)).To(gomega.BeFalse())
+			assert.False(t, e.Is(ErrImageCooldown))
 		})
 
-		ginkgo.It("does not match an unrelated target", func() {
+		t.Run("does not match an unrelated target", func(t *testing.T) {
+			t.Parallel()
+
 			unrelated := errors.New("unrelated")
 			e := &CooldownError{err: errors.New("some other error")}
-			gomega.Expect(e.Is(unrelated)).To(gomega.BeFalse())
+			assert.False(t, e.Is(unrelated))
 		})
 	})
 
-	ginkgo.Describe("errors.Is sentinel extraction", func() {
-		ginkgo.It("allows errors.Is(err, ErrImageCooldown) on *CooldownError", func() {
+	t.Run("errors.Is sentinel extraction", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("allows errors.Is(err, ErrImageCooldown) on *CooldownError", func(t *testing.T) {
+			t.Parallel()
+
 			err := &CooldownError{
 				Age:       "2 hours",
 				Delay:     "1 day",
 				Remaining: "22 hours",
 				err:       ErrImageCooldown,
 			}
-			gomega.Expect(errors.Is(err, ErrImageCooldown)).To(gomega.BeTrue())
+			assert.ErrorIs(t, err, ErrImageCooldown)
 		})
 
-		ginkgo.It("allows errors.As to extract *CooldownError with all fields", func() {
+		t.Run("allows errors.As to extract *CooldownError with all fields", func(t *testing.T) {
+			t.Parallel()
+
 			err := &CooldownError{
 				Age:       "2 hours",
 				Delay:     "1 day",
@@ -94,224 +122,180 @@ var _ = ginkgo.Describe("CooldownError", func() {
 			}
 
 			var cooldownErr *CooldownError
-			gomega.Expect(errors.As(err, &cooldownErr)).To(gomega.BeTrue())
-			gomega.Expect(cooldownErr.Age).To(gomega.Equal("2 hours"))
-			gomega.Expect(cooldownErr.Delay).To(gomega.Equal("1 day"))
-			gomega.Expect(cooldownErr.Remaining).To(gomega.Equal("22 hours"))
+			require.ErrorAs(t, err, &cooldownErr)
+			assert.Equal(t, "2 hours", cooldownErr.Age)
+			assert.Equal(t, "1 day", cooldownErr.Delay)
+			assert.Equal(t, "22 hours", cooldownErr.Remaining)
 		})
 	})
-})
+}
 
-var _ = ginkgo.Describe("isOutsideCooldown", func() {
-	var (
-		mockClient *dockerClient.Client
-		mockServer *ghttp.Server
-	)
+// notFoundRegistry starts a stub registry that answers every request with 404,
+// so fetching an image's creation time from it fails.
+//
+// Parameters:
+//   - t: Test that owns the registry.
+//
+// Returns:
+//   - string: Host and port of the registry.
+func notFoundRegistry(t *testing.T) string {
+	t.Helper()
 
-	ginkgo.BeforeEach(func() {
-		mockServer = ghttp.NewServer()
+	server := httpstub.New(t)
+	notFound := httpstub.RespondWith(http.StatusNotFound, "not found", nil)
+	server.RouteToHandler(http.MethodGet, httpstub.PathRegexp(".*"), notFound)
+	server.RouteToHandler(http.MethodHead, httpstub.PathRegexp(".*"), notFound)
 
-		var err error
+	return server.Addr()
+}
 
-		mockClient, err = dockerClient.New(
-			dockerClient.WithHost(mockServer.URL()),
-			dockerClient.WithHTTPClient(mockServer.HTTPTestServer.Client()),
-		)
-		gomega.Expect(err).To(gomega.Succeed())
-		mockServer.AppendHandlers(APIVersionPingHandler())
-	})
+// Test_isOutsideCooldown verifies that the cooldown gate lets a pull go ahead
+// when no cooldown is configured, the delay is zero, or the container is
+// monitor-only or no-pull, and that a failure to fetch the image's creation
+// time holds the pull back with a CooldownError.
+func Test_isOutsideCooldown(t *testing.T) {
+	t.Parallel()
 
-	ginkgo.AfterEach(func() {
-		mockServer.Close()
-	})
+	tests := []struct {
+		// when describes the configuration, and it the expected result.
+		when, it string
+		params   types.UpdateParams
+	}{
+		{when: "no cooldown delay is configured", it: "returns true with no registry calls", params: types.UpdateParams{}},
+		{when: "cooldown delay is zero", it: "returns true immediately", params: types.UpdateParams{CooldownDelay: 0}},
+		{
+			when:   "container is monitor-only",
+			it:     "returns true and bypasses the cooldown check",
+			params: types.UpdateParams{MonitorOnly: true, CooldownDelay: 24 * time.Hour},
+		},
+		{
+			when:   "container has no-pull enabled",
+			it:     "returns true and bypasses the cooldown check",
+			params: types.UpdateParams{NoPull: true, CooldownDelay: 24 * time.Hour},
+		},
+	}
 
-	ginkgo.When("no cooldown delay is configured", func() {
-		ginkgo.It("returns true with no registry calls", func() {
-			i := newImageClient(mockClient, nopLog(), registryConfig.Registry{}, ratelimit.New())
-			c := MockContainer(WithImageName("test:latest"))
+	for _, tt := range tests {
+		t.Run(tt.when, func(t *testing.T) {
+			t.Parallel()
 
-			outside, err := i.isOutsideCooldown(
-				context.Background(), c, types.UpdateParams{},
-			)
-			gomega.Expect(err).ToNot(gomega.HaveOccurred())
-			gomega.Expect(outside).To(gomega.BeTrue())
+			t.Run(tt.it, func(t *testing.T) {
+				t.Parallel()
+
+				i := newTestImageClient(newImageAPI(t), newTestLogger(t), registryConfig.Registry{}, ratelimit.New())
+
+				outside, err := i.isOutsideCooldown(t.Context(), MockContainer(WithImageName("test:latest")), tt.params)
+				require.NoError(t, err)
+				assert.True(t, outside)
+			})
 		})
-	})
+	}
 
-	ginkgo.When("cooldown delay is zero", func() {
-		ginkgo.It("returns true immediately", func() {
-			i := newImageClient(mockClient, nopLog(), registryConfig.Registry{}, ratelimit.New())
-			c := MockContainer(WithImageName("test:latest"))
+	t.Run("FetchImageCreationTime fails (registry manifest returns 404)", func(t *testing.T) {
+		t.Parallel()
 
-			outside, err := i.isOutsideCooldown(
-				context.Background(), c, types.UpdateParams{
-					CooldownDelay: 0,
-				},
-			)
-			gomega.Expect(err).ToNot(gomega.HaveOccurred())
-			gomega.Expect(outside).To(gomega.BeTrue())
-		})
-	})
+		t.Run("returns false with a CooldownError reflecting the age fetch failure", func(t *testing.T) {
+			t.Parallel()
 
-	ginkgo.When("container is monitor-only", func() {
-		ginkgo.It("returns true and bypasses the cooldown check", func() {
-			i := newImageClient(mockClient, nopLog(), registryConfig.Registry{}, ratelimit.New())
-			c := MockContainer(WithImageName("test:latest"))
+			// The test registry serves plain HTTP.
+			i := newTestImageClient(newImageAPI(t), newTestLogger(t), registryConfig.Registry{TLSSkip: true}, ratelimit.New())
 
-			outside, err := i.isOutsideCooldown(
-				context.Background(), c, types.UpdateParams{
-					MonitorOnly:   true,
-					CooldownDelay: 24 * time.Hour,
-				},
-			)
-			gomega.Expect(err).ToNot(gomega.HaveOccurred())
-			gomega.Expect(outside).To(gomega.BeTrue())
-		})
-	})
-
-	ginkgo.When("container has no-pull enabled", func() {
-		ginkgo.It("returns true and bypasses the cooldown check", func() {
-			i := newImageClient(mockClient, nopLog(), registryConfig.Registry{}, ratelimit.New())
-			c := MockContainer(WithImageName("test:latest"))
-
-			outside, err := i.isOutsideCooldown(
-				context.Background(), c, types.UpdateParams{
-					NoPull:        true,
-					CooldownDelay: 24 * time.Hour,
-				},
-			)
-			gomega.Expect(err).ToNot(gomega.HaveOccurred())
-			gomega.Expect(outside).To(gomega.BeTrue())
-		})
-	})
-
-	ginkgo.When("GetPullOptions fails (registry auth unavailable)", func() {
-		ginkgo.It("returns false with a CooldownError wrapping the pull options error", func() {
-			log, _ := captureLog(zerolog.DebugLevel)
-
-			i := newImageClient(mockClient, log, registryConfig.Registry{}, ratelimit.New())
-
-			imageName := "localhost/unsupported-image-format:latest"
-			c := MockContainer(WithImageName(imageName))
-
-			outside, err := i.isOutsideCooldown(
-				context.Background(), c, types.UpdateParams{
-					CooldownDelay: 1 * time.Hour,
-				},
-			)
-			gomega.Expect(outside).To(gomega.BeFalse())
-			gomega.Expect(err).To(gomega.HaveOccurred())
-
-			var cooldownErr *CooldownError
-			gomega.Expect(errors.As(err, &cooldownErr)).To(gomega.BeTrue())
-			gomega.Expect(cooldownErr.Delay).ToNot(gomega.BeEmpty())
-		})
-	})
-
-	ginkgo.When("FetchImageCreationTime fails (registry manifest returns 404)", func() {
-		ginkgo.It("returns false with a CooldownError reflecting the age fetch failure", func() {
-			log, _ := captureLog(zerolog.DebugLevel)
-
-			mockServer.AppendHandlers(
-				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", gomega.MatchRegexp("/v2/")),
-					ghttp.RespondWith(http.StatusNotFound, "not found"),
-				),
-			)
-
-			i := newImageClient(mockClient, log, registryConfig.Registry{}, ratelimit.New())
-			c := MockContainer(WithImageName("test:latest"))
-
-			outside, err := i.isOutsideCooldown(
-				context.Background(), c, types.UpdateParams{
-					CooldownDelay: 1 * time.Hour,
-				},
-			)
-			gomega.Expect(outside).To(gomega.BeFalse())
-			gomega.Expect(err).To(gomega.HaveOccurred())
-
-			var cooldownErr *CooldownError
-			gomega.Expect(errors.As(err, &cooldownErr)).To(gomega.BeTrue())
-		})
-	})
-})
-
-var _ = ginkgo.Describe("PullImage cooldown gate", func() {
-	var (
-		mockClient *dockerClient.Client
-		mockServer *ghttp.Server
-	)
-
-	ginkgo.BeforeEach(func() {
-		mockServer = ghttp.NewServer()
-
-		var err error
-
-		mockClient, err = dockerClient.New(
-			dockerClient.WithHost(mockServer.URL()),
-			dockerClient.WithHTTPClient(mockServer.HTTPTestServer.Client()),
-		)
-		gomega.Expect(err).To(gomega.Succeed())
-		mockServer.AppendHandlers(APIVersionPingHandler())
-		mockServer.AppendHandlers(
-			ghttp.CombineHandlers(
-				ghttp.VerifyRequest("GET", gomega.MatchRegexp(`/info$`)),
-				ghttp.RespondWithJSONEncoded(http.StatusOK, map[string]any{}),
-			),
-		)
-	})
-
-	ginkgo.AfterEach(func() {
-		mockServer.Close()
-	})
-
-	ginkgo.When("image is stale and cooldown age fetch fails", func() {
-		ginkgo.It("returns a CooldownError without pulling layers", func() {
-			log, _ := captureLog(zerolog.DebugLevel)
-
-			mockServer.AppendHandlers(
-				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", gomega.MatchRegexp("/v2/")),
-					ghttp.RespondWith(http.StatusNotFound, "not found"),
-				),
-			)
-
-			i := newImageClient(mockClient, log, registryConfig.Registry{}, ratelimit.New())
-			// Use an explicit registry host so local-only 404 handling does not apply.
-			// Digest failure must fall through to the cooldown gate.
-			c := MockContainer(
-				WithImageName("registry.example.com/test:latest"),
-				WithRepoDigests([]string{"registry.example.com/test@sha256:12345"}),
-			)
-
-			err := i.PullImage(context.Background(), c, warnAuto, types.UpdateParams{
+			outside, err := i.isOutsideCooldown(t.Context(), MockContainer(WithImageName(notFoundRegistry(t)+"/test:latest")), types.UpdateParams{
 				CooldownDelay: 1 * time.Hour,
 			})
-			gomega.Expect(err).To(gomega.HaveOccurred())
+			assert.False(t, outside)
 
 			var cooldownErr *CooldownError
-			gomega.Expect(errors.As(err, &cooldownErr)).To(gomega.BeTrue())
+			require.ErrorAs(t, err, &cooldownErr)
 		})
 	})
-})
+}
 
-var _ = ginkgo.Describe("CheckLocalImageCooldown", func() {
-	ginkgo.It("defers when the local image is younger than the cooldown", func() {
+// Test_isOutsideCooldown_pullOptionsFailure verifies that when the registry
+// credentials cannot be read, the cooldown gate holds the pull back with a
+// CooldownError for the pull options failure, before any registry request.
+//
+// The test sets environment variables, so it does not run in parallel.
+func Test_isOutsideCooldown_pullOptionsFailure(t *testing.T) {
+	t.Run("GetPullOptions fails (registry auth unavailable)", func(t *testing.T) {
+		t.Run("returns false with a CooldownError wrapping the pull options error", func(t *testing.T) {
+			// A Docker config that cannot be parsed, with no environment
+			// credentials to fall back on, makes the credential lookup fail.
+			configDir := t.TempDir()
+			require.NoError(t, os.WriteFile(filepath.Join(configDir, "config.json"), []byte("{not json"), 0o600))
+			t.Setenv("DOCKER_CONFIG", configDir)
+			t.Setenv("REPO_USER", "")
+			t.Setenv("REPO_PASS", "")
+
+			i := newTestImageClient(newImageAPI(t), newTestLogger(t), registryConfig.Registry{}, ratelimit.New())
+
+			outside, err := i.isOutsideCooldown(t.Context(), MockContainer(WithImageName("registry.example.com/app:latest")), types.UpdateParams{
+				CooldownDelay: 1 * time.Hour,
+			})
+			assert.False(t, outside)
+
+			var cooldownErr *CooldownError
+			require.ErrorAs(t, err, &cooldownErr)
+			assert.NotEmpty(t, cooldownErr.Delay)
+			assert.Contains(t, cooldownErr.Error(), "could not get pull options for")
+		})
+	})
+}
+
+// TestPullImageCooldownGate verifies that a stale image whose creation time
+// cannot be fetched is held back with a CooldownError instead of being pulled.
+func TestPullImageCooldownGate(t *testing.T) {
+	t.Parallel()
+
+	t.Run("image is stale and cooldown age fetch fails", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("returns a CooldownError without pulling layers", func(t *testing.T) {
+			t.Parallel()
+
+			// An explicit registry host keeps local-only 404 handling from
+			// applying, so the digest failure falls through to the cooldown gate.
+			// ImagePull has no expectation, so a pull fails the test.
+			image := notFoundRegistry(t) + "/test:latest"
+			c := MockContainer(
+				WithImageName(image),
+				WithRepoDigests([]string{image + "@sha256:12345"}),
+			)
+
+			// The test registry serves plain HTTP.
+			i := newTestImageClient(newImageAPI(t), newTestLogger(t), registryConfig.Registry{TLSSkip: true}, ratelimit.New())
+
+			err := i.PullImage(t.Context(), c, warnAuto, types.UpdateParams{CooldownDelay: 1 * time.Hour})
+
+			var cooldownErr *CooldownError
+			require.ErrorAs(t, err, &cooldownErr)
+		})
+	})
+}
+
+func TestCheckLocalImageCooldown(t *testing.T) {
+	t.Parallel()
+
+	t.Run("defers when the local image is younger than the cooldown", func(t *testing.T) {
+		t.Parallel()
+
 		c := MockContainer(WithImageName("app:latest"))
 		c.imageInfo.Created = time.Now().Add(-time.Hour).Format(time.RFC3339Nano)
 
 		err := CheckLocalImageCooldown(c, types.UpdateParams{CooldownDelay: 24 * time.Hour})
-		gomega.Expect(err).To(gomega.MatchError(ErrImageCooldown))
+		require.ErrorIs(t, err, ErrImageCooldown)
 	})
 
-	ginkgo.It("allows rebuilds when the local image is older than the cooldown", func() {
+	t.Run("allows rebuilds when the local image is older than the cooldown", func(t *testing.T) {
+		t.Parallel()
+
 		c := MockContainer(WithImageName("app:latest"))
 		c.imageInfo.Created = time.Now().Add(-48 * time.Hour).Format(time.RFC3339Nano)
 
 		err := CheckLocalImageCooldown(c, types.UpdateParams{CooldownDelay: 24 * time.Hour})
-		gomega.Expect(err).NotTo(gomega.HaveOccurred())
+		require.NoError(t, err)
 	})
-})
+}
 
 // TestIsOutsideCooldown_RegistrySettings verifies that the cooldown check
 // fetches the image creation time with the image client's registry settings,

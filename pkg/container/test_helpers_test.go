@@ -1,12 +1,14 @@
 package container
 
 import (
+	"bytes"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"net"
 	"net/http"
+	"sync"
 	"testing"
 	"time"
 
@@ -56,6 +58,58 @@ func mustParseMAC(mac string) dockerNetwork.HardwareAddr {
 	gomega.Expect(err).ToNot(gomega.HaveOccurred(), "parse MAC %q", mac)
 
 	return dockerNetwork.HardwareAddr(parsed)
+}
+
+// lockedBuffer is a buffer that is safe for concurrent writes, for logs that
+// goroutines started by a test write while the test reads them.
+type lockedBuffer struct {
+	// mu guards buf.
+	mu sync.Mutex
+	// buf holds the written bytes.
+	buf bytes.Buffer
+}
+
+// Write appends p to the buffer.
+//
+// Parameters:
+//   - p: Bytes to append.
+//
+// Returns:
+//   - int: Number of bytes written.
+//   - error: Always nil.
+func (b *lockedBuffer) Write(p []byte) (int, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	return b.buf.Write(p)
+}
+
+// String returns everything written so far.
+//
+// Returns:
+//   - string: The buffer's contents.
+func (b *lockedBuffer) String() string {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	return b.buf.String()
+}
+
+// newCapturedLogger returns a logfmt logger at level that writes to a buffer the
+// test reads, in the format production logs use.
+//
+// Parameters:
+//   - level: Lowest level the logger writes.
+//
+// Returns:
+//   - *zerolog.Logger: Logger writing to the buffer.
+//   - *lockedBuffer: Buffer holding the logged lines.
+func newCapturedLogger(level zerolog.Level) (*zerolog.Logger, *lockedBuffer) {
+	buf := &lockedBuffer{}
+	w := logging.LogfmtWriter(buf)
+	w.TimeFormat = time.RFC3339
+
+	return new(zerolog.New(w).Level(level).With().Timestamp().Logger()), buf
 }
 
 // captureLog returns a logfmt *zerolog.Logger writing to a gbytes.Buffer for gomega.Say assertions.

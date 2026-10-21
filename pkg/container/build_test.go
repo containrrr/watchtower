@@ -4,89 +4,112 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"testing"
 
-	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/nicholas-fedor/watchtower/pkg/types"
 )
 
-var _ = ginkgo.Describe("confinedDockerfile", func() {
-	ginkgo.It("defaults empty to Dockerfile", func() {
+func Test_confinedDockerfile(t *testing.T) {
+	t.Parallel()
+
+	t.Run("defaults empty to Dockerfile", func(t *testing.T) {
+		t.Parallel()
+
 		got, err := confinedDockerfile("")
-		gomega.Expect(err).NotTo(gomega.HaveOccurred())
-		gomega.Expect(got).To(gomega.Equal(DefaultGitDockerfile))
+		require.NoError(t, err)
+		assert.Equal(t, DefaultGitDockerfile, got)
 	})
 
-	ginkgo.It("accepts a nested relative path", func() {
+	t.Run("accepts a nested relative path", func(t *testing.T) {
+		t.Parallel()
+
 		got, err := confinedDockerfile("build/docker/Dockerfile")
-		gomega.Expect(err).NotTo(gomega.HaveOccurred())
-		gomega.Expect(got).To(gomega.Equal("build/docker/Dockerfile"))
+		require.NoError(t, err)
+		assert.Equal(t, "build/docker/Dockerfile", got)
 	})
 
-	ginkgo.It("rejects path escape and absolute paths", func() {
+	t.Run("rejects path escape and absolute paths", func(t *testing.T) {
+		t.Parallel()
+
 		_, err := confinedDockerfile("../Dockerfile")
-		gomega.Expect(err).To(gomega.MatchError(errGitDockerfileEscape))
+		require.ErrorIs(t, err, errGitDockerfileEscape)
 		_, err = confinedDockerfile("/etc/passwd")
-		gomega.Expect(err).To(gomega.MatchError(errGitDockerfileEscape))
+		require.ErrorIs(t, err, errGitDockerfileEscape)
 	})
-})
+}
 
-var _ = ginkgo.Describe("redactedRemote", func() {
-	ginkgo.It("replaces a password and leaves other URLs unchanged", func() {
-		gomega.Expect(redactedRemote("https://user:secret@github.com/org/app.git#abc")).
-			To(gomega.Equal("https://xxxxx:xxxxx@github.com/org/app.git#abc"))
-		gomega.Expect(redactedRemote("https://github.com/org/app.git")).
-			To(gomega.Equal("https://github.com/org/app.git"))
-		gomega.Expect(redactedRemote("://bad")).To(gomega.Equal("://bad"))
+func Test_redactedRemote(t *testing.T) {
+	t.Parallel()
+
+	t.Run("replaces a password and leaves other URLs unchanged", func(t *testing.T) {
+		t.Parallel()
+
+		assert.Equal(t, "https://xxxxx:xxxxx@github.com/org/app.git#abc", redactedRemote("https://user:secret@github.com/org/app.git#abc"))
+		assert.Equal(t, "https://github.com/org/app.git", redactedRemote("https://github.com/org/app.git"))
+		assert.Equal(t, "://bad", redactedRemote("://bad"))
 	})
-})
+}
 
-var _ = ginkgo.Describe("consumeBuildStream", func() {
-	ginkgo.It("returns the last aux image ID", func() {
+func Test_consumeBuildStream(t *testing.T) {
+	t.Parallel()
+
+	t.Run("returns the last aux image ID", func(t *testing.T) {
+		t.Parallel()
+
 		body := strings.NewReader(`{"stream":"Step 1/1"}
 {"aux":{"ID":"sha256:first"}}
 {"aux":{"ID":"sha256:last"}}
 `)
 		id, err := consumeBuildStream(body)
-		gomega.Expect(err).NotTo(gomega.HaveOccurred())
-		gomega.Expect(id).To(gomega.Equal(types.ImageID("sha256:last")))
+		require.NoError(t, err)
+		assert.Equal(t, types.ImageID("sha256:last"), id)
 	})
 
-	ginkgo.It("returns a build error from the stream", func() {
+	t.Run("returns a build error from the stream", func(t *testing.T) {
+		t.Parallel()
+
 		_, err := consumeBuildStream(strings.NewReader(`{"error":"failed to solve"}`))
-		gomega.Expect(err).To(gomega.MatchError(errImageBuildFailed))
+		require.ErrorIs(t, err, errImageBuildFailed)
 	})
 
-	ginkgo.It("redacts a token echoed by the daemon", func() {
+	t.Run("redacts a token echoed by the daemon", func(t *testing.T) {
+		t.Parallel()
+
 		remote := "https://git:secret@github.com/org/app.git#abc"
 		streamErr := fmt.Errorf("%w: failed %s", errImageBuildFailed, remote)
 		got := redactBuildError(streamErr, remote)
-		gomega.Expect(got.Error()).NotTo(gomega.ContainSubstring("secret"))
-		gomega.Expect(got.Error()).To(gomega.ContainSubstring("xxxxx:xxxxx"))
+		assert.NotContains(t, got.Error(), "secret")
+		assert.Contains(t, got.Error(), "xxxxx:xxxxx")
 
 		clientErr := fmt.Errorf("image build: Get %q: denied", remote)
 		got = redactBuildError(clientErr, remote)
-		gomega.Expect(got.Error()).NotTo(gomega.ContainSubstring("secret"))
-		gomega.Expect(got.Error()).To(gomega.ContainSubstring("xxxxx:xxxxx"))
+		assert.NotContains(t, got.Error(), "secret")
+		assert.Contains(t, got.Error(), "xxxxx:xxxxx")
 
 		tokenOnly := redactBuildError(errors.New("clone https://token@github.com/org/app.git failed"), "")
-		gomega.Expect(tokenOnly.Error()).NotTo(gomega.ContainSubstring("token@"))
-		gomega.Expect(tokenOnly.Error()).To(gomega.ContainSubstring("xxxxx:xxxxx@"))
+		assert.NotContains(t, tokenOnly.Error(), "token@")
+		assert.Contains(t, tokenOnly.Error(), "xxxxx:xxxxx@")
 	})
 
-	ginkgo.It("returns a decode error for invalid JSON", func() {
+	t.Run("returns a decode error for invalid JSON", func(t *testing.T) {
+		t.Parallel()
+
 		_, err := consumeBuildStream(strings.NewReader("{"))
-		gomega.Expect(err).To(gomega.HaveOccurred())
-		gomega.Expect(err.Error()).To(gomega.ContainSubstring("read build stream:"))
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "read build stream:")
 	})
 
-	ginkgo.It("ignores a string aux payload from BuildKit", func() {
+	t.Run("ignores a string aux payload from BuildKit", func(t *testing.T) {
+		t.Parallel()
+
 		body := strings.NewReader(`{"aux":"trace"}
 {"aux":{"ID":"sha256:last"}}
 `)
 		id, err := consumeBuildStream(body)
-		gomega.Expect(err).NotTo(gomega.HaveOccurred())
-		gomega.Expect(id).To(gomega.Equal(types.ImageID("sha256:last")))
+		require.NoError(t, err)
+		assert.Equal(t, types.ImageID("sha256:last"), id)
 	})
-})
+}
