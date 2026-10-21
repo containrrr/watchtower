@@ -4,11 +4,12 @@ import (
 	"context"
 	"errors"
 	"sync"
+	"testing"
 	"time"
 
-	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 
 	dockerContainer "github.com/moby/moby/api/types/container"
 
@@ -36,42 +37,67 @@ func defaultTestUpdateParams(filter types.Filter) types.UpdateParams {
 	}
 }
 
-var _ = ginkgo.Describe("Actions", func() {
-	ginkgo.Describe("handleUpdateResult", func() {
-		ginkgo.When("given an error without a report", func() {
-			ginkgo.It("should return a zero metric", func() {
+// TestRunUpdates verifies an update run: the metric it records, the reports
+// and notifications it sends, its image cleanup and logs, and its behavior
+// with several scopes and when errors occur.
+func TestRunUpdates(t *testing.T) {
+	t.Parallel()
+
+	t.Run("handleUpdateResult", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("given an error without a report", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should return a zero metric", func(t *testing.T) {
+				t.Parallel()
+
 				err := errors.New("test error")
 
-				metric := handleUpdateResult(newNopLogger(), nil, err, nil)
-				gomega.Expect(metric).NotTo(gomega.BeNil())
-				gomega.Expect(metric.Scanned).To(gomega.Equal(0))
-				gomega.Expect(metric.Updated).To(gomega.Equal(0))
-				gomega.Expect(metric.Failed).To(gomega.Equal(0))
+				metric := handleUpdateResult(newTestLogger(t), nil, err, nil)
+				require.NotNil(t, metric)
+				assert.Equal(t, 0, metric.Scanned)
+				assert.Equal(t, 0, metric.Updated)
+				assert.Equal(t, 0, metric.Failed)
 			})
 		})
 
-		ginkgo.When("given a nil result", func() {
-			ginkgo.It("should return a zero metric", func() {
-				metric := handleUpdateResult(newNopLogger(), nil, nil, nil)
-				gomega.Expect(metric).NotTo(gomega.BeNil())
-				gomega.Expect(metric.Scanned).To(gomega.Equal(0))
-				gomega.Expect(metric.Updated).To(gomega.Equal(0))
-				gomega.Expect(metric.Failed).To(gomega.Equal(0))
+		t.Run("given a nil result", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should return a zero metric", func(t *testing.T) {
+				t.Parallel()
+
+				metric := handleUpdateResult(newTestLogger(t), nil, nil, nil)
+				require.NotNil(t, metric)
+				assert.Equal(t, 0, metric.Scanned)
+				assert.Equal(t, 0, metric.Updated)
+				assert.Equal(t, 0, metric.Failed)
 			})
 		})
 
-		ginkgo.When("given a valid result with no error", func() {
-			ginkgo.It("should return nil", func() {
+		t.Run("given a valid result with no error", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should return nil", func(t *testing.T) {
+				t.Parallel()
+
 				result := &mockTypes.MockReport{}
-				metric := handleUpdateResult(newNopLogger(), result, nil, nil)
-				gomega.Expect(metric).To(gomega.BeNil())
+				metric := handleUpdateResult(newTestLogger(t), result, nil, nil)
+				assert.Nil(t, metric)
 			})
 		})
 	})
 
-	ginkgo.Describe("RunUpdatesWithNotifications", func() {
-		ginkgo.When("notifier is nil", func() {
-			ginkgo.It("should not start notification batching", func() {
+	t.Run("RunUpdatesWithNotifications", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("notifier is nil", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should not start notification batching", func(t *testing.T) {
+				t.Parallel()
+
 				client := mockActions.CreateMockClient(
 					&mockActions.TestData{
 						Containers: []types.Container{
@@ -91,21 +117,25 @@ var _ = ginkgo.Describe("Actions", func() {
 				)
 
 				params := RunUpdatesWithNotificationsParams{
-					Logger:                       newNopLogger(),
+					Logger:                       newTestLogger(t),
 					Client:                       client,
 					Notifier:                     nil,
 					NotificationSplitByContainer: false,
 					NotificationReport:           false,
 					Update:                       defaultTestUpdateParams(filters.NoFilter),
 				}
-				metric := RunUpdatesWithNotifications(context.Background(), params)
+				metric := RunUpdatesWithNotifications(t.Context(), params)
 
-				gomega.Expect(metric).NotTo(gomega.BeNil())
+				require.NotNil(t, metric)
 			})
 		})
 
-		ginkgo.When("notifier is provided", func() {
-			ginkgo.It("should handle notification split by container", func() {
+		t.Run("notifier is provided", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should handle notification split by container", func(t *testing.T) {
+				t.Parallel()
+
 				client := mockActions.CreateMockClient(
 					&mockActions.TestData{
 						Containers: []types.Container{
@@ -125,28 +155,32 @@ var _ = ginkgo.Describe("Actions", func() {
 					false,
 				)
 
-				notifier := mockTypes.NewMockNotifier(ginkgo.GinkgoT())
+				notifier := mockTypes.NewMockNotifier(t)
 				notifier.EXPECT().StartNotification(true).Return()
 				notifier.EXPECT().ShouldSendNotification(mock.Anything).Return(true)
 				notifier.EXPECT().SendNotification(mock.Anything).Return()
 
 				params := RunUpdatesWithNotificationsParams{
-					Logger:                       newNopLogger(),
+					Logger:                       newTestLogger(t),
 					Client:                       client,
 					Notifier:                     notifier,
 					NotificationSplitByContainer: true,
 					NotificationReport:           false,
 					Update:                       defaultTestUpdateParams(filters.NoFilter),
 				}
-				metric := RunUpdatesWithNotifications(context.Background(), params)
+				metric := RunUpdatesWithNotifications(t.Context(), params)
 
-				gomega.Expect(metric).NotTo(gomega.BeNil())
-				notifier.AssertExpectations(ginkgo.GinkgoT())
+				require.NotNil(t, metric)
+				notifier.AssertExpectations(t)
 			})
 		})
 
-		ginkgo.When("no containers are provided", func() {
-			ginkgo.It("should return zero metric when container list is empty", func() {
+		t.Run("no containers are provided", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should return zero metric when container list is empty", func(t *testing.T) {
+				t.Parallel()
+
 				client := mockActions.CreateMockClient(
 					&mockActions.TestData{
 						Containers: []types.Container{},
@@ -157,7 +191,7 @@ var _ = ginkgo.Describe("Actions", func() {
 				)
 
 				params := RunUpdatesWithNotificationsParams{
-					Logger:                       newNopLogger(),
+					Logger:                       newTestLogger(t),
 					Client:                       client,
 					Notifier:                     nil,
 					NotificationSplitByContainer: false,
@@ -166,87 +200,90 @@ var _ = ginkgo.Describe("Actions", func() {
 				}
 
 				// Empty container list results in zero metrics
-				metric := RunUpdatesWithNotifications(context.Background(), params)
+				metric := RunUpdatesWithNotifications(t.Context(), params)
 
-				gomega.Expect(metric).NotTo(gomega.BeNil())
-				gomega.Expect(metric.Scanned).To(gomega.Equal(0))
-				gomega.Expect(metric.Updated).To(gomega.Equal(0))
-				gomega.Expect(metric.Failed).To(gomega.Equal(0))
+				require.NotNil(t, metric)
+				assert.Equal(t, 0, metric.Scanned)
+				assert.Equal(t, 0, metric.Updated)
+				assert.Equal(t, 0, metric.Failed)
 			})
 		})
 
-		ginkgo.When("CurrentContainerID is set", func() {
-			ginkgo.It(
-				"should correctly pass CurrentContainerID to UpdateConfig and skip other Watchtower containers",
-				func() {
-					// Create two Watchtower containers with the watchtower label, but only container1 should be updated due to CurrentContainerID
-					watchtowerConfig := &dockerContainer.Config{
-						Image:  "watchtower:latest",
-						Labels: map[string]string{"com.centurylinklabs.watchtower": "true"},
-					}
+		t.Run("CurrentContainerID is set", func(t *testing.T) {
+			t.Parallel()
 
-					container1 := mockActions.CreateMockContainerWithConfig(
-						"container1-id",
-						"watchtower-1",
-						"watchtower:latest",
-						true,
-						false,
-						time.Now().Add(-time.Hour),
-						watchtowerConfig,
-					)
+			t.Run("should correctly pass CurrentContainerID to UpdateConfig and skip other Watchtower containers", func(t *testing.T) {
+				t.Parallel()
 
-					container2 := mockActions.CreateMockContainerWithConfig(
-						"container2-id",
-						"watchtower-2",
-						"watchtower:latest",
-						true,
-						false,
-						time.Now().Add(-time.Hour),
-						watchtowerConfig,
-					)
+				// Create two Watchtower containers with the watchtower label, but only container1 should be updated due to CurrentContainerID
+				watchtowerConfig := &dockerContainer.Config{
+					Image:  "watchtower:latest",
+					Labels: map[string]string{"com.centurylinklabs.watchtower": "true"},
+				}
 
-					client := mockActions.CreateMockClient(
-						&mockActions.TestData{
-							Containers: []types.Container{container1, container2},
-							Staleness: map[string]bool{
-								"watchtower-1": true,
-								"watchtower-2": true,
-							},
+				container1 := mockActions.CreateMockContainerWithConfig(
+					"container1-id",
+					"watchtower-1",
+					"watchtower:latest",
+					true,
+					false,
+					time.Now().Add(-time.Hour),
+					watchtowerConfig,
+				)
+
+				container2 := mockActions.CreateMockContainerWithConfig(
+					"container2-id",
+					"watchtower-2",
+					"watchtower:latest",
+					true,
+					false,
+					time.Now().Add(-time.Hour),
+					watchtowerConfig,
+				)
+
+				client := mockActions.CreateMockClient(
+					&mockActions.TestData{
+						Containers: []types.Container{container1, container2},
+						Staleness: map[string]bool{
+							"watchtower-1": true,
+							"watchtower-2": true,
 						},
-						false,
-						false,
-					)
+					},
+					false,
+					false,
+				)
 
-					update := defaultTestUpdateParams(filters.NoFilter)
-					update.CurrentContainerID = types.ContainerID("container1-id")
+				update := defaultTestUpdateParams(filters.NoFilter)
+				update.CurrentContainerID = types.ContainerID("container1-id")
 
-					params := RunUpdatesWithNotificationsParams{
-						Logger:                       newNopLogger(),
-						Client:                       client,
-						Notifier:                     nil,
-						NotificationSplitByContainer: false,
-						NotificationReport:           false,
-						Update:                       update,
-					}
+				params := RunUpdatesWithNotificationsParams{
+					Logger:                       newTestLogger(t),
+					Client:                       client,
+					Notifier:                     nil,
+					NotificationSplitByContainer: false,
+					NotificationReport:           false,
+					Update:                       update,
+				}
 
-					metric := RunUpdatesWithNotifications(context.Background(), params)
+				metric := RunUpdatesWithNotifications(t.Context(), params)
 
-					gomega.Expect(metric).NotTo(gomega.BeNil())
-					// Only container1 should be updated, container2 should be skipped due to CurrentContainerID
-					gomega.Expect(client.TestData.CreateOrder).To(gomega.HaveLen(1))
-					gomega.Expect(client.TestData.CreateOrder).
-						To(gomega.ContainElement("watchtower-1"))
-					gomega.Expect(client.TestData.CreateOrder).
-						To(gomega.Not(gomega.ContainElement("watchtower-2")))
-				},
-			)
+				require.NotNil(t, metric)
+				// Only container1 should be updated, container2 should be skipped due to CurrentContainerID
+				require.Len(t, client.TestData.CreateOrder, 1)
+				assert.Contains(t, client.TestData.CreateOrder, "watchtower-1")
+				assert.NotContains(t, client.TestData.CreateOrder, "watchtower-2")
+			})
 		})
 	})
 
-	ginkgo.Describe("buildSingleContainerReport", func() {
-		ginkgo.It("should create a SingleContainerReport with updated container", func() {
-			mockContainerReport := mockTypes.NewMockContainerReport(ginkgo.GinkgoT())
-			mockReport := mockTypes.NewMockReport(ginkgo.GinkgoT())
+	t.Run("buildSingleContainerReport", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("should create a SingleContainerReport with updated container", func(t *testing.T) {
+			t.Parallel()
+
+			mockContainerReport := mockTypes.NewMockContainerReport(t)
+			mockReport := mockTypes.NewMockReport(t)
 
 			mockReport.EXPECT().Scanned().Return([]types.ContainerReport{mockContainerReport})
 			mockReport.EXPECT().Failed().Return([]types.ContainerReport{})
@@ -256,21 +293,25 @@ var _ = ginkgo.Describe("Actions", func() {
 
 			result := buildSingleContainerReport(mockContainerReport, mockReport)
 
-			gomega.Expect(result).NotTo(gomega.BeNil())
-			gomega.Expect(result.UpdatedReports).To(gomega.HaveLen(1))
-			gomega.Expect(result.UpdatedReports[0]).To(gomega.HaveOccurred())
-			gomega.Expect(result.ScannedReports).To(gomega.HaveLen(1))
-			gomega.Expect(result.FailedReports).To(gomega.BeEmpty())
-			gomega.Expect(result.SkippedReports).To(gomega.BeEmpty())
-			gomega.Expect(result.StaleReports).To(gomega.BeEmpty())
-			gomega.Expect(result.FreshReports).To(gomega.BeEmpty())
+			require.NotNil(t, result)
+			require.Len(t, result.UpdatedReports, 1)
+			assert.Same(t, mockContainerReport, result.UpdatedReports[0])
+			require.Len(t, result.ScannedReports, 1)
+			assert.Empty(t, result.FailedReports)
+			assert.Empty(t, result.SkippedReports)
+			assert.Empty(t, result.StaleReports)
+			assert.Empty(t, result.FreshReports)
 		})
 	})
 
-	ginkgo.Describe("buildSingleRestartedContainerReport", func() {
-		ginkgo.It("should create a SingleContainerReport with restarted container", func() {
-			mockContainerReport := mockTypes.NewMockContainerReport(ginkgo.GinkgoT())
-			mockReport := mockTypes.NewMockReport(ginkgo.GinkgoT())
+	t.Run("buildSingleRestartedContainerReport", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("should create a SingleContainerReport with restarted container", func(t *testing.T) {
+			t.Parallel()
+
+			mockContainerReport := mockTypes.NewMockContainerReport(t)
+			mockReport := mockTypes.NewMockReport(t)
 
 			mockContainerReport.EXPECT().Error().Return("")
 			mockReport.EXPECT().Scanned().Return([]types.ContainerReport{mockContainerReport})
@@ -281,19 +322,23 @@ var _ = ginkgo.Describe("Actions", func() {
 
 			result := buildSingleRestartedContainerReport(mockContainerReport, mockReport)
 
-			gomega.Expect(result).NotTo(gomega.BeNil())
-			gomega.Expect(result.RestartedReports).To(gomega.HaveLen(1))
-			gomega.Expect(result.RestartedReports[0].Error()).To(gomega.BeEmpty())
-			gomega.Expect(result.ScannedReports).To(gomega.HaveLen(1))
-			gomega.Expect(result.FailedReports).To(gomega.BeEmpty())
-			gomega.Expect(result.SkippedReports).To(gomega.BeEmpty())
-			gomega.Expect(result.StaleReports).To(gomega.BeEmpty())
-			gomega.Expect(result.FreshReports).To(gomega.BeEmpty())
+			require.NotNil(t, result)
+			require.Len(t, result.RestartedReports, 1)
+			assert.Empty(t, result.RestartedReports[0].Error())
+			require.Len(t, result.ScannedReports, 1)
+			assert.Empty(t, result.FailedReports)
+			assert.Empty(t, result.SkippedReports)
+			assert.Empty(t, result.StaleReports)
+			assert.Empty(t, result.FreshReports)
 		})
 	})
 
-	ginkgo.Describe("executeUpdate", func() {
-		ginkgo.It("should execute update and return results", func() {
+	t.Run("executeUpdate", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("should execute update and return results", func(t *testing.T) {
+			t.Parallel()
+
 			client := mockActions.CreateMockClient(
 				&mockActions.TestData{
 					Containers: []types.Container{
@@ -327,8 +372,8 @@ var _ = ginkgo.Describe("Actions", func() {
 			}
 
 			// Test that function can be called without panicking
-			result, cleanupImages, err := executeUpdate(newNopLogger(),
-				context.Background(),
+			result, cleanupImages, err := executeUpdate(newTestLogger(t),
+				t.Context(),
 				client,
 				config,
 				ratelimit.New(),
@@ -336,40 +381,52 @@ var _ = ginkgo.Describe("Actions", func() {
 			)
 
 			// We expect some result or error, but mainly that it doesn't panic
-			gomega.Expect(result).NotTo(gomega.BeNil())
-			gomega.Expect(cleanupImages).NotTo(gomega.BeNil())
+			require.NotNil(t, result)
+			require.NotNil(t, cleanupImages)
 			// For this mock configuration, we expect no error
-			gomega.Expect(err).ToNot(gomega.HaveOccurred())
+			require.NoError(t, err)
 		})
 	})
 
-	ginkgo.Describe("startNotifications", func() {
-		ginkgo.It("should start notification when notifier is provided", func() {
-			notifier := mockTypes.NewMockNotifier(ginkgo.GinkgoT())
+	t.Run("startNotifications", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("should start notification when notifier is provided", func(t *testing.T) {
+			t.Parallel()
+
+			notifier := mockTypes.NewMockNotifier(t)
 			notifier.EXPECT().StartNotification(false).Return()
-			startNotifications(newNopLogger(), notifier, false)
-			notifier.AssertExpectations(ginkgo.GinkgoT())
+			startNotifications(newTestLogger(t), notifier, false)
+			notifier.AssertExpectations(t)
 		})
 
-		ginkgo.It("should not panic when notifier is nil", func() {
-			startNotifications(newNopLogger(), nil, false)
+		t.Run("should not panic when notifier is nil", func(t *testing.T) {
+			t.Parallel()
+
+			startNotifications(newTestLogger(t), nil, false)
 		})
 
-		ginkgo.It("should start notification with split enabled", func() {
-			notifier := mockTypes.NewMockNotifier(ginkgo.GinkgoT())
+		t.Run("should start notification with split enabled", func(t *testing.T) {
+			t.Parallel()
+
+			notifier := mockTypes.NewMockNotifier(t)
 			notifier.EXPECT().StartNotification(true).Return()
-			startNotifications(newNopLogger(), notifier, true)
-			notifier.AssertExpectations(ginkgo.GinkgoT())
+			startNotifications(newTestLogger(t), notifier, true)
+			notifier.AssertExpectations(t)
 		})
 	})
 
-	ginkgo.Describe("logUpdateReport", func() {
-		ginkgo.It("should log update report details", func() {
-			mockReport := mockTypes.NewMockReport(ginkgo.GinkgoT())
+	t.Run("logUpdateReport", func(t *testing.T) {
+		t.Parallel()
 
-			mockContainer1 := mockTypes.NewMockContainerReport(ginkgo.GinkgoT())
-			mockContainer2 := mockTypes.NewMockContainerReport(ginkgo.GinkgoT())
-			mockContainer3 := mockTypes.NewMockContainerReport(ginkgo.GinkgoT())
+		t.Run("should log update report details", func(t *testing.T) {
+			t.Parallel()
+
+			mockReport := mockTypes.NewMockReport(t)
+
+			mockContainer1 := mockTypes.NewMockContainerReport(t)
+			mockContainer2 := mockTypes.NewMockContainerReport(t)
+			mockContainer3 := mockTypes.NewMockContainerReport(t)
 
 			mockContainer3.EXPECT().Name().Return("container3")
 
@@ -380,14 +437,16 @@ var _ = ginkgo.Describe("Actions", func() {
 			mockReport.EXPECT().Failed().Return([]types.ContainerReport{})
 
 			// Function just logs, so we verify it doesn't panic and calls expected methods
-			logUpdateReport(newNopLogger(), mockReport)
+			logUpdateReport(newTestLogger(t), mockReport)
 		})
 
-		ginkgo.It("should handle reports with no updates", func() {
-			mockReport := mockTypes.NewMockReport(ginkgo.GinkgoT())
+		t.Run("should handle reports with no updates", func(t *testing.T) {
+			t.Parallel()
 
-			mockContainer1 := mockTypes.NewMockContainerReport(ginkgo.GinkgoT())
-			mockContainer2 := mockTypes.NewMockContainerReport(ginkgo.GinkgoT())
+			mockReport := mockTypes.NewMockReport(t)
+
+			mockContainer1 := mockTypes.NewMockContainerReport(t)
+			mockContainer2 := mockTypes.NewMockContainerReport(t)
 
 			mockReport.EXPECT().
 				Scanned().
@@ -396,29 +455,37 @@ var _ = ginkgo.Describe("Actions", func() {
 			mockReport.EXPECT().Failed().Return([]types.ContainerReport{})
 
 			// Should handle empty updated containers gracefully
-			logUpdateReport(newNopLogger(), mockReport)
+			logUpdateReport(newTestLogger(t), mockReport)
 		})
 	})
 
-	ginkgo.Describe("sendNotifications", func() {
-		ginkgo.It("should not send notifications when notifier is nil", func() {
-			mockReport := mockTypes.NewMockReport(ginkgo.GinkgoT())
-			sendNotifications(newNopLogger(), nil, false, false, mockReport, []types.RemovedImageInfo{})
+	t.Run("sendNotifications", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("should not send notifications when notifier is nil", func(t *testing.T) {
+			t.Parallel()
+
+			mockReport := mockTypes.NewMockReport(t)
+			sendNotifications(newTestLogger(t), nil, false, false, mockReport, []types.RemovedImageInfo{})
 			// No expectations since notifier is nil
 		})
 
-		ginkgo.It("should send grouped notification when split is false", func() {
-			mockReport := mockTypes.NewMockReport(ginkgo.GinkgoT())
-			notifier := mockTypes.NewMockNotifier(ginkgo.GinkgoT())
+		t.Run("should send grouped notification when split is false", func(t *testing.T) {
+			t.Parallel()
+
+			mockReport := mockTypes.NewMockReport(t)
+			notifier := mockTypes.NewMockNotifier(t)
 			notifier.EXPECT().ShouldSendNotification(mockReport).Return(true)
 			notifier.EXPECT().SendNotification(mockReport).Return()
-			sendNotifications(newNopLogger(), notifier, false, false, mockReport, []types.RemovedImageInfo{})
-			notifier.AssertExpectations(ginkgo.GinkgoT())
+			sendNotifications(newTestLogger(t), notifier, false, false, mockReport, []types.RemovedImageInfo{})
+			notifier.AssertExpectations(t)
 		})
 
-		ginkgo.It("should call sendSplitNotifications when split is true", func() {
-			mockReport := mockTypes.NewMockReport(ginkgo.GinkgoT())
-			notifier := mockTypes.NewMockNotifier(ginkgo.GinkgoT())
+		t.Run("should call sendSplitNotifications when split is true", func(t *testing.T) {
+			t.Parallel()
+
+			mockReport := mockTypes.NewMockReport(t)
+			notifier := mockTypes.NewMockNotifier(t)
 
 			// Set up mock expectations for split notification behavior
 			mockReport.EXPECT().Updated().Return([]types.ContainerReport{})
@@ -429,44 +496,47 @@ var _ = ginkgo.Describe("Actions", func() {
 			mockReport.EXPECT().Skipped().Return([]types.ContainerReport{})
 			mockReport.EXPECT().Fresh().Return([]types.ContainerReport{})
 
-			sendNotifications(newNopLogger(), notifier, true, false, mockReport, []types.RemovedImageInfo{})
-			notifier.AssertExpectations(ginkgo.GinkgoT())
+			sendNotifications(newTestLogger(t), notifier, true, false, mockReport, []types.RemovedImageInfo{})
+			notifier.AssertExpectations(t)
 		})
 	})
 
-	ginkgo.Describe("sendSplitNotifications", func() {
-		ginkgo.It(
-			"should send split notifications for updated containers when notificationReport is true",
-			func() {
-				mockReport := mockTypes.NewMockReport(ginkgo.GinkgoT())
-				mockContainer := mockTypes.NewMockContainerReport(ginkgo.GinkgoT())
+	t.Run("sendSplitNotifications", func(t *testing.T) {
+		t.Parallel()
 
-				mockContainer.EXPECT().ID().Return(types.ContainerID("test-id"))
-				mockContainer.EXPECT().Name().Return("test-container")
-				mockContainer.EXPECT().Error().Return("")
+		t.Run("should send split notifications for updated containers when notificationReport is true", func(t *testing.T) {
+			t.Parallel()
 
-				mockReport.EXPECT().Updated().Return([]types.ContainerReport{mockContainer})
-				mockReport.EXPECT().Restarted().Return([]types.ContainerReport{})
-				mockReport.EXPECT().Stale().Return([]types.ContainerReport{})
-				mockReport.EXPECT().Scanned().Return([]types.ContainerReport{mockContainer})
-				mockReport.EXPECT().Failed().Return([]types.ContainerReport{})
-				mockReport.EXPECT().Skipped().Return([]types.ContainerReport{})
-				mockReport.EXPECT().Fresh().Return([]types.ContainerReport{})
+			mockReport := mockTypes.NewMockReport(t)
+			mockContainer := mockTypes.NewMockContainerReport(t)
 
-				// Mock the SendNotification call
-				notifier := mockTypes.NewMockNotifier(ginkgo.GinkgoT())
-				notifier.EXPECT().ShouldSendNotification(mock.Anything).Return(true)
-				notifier.EXPECT().SendNotification(mock.Anything).Return()
+			mockContainer.EXPECT().ID().Return(types.ContainerID("test-id"))
+			mockContainer.EXPECT().Name().Return("test-container")
+			mockContainer.EXPECT().Error().Return("")
 
-				sendSplitNotifications(newNopLogger(), notifier, true, mockReport, []types.RemovedImageInfo{})
+			mockReport.EXPECT().Updated().Return([]types.ContainerReport{mockContainer})
+			mockReport.EXPECT().Restarted().Return([]types.ContainerReport{})
+			mockReport.EXPECT().Stale().Return([]types.ContainerReport{})
+			mockReport.EXPECT().Scanned().Return([]types.ContainerReport{mockContainer})
+			mockReport.EXPECT().Failed().Return([]types.ContainerReport{})
+			mockReport.EXPECT().Skipped().Return([]types.ContainerReport{})
+			mockReport.EXPECT().Fresh().Return([]types.ContainerReport{})
 
-				notifier.AssertExpectations(ginkgo.GinkgoT())
-			},
-		)
+			// Mock the SendNotification call
+			notifier := mockTypes.NewMockNotifier(t)
+			notifier.EXPECT().ShouldSendNotification(mock.Anything).Return(true)
+			notifier.EXPECT().SendNotification(mock.Anything).Return()
 
-		ginkgo.It("should handle empty results gracefully", func() {
-			mockReport := mockTypes.NewMockReport(ginkgo.GinkgoT())
-			notifier := mockTypes.NewMockNotifier(ginkgo.GinkgoT())
+			sendSplitNotifications(newTestLogger(t), notifier, true, mockReport, []types.RemovedImageInfo{})
+
+			notifier.AssertExpectations(t)
+		})
+
+		t.Run("should handle empty results gracefully", func(t *testing.T) {
+			t.Parallel()
+
+			mockReport := mockTypes.NewMockReport(t)
+			notifier := mockTypes.NewMockNotifier(t)
 
 			mockReport.EXPECT().Updated().Return([]types.ContainerReport{})
 			mockReport.EXPECT().Restarted().Return([]types.ContainerReport{})
@@ -477,41 +547,42 @@ var _ = ginkgo.Describe("Actions", func() {
 			mockReport.EXPECT().Fresh().Return([]types.ContainerReport{})
 
 			// With empty results, no notifications should be sent
-			sendSplitNotifications(newNopLogger(), notifier, true, mockReport, []types.RemovedImageInfo{})
-			notifier.AssertExpectations(ginkgo.GinkgoT())
+			sendSplitNotifications(newTestLogger(t), notifier, true, mockReport, []types.RemovedImageInfo{})
+			notifier.AssertExpectations(t)
 		})
 
-		ginkgo.It(
-			"should send filtered entry notifications when notificationReport is false",
-			func() {
-				mockReport := mockTypes.NewMockReport(ginkgo.GinkgoT())
-				mockContainer := mockTypes.NewMockContainerReport(ginkgo.GinkgoT())
+		t.Run("should send filtered entry notifications when notificationReport is false", func(t *testing.T) {
+			t.Parallel()
 
-				mockContainer.EXPECT().ID().Return(types.ContainerID("test-id"))
-				mockContainer.EXPECT().Name().Return("test-container")
-				mockContainer.EXPECT().ImageName().Return("test-image:latest")
-				mockContainer.EXPECT().Error().Return("")
+			mockReport := mockTypes.NewMockReport(t)
+			mockContainer := mockTypes.NewMockContainerReport(t)
 
-				mockReport.EXPECT().Updated().Return([]types.ContainerReport{mockContainer})
-				mockReport.EXPECT().Restarted().Return([]types.ContainerReport{})
-				mockReport.EXPECT().Stale().Return([]types.ContainerReport{})
-				mockReport.EXPECT().Scanned().Return([]types.ContainerReport{mockContainer})
-				mockReport.EXPECT().Failed().Return([]types.ContainerReport{})
-				mockReport.EXPECT().Skipped().Return([]types.ContainerReport{})
-				mockReport.EXPECT().Fresh().Return([]types.ContainerReport{})
+			mockContainer.EXPECT().ID().Return(types.ContainerID("test-id"))
+			mockContainer.EXPECT().Name().Return("test-container")
+			mockContainer.EXPECT().ImageName().Return("test-image:latest")
+			mockContainer.EXPECT().Error().Return("")
 
-				notifier := mockTypes.NewMockNotifier(ginkgo.GinkgoT())
-				notifier.EXPECT().ShouldSendNotification(mock.Anything).Return(true)
-				notifier.EXPECT().SendNotification(mock.Anything).Return()
+			mockReport.EXPECT().Updated().Return([]types.ContainerReport{mockContainer})
+			mockReport.EXPECT().Restarted().Return([]types.ContainerReport{})
+			mockReport.EXPECT().Stale().Return([]types.ContainerReport{})
+			mockReport.EXPECT().Scanned().Return([]types.ContainerReport{mockContainer})
+			mockReport.EXPECT().Failed().Return([]types.ContainerReport{})
+			mockReport.EXPECT().Skipped().Return([]types.ContainerReport{})
+			mockReport.EXPECT().Fresh().Return([]types.ContainerReport{})
 
-				sendSplitNotifications(newNopLogger(), notifier, false, mockReport, []types.RemovedImageInfo{})
-				notifier.AssertExpectations(ginkgo.GinkgoT())
-			},
-		)
+			notifier := mockTypes.NewMockNotifier(t)
+			notifier.EXPECT().ShouldSendNotification(mock.Anything).Return(true)
+			notifier.EXPECT().SendNotification(mock.Anything).Return()
 
-		ginkgo.It("should handle restarted containers when notificationReport is true", func() {
-			mockReport := mockTypes.NewMockReport(ginkgo.GinkgoT())
-			mockContainer := mockTypes.NewMockContainerReport(ginkgo.GinkgoT())
+			sendSplitNotifications(newTestLogger(t), notifier, false, mockReport, []types.RemovedImageInfo{})
+			notifier.AssertExpectations(t)
+		})
+
+		t.Run("should handle restarted containers when notificationReport is true", func(t *testing.T) {
+			t.Parallel()
+
+			mockReport := mockTypes.NewMockReport(t)
+			mockContainer := mockTypes.NewMockContainerReport(t)
 
 			mockContainer.EXPECT().ID().Return(types.ContainerID("restart-id"))
 			mockContainer.EXPECT().Name().Return("restart-container")
@@ -525,17 +596,19 @@ var _ = ginkgo.Describe("Actions", func() {
 			mockReport.EXPECT().Skipped().Return([]types.ContainerReport{})
 			mockReport.EXPECT().Fresh().Return([]types.ContainerReport{})
 
-			notifier := mockTypes.NewMockNotifier(ginkgo.GinkgoT())
+			notifier := mockTypes.NewMockNotifier(t)
 			notifier.EXPECT().ShouldSendNotification(mock.Anything).Return(true)
 			notifier.EXPECT().SendNotification(mock.Anything).Return()
 
-			sendSplitNotifications(newNopLogger(), notifier, true, mockReport, []types.RemovedImageInfo{})
-			notifier.AssertExpectations(ginkgo.GinkgoT())
+			sendSplitNotifications(newTestLogger(t), notifier, true, mockReport, []types.RemovedImageInfo{})
+			notifier.AssertExpectations(t)
 		})
 
-		ginkgo.It("should skip containers with empty names", func() {
-			mockReport := mockTypes.NewMockReport(ginkgo.GinkgoT())
-			mockContainer := mockTypes.NewMockContainerReport(ginkgo.GinkgoT())
+		t.Run("should skip containers with empty names", func(t *testing.T) {
+			t.Parallel()
+
+			mockReport := mockTypes.NewMockReport(t)
+			mockContainer := mockTypes.NewMockContainerReport(t)
 
 			mockContainer.EXPECT().ID().Return(types.ContainerID("test-id"))
 			mockContainer.EXPECT().Name().Return("") // Empty name
@@ -548,44 +621,45 @@ var _ = ginkgo.Describe("Actions", func() {
 			mockReport.EXPECT().Skipped().Return([]types.ContainerReport{})
 			mockReport.EXPECT().Fresh().Return([]types.ContainerReport{})
 
-			notifier := mockTypes.NewMockNotifier(ginkgo.GinkgoT())
+			notifier := mockTypes.NewMockNotifier(t)
 			// No SendNotification should be called due to empty name
 
-			sendSplitNotifications(newNopLogger(), notifier, true, mockReport, []types.RemovedImageInfo{})
-			notifier.AssertExpectations(ginkgo.GinkgoT())
+			sendSplitNotifications(newTestLogger(t), notifier, true, mockReport, []types.RemovedImageInfo{})
+			notifier.AssertExpectations(t)
 		})
 
-		ginkgo.It(
-			"should handle monitor-only containers in stale list when notificationReport is true",
-			func() {
-				mockReport := mockTypes.NewMockReport(ginkgo.GinkgoT())
-				mockContainer := mockTypes.NewMockContainerReport(ginkgo.GinkgoT())
+		t.Run("should handle monitor-only containers in stale list when notificationReport is true", func(t *testing.T) {
+			t.Parallel()
 
-				mockContainer.EXPECT().ID().Return(types.ContainerID("stale-id"))
-				mockContainer.EXPECT().Name().Return("stale-container")
-				mockContainer.EXPECT().IsMonitorOnly().Return(true)
-				mockContainer.EXPECT().Error().Return("")
+			mockReport := mockTypes.NewMockReport(t)
+			mockContainer := mockTypes.NewMockContainerReport(t)
 
-				mockReport.EXPECT().Updated().Return([]types.ContainerReport{})
-				mockReport.EXPECT().Restarted().Return([]types.ContainerReport{})
-				mockReport.EXPECT().Stale().Return([]types.ContainerReport{mockContainer})
-				mockReport.EXPECT().Scanned().Return([]types.ContainerReport{mockContainer})
-				mockReport.EXPECT().Failed().Return([]types.ContainerReport{})
-				mockReport.EXPECT().Skipped().Return([]types.ContainerReport{})
-				mockReport.EXPECT().Fresh().Return([]types.ContainerReport{})
+			mockContainer.EXPECT().ID().Return(types.ContainerID("stale-id"))
+			mockContainer.EXPECT().Name().Return("stale-container")
+			mockContainer.EXPECT().IsMonitorOnly().Return(true)
+			mockContainer.EXPECT().Error().Return("")
 
-				notifier := mockTypes.NewMockNotifier(ginkgo.GinkgoT())
-				notifier.EXPECT().ShouldSendNotification(mock.Anything).Return(true)
-				notifier.EXPECT().SendNotification(mock.Anything).Return()
+			mockReport.EXPECT().Updated().Return([]types.ContainerReport{})
+			mockReport.EXPECT().Restarted().Return([]types.ContainerReport{})
+			mockReport.EXPECT().Stale().Return([]types.ContainerReport{mockContainer})
+			mockReport.EXPECT().Scanned().Return([]types.ContainerReport{mockContainer})
+			mockReport.EXPECT().Failed().Return([]types.ContainerReport{})
+			mockReport.EXPECT().Skipped().Return([]types.ContainerReport{})
+			mockReport.EXPECT().Fresh().Return([]types.ContainerReport{})
 
-				sendSplitNotifications(newNopLogger(), notifier, true, mockReport, []types.RemovedImageInfo{})
-				notifier.AssertExpectations(ginkgo.GinkgoT())
-			},
-		)
+			notifier := mockTypes.NewMockNotifier(t)
+			notifier.EXPECT().ShouldSendNotification(mock.Anything).Return(true)
+			notifier.EXPECT().SendNotification(mock.Anything).Return()
 
-		ginkgo.It("should handle restarted containers when notificationReport is false", func() {
-			mockReport := mockTypes.NewMockReport(ginkgo.GinkgoT())
-			mockContainer := mockTypes.NewMockContainerReport(ginkgo.GinkgoT())
+			sendSplitNotifications(newTestLogger(t), notifier, true, mockReport, []types.RemovedImageInfo{})
+			notifier.AssertExpectations(t)
+		})
+
+		t.Run("should handle restarted containers when notificationReport is false", func(t *testing.T) {
+			t.Parallel()
+
+			mockReport := mockTypes.NewMockReport(t)
+			mockContainer := mockTypes.NewMockContainerReport(t)
 
 			mockContainer.EXPECT().ID().Return(types.ContainerID("restart-id"))
 			mockContainer.EXPECT().Name().Return("restart-container")
@@ -600,17 +674,19 @@ var _ = ginkgo.Describe("Actions", func() {
 			mockReport.EXPECT().Skipped().Return([]types.ContainerReport{})
 			mockReport.EXPECT().Fresh().Return([]types.ContainerReport{})
 
-			notifier := mockTypes.NewMockNotifier(ginkgo.GinkgoT())
+			notifier := mockTypes.NewMockNotifier(t)
 			notifier.EXPECT().ShouldSendNotification(mock.Anything).Return(true)
 			notifier.EXPECT().SendNotification(mock.Anything).Return()
 
-			sendSplitNotifications(newNopLogger(), notifier, false, mockReport, []types.RemovedImageInfo{})
-			notifier.AssertExpectations(ginkgo.GinkgoT())
+			sendSplitNotifications(newTestLogger(t), notifier, false, mockReport, []types.RemovedImageInfo{})
+			notifier.AssertExpectations(t)
 		})
 
-		ginkgo.It("should handle restarted containers with empty NewContainerID", func() {
-			mockReport := mockTypes.NewMockReport(ginkgo.GinkgoT())
-			mockContainer := mockTypes.NewMockContainerReport(ginkgo.GinkgoT())
+		t.Run("should handle restarted containers with empty NewContainerID", func(t *testing.T) {
+			t.Parallel()
+
+			mockReport := mockTypes.NewMockReport(t)
+			mockContainer := mockTypes.NewMockContainerReport(t)
 
 			mockContainer.EXPECT().ID().Return(types.ContainerID("restart-id"))
 			mockContainer.EXPECT().Name().Return("restart-container")
@@ -625,17 +701,19 @@ var _ = ginkgo.Describe("Actions", func() {
 			mockReport.EXPECT().Skipped().Return([]types.ContainerReport{})
 			mockReport.EXPECT().Fresh().Return([]types.ContainerReport{})
 
-			notifier := mockTypes.NewMockNotifier(ginkgo.GinkgoT())
+			notifier := mockTypes.NewMockNotifier(t)
 			notifier.EXPECT().ShouldSendNotification(mock.Anything).Return(true)
 			notifier.EXPECT().SendNotification(mock.Anything).Return()
 
-			sendSplitNotifications(newNopLogger(), notifier, false, mockReport, []types.RemovedImageInfo{})
-			notifier.AssertExpectations(ginkgo.GinkgoT())
+			sendSplitNotifications(newTestLogger(t), notifier, false, mockReport, []types.RemovedImageInfo{})
+			notifier.AssertExpectations(t)
 		})
 
-		ginkgo.It("should handle monitor-only containers when notificationReport is false", func() {
-			mockReport := mockTypes.NewMockReport(ginkgo.GinkgoT())
-			mockContainer := mockTypes.NewMockContainerReport(ginkgo.GinkgoT())
+		t.Run("should handle monitor-only containers when notificationReport is false", func(t *testing.T) {
+			t.Parallel()
+
+			mockReport := mockTypes.NewMockReport(t)
+			mockContainer := mockTypes.NewMockContainerReport(t)
 
 			mockContainer.EXPECT().ID().Return(types.ContainerID("monitor-id"))
 			mockContainer.EXPECT().Name().Return("monitor-container")
@@ -651,16 +729,18 @@ var _ = ginkgo.Describe("Actions", func() {
 			mockReport.EXPECT().Skipped().Return([]types.ContainerReport{})
 			mockReport.EXPECT().Fresh().Return([]types.ContainerReport{})
 
-			notifier := mockTypes.NewMockNotifier(ginkgo.GinkgoT())
+			notifier := mockTypes.NewMockNotifier(t)
 			notifier.EXPECT().ShouldSendNotification(mock.Anything).Return(true)
 			notifier.EXPECT().SendNotification(mock.Anything).Return()
 
-			sendSplitNotifications(newNopLogger(), notifier, false, mockReport, []types.RemovedImageInfo{})
-			notifier.AssertExpectations(ginkgo.GinkgoT())
+			sendSplitNotifications(newTestLogger(t), notifier, false, mockReport, []types.RemovedImageInfo{})
+			notifier.AssertExpectations(t)
 		})
 
-		ginkgo.It("should handle empty container lists gracefully", func() {
-			mockReport := mockTypes.NewMockReport(ginkgo.GinkgoT())
+		t.Run("should handle empty container lists gracefully", func(t *testing.T) {
+			t.Parallel()
+
+			mockReport := mockTypes.NewMockReport(t)
 
 			// Return empty slices - all lists are empty
 			mockReport.EXPECT().Updated().Return([]types.ContainerReport{})
@@ -671,16 +751,18 @@ var _ = ginkgo.Describe("Actions", func() {
 			mockReport.EXPECT().Skipped().Return([]types.ContainerReport{})
 			mockReport.EXPECT().Fresh().Return([]types.ContainerReport{})
 
-			notifier := mockTypes.NewMockNotifier(ginkgo.GinkgoT())
+			notifier := mockTypes.NewMockNotifier(t)
 			// No SendNotification should be called since all lists are empty
 
-			sendSplitNotifications(newNopLogger(), notifier, true, mockReport, []types.RemovedImageInfo{})
-			notifier.AssertExpectations(ginkgo.GinkgoT())
+			sendSplitNotifications(newTestLogger(t), notifier, true, mockReport, []types.RemovedImageInfo{})
+			notifier.AssertExpectations(t)
 		})
 
-		ginkgo.It("should emit no cleanup logs when cleanedImages is empty in log mode", func() {
-			mockReport := mockTypes.NewMockReport(ginkgo.GinkgoT())
-			mockContainer := mockTypes.NewMockContainerReport(ginkgo.GinkgoT())
+		t.Run("should emit no cleanup logs when cleanedImages is empty in log mode", func(t *testing.T) {
+			t.Parallel()
+
+			mockReport := mockTypes.NewMockReport(t)
+			mockContainer := mockTypes.NewMockContainerReport(t)
 
 			mockContainer.EXPECT().ID().Return(types.ContainerID("id-a")).Maybe()
 			mockContainer.EXPECT().Name().Return("container-a").Maybe()
@@ -695,7 +777,7 @@ var _ = ginkgo.Describe("Actions", func() {
 			mockReport.EXPECT().Skipped().Return([]types.ContainerReport{}).Maybe()
 			mockReport.EXPECT().Fresh().Return([]types.ContainerReport{}).Maybe()
 
-			notifier := mockTypes.NewMockNotifier(ginkgo.GinkgoT())
+			notifier := mockTypes.NewMockNotifier(t)
 			notifier.EXPECT().ShouldSendNotification(mock.Anything).Return(true)
 			notifier.EXPECT().SendNotification(mock.Anything).Return()
 
@@ -703,13 +785,15 @@ var _ = ginkgo.Describe("Actions", func() {
 			sendSplitNotifications(log, notifier, false, mockReport, []types.RemovedImageInfo{})
 
 			for _, entry := range parseJSONLogEntries(buf) {
-				gomega.Expect(entry["message"]).NotTo(gomega.Equal("Removing image"))
+				assert.NotEqual(t, "Removing image", entry["message"])
 			}
 
-			notifier.AssertExpectations(ginkgo.GinkgoT())
+			notifier.AssertExpectations(t)
 		})
 
-		ginkgo.It("should emit container-scoped cleanup fields for each cleanedImages entry in log mode", func() {
+		t.Run("should emit container-scoped cleanup fields for each cleanedImages entry in log mode", func(t *testing.T) {
+			t.Parallel()
+
 			imageA := types.ImageID("sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
 			imageB := types.ImageID("sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
 			cleanedImages := []types.RemovedImageInfo{
@@ -733,9 +817,9 @@ var _ = ginkgo.Describe("Actions", func() {
 				},
 			}
 
-			mockReport := mockTypes.NewMockReport(ginkgo.GinkgoT())
-			containerA := mockTypes.NewMockContainerReport(ginkgo.GinkgoT())
-			containerB := mockTypes.NewMockContainerReport(ginkgo.GinkgoT())
+			mockReport := mockTypes.NewMockReport(t)
+			containerA := mockTypes.NewMockContainerReport(t)
+			containerB := mockTypes.NewMockContainerReport(t)
 
 			containerA.EXPECT().ID().Return(types.ContainerID("id-a")).Maybe()
 			containerA.EXPECT().Name().Return("container-a").Maybe()
@@ -758,11 +842,11 @@ var _ = ginkgo.Describe("Actions", func() {
 			// Split path sends one SingleContainerReport-focused notification per updated container.
 			var sentFocusNames []string
 
-			notifier := mockTypes.NewMockNotifier(ginkgo.GinkgoT())
+			notifier := mockTypes.NewMockNotifier(t)
 			notifier.EXPECT().ShouldSendNotification(mock.Anything).Return(true).Times(2)
 			notifier.EXPECT().SendNotification(mock.Anything).Run(func(report types.Report) {
 				updated := report.Updated()
-				gomega.Expect(updated).To(gomega.HaveLen(1))
+				require.Len(t, updated, 1)
 				sentFocusNames = append(sentFocusNames, updated[0].Name())
 			}).Times(2)
 
@@ -797,31 +881,33 @@ var _ = ginkgo.Describe("Actions", func() {
 				})
 			}
 
-			gomega.Expect(cleanups).To(gomega.ConsistOf(
-				cleanupLog{
+			assert.ElementsMatch(t, []cleanupLog{
+				{
 					containerName: "container-a",
 					imageName:     "nginx:old",
 					imageID:       imageA.ShortID(),
 					notify:        "yes",
 				},
-				cleanupLog{
+				{
 					containerName: "container-a",
 					imageName:     "redis:old",
 					imageID:       imageB.ShortID(),
 					notify:        "yes",
 				},
-				cleanupLog{
+				{
 					containerName: "container-b",
 					imageName:     "nginx:old",
 					imageID:       imageA.ShortID(),
 					notify:        "yes",
 				},
-			))
-			gomega.Expect(sentFocusNames).To(gomega.ConsistOf("container-a", "container-b"))
-			notifier.AssertExpectations(ginkgo.GinkgoT())
+			}, cleanups)
+			assert.ElementsMatch(t, []string{"container-a", "container-b"}, sentFocusNames)
+			notifier.AssertExpectations(t)
 		})
 
-		ginkgo.It("should not emit cleanup logs in report mode", func() {
+		t.Run("should not emit cleanup logs in report mode", func(t *testing.T) {
+			t.Parallel()
+
 			cleanedImages := []types.RemovedImageInfo{
 				{
 					ImageID:       types.ImageID("sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
@@ -831,8 +917,8 @@ var _ = ginkgo.Describe("Actions", func() {
 				},
 			}
 
-			mockReport := mockTypes.NewMockReport(ginkgo.GinkgoT())
-			mockContainer := mockTypes.NewMockContainerReport(ginkgo.GinkgoT())
+			mockReport := mockTypes.NewMockReport(t)
+			mockContainer := mockTypes.NewMockContainerReport(t)
 
 			mockContainer.EXPECT().ID().Return(types.ContainerID("id-a")).Maybe()
 			mockContainer.EXPECT().Name().Return("container-a").Maybe()
@@ -847,7 +933,7 @@ var _ = ginkgo.Describe("Actions", func() {
 			mockReport.EXPECT().Skipped().Return([]types.ContainerReport{}).Maybe()
 			mockReport.EXPECT().Fresh().Return([]types.ContainerReport{}).Maybe()
 
-			notifier := mockTypes.NewMockNotifier(ginkgo.GinkgoT())
+			notifier := mockTypes.NewMockNotifier(t)
 			notifier.EXPECT().ShouldSendNotification(mock.Anything).Return(true)
 			notifier.EXPECT().SendNotification(mock.Anything).Return()
 
@@ -855,20 +941,26 @@ var _ = ginkgo.Describe("Actions", func() {
 			sendSplitNotifications(log, notifier, true, mockReport, cleanedImages)
 
 			for _, entry := range parseJSONLogEntries(buf) {
-				gomega.Expect(entry["message"]).NotTo(gomega.Equal("Removing image"))
+				assert.NotEqual(t, "Removing image", entry["message"])
 			}
 
-			notifier.AssertExpectations(ginkgo.GinkgoT())
+			notifier.AssertExpectations(t)
 		})
 	})
 
-	ginkgo.Describe("notification level filtering", func() {
-		ginkgo.Context("when notification level is error", func() {
-			ginkgo.It("should not send notifications when no errors occur", func() {
-				mockReport := mockTypes.NewMockReport(ginkgo.GinkgoT())
+	t.Run("notification level filtering", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("when notification level is error", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should not send notifications when no errors occur", func(t *testing.T) {
+				t.Parallel()
+
+				mockReport := mockTypes.NewMockReport(t)
 
 				// Set up report with no errors - only successful updates
-				mockContainer := mockTypes.NewMockContainerReport(ginkgo.GinkgoT())
+				mockContainer := mockTypes.NewMockContainerReport(t)
 				mockContainer.EXPECT().ID().Return(types.ContainerID("test-id"))
 				mockContainer.EXPECT().Name().Return("test-container")
 				mockContainer.EXPECT().Error().Return("") // No error
@@ -881,26 +973,32 @@ var _ = ginkgo.Describe("Actions", func() {
 				mockReport.EXPECT().Skipped().Return([]types.ContainerReport{})
 				mockReport.EXPECT().Fresh().Return([]types.ContainerReport{})
 
-				notifier := mockTypes.NewMockNotifier(ginkgo.GinkgoT())
+				notifier := mockTypes.NewMockNotifier(t)
 				notifier.EXPECT().ShouldSendNotification(mock.Anything).Return(false)
 				// With notification level set to error and no errors, no notification should be sent
 
-				sendSplitNotifications(newNopLogger(), notifier, true, mockReport, []types.RemovedImageInfo{})
-				notifier.AssertExpectations(ginkgo.GinkgoT())
+				sendSplitNotifications(newTestLogger(t), notifier, true, mockReport, []types.RemovedImageInfo{})
+				notifier.AssertExpectations(t)
 			})
 		})
 	})
 
-	ginkgo.Describe("performImageCleanup", func() {
-		ginkgo.It("should return empty slice when cleanup is disabled", func() {
+	t.Run("performImageCleanup", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("should return empty slice when cleanup is disabled", func(t *testing.T) {
+			t.Parallel()
+
 			client := mockActions.CreateMockClient(&mockActions.TestData{}, false, false)
-			cleanedImages := performImageCleanup(newNopLogger(), context.Background(), client, false, []types.RemovedImageInfo{}, 0)
-			gomega.Expect(cleanedImages).To(gomega.BeEmpty())
+			cleanedImages := performImageCleanup(newTestLogger(t), t.Context(), client, false, []types.RemovedImageInfo{}, 0)
+			assert.Empty(t, cleanedImages)
 		})
 
-		ginkgo.It("should perform cleanup when cleanup is enabled", func() {
+		t.Run("should perform cleanup when cleanup is enabled", func(t *testing.T) {
+			t.Parallel()
+
 			client := mockActions.CreateMockClient(&mockActions.TestData{}, false, false)
-			cleanedImages := performImageCleanup(newNopLogger(), context.Background(), client, true, []types.RemovedImageInfo{
+			cleanedImages := performImageCleanup(newTestLogger(t), t.Context(), client, true, []types.RemovedImageInfo{
 				{
 					ContainerName: "test-container",
 					ImageName:     "test-image:v1.0",
@@ -908,42 +1006,50 @@ var _ = ginkgo.Describe("Actions", func() {
 				},
 			}, 0)
 			// The function should return the cleaned images when cleanup is enabled
-			gomega.Expect(cleanedImages).To(gomega.HaveLen(1))
-			gomega.Expect(cleanedImages[0].ContainerName).To(gomega.Equal("test-container"))
+			require.Len(t, cleanedImages, 1)
+			assert.Equal(t, "test-container", cleanedImages[0].ContainerName)
 		})
 
-		ginkgo.It("should return a valid slice when cleanup input is empty", func() {
+		t.Run("should return a valid slice when cleanup input is empty", func(t *testing.T) {
+			t.Parallel()
+
 			client := mockActions.CreateMockClient(&mockActions.TestData{}, false, false)
-			cleanedImages := performImageCleanup(newNopLogger(), context.Background(), client, true, []types.RemovedImageInfo{}, 0)
+			cleanedImages := performImageCleanup(newTestLogger(t), t.Context(), client, true, []types.RemovedImageInfo{}, 0)
 			// Should return a valid slice even with empty input
-			gomega.Expect(cleanedImages).NotTo(gomega.BeNil())
+			require.NotNil(t, cleanedImages)
 		})
 
-		ginkgo.It("should still remove images when the parent context is already canceled", func() {
+		t.Run("should still remove images when the parent context is already canceled", func(t *testing.T) {
+			t.Parallel()
+
 			client := mockActions.CreateMockClient(&mockActions.TestData{}, false, false)
-			ctx, cancel := context.WithCancel(context.Background())
+			ctx, cancel := context.WithCancel(t.Context())
 			cancel()
 
-			cleanedImages := performImageCleanup(newNopLogger(), ctx, client, true, []types.RemovedImageInfo{
+			cleanedImages := performImageCleanup(newTestLogger(t), ctx, client, true, []types.RemovedImageInfo{
 				{
 					ContainerName: "test-container",
 					ImageName:     "test-image:v1.0",
 					ImageID:       types.ImageID("sha256:123"),
 				},
 			}, 0)
-			gomega.Expect(cleanedImages).To(gomega.HaveLen(1))
-			gomega.Expect(client.TestData.TriedToRemoveImageCount.Load()).To(gomega.Equal(int32(1)))
+			require.Len(t, cleanedImages, 1)
+			assert.Equal(t, int32(1), client.TestData.TriedToRemoveImageCount.Load())
 		})
 	})
 
-	ginkgo.Describe("generateAndLogMetric", func() {
-		ginkgo.It("should generate metric from report", func() {
-			mockReport := mockTypes.NewMockReport(ginkgo.GinkgoT())
+	t.Run("generateAndLogMetric", func(t *testing.T) {
+		t.Parallel()
 
-			mockContainer1 := mockTypes.NewMockContainerReport(ginkgo.GinkgoT())
-			mockContainer2 := mockTypes.NewMockContainerReport(ginkgo.GinkgoT())
-			mockContainer3 := mockTypes.NewMockContainerReport(ginkgo.GinkgoT())
-			mockContainer4 := mockTypes.NewMockContainerReport(ginkgo.GinkgoT())
+		t.Run("should generate metric from report", func(t *testing.T) {
+			t.Parallel()
+
+			mockReport := mockTypes.NewMockReport(t)
+
+			mockContainer1 := mockTypes.NewMockContainerReport(t)
+			mockContainer2 := mockTypes.NewMockContainerReport(t)
+			mockContainer3 := mockTypes.NewMockContainerReport(t)
+			mockContainer4 := mockTypes.NewMockContainerReport(t)
 
 			mockReport.EXPECT().
 				Scanned().
@@ -953,17 +1059,19 @@ var _ = ginkgo.Describe("Actions", func() {
 			mockReport.EXPECT().Restarted().Return([]types.ContainerReport{})
 			mockReport.EXPECT().Skipped().Return([]types.ContainerReport{})
 
-			metric := generateAndLogMetric(newNopLogger(), mockReport)
+			metric := generateAndLogMetric(newTestLogger(t), mockReport)
 
-			gomega.Expect(metric).NotTo(gomega.BeNil())
-			gomega.Expect(metric.Scanned).To(gomega.Equal(2))
-			gomega.Expect(metric.Updated).To(gomega.Equal(1))
-			gomega.Expect(metric.Failed).To(gomega.Equal(1))
-			gomega.Expect(metric.Restarted).To(gomega.Equal(0))
+			require.NotNil(t, metric)
+			assert.Equal(t, 2, metric.Scanned)
+			assert.Equal(t, 1, metric.Updated)
+			assert.Equal(t, 1, metric.Failed)
+			assert.Equal(t, 0, metric.Restarted)
 		})
 
-		ginkgo.It("should handle empty report gracefully", func() {
-			mockReport := mockTypes.NewMockReport(ginkgo.GinkgoT())
+		t.Run("should handle empty report gracefully", func(t *testing.T) {
+			t.Parallel()
+
+			mockReport := mockTypes.NewMockReport(t)
 
 			mockReport.EXPECT().Scanned().Return([]types.ContainerReport{})
 			mockReport.EXPECT().Updated().Return([]types.ContainerReport{})
@@ -971,17 +1079,19 @@ var _ = ginkgo.Describe("Actions", func() {
 			mockReport.EXPECT().Restarted().Return([]types.ContainerReport{})
 			mockReport.EXPECT().Skipped().Return([]types.ContainerReport{})
 
-			metric := generateAndLogMetric(newNopLogger(), mockReport)
+			metric := generateAndLogMetric(newTestLogger(t), mockReport)
 
-			gomega.Expect(metric).NotTo(gomega.BeNil())
-			gomega.Expect(metric.Scanned).To(gomega.Equal(0))
-			gomega.Expect(metric.Updated).To(gomega.Equal(0))
-			gomega.Expect(metric.Failed).To(gomega.Equal(0))
-			gomega.Expect(metric.Restarted).To(gomega.Equal(0))
+			require.NotNil(t, metric)
+			assert.Equal(t, 0, metric.Scanned)
+			assert.Equal(t, 0, metric.Updated)
+			assert.Equal(t, 0, metric.Failed)
+			assert.Equal(t, 0, metric.Restarted)
 		})
 
-		ginkgo.It("should log session completion with notify=no so it is not sent as a notification", func() {
-			mockReport := mockTypes.NewMockReport(ginkgo.GinkgoT())
+		t.Run("should log session completion with notify=no so it is not sent as a notification", func(t *testing.T) {
+			t.Parallel()
+
+			mockReport := mockTypes.NewMockReport(t)
 
 			mockReport.EXPECT().Scanned().Return([]types.ContainerReport{})
 			mockReport.EXPECT().Updated().Return([]types.ContainerReport{})
@@ -1001,16 +1111,18 @@ var _ = ginkgo.Describe("Actions", func() {
 
 				found = true
 
-				gomega.Expect(entry["notify"]).To(gomega.Equal("no"))
+				assert.Equal(t, "no", entry["notify"])
 			}
 
-			gomega.Expect(found).To(gomega.BeTrue())
+			assert.True(t, found)
 		})
 
-		ginkgo.It("should log skipped count on the session completion line", func() {
-			mockReport := mockTypes.NewMockReport(ginkgo.GinkgoT())
-			skippedA := mockTypes.NewMockContainerReport(ginkgo.GinkgoT())
-			skippedB := mockTypes.NewMockContainerReport(ginkgo.GinkgoT())
+		t.Run("should log skipped count on the session completion line", func(t *testing.T) {
+			t.Parallel()
+
+			mockReport := mockTypes.NewMockReport(t)
+			skippedA := mockTypes.NewMockContainerReport(t)
+			skippedB := mockTypes.NewMockContainerReport(t)
 
 			mockReport.EXPECT().Scanned().Return(make([]types.ContainerReport, 23))
 			mockReport.EXPECT().Updated().Return([]types.ContainerReport{})
@@ -1021,8 +1133,8 @@ var _ = ginkgo.Describe("Actions", func() {
 			log, buf := newCaptureLogger()
 			metric := generateAndLogMetric(log, mockReport)
 
-			gomega.Expect(metric.Skipped).To(gomega.Equal(2))
-			gomega.Expect(metric.Scanned).To(gomega.Equal(23))
+			assert.Equal(t, 2, metric.Skipped)
+			assert.Equal(t, 23, metric.Scanned)
 
 			var found bool
 
@@ -1033,253 +1145,249 @@ var _ = ginkgo.Describe("Actions", func() {
 
 				found = true
 
-				gomega.Expect(entry["skipped"]).To(gomega.BeEquivalentTo(2))
-				gomega.Expect(entry["scanned"]).To(gomega.BeEquivalentTo(23))
-				gomega.Expect(entry["updated"]).To(gomega.BeEquivalentTo(0))
-				gomega.Expect(entry["failed"]).To(gomega.BeEquivalentTo(0))
+				assert.EqualValues(t, 2, entry["skipped"])
+				assert.EqualValues(t, 23, entry["scanned"])
+				assert.EqualValues(t, 0, entry["updated"])
+				assert.EqualValues(t, 0, entry["failed"])
 			}
 
-			gomega.Expect(found).To(gomega.BeTrue())
+			assert.True(t, found)
 		})
 	})
 
-	ginkgo.Describe("Multiple Concurrent Scopes", func() {
-		ginkgo.It(
-			"should support multiple Watchtower instances with different scopes running simultaneously",
-			func() {
-				// Create containers with different scopes
-				scopeAContainer := mockActions.CreateMockContainerWithConfig(
-					"scope-a-container",
-					"scope-a-app",
-					"app:latest",
-					true,
-					false,
-					time.Now().Add(-time.Hour),
-					&dockerContainer.Config{
-						Labels: map[string]string{
-							"com.centurylinklabs.watchtower":       "true",
-							"com.centurylinklabs.watchtower.scope": "scope-a",
-						},
-					},
-				)
+	t.Run("Multiple Concurrent Scopes", func(t *testing.T) {
+		t.Parallel()
 
-				scopeBContainer := mockActions.CreateMockContainerWithConfig(
-					"scope-b-container",
-					"scope-b-app",
-					"app:latest",
-					true,
-					false,
-					time.Now().Add(-time.Hour),
-					&dockerContainer.Config{
-						Labels: map[string]string{
-							"com.centurylinklabs.watchtower":       "true",
-							"com.centurylinklabs.watchtower.scope": "scope-b",
-						},
-					},
-				)
+		t.Run("should support multiple Watchtower instances with different scopes running simultaneously", func(t *testing.T) {
+			t.Parallel()
 
-				// Create separate container lists for each client
-				containersA := []types.Container{scopeAContainer}
-				containersB := []types.Container{scopeBContainer}
-
-				// Create separate test data for each client
-				testDataA := &mockActions.TestData{
-					Containers: containersA,
-					Staleness: map[string]bool{
-						"scope-a-app": true,
+			// Create containers with different scopes
+			scopeAContainer := mockActions.CreateMockContainerWithConfig(
+				"scope-a-container",
+				"scope-a-app",
+				"app:latest",
+				true,
+				false,
+				time.Now().Add(-time.Hour),
+				&dockerContainer.Config{
+					Labels: map[string]string{
+						"com.centurylinklabs.watchtower":       "true",
+						"com.centurylinklabs.watchtower.scope": "scope-a",
 					},
+				},
+			)
+
+			scopeBContainer := mockActions.CreateMockContainerWithConfig(
+				"scope-b-container",
+				"scope-b-app",
+				"app:latest",
+				true,
+				false,
+				time.Now().Add(-time.Hour),
+				&dockerContainer.Config{
+					Labels: map[string]string{
+						"com.centurylinklabs.watchtower":       "true",
+						"com.centurylinklabs.watchtower.scope": "scope-b",
+					},
+				},
+			)
+
+			// Create separate container lists for each client
+			containersA := []types.Container{scopeAContainer}
+			containersB := []types.Container{scopeBContainer}
+
+			// Create separate test data for each client
+			testDataA := &mockActions.TestData{
+				Containers: containersA,
+				Staleness: map[string]bool{
+					"scope-a-app": true,
+				},
+			}
+
+			testDataB := &mockActions.TestData{
+				Containers: containersB,
+				Staleness: map[string]bool{
+					"scope-b-app": true,
+				},
+			}
+
+			// Create mock clients for each scope
+			clientA := mockActions.CreateMockClient(testDataA, false, false)
+			clientB := mockActions.CreateMockClient(testDataB, false, false)
+
+			// Results channel to collect metrics from concurrent operations
+			results := make(chan *metrics.Metric, 2)
+
+			var wg sync.WaitGroup
+
+			// Launch concurrent updates for different scopes
+			wg.Add(2)
+
+			go func() {
+				defer wg.Done()
+
+				params := RunUpdatesWithNotificationsParams{
+					Logger:                       newTestLogger(t),
+					Client:                       clientA,
+					Notifier:                     nil,
+					NotificationSplitByContainer: false,
+					NotificationReport:           false,
+					Update: defaultTestUpdateParams(
+						filters.FilterByScope(newTestLogger(t), "scope-a", filters.NoFilter),
+					),
 				}
 
-				testDataB := &mockActions.TestData{
-					Containers: containersB,
-					Staleness: map[string]bool{
-						"scope-b-app": true,
-					},
+				metric := RunUpdatesWithNotifications(t.Context(), params)
+				results <- metric
+			}()
+
+			go func() {
+				defer wg.Done()
+
+				params := RunUpdatesWithNotificationsParams{
+					Logger:                       newTestLogger(t),
+					Client:                       clientB,
+					Notifier:                     nil,
+					NotificationSplitByContainer: false,
+					NotificationReport:           false,
+					Update: defaultTestUpdateParams(
+						filters.FilterByScope(newTestLogger(t), "scope-b", filters.NoFilter),
+					),
 				}
 
-				// Create mock clients for each scope
-				clientA := mockActions.CreateMockClient(testDataA, false, false)
-				clientB := mockActions.CreateMockClient(testDataB, false, false)
+				metric := RunUpdatesWithNotifications(t.Context(), params)
+				results <- metric
+			}()
 
-				// Results channel to collect metrics from concurrent operations
-				results := make(chan *metrics.Metric, 2)
+			// Wait for all goroutines to complete
+			wg.Wait()
+			close(results)
 
-				var wg sync.WaitGroup
+			// Collect results
+			var metrics []*metrics.Metric
+			for metric := range results {
+				metrics = append(metrics, metric)
+			}
 
-				// Launch concurrent updates for different scopes
-				wg.Add(2)
+			// Verify we got results from both concurrent operations
+			require.Len(t, metrics, 2)
 
-				go func() {
-					defer wg.Done()
+			for _, metric := range metrics {
+				require.NotNil(t, metric)
+				assert.Equal(t, 1, metric.Scanned)
+				// Each scope should scan 1 container
+				assert.Equal(t, 1, metric.Updated)
+				// Each scope should update 1 container
+			}
+		})
 
-					params := RunUpdatesWithNotificationsParams{
-						Logger:                       newNopLogger(),
-						Client:                       clientA,
-						Notifier:                     nil,
-						NotificationSplitByContainer: false,
-						NotificationReport:           false,
-						Update: defaultTestUpdateParams(
-							filters.FilterByScope(newNopLogger(), "scope-a", filters.NoFilter),
-						),
-					}
+		t.Run("should ensure scope isolation and prevent interference between concurrent scopes", func(t *testing.T) {
+			t.Parallel()
 
-					metric := RunUpdatesWithNotifications(context.Background(), params)
-					results <- metric
-				}()
-
-				go func() {
-					defer wg.Done()
-
-					params := RunUpdatesWithNotificationsParams{
-						Logger:                       newNopLogger(),
-						Client:                       clientB,
-						Notifier:                     nil,
-						NotificationSplitByContainer: false,
-						NotificationReport:           false,
-						Update: defaultTestUpdateParams(
-							filters.FilterByScope(newNopLogger(), "scope-b", filters.NoFilter),
-						),
-					}
-
-					metric := RunUpdatesWithNotifications(context.Background(), params)
-					results <- metric
-				}()
-
-				// Wait for all goroutines to complete
-				wg.Wait()
-				close(results)
-
-				// Collect results
-				var metrics []*metrics.Metric
-				for metric := range results {
-					metrics = append(metrics, metric)
-				}
-
-				// Verify we got results from both concurrent operations
-				gomega.Expect(metrics).To(gomega.HaveLen(2))
-
-				for _, metric := range metrics {
-					gomega.Expect(metric).NotTo(gomega.BeNil())
-					gomega.Expect(metric.Scanned).
-						To(gomega.Equal(1))
-						// Each scope should scan 1 container
-					gomega.Expect(metric.Updated).
-						To(gomega.Equal(1))
-					// Each scope should update 1 container
-				}
-			},
-		)
-
-		ginkgo.It(
-			"should ensure scope isolation and prevent interference between concurrent scopes",
-			func() {
-				// Create containers for different scopes
-				scope1Container := mockActions.CreateMockContainerWithConfig(
-					"scope1-watchtower",
-					"scope1-watchtower",
-					"watchtower:latest",
-					true,
-					false,
-					time.Now().Add(-time.Hour),
-					&dockerContainer.Config{
-						Labels: map[string]string{
-							"com.centurylinklabs.watchtower":       "true",
-							"com.centurylinklabs.watchtower.scope": "scope1",
-						},
+			// Create containers for different scopes
+			scope1Container := mockActions.CreateMockContainerWithConfig(
+				"scope1-watchtower",
+				"scope1-watchtower",
+				"watchtower:latest",
+				true,
+				false,
+				time.Now().Add(-time.Hour),
+				&dockerContainer.Config{
+					Labels: map[string]string{
+						"com.centurylinklabs.watchtower":       "true",
+						"com.centurylinklabs.watchtower.scope": "scope1",
 					},
-				)
+				},
+			)
 
-				scope2Container := mockActions.CreateMockContainerWithConfig(
-					"scope2-watchtower",
-					"scope2-watchtower",
-					"watchtower:latest",
-					true,
-					false,
-					time.Now().Add(-time.Hour),
-					&dockerContainer.Config{
-						Labels: map[string]string{
-							"com.centurylinklabs.watchtower":       "true",
-							"com.centurylinklabs.watchtower.scope": "scope2",
-						},
+			scope2Container := mockActions.CreateMockContainerWithConfig(
+				"scope2-watchtower",
+				"scope2-watchtower",
+				"watchtower:latest",
+				true,
+				false,
+				time.Now().Add(-time.Hour),
+				&dockerContainer.Config{
+					Labels: map[string]string{
+						"com.centurylinklabs.watchtower":       "true",
+						"com.centurylinklabs.watchtower.scope": "scope2",
 					},
-				)
+				},
+			)
 
-				allContainers := []types.Container{scope1Container, scope2Container}
+			allContainers := []types.Container{scope1Container, scope2Container}
 
-				// Create separate test data for each client to track operations independently
-				testData1 := &mockActions.TestData{
-					Containers: allContainers,
-					Staleness: map[string]bool{
-						"scope1-watchtower": true,
-						"scope2-watchtower": false, // scope2 container not stale for scope1 filter
-					},
+			// Create separate test data for each client to track operations independently
+			testData1 := &mockActions.TestData{
+				Containers: allContainers,
+				Staleness: map[string]bool{
+					"scope1-watchtower": true,
+					"scope2-watchtower": false, // scope2 container not stale for scope1 filter
+				},
+			}
+
+			testData2 := &mockActions.TestData{
+				Containers: allContainers,
+				Staleness: map[string]bool{
+					"scope1-watchtower": false, // scope1 container not stale for scope2 filter
+					"scope2-watchtower": true,
+				},
+			}
+
+			client1 := mockActions.CreateMockClient(testData1, false, false)
+			client2 := mockActions.CreateMockClient(testData2, false, false)
+
+			var wg sync.WaitGroup
+
+			wg.Add(2)
+
+			go func() {
+				defer wg.Done()
+
+				params := RunUpdatesWithNotificationsParams{
+					Logger:                       newTestLogger(t),
+					Client:                       client1,
+					Notifier:                     nil,
+					NotificationSplitByContainer: false,
+					NotificationReport:           false,
+					Update: defaultTestUpdateParams(
+						filters.FilterByScope(newTestLogger(t), "scope1", filters.WatchtowerContainersFilter),
+					),
 				}
+				RunUpdatesWithNotifications(t.Context(), params)
+			}()
 
-				testData2 := &mockActions.TestData{
-					Containers: allContainers,
-					Staleness: map[string]bool{
-						"scope1-watchtower": false, // scope1 container not stale for scope2 filter
-						"scope2-watchtower": true,
-					},
+			go func() {
+				defer wg.Done()
+
+				params := RunUpdatesWithNotificationsParams{
+					Logger:                       newTestLogger(t),
+					Client:                       client2,
+					Notifier:                     nil,
+					NotificationSplitByContainer: false,
+					NotificationReport:           false,
+					Update: defaultTestUpdateParams(
+						filters.FilterByScope(newTestLogger(t), "scope2", filters.WatchtowerContainersFilter),
+					),
 				}
+				RunUpdatesWithNotifications(t.Context(), params)
+			}()
 
-				client1 := mockActions.CreateMockClient(testData1, false, false)
-				client2 := mockActions.CreateMockClient(testData2, false, false)
+			wg.Wait()
 
-				var wg sync.WaitGroup
+			// Verify scope isolation through separate TestData tracking
+			// client1 should only create scope1-watchtower
+			assert.Contains(t, client1.TestData.CreateOrder, "scope1-watchtower")
+			assert.NotContains(t, client1.TestData.CreateOrder, "scope2-watchtower")
 
-				wg.Add(2)
+			// client2 should only create scope2-watchtower
+			assert.Contains(t, client2.TestData.CreateOrder, "scope2-watchtower")
+			assert.NotContains(t, client2.TestData.CreateOrder, "scope1-watchtower")
+		})
 
-				go func() {
-					defer wg.Done()
+		t.Run("should maintain resource cleanup isolation respecting scope boundaries", func(t *testing.T) {
+			t.Parallel()
 
-					params := RunUpdatesWithNotificationsParams{
-						Logger:                       newNopLogger(),
-						Client:                       client1,
-						Notifier:                     nil,
-						NotificationSplitByContainer: false,
-						NotificationReport:           false,
-						Update: defaultTestUpdateParams(
-							filters.FilterByScope(newNopLogger(), "scope1", filters.WatchtowerContainersFilter),
-						),
-					}
-					RunUpdatesWithNotifications(context.Background(), params)
-				}()
-
-				go func() {
-					defer wg.Done()
-
-					params := RunUpdatesWithNotificationsParams{
-						Logger:                       newNopLogger(),
-						Client:                       client2,
-						Notifier:                     nil,
-						NotificationSplitByContainer: false,
-						NotificationReport:           false,
-						Update: defaultTestUpdateParams(
-							filters.FilterByScope(newNopLogger(), "scope2", filters.WatchtowerContainersFilter),
-						),
-					}
-					RunUpdatesWithNotifications(context.Background(), params)
-				}()
-
-				wg.Wait()
-
-				// Verify scope isolation through separate TestData tracking
-				// client1 should only create scope1-watchtower
-				gomega.Expect(client1.TestData.CreateOrder).
-					To(gomega.ContainElement("scope1-watchtower"))
-				gomega.Expect(client1.TestData.CreateOrder).
-					NotTo(gomega.ContainElement("scope2-watchtower"))
-
-				// client2 should only create scope2-watchtower
-				gomega.Expect(client2.TestData.CreateOrder).
-					To(gomega.ContainElement("scope2-watchtower"))
-				gomega.Expect(client2.TestData.CreateOrder).
-					NotTo(gomega.ContainElement("scope1-watchtower"))
-			},
-		)
-
-		ginkgo.It("should maintain resource cleanup isolation respecting scope boundaries", func() {
 			// Create Watchtower containers for different scopes
 			scopeAWatchtower := mockActions.CreateMockContainerWithConfig(
 				"watchtower-a",
@@ -1341,274 +1449,278 @@ var _ = ginkgo.Describe("Actions", func() {
 				defer wg.Done()
 
 				updateA := defaultTestUpdateParams(
-					filters.FilterByScope(newNopLogger(), "scope-a", filters.WatchtowerContainersFilter),
+					filters.FilterByScope(newTestLogger(t), "scope-a", filters.WatchtowerContainersFilter),
 				)
 				updateA.Cleanup = true
 
 				params := RunUpdatesWithNotificationsParams{
-					Logger:                       newNopLogger(),
+					Logger:                       newTestLogger(t),
 					Client:                       clientA,
 					Notifier:                     nil,
 					NotificationSplitByContainer: false,
 					NotificationReport:           false,
 					Update:                       updateA,
 				}
-				RunUpdatesWithNotifications(context.Background(), params)
+				RunUpdatesWithNotifications(t.Context(), params)
 			}()
 
 			go func() {
 				defer wg.Done()
 
 				updateB := defaultTestUpdateParams(
-					filters.FilterByScope(newNopLogger(), "scope-b", filters.WatchtowerContainersFilter),
+					filters.FilterByScope(newTestLogger(t), "scope-b", filters.WatchtowerContainersFilter),
 				)
 				updateB.Cleanup = true
 
 				params := RunUpdatesWithNotificationsParams{
-					Logger:                       newNopLogger(),
+					Logger:                       newTestLogger(t),
 					Client:                       clientB,
 					Notifier:                     nil,
 					NotificationSplitByContainer: false,
 					NotificationReport:           false,
 					Update:                       updateB,
 				}
-				RunUpdatesWithNotifications(context.Background(), params)
+				RunUpdatesWithNotifications(t.Context(), params)
 			}()
 
 			wg.Wait()
 
-			// Verify cleanup isolation - each client should only attempt cleanup for containers in its scope
-			// Since each client has separate TestData, the counts should reflect independent operations
-			gomega.Expect(clientA.TestData.TriedToRemoveImageCount.Load()).
-				To(gomega.BeNumerically(">=", int32(0)))
-			gomega.Expect(clientB.TestData.TriedToRemoveImageCount.Load()).
-				To(gomega.BeNumerically(">=", int32(0)))
+			// Verify cleanup isolation - each client updates only the Watchtower container in its scope
+			assert.Contains(t, clientA.TestData.CreateOrder, "watchtower-a")
+			assert.NotContains(t, clientA.TestData.CreateOrder, "watchtower-b")
+			assert.Contains(t, clientB.TestData.CreateOrder, "watchtower-b")
+			assert.NotContains(t, clientB.TestData.CreateOrder, "watchtower-a")
+
+			// Neither client removes an image, because the new instance of a renamed
+			// Watchtower container cleans up its old image.
+			assert.Equal(t, int32(0), clientA.TestData.TriedToRemoveImageCount.Load())
+			assert.Equal(t, int32(0), clientB.TestData.TriedToRemoveImageCount.Load())
 		})
 
-		ginkgo.It(
-			"should handle concurrent operations with different scopes without interference",
-			func() {
-				// Create mixed containers - regular apps and watchtower instances
-				appContainer := mockActions.CreateMockContainerWithConfig(
-					"app-1",
-					"my-app",
-					"myapp:latest",
-					true,
-					false,
-					time.Now().Add(-time.Hour),
-					&dockerContainer.Config{
-						Labels: map[string]string{
-							"com.centurylinklabs.watchtower":       "true",
-							"com.centurylinklabs.watchtower.scope": "prod", // This app belongs to prod scope
-						},
+		t.Run("should handle concurrent operations with different scopes without interference", func(t *testing.T) {
+			t.Parallel()
+
+			// Create mixed containers - regular apps and watchtower instances
+			appContainer := mockActions.CreateMockContainerWithConfig(
+				"app-1",
+				"my-app",
+				"myapp:latest",
+				true,
+				false,
+				time.Now().Add(-time.Hour),
+				&dockerContainer.Config{
+					Labels: map[string]string{
+						"com.centurylinklabs.watchtower":       "true",
+						"com.centurylinklabs.watchtower.scope": "prod", // This app belongs to prod scope
 					},
-				)
-
-				watchtowerProd := mockActions.CreateMockContainerWithConfig(
-					"wt-prod",
-					"watchtower-prod",
-					"watchtower:latest",
-					true,
-					false,
-					time.Now().Add(-time.Hour),
-					&dockerContainer.Config{
-						Labels: map[string]string{
-							"com.centurylinklabs.watchtower":       "true",
-							"com.centurylinklabs.watchtower.scope": "prod",
-						},
-					},
-				)
-
-				watchtowerDev := mockActions.CreateMockContainerWithConfig(
-					"wt-dev",
-					"watchtower-dev",
-					"watchtower:latest",
-					true,
-					false,
-					time.Now().Add(-time.Hour),
-					&dockerContainer.Config{
-						Labels: map[string]string{
-							"com.centurylinklabs.watchtower":       "true",
-							"com.centurylinklabs.watchtower.scope": "dev",
-						},
-					},
-				)
-
-				allContainers := []types.Container{appContainer, watchtowerProd, watchtowerDev}
-
-				testDataProd := &mockActions.TestData{
-					Containers: allContainers,
-					Staleness: map[string]bool{
-						"my-app":          true,
-						"watchtower-prod": true,
-						"watchtower-dev":  true,
-					},
-				}
-
-				testDataDev := &mockActions.TestData{
-					Containers: allContainers,
-					Staleness: map[string]bool{
-						"my-app":          true,
-						"watchtower-prod": true,
-						"watchtower-dev":  true,
-					},
-				}
-
-				clientProd := mockActions.CreateMockClient(testDataProd, false, false)
-				clientDev := mockActions.CreateMockClient(testDataDev, false, false)
-
-				results := make(chan map[string]int, 2)
-
-				var wg sync.WaitGroup
-
-				wg.Add(2)
-
-				go func() {
-					defer wg.Done()
-
-					params := RunUpdatesWithNotificationsParams{
-						Logger:                       newNopLogger(),
-						Client:                       clientProd,
-						Notifier:                     nil,
-						NotificationSplitByContainer: false,
-						NotificationReport:           false,
-						Update: defaultTestUpdateParams(
-							filters.FilterByScope(newNopLogger(), "prod", filters.NoFilter),
-						),
-					}
-
-					metric := RunUpdatesWithNotifications(context.Background(), params)
-					results <- map[string]int{"prod-scanned": metric.Scanned, "prod-updated": metric.Updated}
-				}()
-
-				go func() {
-					defer wg.Done()
-
-					params := RunUpdatesWithNotificationsParams{
-						Logger:                       newNopLogger(),
-						Client:                       clientDev,
-						Notifier:                     nil,
-						NotificationSplitByContainer: false,
-						NotificationReport:           false,
-						Update: defaultTestUpdateParams(
-							filters.FilterByScope(newNopLogger(), "dev", filters.NoFilter),
-						),
-					}
-
-					metric := RunUpdatesWithNotifications(context.Background(), params)
-					results <- map[string]int{"dev-scanned": metric.Scanned, "dev-updated": metric.Updated}
-				}()
-
-				wg.Wait()
-				close(results)
-
-				// Collect results
-				var resultMaps []map[string]int
-				for resultMap := range results {
-					resultMaps = append(resultMaps, resultMap)
-				}
-
-				gomega.Expect(resultMaps).To(gomega.HaveLen(2))
-
-				// Verify concurrent operations completed independently
-				totalScanned := 0
-				totalUpdated := 0
-
-				for _, resultMap := range resultMaps {
-					for key, value := range resultMap {
-						if key == "prod-scanned" || key == "dev-scanned" {
-							totalScanned += value
-						}
-
-						if key == "prod-updated" || key == "dev-updated" {
-							totalUpdated += value
-						}
-					}
-				}
-
-				// Total operations should reflect independent scope processing
-				gomega.Expect(totalScanned).
-					To(gomega.BeNumerically(">=", 2))
-					// At least 2 containers scanned total
-				gomega.Expect(totalUpdated).
-					To(gomega.BeNumerically(">=", 0))
-				// Updates depend on filtering
-			},
-		)
-	})
-
-	ginkgo.Describe("Scoped Environment Error Reporting and State Consistency", func() {
-		ginkgo.When("scoped operations encounter errors", func() {
-			ginkgo.It(
-				"should maintain state consistency when scoped update operations fail partially",
-				func() {
-					// Create containers in same scope with one failing update
-					scopeAContainer1 := mockActions.CreateMockContainerWithConfig(
-						"scope-a-1",
-						"app-a-1",
-						"app:latest",
-						true,
-						false,
-						time.Now().Add(-time.Hour),
-						&dockerContainer.Config{
-							Labels: map[string]string{
-								"com.centurylinklabs.watchtower.scope": "scope-a",
-							},
-						},
-					)
-
-					scopeAContainer2 := mockActions.CreateMockContainerWithConfig(
-						"scope-a-2",
-						"app-a-2",
-						"app:latest",
-						true,
-						false,
-						time.Now().Add(-time.Hour),
-						&dockerContainer.Config{
-							Labels: map[string]string{
-								"com.centurylinklabs.watchtower.scope": "scope-a",
-							},
-						},
-					)
-
-					allContainers := []types.Container{scopeAContainer1, scopeAContainer2}
-
-					// Set up mock to fail updates
-					testData := &mockActions.TestData{
-						Containers: allContainers,
-						Staleness:  map[string]bool{"app-a-1": true, "app-a-2": true},
-						StopContainerError: errors.New(
-							"container stop failed",
-						), // Fail during update process
-						StopContainerFailCount: 2, // Fail both containers
-					}
-
-					client := mockActions.CreateMockClient(testData, false, false)
-
-					params := RunUpdatesWithNotificationsParams{
-						Logger:                       newNopLogger(),
-						Client:                       client,
-						Notifier:                     nil, // No notifications for this test
-						NotificationSplitByContainer: false,
-						NotificationReport:           false,
-						Update: defaultTestUpdateParams(
-							filters.FilterByScope(newNopLogger(), "scope-a", filters.NoFilter),
-						),
-					}
-
-					metric := RunUpdatesWithNotifications(context.Background(), params)
-
-					// Verify state consistency: partial failures are properly tracked
-					gomega.Expect(metric).NotTo(gomega.BeNil())
-					gomega.Expect(metric.Scanned).
-						To(gomega.Equal(2))
-						// Both containers in scope scanned
-					gomega.Expect(metric.Failed).To(gomega.Equal(2))  // Both fail due to mock error
-					gomega.Expect(metric.Updated).To(gomega.Equal(0)) // No successful updates
 				},
 			)
 
-			ginkgo.It("should properly isolate scoped operations when cleanup fails", func() {
+			watchtowerProd := mockActions.CreateMockContainerWithConfig(
+				"wt-prod",
+				"watchtower-prod",
+				"watchtower:latest",
+				true,
+				false,
+				time.Now().Add(-time.Hour),
+				&dockerContainer.Config{
+					Labels: map[string]string{
+						"com.centurylinklabs.watchtower":       "true",
+						"com.centurylinklabs.watchtower.scope": "prod",
+					},
+				},
+			)
+
+			watchtowerDev := mockActions.CreateMockContainerWithConfig(
+				"wt-dev",
+				"watchtower-dev",
+				"watchtower:latest",
+				true,
+				false,
+				time.Now().Add(-time.Hour),
+				&dockerContainer.Config{
+					Labels: map[string]string{
+						"com.centurylinklabs.watchtower":       "true",
+						"com.centurylinklabs.watchtower.scope": "dev",
+					},
+				},
+			)
+
+			allContainers := []types.Container{appContainer, watchtowerProd, watchtowerDev}
+
+			testDataProd := &mockActions.TestData{
+				Containers: allContainers,
+				Staleness: map[string]bool{
+					"my-app":          true,
+					"watchtower-prod": true,
+					"watchtower-dev":  true,
+				},
+			}
+
+			testDataDev := &mockActions.TestData{
+				Containers: allContainers,
+				Staleness: map[string]bool{
+					"my-app":          true,
+					"watchtower-prod": true,
+					"watchtower-dev":  true,
+				},
+			}
+
+			clientProd := mockActions.CreateMockClient(testDataProd, false, false)
+			clientDev := mockActions.CreateMockClient(testDataDev, false, false)
+
+			results := make(chan map[string]int, 2)
+
+			var wg sync.WaitGroup
+
+			wg.Add(2)
+
+			go func() {
+				defer wg.Done()
+
+				params := RunUpdatesWithNotificationsParams{
+					Logger:                       newTestLogger(t),
+					Client:                       clientProd,
+					Notifier:                     nil,
+					NotificationSplitByContainer: false,
+					NotificationReport:           false,
+					Update: defaultTestUpdateParams(
+						filters.FilterByScope(newTestLogger(t), "prod", filters.NoFilter),
+					),
+				}
+
+				metric := RunUpdatesWithNotifications(t.Context(), params)
+				results <- map[string]int{"prod-scanned": metric.Scanned, "prod-updated": metric.Updated}
+			}()
+
+			go func() {
+				defer wg.Done()
+
+				params := RunUpdatesWithNotificationsParams{
+					Logger:                       newTestLogger(t),
+					Client:                       clientDev,
+					Notifier:                     nil,
+					NotificationSplitByContainer: false,
+					NotificationReport:           false,
+					Update: defaultTestUpdateParams(
+						filters.FilterByScope(newTestLogger(t), "dev", filters.NoFilter),
+					),
+				}
+
+				metric := RunUpdatesWithNotifications(t.Context(), params)
+				results <- map[string]int{"dev-scanned": metric.Scanned, "dev-updated": metric.Updated}
+			}()
+
+			wg.Wait()
+			close(results)
+
+			// Collect results
+			var resultMaps []map[string]int
+			for resultMap := range results {
+				resultMaps = append(resultMaps, resultMap)
+			}
+
+			require.Len(t, resultMaps, 2)
+
+			// Verify concurrent operations completed independently
+			totalScanned := 0
+			totalUpdated := 0
+
+			for _, resultMap := range resultMaps {
+				for key, value := range resultMap {
+					if key == "prod-scanned" || key == "dev-scanned" {
+						totalScanned += value
+					}
+
+					if key == "prod-updated" || key == "dev-updated" {
+						totalUpdated += value
+					}
+				}
+			}
+
+			// prod scans my-app and watchtower-prod, and dev scans watchtower-dev
+			assert.Equal(t, 3, totalScanned)
+			// prod updates my-app and watchtower-prod, and dev updates watchtower-dev
+			assert.Equal(t, 3, totalUpdated)
+		})
+	})
+
+	t.Run("Scoped Environment Error Reporting and State Consistency", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("scoped operations encounter errors", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should maintain state consistency when scoped update operations fail partially", func(t *testing.T) {
+				t.Parallel()
+
+				// Create containers in same scope with one failing update
+				scopeAContainer1 := mockActions.CreateMockContainerWithConfig(
+					"scope-a-1",
+					"app-a-1",
+					"app:latest",
+					true,
+					false,
+					time.Now().Add(-time.Hour),
+					&dockerContainer.Config{
+						Labels: map[string]string{
+							"com.centurylinklabs.watchtower.scope": "scope-a",
+						},
+					},
+				)
+
+				scopeAContainer2 := mockActions.CreateMockContainerWithConfig(
+					"scope-a-2",
+					"app-a-2",
+					"app:latest",
+					true,
+					false,
+					time.Now().Add(-time.Hour),
+					&dockerContainer.Config{
+						Labels: map[string]string{
+							"com.centurylinklabs.watchtower.scope": "scope-a",
+						},
+					},
+				)
+
+				allContainers := []types.Container{scopeAContainer1, scopeAContainer2}
+
+				// Set up mock to fail updates
+				testData := &mockActions.TestData{
+					Containers: allContainers,
+					Staleness:  map[string]bool{"app-a-1": true, "app-a-2": true},
+					StopContainerError: errors.New(
+						"container stop failed",
+					), // Fail during update process
+					StopContainerFailCount: 2, // Fail both containers
+				}
+
+				client := mockActions.CreateMockClient(testData, false, false)
+
+				params := RunUpdatesWithNotificationsParams{
+					Logger:                       newTestLogger(t),
+					Client:                       client,
+					Notifier:                     nil, // No notifications for this test
+					NotificationSplitByContainer: false,
+					NotificationReport:           false,
+					Update: defaultTestUpdateParams(
+						filters.FilterByScope(newTestLogger(t), "scope-a", filters.NoFilter),
+					),
+				}
+
+				metric := RunUpdatesWithNotifications(t.Context(), params)
+
+				// Verify state consistency: partial failures are properly tracked
+				require.NotNil(t, metric)
+				assert.Equal(t, 2, metric.Scanned)
+				// Both containers in scope scanned
+				assert.Equal(t, 2, metric.Failed)  // Both fail due to mock error
+				assert.Equal(t, 0, metric.Updated) // No successful updates
+			})
+
+			t.Run("should properly isolate scoped operations when cleanup fails", func(t *testing.T) {
+				t.Parallel()
+
 				// Test that cleanup failures in one scope don't affect other scopes
 				scopeAContainer := mockActions.CreateMockContainerWithConfig(
 					"cleanup-a",
@@ -1666,12 +1778,12 @@ var _ = ginkgo.Describe("Actions", func() {
 
 				// Run scope-a operation (cleanup should fail)
 				updateA := defaultTestUpdateParams(
-					filters.FilterByScope(newNopLogger(), "scope-a", filters.NoFilter),
+					filters.FilterByScope(newTestLogger(t), "scope-a", filters.NoFilter),
 				)
 				updateA.Cleanup = true
 
 				paramsA := RunUpdatesWithNotificationsParams{
-					Logger:                       newNopLogger(),
+					Logger:                       newTestLogger(t),
 					Client:                       clientA,
 					Notifier:                     nil,
 					NotificationSplitByContainer: false,
@@ -1681,12 +1793,12 @@ var _ = ginkgo.Describe("Actions", func() {
 
 				// Run scope-b operation (cleanup should succeed)
 				updateB := defaultTestUpdateParams(
-					filters.FilterByScope(newNopLogger(), "scope-b", filters.NoFilter),
+					filters.FilterByScope(newTestLogger(t), "scope-b", filters.NoFilter),
 				)
 				updateB.Cleanup = true
 
 				paramsB := RunUpdatesWithNotificationsParams{
-					Logger:                       newNopLogger(),
+					Logger:                       newTestLogger(t),
 					Client:                       clientB,
 					Notifier:                     nil,
 					NotificationSplitByContainer: false,
@@ -1703,14 +1815,14 @@ var _ = ginkgo.Describe("Actions", func() {
 				go func() {
 					defer wg.Done()
 
-					metric := RunUpdatesWithNotifications(context.Background(), paramsA)
+					metric := RunUpdatesWithNotifications(t.Context(), paramsA)
 					results <- metric
 				}()
 
 				go func() {
 					defer wg.Done()
 
-					metric := RunUpdatesWithNotifications(context.Background(), paramsB)
+					metric := RunUpdatesWithNotifications(t.Context(), paramsB)
 					results <- metric
 				}()
 
@@ -1724,142 +1836,140 @@ var _ = ginkgo.Describe("Actions", func() {
 				}
 
 				// Verify scope isolation in error handling
-				gomega.Expect(metrics).To(gomega.HaveLen(2))
+				require.Len(t, metrics, 2)
 
 				for _, metric := range metrics {
-					gomega.Expect(metric).NotTo(gomega.BeNil())
+					require.NotNil(t, metric)
 					// Each scope processes exactly one container
-					gomega.Expect(metric.Scanned).To(gomega.Equal(1))
-					gomega.Expect(metric.Updated).To(gomega.Equal(1)) // Updates succeed
-					gomega.Expect(metric.Failed).To(gomega.Equal(0))  // No update failures
+					assert.Equal(t, 1, metric.Scanned)
+					assert.Equal(t, 1, metric.Updated) // Updates succeed
+					assert.Equal(t, 0, metric.Failed)  // No update failures
 				}
 			})
 
-			ginkgo.It(
-				"should ensure proper error reporting isolation between concurrent scoped operations",
-				func() {
-					// Test concurrent scoped operations with different error patterns
-					containerX := mockActions.CreateMockContainerWithConfig(
-						"concurrent-x",
-						"app-x",
-						"app:latest",
-						true,
-						false,
-						time.Now().Add(-time.Hour),
-						&dockerContainer.Config{
-							Labels: map[string]string{
-								"com.centurylinklabs.watchtower.scope": "scope-x",
-							},
+			t.Run("should ensure proper error reporting isolation between concurrent scoped operations", func(t *testing.T) {
+				t.Parallel()
+
+				// Test concurrent scoped operations with different error patterns
+				containerX := mockActions.CreateMockContainerWithConfig(
+					"concurrent-x",
+					"app-x",
+					"app:latest",
+					true,
+					false,
+					time.Now().Add(-time.Hour),
+					&dockerContainer.Config{
+						Labels: map[string]string{
+							"com.centurylinklabs.watchtower.scope": "scope-x",
 						},
-					)
+					},
+				)
 
-					containerY := mockActions.CreateMockContainerWithConfig(
-						"concurrent-y",
-						"app-y",
-						"app:latest",
-						true,
-						false,
-						time.Now().Add(-time.Hour),
-						&dockerContainer.Config{
-							Labels: map[string]string{
-								"com.centurylinklabs.watchtower.scope": "scope-y",
-							},
+				containerY := mockActions.CreateMockContainerWithConfig(
+					"concurrent-y",
+					"app-y",
+					"app:latest",
+					true,
+					false,
+					time.Now().Add(-time.Hour),
+					&dockerContainer.Config{
+						Labels: map[string]string{
+							"com.centurylinklabs.watchtower.scope": "scope-y",
 						},
-					)
+					},
+				)
 
-					allContainers := []types.Container{containerX, containerY}
+				allContainers := []types.Container{containerX, containerY}
 
-					// scope-x has update errors, scope-y succeeds
-					testDataX := &mockActions.TestData{
-						Containers:             allContainers,
-						Staleness:              map[string]bool{"app-x": true, "app-y": false},
-						StopContainerError:     errors.New("scope-x update failure"),
-						StopContainerFailCount: 1, // Fail once
+				// scope-x has update errors, scope-y succeeds
+				testDataX := &mockActions.TestData{
+					Containers:             allContainers,
+					Staleness:              map[string]bool{"app-x": true, "app-y": false},
+					StopContainerError:     errors.New("scope-x update failure"),
+					StopContainerFailCount: 1, // Fail once
+				}
+
+				testDataY := &mockActions.TestData{
+					Containers: allContainers,
+					Staleness:  map[string]bool{"app-x": false, "app-y": true},
+					// scope-y succeeds
+				}
+
+				clientX := mockActions.CreateMockClient(testDataX, false, false)
+				clientY := mockActions.CreateMockClient(testDataY, false, false)
+
+				// Run concurrent operations
+				var wg sync.WaitGroup
+
+				results := make(chan *metrics.Metric, 2)
+
+				wg.Add(2)
+
+				go func() {
+					defer wg.Done()
+
+					params := RunUpdatesWithNotificationsParams{
+						Logger:                       newTestLogger(t),
+						Client:                       clientX,
+						Notifier:                     nil,
+						NotificationSplitByContainer: false,
+						NotificationReport:           false,
+						Update: defaultTestUpdateParams(
+							filters.FilterByScope(newTestLogger(t), "scope-x", filters.NoFilter),
+						),
 					}
 
-					testDataY := &mockActions.TestData{
-						Containers: allContainers,
-						Staleness:  map[string]bool{"app-x": false, "app-y": true},
-						// scope-y succeeds
+					metric := RunUpdatesWithNotifications(t.Context(), params)
+					results <- metric
+				}()
+
+				go func() {
+					defer wg.Done()
+
+					params := RunUpdatesWithNotificationsParams{
+						Logger:                       newTestLogger(t),
+						Client:                       clientY,
+						Notifier:                     nil,
+						NotificationSplitByContainer: false,
+						NotificationReport:           false,
+						Update: defaultTestUpdateParams(
+							filters.FilterByScope(newTestLogger(t), "scope-y", filters.NoFilter),
+						),
 					}
 
-					clientX := mockActions.CreateMockClient(testDataX, false, false)
-					clientY := mockActions.CreateMockClient(testDataY, false, false)
+					metric := RunUpdatesWithNotifications(t.Context(), params)
+					results <- metric
+				}()
 
-					// Run concurrent operations
-					var wg sync.WaitGroup
+				wg.Wait()
+				close(results)
 
-					results := make(chan *metrics.Metric, 2)
+				// Collect results
+				var metrics []*metrics.Metric
+				for metric := range results {
+					metrics = append(metrics, metric)
+				}
 
-					wg.Add(2)
+				// Verify proper isolation of error reporting
+				require.Len(t, metrics, 2)
 
-					go func() {
-						defer wg.Done()
+				totalScanned := 0
+				totalFailed := 0
+				totalUpdated := 0
 
-						params := RunUpdatesWithNotificationsParams{
-							Logger:                       newNopLogger(),
-							Client:                       clientX,
-							Notifier:                     nil,
-							NotificationSplitByContainer: false,
-							NotificationReport:           false,
-							Update: defaultTestUpdateParams(
-								filters.FilterByScope(newNopLogger(), "scope-x", filters.NoFilter),
-							),
-						}
+				for _, metric := range metrics {
+					require.NotNil(t, metric)
+					assert.Equal(t, 1, metric.Scanned)
+					// Each scope sees 1 container
+					totalScanned += metric.Scanned
+					totalFailed += metric.Failed
+					totalUpdated += metric.Updated
+				}
 
-						metric := RunUpdatesWithNotifications(context.Background(), params)
-						results <- metric
-					}()
-
-					go func() {
-						defer wg.Done()
-
-						params := RunUpdatesWithNotificationsParams{
-							Logger:                       newNopLogger(),
-							Client:                       clientY,
-							Notifier:                     nil,
-							NotificationSplitByContainer: false,
-							NotificationReport:           false,
-							Update: defaultTestUpdateParams(
-								filters.FilterByScope(newNopLogger(), "scope-y", filters.NoFilter),
-							),
-						}
-
-						metric := RunUpdatesWithNotifications(context.Background(), params)
-						results <- metric
-					}()
-
-					wg.Wait()
-					close(results)
-
-					// Collect results
-					var metrics []*metrics.Metric
-					for metric := range results {
-						metrics = append(metrics, metric)
-					}
-
-					// Verify proper isolation of error reporting
-					gomega.Expect(metrics).To(gomega.HaveLen(2))
-
-					totalScanned := 0
-					totalFailed := 0
-					totalUpdated := 0
-
-					for _, metric := range metrics {
-						gomega.Expect(metric).NotTo(gomega.BeNil())
-						gomega.Expect(metric.Scanned).
-							To(gomega.Equal(1))
-							// Each scope sees 1 container
-						totalScanned += metric.Scanned
-						totalFailed += metric.Failed
-						totalUpdated += metric.Updated
-					}
-
-					gomega.Expect(totalScanned).To(gomega.Equal(2)) // Both containers processed
-					gomega.Expect(totalFailed).To(gomega.Equal(1))  // One scope failed
-					gomega.Expect(totalUpdated).To(gomega.Equal(1)) // One scope succeeded
-				},
-			)
+				assert.Equal(t, 2, totalScanned) // Both containers processed
+				assert.Equal(t, 1, totalFailed)  // One scope failed
+				assert.Equal(t, 1, totalUpdated) // One scope succeeded
+			})
 		})
 	})
-})
+}
