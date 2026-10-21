@@ -1,78 +1,106 @@
 package container
 
 import (
-	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
+	"testing"
+
 	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/nicholas-fedor/watchtower/pkg/container/git"
 	"github.com/nicholas-fedor/watchtower/pkg/types"
 )
 
-var _ = ginkgo.Describe("Git wrappers", func() {
-	ginkgo.Describe("SetLabel", func() {
-		ginkgo.It("writes a config label", func() {
+// TestGitWrappers verifies the container's Git helpers: setting labels, resolving
+// the Git association, deciding whether to monitor, and reading and applying
+// Git stamps and associations.
+func TestGitWrappers(t *testing.T) {
+	t.Parallel()
+
+	t.Run("SetLabel", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("writes a config label", func(t *testing.T) {
+			t.Parallel()
+
 			c := MockContainer()
 			c.SetLabel(git.RepoLabel, "https://github.com/org/app.git")
 
 			value, ok := c.GetLabel(git.RepoLabel)
-			gomega.Expect(ok).To(gomega.BeTrue())
-			gomega.Expect(value).To(gomega.Equal("https://github.com/org/app.git"))
+			assert.True(t, ok)
+			assert.Equal(t, "https://github.com/org/app.git", value)
 		})
 
-		ginkgo.It("overwrites an existing label", func() {
+		t.Run("overwrites an existing label", func(t *testing.T) {
+			t.Parallel()
+
 			c := MockContainer(WithLabels(map[string]string{git.RepoLabel: "old"}))
 			c.SetLabel(git.RepoLabel, "new")
 
 			value, ok := c.GetLabel(git.RepoLabel)
-			gomega.Expect(ok).To(gomega.BeTrue())
-			gomega.Expect(value).To(gomega.Equal("new"))
+			assert.True(t, ok)
+			assert.Equal(t, "new", value)
 		})
 
-		ginkgo.It("creates the labels map when it is nil", func() {
+		t.Run("creates the labels map when it is nil", func(t *testing.T) {
+			t.Parallel()
+
 			c := MockContainer()
 			c.containerInfo.Config.Labels = nil
 			c.SetLabel(git.RefLabel, "main")
 
-			gomega.Expect(c.containerInfo.Config.Labels).To(gomega.HaveKeyWithValue(git.RefLabel, "main"))
+			assert.Equal(t, "main", c.containerInfo.Config.Labels[git.RefLabel])
 		})
 
-		ginkgo.It("is a no-op for a nil receiver or empty key", func() {
+		t.Run("is a no-op for a nil receiver or empty key", func(t *testing.T) {
+			t.Parallel()
+
 			var c *Container
 			c.SetLabel(git.RepoLabel, "https://github.com/org/app.git")
 
 			c = MockContainer()
 			c.SetLabel("", "value")
-			gomega.Expect(c.containerInfo.Config.Labels).NotTo(gomega.HaveKey(""))
+			assert.NotContains(t, c.containerInfo.Config.Labels, "")
 		})
 
-		ginkgo.It("removes an existing label", func() {
+		t.Run("removes an existing label", func(t *testing.T) {
+			t.Parallel()
+
 			c := MockContainer()
 			c.SetLabel(git.LastTagLabel, "v1")
 			c.DeleteLabel(git.LastTagLabel)
 			_, ok := c.GetLabel(git.LastTagLabel)
-			gomega.Expect(ok).To(gomega.BeFalse())
+			assert.False(t, ok)
 		})
 
-		ginkgo.It("is a no-op when container info or config is missing", func() {
+		t.Run("is a no-op when container info or config is missing", func(t *testing.T) {
+			t.Parallel()
+
 			c := MockContainer()
 			c.containerInfo.Config = nil
-			c.SetLabel(git.RepoLabel, "https://github.com/org/app.git")
+
+			assert.NotPanics(t, func() { c.SetLabel(git.RepoLabel, "https://github.com/org/app.git") })
 
 			c = MockContainer()
 			c.containerInfo = nil
-			c.SetLabel(git.RepoLabel, "https://github.com/org/app.git")
+
+			assert.NotPanics(t, func() { c.SetLabel(git.RepoLabel, "https://github.com/org/app.git") })
 		})
 	})
 
-	ginkgo.Describe("ResolveAssociation", func() {
-		ginkgo.It("returns false for a nil container", func() {
+	t.Run("ResolveAssociation", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("returns false for a nil container", func(t *testing.T) {
+			t.Parallel()
+
 			assoc, ok := git.ResolveAssociation(nil, types.UpdateParams{})
-			gomega.Expect(ok).To(gomega.BeFalse())
-			gomega.Expect(assoc).To(gomega.Equal(git.Association{}))
+			assert.False(t, ok)
+			assert.Equal(t, git.Association{}, assoc)
 		})
 
-		ginkgo.It("prefers a git-repo label over an image mapping", func() {
+		t.Run("prefers a git-repo label over an image mapping", func(t *testing.T) {
+			t.Parallel()
+
 			c := MockContainer(
 				WithImageName("myapp:latest"),
 				WithLabels(map[string]string{
@@ -86,12 +114,14 @@ var _ = ginkgo.Describe("Git wrappers", func() {
 					"myapp:latest": {Repo: "https://github.com/org/from-map.git", Ref: "mapped"},
 				},
 			})
-			gomega.Expect(ok).To(gomega.BeTrue())
-			gomega.Expect(assoc.Repo).To(gomega.Equal("https://github.com/org/from-label.git"))
-			gomega.Expect(assoc.Ref).To(gomega.Equal("release"))
+			assert.True(t, ok)
+			assert.Equal(t, "https://github.com/org/from-label.git", assoc.Repo)
+			assert.Equal(t, "release", assoc.Ref)
 		})
 
-		ginkgo.It("uses an exact image mapping when labels are absent", func() {
+		t.Run("uses an exact image mapping when labels are absent", func(t *testing.T) {
+			t.Parallel()
+
 			c := MockContainer(WithImageName("myapp:latest"))
 
 			assoc, ok := git.ResolveAssociation(c, types.UpdateParams{
@@ -99,118 +129,152 @@ var _ = ginkgo.Describe("Git wrappers", func() {
 					"myapp:latest": {Repo: "https://github.com/org/mapped.git", Ref: "v1"},
 				},
 			})
-			gomega.Expect(ok).To(gomega.BeTrue())
-			gomega.Expect(assoc.Repo).To(gomega.Equal("https://github.com/org/mapped.git"))
-			gomega.Expect(assoc.Ref).To(gomega.Equal("v1"))
+			assert.True(t, ok)
+			assert.Equal(t, "https://github.com/org/mapped.git", assoc.Repo)
+			assert.Equal(t, "v1", assoc.Ref)
 		})
 
-		ginkgo.It("returns false when the container is not associated", func() {
+		t.Run("returns false when the container is not associated", func(t *testing.T) {
+			t.Parallel()
+
 			c := MockContainer(WithImageName("nginx:latest"))
 			assoc, ok := git.ResolveAssociation(c, types.UpdateParams{})
-			gomega.Expect(ok).To(gomega.BeFalse())
-			gomega.Expect(assoc).To(gomega.Equal(git.Association{}))
+			assert.False(t, ok)
+			assert.Equal(t, git.Association{}, assoc)
 		})
 	})
 
-	ginkgo.Describe("ShouldMonitor", func() {
-		ginkgo.It("returns false for a nil container", func() {
-			gomega.Expect(git.ShouldMonitor(nil, nil, types.UpdateParams{EnableGitMonitoring: true})).To(gomega.BeFalse())
+	t.Run("ShouldMonitor", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("returns false for a nil container", func(t *testing.T) {
+			t.Parallel()
+
+			assert.False(t, git.ShouldMonitor(nil, nil, types.UpdateParams{EnableGitMonitoring: true}))
 		})
 
-		ginkgo.It("returns false for Watchtower even when associated", func() {
+		t.Run("returns false for Watchtower even when associated", func(t *testing.T) {
+			t.Parallel()
+
 			c := MockContainer(WithLabels(map[string]string{
 				watchtowerLabel: "true",
 				git.RepoLabel:   "https://github.com/nicholas-fedor/watchtower.git",
 			}))
 
-			gomega.Expect(git.ShouldMonitor(nil, c, types.UpdateParams{EnableGitMonitoring: true})).To(gomega.BeFalse())
+			assert.False(t, git.ShouldMonitor(nil, c, types.UpdateParams{EnableGitMonitoring: true}))
 		})
 
-		ginkgo.It("returns true when associated and monitoring is enabled", func() {
+		t.Run("returns true when associated and monitoring is enabled", func(t *testing.T) {
+			t.Parallel()
+
 			c := MockContainer(WithLabels(map[string]string{
 				git.RepoLabel: "https://github.com/org/app.git",
 			}))
 
-			gomega.Expect(git.ShouldMonitor(nil, c, types.UpdateParams{EnableGitMonitoring: true})).To(gomega.BeTrue())
+			assert.True(t, git.ShouldMonitor(nil, c, types.UpdateParams{EnableGitMonitoring: true}))
 		})
 
-		ginkgo.It("returns false when the container turns watch off", func() {
+		t.Run("returns false when the container turns watch off", func(t *testing.T) {
+			t.Parallel()
+
 			c := MockContainer(WithLabels(map[string]string{
 				git.RepoLabel:  "https://github.com/org/app.git",
 				git.WatchLabel: "false",
 			}))
 
-			gomega.Expect(git.ShouldMonitor(nil, c, types.UpdateParams{EnableGitMonitoring: true})).To(gomega.BeFalse())
+			assert.False(t, git.ShouldMonitor(nil, c, types.UpdateParams{EnableGitMonitoring: true}))
 		})
 
-		ginkgo.It("returns false when watch is on but the container is not associated", func() {
+		t.Run("returns false when watch is on but the container is not associated", func(t *testing.T) {
+			t.Parallel()
+
 			c := MockContainer(
 				WithImageName("nginx:latest"),
 				WithLabels(map[string]string{git.WatchLabel: "true"}),
 			)
 			nop := zerolog.Nop()
 
-			gomega.Expect(git.ShouldMonitor(&nop, c, types.UpdateParams{})).To(gomega.BeFalse())
+			assert.False(t, git.ShouldMonitor(&nop, c, types.UpdateParams{}))
 		})
 	})
 
-	ginkgo.Describe("LastGitStamp", func() {
-		ginkgo.It("returns empty values for a nil container", func() {
+	t.Run("LastGitStamp", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("returns empty values for a nil container", func(t *testing.T) {
+			t.Parallel()
+
 			commit, tag := git.LastStamp(nil)
-			gomega.Expect(commit).To(gomega.BeEmpty())
-			gomega.Expect(tag).To(gomega.BeEmpty())
+			assert.Empty(t, commit)
+			assert.Empty(t, tag)
 		})
 
-		ginkgo.It("reads last-commit and last-tag labels", func() {
+		t.Run("reads last-commit and last-tag labels", func(t *testing.T) {
+			t.Parallel()
+
 			c := MockContainer(WithLabels(map[string]string{
 				git.LastCommitLabel: "abc123",
 				git.LastTagLabel:    "v1.2.3",
 			}))
 
 			commit, tag := git.LastStamp(c)
-			gomega.Expect(commit).To(gomega.Equal("abc123"))
-			gomega.Expect(tag).To(gomega.Equal("v1.2.3"))
+			assert.Equal(t, "abc123", commit)
+			assert.Equal(t, "v1.2.3", tag)
 		})
 	})
 
-	ginkgo.Describe("ApplyGitStamp", func() {
-		ginkgo.It("is a no-op for a nil container", func() {
+	t.Run("ApplyGitStamp", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("is a no-op for a nil container", func(t *testing.T) {
+			t.Parallel()
+
 			ApplyGitStamp(nil, "abc", "v1.0.0")
 		})
 
-		ginkgo.It("writes the commit and omits an empty tag", func() {
+		t.Run("writes the commit and omits an empty tag", func(t *testing.T) {
+			t.Parallel()
+
 			c := MockContainer()
 			c.SetLabel(git.LastTagLabel, "v0.1.0")
 			ApplyGitStamp(c, "abc123", "")
 
 			commit, ok := c.GetLabel(git.LastCommitLabel)
-			gomega.Expect(ok).To(gomega.BeTrue())
-			gomega.Expect(commit).To(gomega.Equal("abc123"))
+			assert.True(t, ok)
+			assert.Equal(t, "abc123", commit)
 
 			_, ok = c.GetLabel(git.LastTagLabel)
-			gomega.Expect(ok).To(gomega.BeFalse())
+			assert.False(t, ok)
 		})
 
-		ginkgo.It("writes commit and tag", func() {
+		t.Run("writes commit and tag", func(t *testing.T) {
+			t.Parallel()
+
 			c := MockContainer()
 			ApplyGitStamp(c, "abc123", "v1.2.3")
 
 			commit, tag := git.LastStamp(c)
-			gomega.Expect(commit).To(gomega.Equal("abc123"))
-			gomega.Expect(tag).To(gomega.Equal("v1.2.3"))
+			assert.Equal(t, "abc123", commit)
+			assert.Equal(t, "v1.2.3", tag)
 		})
 	})
 
-	ginkgo.Describe("ApplyGitAssociation", func() {
-		ginkgo.It("is a no-op for a nil container or empty repo", func() {
+	t.Run("ApplyGitAssociation", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("is a no-op for a nil container or empty repo", func(t *testing.T) {
+			t.Parallel()
+
 			ApplyGitAssociation(nil, gitAssociation{Repo: "https://github.com/org/app.git"}, true)
 
 			c := MockContainer()
 			ApplyGitAssociation(c, gitAssociation{}, true)
-			gomega.Expect(c.containerInfo.Config.Labels).NotTo(gomega.HaveKey(git.RepoLabel))
+			assert.NotContains(t, c.containerInfo.Config.Labels, git.RepoLabel)
 		})
 
-		ginkgo.It("persists association labels and watch", func() {
+		t.Run("persists association labels and watch", func(t *testing.T) {
+			t.Parallel()
+
 			c := MockContainer()
 			ApplyGitAssociation(c, gitAssociation{
 				Repo:       "https://github.com/org/app.git",
@@ -221,7 +285,7 @@ var _ = ginkgo.Describe("Git wrappers", func() {
 				Context:    ".",
 			}, true)
 
-			gomega.Expect(c.containerInfo.Config.Labels).To(gomega.Equal(map[string]string{
+			assert.Equal(t, map[string]string{
 				git.RepoLabel:         "https://github.com/org/app.git",
 				git.RefLabel:          "main",
 				git.SemverPolicyLabel: types.GitPolicyPatch,
@@ -229,33 +293,39 @@ var _ = ginkgo.Describe("Git wrappers", func() {
 				git.DockerfileLabel:   "build/docker/Dockerfile",
 				git.ContextLabel:      ".",
 				git.WatchLabel:        "true",
-			}))
+			}, c.containerInfo.Config.Labels)
 		})
 
-		ginkgo.It("preserves bare local repository paths in labels", func() {
+		t.Run("preserves bare local repository paths in labels", func(t *testing.T) {
+			t.Parallel()
+
 			c := MockContainer()
 			ApplyGitAssociation(c, gitAssociation{Repo: "../repos/app", Ref: "main"}, true)
 
 			repo, ok := c.GetLabel(git.RepoLabel)
-			gomega.Expect(ok).To(gomega.BeTrue())
-			gomega.Expect(repo).To(gomega.Equal("../repos/app"))
+			assert.True(t, ok)
+			assert.Equal(t, "../repos/app", repo)
 		})
 
-		ginkgo.It("preserves SSH identities and benign local path queries", func() {
+		t.Run("preserves SSH identities and benign local path queries", func(t *testing.T) {
+			t.Parallel()
+
 			sshContainer := MockContainer()
 			ApplyGitAssociation(sshContainer, gitAssociation{Repo: "ssh://git@git.example.com/org/app.git"}, true)
 			sshRepo, ok := sshContainer.GetLabel(git.RepoLabel)
-			gomega.Expect(ok).To(gomega.BeTrue())
-			gomega.Expect(sshRepo).To(gomega.Equal("ssh://git@git.example.com/org/app.git"))
+			assert.True(t, ok)
+			assert.Equal(t, "ssh://git@git.example.com/org/app.git", sshRepo)
 
 			pathContainer := MockContainer()
 			ApplyGitAssociation(pathContainer, gitAssociation{Repo: "/srv/repos/app?release=1"}, true)
 			pathRepo, ok := pathContainer.GetLabel(git.RepoLabel)
-			gomega.Expect(ok).To(gomega.BeTrue())
-			gomega.Expect(pathRepo).To(gomega.Equal("/srv/repos/app?release=1"))
+			assert.True(t, ok)
+			assert.Equal(t, "/srv/repos/app?release=1", pathRepo)
 		})
 
-		ginkgo.It("redacts credentials and query tokens before persisting labels", func() {
+		t.Run("redacts credentials and query tokens before persisting labels", func(t *testing.T) {
+			t.Parallel()
+
 			c := MockContainer()
 			ApplyGitAssociation(c, gitAssociation{
 				Repo: "https://user:secret@github.com/org/app.git?access_token=query#main",
@@ -264,27 +334,31 @@ var _ = ginkgo.Describe("Git wrappers", func() {
 			}, true)
 
 			repo, ok := c.GetLabel(git.RepoLabel)
-			gomega.Expect(ok).To(gomega.BeTrue())
-			gomega.Expect(repo).To(gomega.Equal("https://github.com/org/app.git#main"))
-			gomega.Expect(repo).NotTo(gomega.ContainSubstring("secret"))
+			assert.True(t, ok)
+			assert.Equal(t, "https://github.com/org/app.git#main", repo)
+			assert.NotContains(t, repo, "secret")
 
 			host, ok := c.GetLabel(git.HostLabel)
-			gomega.Expect(ok).To(gomega.BeTrue())
-			gomega.Expect(host).To(gomega.Equal("https://git.example.com:3000"))
-			gomega.Expect(host).NotTo(gomega.ContainSubstring("secret"))
+			assert.True(t, ok)
+			assert.Equal(t, "https://git.example.com:3000", host)
+			assert.NotContains(t, host, "secret")
 		})
 
-		ginkgo.It("removes association labels when a repository cannot be sanitized", func() {
+		t.Run("removes association labels when a repository cannot be sanitized", func(t *testing.T) {
+			t.Parallel()
+
 			c := MockContainer(WithLabels(map[string]string{
 				git.RepoLabel: "https://user:secret@github.com/org/app.git",
 			}))
 			ApplyGitAssociation(c, gitAssociation{Repo: "://invalid"}, true)
 
 			_, ok := c.GetLabel(git.RepoLabel)
-			gomega.Expect(ok).To(gomega.BeFalse())
+			assert.False(t, ok)
 		})
 
-		ginkgo.It("does not persist process defaults", func() {
+		t.Run("does not persist process defaults", func(t *testing.T) {
+			t.Parallel()
+
 			c := MockContainer()
 			ApplyGitAssociation(c, gitAssociation{
 				Repo:                  "https://github.com/org/app.git",
@@ -298,20 +372,22 @@ var _ = ginkgo.Describe("Git wrappers", func() {
 				ContextFromDefault:    true,
 			}, false)
 
-			gomega.Expect(c.containerInfo.Config.Labels).To(gomega.Equal(map[string]string{
+			assert.Equal(t, map[string]string{
 				git.RepoLabel: "https://github.com/org/app.git",
-			}))
+			}, c.containerInfo.Config.Labels)
 		})
 
-		ginkgo.It("omits empty optional fields and does not force watch", func() {
+		t.Run("omits empty optional fields and does not force watch", func(t *testing.T) {
+			t.Parallel()
+
 			c := MockContainer()
 			c.SetLabel(git.RefLabel, "old")
 			c.SetLabel(git.WatchLabel, "true")
 			ApplyGitAssociation(c, gitAssociation{Repo: "https://github.com/org/app.git"}, false)
 
-			gomega.Expect(c.containerInfo.Config.Labels).To(gomega.Equal(map[string]string{
+			assert.Equal(t, map[string]string{
 				git.RepoLabel: "https://github.com/org/app.git",
-			}))
+			}, c.containerInfo.Config.Labels)
 		})
 	})
-})
+}

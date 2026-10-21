@@ -6,10 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	dockerContainer "github.com/moby/moby/api/types/container"
 	dockerMount "github.com/moby/moby/api/types/mount"
@@ -27,60 +26,84 @@ const testContainerName = "gluetun"
 // webContainerName is used for testing filterSelfReferences scenarios.
 const webContainerName = "web"
 
-var _ = ginkgo.Describe("Container", func() {
-	ginkgo.Describe("Configuration Validation", func() {
-		ginkgo.It("returns an error when image info is nil", func() {
+// TestContainerModel verifies the container model: configuration validation,
+// the create and host configuration rebuilt from inspect data, label and
+// metadata reads, the identifier used for dependencies, no-pull settings, and
+// the links taken from labels, volumes-from, network_mode, and legacy links.
+func TestContainerModel(t *testing.T) {
+	t.Parallel()
+
+	t.Run("Configuration Validation", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("returns an error when image info is nil", func(t *testing.T) {
+			t.Parallel()
+
 			c := MockContainer(WithPortBindings())
 			c.imageInfo = nil
 			err := c.VerifyConfiguration()
-			gomega.Expect(err).To(gomega.Equal(errNoImageInfo))
+			assert.Equal(t, errNoImageInfo, err)
 		})
 
-		ginkgo.It("returns an error when container info is nil", func() {
+		t.Run("returns an error when container info is nil", func(t *testing.T) {
+			t.Parallel()
+
 			c := MockContainer(WithPortBindings())
 			c.containerInfo = nil
 			err := c.VerifyConfiguration()
-			gomega.Expect(err).To(gomega.Equal(errNoContainerInfo))
+			assert.Equal(t, errNoContainerInfo, err)
 		})
 
-		ginkgo.It("returns an error when config is nil", func() {
+		t.Run("returns an error when config is nil", func(t *testing.T) {
+			t.Parallel()
+
 			c := MockContainer(WithPortBindings())
 			c.containerInfo.Config = nil
 			err := c.VerifyConfiguration()
-			gomega.Expect(err).To(gomega.Equal(errInvalidConfig))
+			assert.Equal(t, errInvalidConfig, err)
 		})
 
-		ginkgo.It("returns an error when host config is nil", func() {
+		t.Run("returns an error when host config is nil", func(t *testing.T) {
+			t.Parallel()
+
 			c := MockContainer(WithPortBindings())
 			c.containerInfo.HostConfig = nil
 			err := c.VerifyConfiguration()
-			gomega.Expect(err).To(gomega.Equal(errInvalidConfig))
+			assert.Equal(t, errInvalidConfig, err)
 		})
 
-		ginkgo.It("succeeds with no port bindings", func() {
+		t.Run("succeeds with no port bindings", func(t *testing.T) {
+			t.Parallel()
+
 			c := MockContainer(WithPortBindings())
 			err := c.VerifyConfiguration()
-			gomega.Expect(err).ToNot(gomega.HaveOccurred())
+			require.NoError(t, err)
 		})
 
-		ginkgo.It("initializes exposed ports when nil with port bindings", func() {
+		t.Run("initializes exposed ports when nil with port bindings", func(t *testing.T) {
+			t.Parallel()
+
 			c := MockContainer(WithPortBindings("80/tcp"))
 			c.containerInfo.Config.ExposedPorts = nil
-			gomega.Expect(c.VerifyConfiguration()).To(gomega.Succeed())
-			gomega.Expect(c.containerInfo.Config.ExposedPorts).ToNot(gomega.BeNil())
-			gomega.Expect(c.containerInfo.Config.ExposedPorts).To(gomega.BeEmpty())
+			require.NoError(t, c.VerifyConfiguration())
+			require.NotNil(t, c.containerInfo.Config.ExposedPorts)
+			assert.Empty(t, c.containerInfo.Config.ExposedPorts)
 		})
 
-		ginkgo.It("succeeds with non-nil exposed ports and port bindings", func() {
+		t.Run("succeeds with non-nil exposed ports and port bindings", func(t *testing.T) {
+			t.Parallel()
+
 			c := MockContainer(WithPortBindings("80/tcp"))
 			c.containerInfo.Config.ExposedPorts = map[dockerNetwork.Port]struct{}{
 				dockerNetwork.MustParsePort("80/tcp"): {},
 			}
 			err := c.VerifyConfiguration()
-			gomega.Expect(err).ToNot(gomega.HaveOccurred())
+			require.NoError(t, err)
 		})
 
-		ginkgo.It("removes port bindings with empty port string", func() {
+		t.Run("removes port bindings with empty port string", func(t *testing.T) {
+			t.Parallel()
+
 			c := MockContainer(WithPortBindings("80/tcp"))
 
 			var emptyPort dockerNetwork.Port
@@ -91,19 +114,21 @@ var _ = ginkgo.Describe("Container", func() {
 				dockerNetwork.MustParsePort("80/tcp"): {},
 			}
 			err := c.VerifyConfiguration()
-			gomega.Expect(err).ToNot(gomega.HaveOccurred())
+			require.NoError(t, err)
 
 			_, exists := c.containerInfo.HostConfig.PortBindings[emptyPort]
-			gomega.Expect(exists).To(gomega.BeFalse())
+			assert.False(t, exists)
 			_, exists = c.containerInfo.HostConfig.PortBindings[dockerNetwork.MustParsePort("80/tcp")]
-			gomega.Expect(exists).To(gomega.BeTrue())
+			assert.True(t, exists)
 			_, exists = c.containerInfo.Config.ExposedPorts[emptyPort]
-			gomega.Expect(exists).To(gomega.BeFalse())
+			assert.False(t, exists)
 			_, exists = c.containerInfo.Config.ExposedPorts[dockerNetwork.MustParsePort("80/tcp")]
-			gomega.Expect(exists).To(gomega.BeTrue())
+			assert.True(t, exists)
 		})
 
-		ginkgo.It("removes port bindings with empty port number", func() {
+		t.Run("removes port bindings with empty port number", func(t *testing.T) {
+			t.Parallel()
+
 			c := MockContainer(WithPortBindings("80/tcp"))
 
 			var malformedPort dockerNetwork.Port
@@ -113,32 +138,40 @@ var _ = ginkgo.Describe("Container", func() {
 				malformedPort: {},
 			}
 			err := c.VerifyConfiguration()
-			gomega.Expect(err).ToNot(gomega.HaveOccurred())
+			require.NoError(t, err)
 
 			_, exists := c.containerInfo.HostConfig.PortBindings[malformedPort]
-			gomega.Expect(exists).To(gomega.BeFalse())
+			assert.False(t, exists)
 			_, exists = c.containerInfo.Config.ExposedPorts[malformedPort]
-			gomega.Expect(exists).To(gomega.BeFalse())
+			assert.False(t, exists)
 			_, exists = c.containerInfo.HostConfig.PortBindings[dockerNetwork.MustParsePort("80/tcp")]
-			gomega.Expect(exists).To(gomega.BeTrue())
+			assert.True(t, exists)
 		})
 
-		ginkgo.It("preserves valid port bindings unchanged", func() {
+		t.Run("preserves valid port bindings unchanged", func(t *testing.T) {
+			t.Parallel()
+
 			c := MockContainer(WithPortBindings("8080/tcp", "443/tcp"))
 			c.containerInfo.Config.ExposedPorts = map[dockerNetwork.Port]struct{}{
 				dockerNetwork.MustParsePort("8080/tcp"): {},
 				dockerNetwork.MustParsePort("443/tcp"):  {},
 			}
 			err := c.VerifyConfiguration()
-			gomega.Expect(err).ToNot(gomega.HaveOccurred())
-			gomega.Expect(c.containerInfo.HostConfig.PortBindings).To(gomega.HaveLen(2))
-			gomega.Expect(c.containerInfo.Config.ExposedPorts).To(gomega.HaveLen(2))
+			require.NoError(t, err)
+			require.Len(t, c.containerInfo.HostConfig.PortBindings, 2)
+			require.Len(t, c.containerInfo.Config.ExposedPorts, 2)
 		})
 	})
 
-	ginkgo.Describe("Create Configuration", func() {
-		ginkgo.Context("when container and image healthcheck configs are identical", func() {
-			ginkgo.It("returns an empty healthcheck config", func() {
+	t.Run("Create Configuration", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("when container and image healthcheck configs are identical", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("returns an empty healthcheck config", func(t *testing.T) {
+				t.Parallel()
+
 				tests := []dockerContainer.HealthConfig{
 					{Test: []string{"/usr/bin/sleep", "1s"}},
 					{Timeout: 30},
@@ -150,13 +183,14 @@ var _ = ginkgo.Describe("Container", func() {
 						WithHealthcheck(healthConfig),
 						WithImageHealthcheck(healthConfig),
 					)
-					gomega.Expect(c.GetCreateConfig().Healthcheck).
-						To(gomega.Equal(&dockerContainer.HealthConfig{}))
+					assert.Equal(t, &dockerContainer.HealthConfig{}, c.GetCreateConfig().Healthcheck)
 				}
 			})
 		})
 
-		ginkgo.It("returns container healthcheck when configs differ", func() {
+		t.Run("returns container healthcheck when configs differ", func(t *testing.T) {
+			t.Parallel()
+
 			c := MockContainer(
 				WithHealthcheck(dockerContainer.HealthConfig{
 					Test:        []string{"/usr/bin/sleep", "1s"},
@@ -173,17 +207,18 @@ var _ = ginkgo.Describe("Container", func() {
 					Retries:     10,
 				}),
 			)
-			gomega.Expect(c.GetCreateConfig().Healthcheck).
-				To(gomega.Equal(&dockerContainer.HealthConfig{
-					Test:        []string{"/usr/bin/sleep", "1s"},
-					Interval:    30,
-					Timeout:     30,
-					StartPeriod: 10,
-					Retries:     2,
-				}))
+			assert.Equal(t, &dockerContainer.HealthConfig{
+				Test:        []string{"/usr/bin/sleep", "1s"},
+				Interval:    30,
+				Timeout:     30,
+				StartPeriod: 10,
+				Retries:     2,
+			}, c.GetCreateConfig().Healthcheck)
 		})
 
-		ginkgo.It("handles empty container healthcheck config without panic", func() {
+		t.Run("handles empty container healthcheck config without panic", func(t *testing.T) {
+			t.Parallel()
+
 			c := MockContainer(WithImageHealthcheck(dockerContainer.HealthConfig{
 				Test:        []string{"/usr/bin/sleep", "10s"},
 				Interval:    10,
@@ -191,10 +226,12 @@ var _ = ginkgo.Describe("Container", func() {
 				StartPeriod: 30,
 				Retries:     10,
 			}))
-			gomega.Expect(c.GetCreateConfig().Healthcheck).To(gomega.BeNil())
+			assert.Nil(t, c.GetCreateConfig().Healthcheck)
 		})
 
-		ginkgo.It("handles empty image healthcheck config without panic", func() {
+		t.Run("handles empty image healthcheck config without panic", func(t *testing.T) {
+			t.Parallel()
+
 			c := MockContainer(WithHealthcheck(dockerContainer.HealthConfig{
 				Test:        []string{"/usr/bin/sleep", "1s"},
 				Interval:    30,
@@ -202,39 +239,44 @@ var _ = ginkgo.Describe("Container", func() {
 				StartPeriod: 10,
 				Retries:     2,
 			}))
-			gomega.Expect(c.GetCreateConfig().Healthcheck).
-				To(gomega.Equal(&dockerContainer.HealthConfig{
-					Test:        []string{"/usr/bin/sleep", "1s"},
-					Interval:    30,
-					Timeout:     30,
-					StartPeriod: 10,
-					Retries:     2,
-				}))
+			assert.Equal(t, &dockerContainer.HealthConfig{
+				Test:        []string{"/usr/bin/sleep", "1s"},
+				Interval:    30,
+				Timeout:     30,
+				StartPeriod: 10,
+				Retries:     2,
+			}, c.GetCreateConfig().Healthcheck)
 		})
 
-		ginkgo.Context("UTS mode hostname handling", func() {
-			ginkgo.It("clears hostname when UTS mode is non-empty", func() {
+		t.Run("UTS mode hostname handling", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("clears hostname when UTS mode is non-empty", func(t *testing.T) {
+				t.Parallel()
+
 				c := MockContainer(
 					WithUTSMode("host"),
 					WithHostname("test-hostname"),
 				)
 				config := c.GetCreateConfig()
-				gomega.Expect(config.Hostname).
-					To(gomega.Equal(""), "Hostname should be cleared when UTS mode is set")
+				assert.Empty(t, config.Hostname, "Hostname should be cleared when UTS mode is set")
 			})
 
-			ginkgo.It("preserves hostname when UTS mode is empty", func() {
+			t.Run("preserves hostname when UTS mode is empty", func(t *testing.T) {
+				t.Parallel()
+
 				c := MockContainer(
 					WithUTSMode(""),
 					WithHostname("test-hostname"),
 				)
 				config := c.GetCreateConfig()
-				gomega.Expect(config.Hostname).
-					To(gomega.Equal("test-hostname"), "Hostname should be preserved when UTS mode is empty")
+				assert.Equal(t, "test-hostname", config.Hostname, "Hostname should be preserved when UTS mode is empty")
 			})
 		})
 
-		ginkgo.It("uses container config when image config is nil", func() {
+		t.Run("uses container config when image config is nil", func(t *testing.T) {
+			t.Parallel()
+
 			c := MockContainer(WithImageName("ghcr.io/home-assistant/home-assistant:latest"))
 			c.imageInfo.Config = nil
 			c.containerInfo.Config.WorkingDir = "/config"
@@ -242,153 +284,203 @@ var _ = ginkgo.Describe("Container", func() {
 
 			config := c.GetCreateConfig()
 
-			gomega.Expect(config.Image).
-				To(gomega.Equal("ghcr.io/home-assistant/home-assistant:latest"))
-			gomega.Expect(config.WorkingDir).To(gomega.Equal("/config"))
-			gomega.Expect(config.Env).To(gomega.Equal([]string{"TZ=Europe/Amsterdam"}))
+			assert.Equal(t, "ghcr.io/home-assistant/home-assistant:latest", config.Image)
+			assert.Equal(t, "/config", config.WorkingDir)
+			assert.Equal(t, []string{"TZ=Europe/Amsterdam"}, config.Env)
 		})
 
-		ginkgo.It("returns minimal config when containerInfo is nil", func() {
+		t.Run("returns minimal config when containerInfo is nil", func(t *testing.T) {
+			t.Parallel()
+
 			c := MockContainer(WithImageName("test-image"))
 			c.containerInfo = nil
 			config := c.GetCreateConfig()
-			gomega.Expect(config.Image).To(gomega.Equal("unknown:latest"))
-			gomega.Expect(config).To(gomega.Equal(&dockerContainer.Config{Image: "unknown:latest"}))
+			assert.Equal(t, "unknown:latest", config.Image)
+			assert.Equal(t, &dockerContainer.Config{Image: "unknown:latest"}, config)
 		})
 	})
 
-	ginkgo.Describe("Metadata Retrieval", func() {
-		var container *Container
+	t.Run("Metadata Retrieval", func(t *testing.T) {
+		t.Parallel()
 
-		ginkgo.BeforeEach(func() {
-			container = MockContainer(WithLabels(map[string]string{
+		// newMetadataContainer returns an enabled Watchtower container.
+		newMetadataContainer := func() *Container {
+			return MockContainer(WithLabels(map[string]string{
 				"com.centurylinklabs.watchtower.enable": "true",
 				"com.centurylinklabs.watchtower":        "true",
 			}))
-		})
+		}
 
-		ginkgo.It("returns correct container name", func() {
+		t.Run("returns correct container name", func(t *testing.T) {
+			t.Parallel()
+
+			container := newMetadataContainer()
 			name := container.Name()
-			gomega.Expect(name).To(gomega.Equal("test-watchtower"))
-			gomega.Expect(name).NotTo(gomega.Equal("wrong-name"))
+			assert.Equal(t, "test-watchtower", name)
+			assert.NotEqual(t, "wrong-name", name)
 		})
 
-		ginkgo.It("returns correct container ID", func() {
+		t.Run("returns correct container ID", func(t *testing.T) {
+			t.Parallel()
+
+			container := newMetadataContainer()
 			id := container.ID()
-			gomega.Expect(id).To(gomega.BeEquivalentTo("container_id"))
-			gomega.Expect(id).NotTo(gomega.BeEquivalentTo("wrong-id"))
+			assert.EqualValues(t, "container_id", id)
+			assert.NotEqualValues(t, "wrong-id", id)
 		})
 
-		ginkgo.It("returns true for enabled label when set to true", func() {
+		t.Run("returns true for enabled label when set to true", func(t *testing.T) {
+			t.Parallel()
+
+			container := newMetadataContainer()
 			enabled, exists := container.Enabled()
-			gomega.Expect(enabled).To(gomega.BeTrue())
-			gomega.Expect(exists).To(gomega.BeTrue())
+			assert.True(t, enabled)
+			assert.True(t, exists)
 		})
 
-		ginkgo.It("returns false and true for enabled label when set to false", func() {
-			container = MockContainer(WithLabels(map[string]string{
+		t.Run("returns false and true for enabled label when set to false", func(t *testing.T) {
+			t.Parallel()
+
+			container := MockContainer(WithLabels(map[string]string{
 				"com.centurylinklabs.watchtower.enable": "false",
 			}))
 			enabled, exists := container.Enabled()
-			gomega.Expect(enabled).To(gomega.BeFalse())
-			gomega.Expect(exists).To(gomega.BeTrue())
+			assert.False(t, enabled)
+			assert.True(t, exists)
 		})
 
-		ginkgo.It("returns false and false when enabled label is not set", func() {
-			container = MockContainer(WithLabels(map[string]string{"lol": "false"}))
+		t.Run("returns false and false when enabled label is not set", func(t *testing.T) {
+			t.Parallel()
+
+			container := MockContainer(WithLabels(map[string]string{"lol": "false"}))
 			enabled, exists := container.Enabled()
-			gomega.Expect(enabled).To(gomega.BeFalse())
-			gomega.Expect(exists).To(gomega.BeFalse())
+			assert.False(t, enabled)
+			assert.False(t, exists)
 		})
 
-		ginkgo.It("returns false and false for invalid enabled label", func() {
-			container = MockContainer(WithLabels(map[string]string{
+		t.Run("returns false and false for invalid enabled label", func(t *testing.T) {
+			t.Parallel()
+
+			container := MockContainer(WithLabels(map[string]string{
 				"com.centurylinklabs.watchtower.enable": "falsy",
 			}))
 			enabled, exists := container.Enabled()
-			gomega.Expect(enabled).To(gomega.BeFalse())
-			gomega.Expect(exists).To(gomega.BeFalse())
+			assert.False(t, enabled)
+			assert.False(t, exists)
 		})
 
-		ginkgo.Context("checking Watchtower instance", func() {
-			ginkgo.It("returns true when Watchtower label is true", func() {
+		t.Run("checking Watchtower instance", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("returns true when Watchtower label is true", func(t *testing.T) {
+				t.Parallel()
+
+				container := newMetadataContainer()
 				isWatchtower := container.IsWatchtower()
-				gomega.Expect(isWatchtower).To(gomega.BeTrue())
+				assert.True(t, isWatchtower)
 			})
 
-			ginkgo.It("returns false when Watchtower label is false", func() {
-				container = MockContainer(WithLabels(map[string]string{
+			t.Run("returns false when Watchtower label is false", func(t *testing.T) {
+				t.Parallel()
+
+				container := MockContainer(WithLabels(map[string]string{
 					"com.centurylinklabs.watchtower": "false",
 				}))
 				isWatchtower := container.IsWatchtower()
-				gomega.Expect(isWatchtower).To(gomega.BeFalse())
+				assert.False(t, isWatchtower)
 			})
 
-			ginkgo.It("returns false when Watchtower label is not set", func() {
-				container = MockContainer(WithLabels(map[string]string{"funny.label": "false"}))
+			t.Run("returns false when Watchtower label is not set", func(t *testing.T) {
+				t.Parallel()
+
+				container := MockContainer(WithLabels(map[string]string{"funny.label": "false"}))
 				isWatchtower := container.IsWatchtower()
-				gomega.Expect(isWatchtower).To(gomega.BeFalse())
+				assert.False(t, isWatchtower)
 			})
 
-			ginkgo.It("returns false when no labels are set", func() {
-				container = MockContainer(WithLabels(map[string]string{}))
+			t.Run("returns false when no labels are set", func(t *testing.T) {
+				t.Parallel()
+
+				container := MockContainer(WithLabels(map[string]string{}))
 				isWatchtower := container.IsWatchtower()
-				gomega.Expect(isWatchtower).To(gomega.BeFalse())
+				assert.False(t, isWatchtower)
 			})
 		})
 
-		ginkgo.Context("fetching stop signal", func() {
-			ginkgo.It("returns signal when set", func() {
-				container = MockContainer(WithLabels(map[string]string{
+		t.Run("fetching stop signal", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("returns signal when set", func(t *testing.T) {
+				t.Parallel()
+
+				container := MockContainer(WithLabels(map[string]string{
 					"com.centurylinklabs.watchtower.stop-signal": "SIGKILL",
 				}))
-				gomega.Expect(container.StopSignal()).To(gomega.Equal("SIGKILL"))
+				assert.Equal(t, "SIGKILL", container.StopSignal())
 			})
 
-			ginkgo.It("returns SIGTERM when signal is not set", func() {
-				container = MockContainer(WithLabels(map[string]string{}))
-				gomega.Expect(container.StopSignal()).To(gomega.Equal("SIGTERM"))
+			t.Run("returns SIGTERM when signal is not set", func(t *testing.T) {
+				t.Parallel()
+
+				container := MockContainer(WithLabels(map[string]string{}))
+				assert.Equal(t, "SIGTERM", container.StopSignal())
 			})
 		})
 
-		ginkgo.Context("fetching image name", func() {
-			ginkgo.It("uses zodiac label when present", func() {
-				container = MockContainer(WithLabels(map[string]string{
+		t.Run("fetching image name", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("uses zodiac label when present", func(t *testing.T) {
+				t.Parallel()
+
+				container := MockContainer(WithLabels(map[string]string{
 					"com.centurylinklabs.zodiac.original-image": "the-original-image",
 				}))
-				gomega.Expect(container.ImageName()).To(gomega.Equal("the-original-image:latest"))
+				assert.Equal(t, "the-original-image:latest", container.ImageName())
 			})
 
-			ginkgo.It("returns image name from config", func() {
+			t.Run("returns image name from config", func(t *testing.T) {
+				t.Parallel()
+
 				name := "image-name:3"
-				container = MockContainer(WithImageName(name))
-				gomega.Expect(container.ImageName()).To(gomega.Equal(name))
+				container := MockContainer(WithImageName(name))
+				assert.Equal(t, name, container.ImageName())
 			})
 
-			ginkgo.It("appends latest tag when no tag is supplied", func() {
+			t.Run("appends latest tag when no tag is supplied", func(t *testing.T) {
+				t.Parallel()
+
 				name := "image-name"
-				container = MockContainer(WithImageName(name))
-				gomega.Expect(container.ImageName()).To(gomega.Equal(name + ":latest"))
+				container := MockContainer(WithImageName(name))
+				assert.Equal(t, name+":latest", container.ImageName())
 			})
 
-			ginkgo.It("returns unknown:latest for a nil receiver", func() {
+			t.Run("returns unknown:latest for a nil receiver", func(t *testing.T) {
+				t.Parallel()
+
 				var nilContainer *Container
 
-				gomega.Expect(nilContainer.ImageName()).To(gomega.Equal("unknown:latest"))
+				assert.Equal(t, "unknown:latest", nilContainer.ImageName())
 			})
 		})
 
-		ginkgo.Context("setting image name", func() {
-			ginkgo.It("is a no-op on a nil receiver", func() {
+		t.Run("setting image name", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("is a no-op on a nil receiver", func(t *testing.T) {
+				t.Parallel()
+
 				var nilContainer *Container
 
-				gomega.Expect(func() {
+				assert.NotPanics(t, func() {
 					nilContainer.SetImageName("app:v2")
-				}).NotTo(gomega.Panic())
+				})
 			})
 
-			ginkgo.It("pins a tagged name on config and cache", func() {
-				container = NewContainer(nopLog(), &dockerContainer.InspectResponse{
+			t.Run("pins a tagged name on config and cache", func(t *testing.T) {
+				t.Parallel()
+
+				container := NewContainer(nopLog(), &dockerContainer.InspectResponse{
 					Name: "/app",
 					Config: &dockerContainer.Config{
 						Image: "app:v1",
@@ -397,13 +489,15 @@ var _ = ginkgo.Describe("Container", func() {
 
 				container.SetImageName("app:v2")
 
-				gomega.Expect(container.ContainerInfo()).NotTo(gomega.BeNil())
-				gomega.Expect(container.ContainerInfo().Config.Image).To(gomega.Equal("app:v2"))
-				gomega.Expect(container.ImageName()).To(gomega.Equal("app:v2"))
+				require.NotNil(t, container.ContainerInfo())
+				assert.Equal(t, "app:v2", container.ContainerInfo().Config.Image)
+				assert.Equal(t, "app:v2", container.ImageName())
 			})
 
-			ginkgo.It("appends latest when the pinned name is untagged", func() {
-				container = NewContainer(nopLog(), &dockerContainer.InspectResponse{
+			t.Run("appends latest when the pinned name is untagged", func(t *testing.T) {
+				t.Parallel()
+
+				container := NewContainer(nopLog(), &dockerContainer.InspectResponse{
 					Name: "/app",
 					Config: &dockerContainer.Config{
 						Image: "app:v1",
@@ -412,12 +506,14 @@ var _ = ginkgo.Describe("Container", func() {
 
 				container.SetImageName("app")
 
-				gomega.Expect(container.ContainerInfo().Config.Image).To(gomega.Equal("app:latest"))
-				gomega.Expect(container.ImageName()).To(gomega.Equal("app:latest"))
+				assert.Equal(t, "app:latest", container.ContainerInfo().Config.Image)
+				assert.Equal(t, "app:latest", container.ImageName())
 			})
 
-			ginkgo.It("appends latest without treating a registry port as a tag", func() {
-				container = NewContainer(nopLog(), &dockerContainer.InspectResponse{
+			t.Run("appends latest without treating a registry port as a tag", func(t *testing.T) {
+				t.Parallel()
+
+				container := NewContainer(nopLog(), &dockerContainer.InspectResponse{
 					Name: "/app",
 					Config: &dockerContainer.Config{
 						Image: "app:v1",
@@ -426,601 +522,694 @@ var _ = ginkgo.Describe("Container", func() {
 
 				container.SetImageName("registry.example:5000/app")
 
-				gomega.Expect(container.ContainerInfo().Config.Image).To(gomega.Equal("registry.example:5000/app:latest"))
-				gomega.Expect(container.ImageName()).To(gomega.Equal("registry.example:5000/app:latest"))
+				assert.Equal(t, "registry.example:5000/app:latest", container.ContainerInfo().Config.Image)
+				assert.Equal(t, "registry.example:5000/app:latest", container.ImageName())
 			})
 		})
 
-		ginkgo.Context("fetching image ID", func() {
-			ginkgo.It("returns image ID when imageInfo is available", func() {
+		t.Run("fetching image ID", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("returns image ID when imageInfo is available", func(t *testing.T) {
+				t.Parallel()
+
+				container := newMetadataContainer()
 				imageID := container.ImageID()
-				gomega.Expect(imageID).To(gomega.Equal(types.ImageID("image_id")))
+				assert.Equal(t, types.ImageID("image_id"), imageID)
 			})
 
-			ginkgo.It("returns empty string for ImageID when imageInfo is nil", func() {
-				container = MockContainer(WithPortBindings())
+			t.Run("returns empty string for ImageID when imageInfo is nil", func(t *testing.T) {
+				t.Parallel()
+
+				container := MockContainer(WithPortBindings())
 				container.imageInfo = nil
 				imageID := container.ImageID()
-				gomega.Expect(imageID).To(gomega.Equal(types.ImageID("")))
+				assert.Equal(t, types.ImageID(""), imageID)
 			})
 		})
 
-		ginkgo.Context("fetching container links", func() {
-			ginkgo.When("compose depends-on label is present", func() {
-				ginkgo.It("returns single dependent container", func() {
-					container = MockContainer(WithLabels(map[string]string{
+		t.Run("fetching container links", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("compose depends-on label is present", func(t *testing.T) {
+				t.Parallel()
+
+				t.Run("returns single dependent container", func(t *testing.T) {
+					t.Parallel()
+
+					container := MockContainer(WithLabels(map[string]string{
 						"com.docker.compose.depends_on": "postgres",
 					}))
 					links := container.Links(true)
-					gomega.Expect(links).To(gomega.SatisfyAll(
-						gomega.ContainElement("postgres"),
-						gomega.HaveLen(1),
-					))
+					assert.Contains(t, links, "postgres")
+					require.Len(t, links, 1)
 				})
 
-				ginkgo.It("returns multiple dependent containers", func() {
-					container = MockContainer(WithLabels(map[string]string{
+				t.Run("returns multiple dependent containers", func(t *testing.T) {
+					t.Parallel()
+
+					container := MockContainer(WithLabels(map[string]string{
 						"com.docker.compose.depends_on": "postgres,redis",
 					}))
 					links := container.Links(true)
-					gomega.Expect(links).To(gomega.SatisfyAll(
-						gomega.ContainElement("postgres"),
-						gomega.ContainElement("redis"),
-						gomega.HaveLen(2),
-					))
+					assert.Contains(t, links, "postgres")
+					assert.Contains(t, links, "redis")
+					require.Len(t, links, 2)
 				})
 
-				ginkgo.It("trims whitespace from service names", func() {
-					container = MockContainer(WithLabels(map[string]string{
+				t.Run("trims whitespace from service names", func(t *testing.T) {
+					t.Parallel()
+
+					container := MockContainer(WithLabels(map[string]string{
 						"com.docker.compose.depends_on": " postgres , redis ",
 					}))
 					links := container.Links(true)
-					gomega.Expect(links).To(gomega.SatisfyAll(
-						gomega.ContainElement("postgres"),
-						gomega.ContainElement("redis"),
-						gomega.HaveLen(2),
-					))
+					assert.Contains(t, links, "postgres")
+					assert.Contains(t, links, "redis")
+					require.Len(t, links, 2)
 				})
 
-				ginkgo.It("normalizes container names with slashes", func() {
-					container = MockContainer(WithLabels(map[string]string{
+				t.Run("normalizes container names with slashes", func(t *testing.T) {
+					t.Parallel()
+
+					container := MockContainer(WithLabels(map[string]string{
 						compose.ComposeDependsOnLabel: "/postgres,/redis",
 					}))
 					links := container.Links(true)
-					gomega.Expect(links).To(gomega.SatisfyAll(
-						gomega.ContainElement("postgres"),
-						gomega.ContainElement("redis"),
-					))
+					assert.Contains(t, links, "postgres")
+					assert.Contains(t, links, "redis")
 				})
 
-				ginkgo.It(
-					"watchtower depends-on label takes precedence over compose depends_on",
-					func() {
-						container = MockContainer(WithLabels(map[string]string{
-							"com.docker.compose.depends_on":             "postgres",
-							"com.centurylinklabs.watchtower.depends-on": "redis",
-						}))
-						links := container.Links(true)
-						gomega.Expect(links).To(gomega.SatisfyAll(
-							gomega.ContainElement("redis"),
-							gomega.Not(gomega.ContainElement("postgres")),
-							gomega.HaveLen(1),
-						))
-					},
-				)
+				t.Run("watchtower depends-on label takes precedence over compose depends_on", func(t *testing.T) {
+					t.Parallel()
 
-				ginkgo.It("returns empty links for blank compose depends-on label", func() {
-					container = MockContainer(WithLabels(map[string]string{
+					container := MockContainer(WithLabels(map[string]string{
+						"com.docker.compose.depends_on":             "postgres",
+						"com.centurylinklabs.watchtower.depends-on": "redis",
+					}))
+					links := container.Links(true)
+					assert.Contains(t, links, "redis")
+					assert.NotContains(t, links, "postgres")
+					require.Len(t, links, 1)
+				})
+
+				t.Run("returns empty links for blank compose depends-on label", func(t *testing.T) {
+					t.Parallel()
+
+					container := MockContainer(WithLabels(map[string]string{
 						"com.docker.compose.depends_on": "",
 					}))
-					gomega.Expect(container.Links(true)).To(gomega.BeEmpty())
+					assert.Empty(t, container.Links(true))
 				})
 
-				ginkgo.It("parses colon-separated service:condition:required format", func() {
-					container = MockContainer(WithLabels(map[string]string{
+				t.Run("parses colon-separated service:condition:required format", func(t *testing.T) {
+					t.Parallel()
+
+					container := MockContainer(WithLabels(map[string]string{
 						"com.docker.compose.depends_on": "postgres:service_started:required,redis:service_healthy",
 					}))
 					links := container.Links(true)
-					gomega.Expect(links).To(gomega.SatisfyAll(
-						gomega.ContainElement("postgres"),
-						gomega.ContainElement("redis"),
-						gomega.HaveLen(2),
-					))
+					assert.Contains(t, links, "postgres")
+					assert.Contains(t, links, "redis")
+					require.Len(t, links, 2)
 				})
 			})
 
-			ginkgo.When("depends-on label is present", func() {
-				ginkgo.It("returns single dependent container", func() {
-					container = MockContainer(WithLabels(map[string]string{
+			t.Run("depends-on label is present", func(t *testing.T) {
+				t.Parallel()
+
+				t.Run("returns single dependent container", func(t *testing.T) {
+					t.Parallel()
+
+					container := MockContainer(WithLabels(map[string]string{
 						"com.centurylinklabs.watchtower.depends-on": "postgres",
 					}))
 					links := container.Links(true)
-					gomega.Expect(links).To(gomega.SatisfyAll(
-						gomega.ContainElement("postgres"),
-						gomega.HaveLen(1),
-					))
+					assert.Contains(t, links, "postgres")
+					require.Len(t, links, 1)
 				})
 
-				ginkgo.It("returns multiple dependent containers", func() {
-					container = MockContainer(WithLabels(map[string]string{
+				t.Run("returns multiple dependent containers", func(t *testing.T) {
+					t.Parallel()
+
+					container := MockContainer(WithLabels(map[string]string{
 						"com.centurylinklabs.watchtower.depends-on": "postgres,redis",
 					}))
 					links := container.Links(true)
-					gomega.Expect(links).To(gomega.SatisfyAll(
-						gomega.ContainElement("postgres"),
-						gomega.ContainElement("redis"),
-						gomega.HaveLen(2),
-					))
+					assert.Contains(t, links, "postgres")
+					assert.Contains(t, links, "redis")
+					require.Len(t, links, 2)
 				})
 
-				ginkgo.It("normalizes container names with slashes", func() {
-					container = MockContainer(WithLabels(map[string]string{
+				t.Run("normalizes container names with slashes", func(t *testing.T) {
+					t.Parallel()
+
+					container := MockContainer(WithLabels(map[string]string{
 						"com.centurylinklabs.watchtower.depends-on": "/postgres,/redis",
 					}))
 					links := container.Links(true)
-					gomega.Expect(links).To(gomega.SatisfyAll(
-						gomega.ContainElement("postgres"),
-						gomega.ContainElement("redis"),
-					))
+					assert.Contains(t, links, "postgres")
+					assert.Contains(t, links, "redis")
 				})
 
-				ginkgo.It("returns empty links for blank depends-on label", func() {
-					container = MockContainer(WithLabels(map[string]string{
+				t.Run("returns empty links for blank depends-on label", func(t *testing.T) {
+					t.Parallel()
+
+					container := MockContainer(WithLabels(map[string]string{
 						"com.centurylinklabs.watchtower.depends-on": "",
 					}))
-					gomega.Expect(container.Links(true)).To(gomega.BeEmpty())
+					assert.Empty(t, container.Links(true))
 				})
 
-				ginkgo.It(
-					"does not prefix container names with project name for cross-project dependencies",
-					func() {
-						container = MockContainer(WithLabels(map[string]string{
-							"com.docker.compose.project":                "myproject",
-							"com.centurylinklabs.watchtower.depends-on": "otherproject-db,external-service",
-						}))
-						links := container.Links(true)
-						gomega.Expect(links).To(gomega.SatisfyAll(
-							gomega.ContainElement("otherproject-db"),
-							gomega.ContainElement("external-service"),
-							gomega.HaveLen(2),
-						))
-						gomega.Expect(links).
-							To(gomega.Not(gomega.ContainElement("myproject-otherproject-db")))
-						gomega.Expect(links).
-							To(gomega.Not(gomega.ContainElement("myproject-external-service")))
-					},
-				)
+				t.Run("does not prefix container names with project name for cross-project dependencies", func(t *testing.T) {
+					t.Parallel()
 
-				ginkgo.It("handles cross-project dependencies with single container", func() {
-					container = MockContainer(WithLabels(map[string]string{
+					container := MockContainer(WithLabels(map[string]string{
+						"com.docker.compose.project":                "myproject",
+						"com.centurylinklabs.watchtower.depends-on": "otherproject-db,external-service",
+					}))
+					links := container.Links(true)
+					assert.Contains(t, links, "otherproject-db")
+					assert.Contains(t, links, "external-service")
+					require.Len(t, links, 2)
+					assert.NotContains(t, links, "myproject-otherproject-db")
+					assert.NotContains(t, links, "myproject-external-service")
+				})
+
+				t.Run("handles cross-project dependencies with single container", func(t *testing.T) {
+					t.Parallel()
+
+					container := MockContainer(WithLabels(map[string]string{
 						"com.docker.compose.project":                "webapp",
 						"com.centurylinklabs.watchtower.depends-on": "database",
 					}))
 					links := container.Links(true)
-					gomega.Expect(links).To(gomega.SatisfyAll(
-						gomega.ContainElement("database"),
-						gomega.HaveLen(1),
-					))
-					gomega.Expect(links).To(gomega.Not(gomega.ContainElement("webapp-database")))
+					assert.Contains(t, links, "database")
+					require.Len(t, links, 1)
+					assert.NotContains(t, links, "webapp-database")
 				})
 
-				ginkgo.It("supports cross-project dependencies without project labels", func() {
-					container = MockContainer(WithLabels(map[string]string{
+				t.Run("supports cross-project dependencies without project labels", func(t *testing.T) {
+					t.Parallel()
+
+					container := MockContainer(WithLabels(map[string]string{
 						"com.centurylinklabs.watchtower.depends-on": "standalone-db,external-api",
 					}))
 					links := container.Links(true)
-					gomega.Expect(links).To(gomega.SatisfyAll(
-						gomega.ContainElement("standalone-db"),
-						gomega.ContainElement("external-api"),
-						gomega.HaveLen(2),
-					))
+					assert.Contains(t, links, "standalone-db")
+					assert.Contains(t, links, "external-api")
+					require.Len(t, links, 2)
 				})
 
-				ginkgo.It("handles self-referencing dependencies gracefully", func() {
-					container = MockContainer(WithLabels(map[string]string{
+				t.Run("handles self-referencing dependencies gracefully", func(t *testing.T) {
+					t.Parallel()
+
+					container := MockContainer(WithLabels(map[string]string{
 						"com.centurylinklabs.watchtower.depends-on": "postgres,test-watchtower,redis",
 					}))
 					links := container.Links(true)
-					gomega.Expect(links).To(gomega.SatisfyAll(
-						gomega.ContainElement("postgres"),
-						gomega.ContainElement("redis"),
-						gomega.Not(gomega.ContainElement("test-watchtower")),
-						gomega.HaveLen(2),
-					))
+					assert.Contains(t, links, "postgres")
+					assert.Contains(t, links, "redis")
+					assert.NotContains(t, links, "test-watchtower")
+					require.Len(t, links, 2)
 				})
 
-				ginkgo.It(
-					"does not create self-reference when container name matches dependency",
-					func() {
-						container = MockContainer(WithLabels(map[string]string{
-							"com.centurylinklabs.watchtower.depends-on": testContainerName,
-						}))
-						container.containerInfo.Name = testContainerName
-						container.normalizedName = testContainerName
+				t.Run("does not create self-reference when container name matches dependency", func(t *testing.T) {
+					t.Parallel()
 
-						links := container.Links(true)
-						gomega.Expect(links).To(gomega.BeEmpty(),
-							"Container with name matching dependency should not include self in links")
-					},
-				)
+					container := MockContainer(WithLabels(map[string]string{
+						"com.centurylinklabs.watchtower.depends-on": testContainerName,
+					}))
+					container.containerInfo.Name = testContainerName
+					container.normalizedName = testContainerName
 
-				ginkgo.It("filters self-references from compose depends-on label", func() {
-					container = MockContainer(WithLabels(map[string]string{
+					links := container.Links(true)
+					assert.Empty(t, links, "Container with name matching dependency should not include self in links")
+				})
+
+				t.Run("filters self-references from compose depends-on label", func(t *testing.T) {
+					t.Parallel()
+
+					container := MockContainer(WithLabels(map[string]string{
 						"com.docker.compose.depends_on": testContainerName,
 					}))
 					container.containerInfo.Name = testContainerName
 					container.normalizedName = testContainerName
 
 					links := container.Links(true)
-					gomega.Expect(links).To(gomega.BeEmpty(),
-						"Compose depends-on with self-reference should be filtered out")
+					assert.Empty(t, links, "Compose depends-on with self-reference should be filtered out")
 				})
 
-				ginkgo.DescribeTable(
-					"parses malformed watchtower labels",
-					func(label string, expected []string) {
-						container = MockContainer(WithLabels(map[string]string{
-							"com.centurylinklabs.watchtower.depends-on": label,
-						}))
-						links := container.Links(true)
-						gomega.Expect(links).To(gomega.Equal(expected))
-					},
-					ginkgo.Entry("empty entries", ",postgres,,redis,", []string{"postgres", "redis"}),
-					ginkgo.Entry("extra spaces", " postgres , redis ", []string{"postgres", "redis"}),
-					ginkgo.Entry("empty string", "", []string{}),
-					ginkgo.Entry("multiple dependencies", "postgres,redis,mysql", []string{"postgres", "redis", "mysql"}),
-				)
+				t.Run("parses malformed watchtower labels", func(t *testing.T) {
+					t.Parallel()
 
-				ginkgo.It("normalizes invalid container name dependencies", func() {
-					container = MockContainer(WithLabels(map[string]string{
+					tests := []struct {
+						name     string
+						label    string
+						expected []string
+					}{
+						{name: "empty entries", label: ",postgres,,redis,", expected: []string{"postgres", "redis"}},
+						{name: "extra spaces", label: " postgres , redis ", expected: []string{"postgres", "redis"}},
+						{name: "empty string", label: "", expected: []string{}},
+						{name: "multiple dependencies", label: "postgres,redis,mysql", expected: []string{"postgres", "redis", "mysql"}},
+					}
+
+					for _, tt := range tests {
+						t.Run(tt.name, func(t *testing.T) {
+							t.Parallel()
+
+							label, expected := tt.label, tt.expected
+
+							container := MockContainer(WithLabels(map[string]string{
+								"com.centurylinklabs.watchtower.depends-on": label,
+							}))
+							links := container.Links(true)
+							assert.Equal(t, expected, links)
+						})
+					}
+				})
+
+				t.Run("normalizes invalid container name dependencies", func(t *testing.T) {
+					t.Parallel()
+
+					container := MockContainer(WithLabels(map[string]string{
 						"com.centurylinklabs.watchtower.depends-on": "postgres db, redis",
 					}))
 					links := container.Links(true)
-					gomega.Expect(links).To(gomega.Equal([]string{"postgres db", "redis"}))
+					assert.Equal(t, []string{"postgres db", "redis"}, links)
 				})
 
-				ginkgo.It("handles very long dependency lists", func() {
+				t.Run("handles very long dependency lists", func(t *testing.T) {
+					t.Parallel()
+
 					var deps []string
 					for i := 1; i <= 100; i++ {
 						deps = append(deps, fmt.Sprintf("dep%d", i))
 					}
 
 					label := strings.Join(deps, ",")
-					container = MockContainer(WithLabels(map[string]string{
+					container := MockContainer(WithLabels(map[string]string{
 						"com.centurylinklabs.watchtower.depends-on": label,
 					}))
 					links := container.Links(true)
-					gomega.Expect(links).To(gomega.HaveLen(100))
-					gomega.Expect(links).To(gomega.ContainElement("dep1"))
-					gomega.Expect(links).To(gomega.ContainElement("dep50"))
-					gomega.Expect(links).To(gomega.ContainElement("dep100"))
+					require.Len(t, links, 100)
+					assert.Contains(t, links, "dep1")
+					assert.Contains(t, links, "dep50")
+					assert.Contains(t, links, "dep100")
 				})
 			})
 
-			ginkgo.Context("when UseComposeDependsOn is disabled", func() {
-				ginkgo.It("returns empty links for compose depends-on label", func() {
-					container = MockContainer(WithLabels(map[string]string{
+			t.Run("when UseComposeDependsOn is disabled", func(t *testing.T) {
+				t.Parallel()
+
+				t.Run("returns empty links for compose depends-on label", func(t *testing.T) {
+					t.Parallel()
+
+					container := MockContainer(WithLabels(map[string]string{
 						"com.docker.compose.depends_on": "postgres,redis",
 					}))
 					links := container.Links(false)
-					gomega.Expect(links).To(gomega.BeEmpty(),
-						"Compose depends-on should be ignored when disabled")
+					assert.Empty(t, links, "Compose depends-on should be ignored when disabled")
 				})
 
-				ginkgo.It("still returns links from watchtower depends-on label", func() {
-					container = MockContainer(WithLabels(map[string]string{
+				t.Run("still returns links from watchtower depends-on label", func(t *testing.T) {
+					t.Parallel()
+
+					container := MockContainer(WithLabels(map[string]string{
 						"com.docker.compose.depends_on":             "postgres",
 						"com.centurylinklabs.watchtower.depends-on": "redis",
 					}))
 					links := container.Links(false)
-					gomega.Expect(links).To(gomega.SatisfyAll(
-						gomega.ContainElement("redis"),
-						gomega.Not(gomega.ContainElement("postgres")),
-						gomega.HaveLen(1),
-					))
+					assert.Contains(t, links, "redis")
+					assert.NotContains(t, links, "postgres")
+					require.Len(t, links, 1)
 				})
 
-				ginkgo.It("returns links from host config when compose is disabled", func() {
-					container = MockContainer(WithLabels(map[string]string{
+				t.Run("returns links from host config when compose is disabled", func(t *testing.T) {
+					t.Parallel()
+
+					container := MockContainer(WithLabels(map[string]string{
 						"com.docker.compose.depends_on": "postgres",
 					}), WithLinks([]string{
 						"redis:test-watchtower",
 					}))
 					links := container.Links(false)
-					gomega.Expect(links).To(gomega.SatisfyAll(
-						gomega.ContainElement("redis"),
-						gomega.Not(gomega.ContainElement("postgres")),
-						gomega.HaveLen(1),
-					))
+					assert.Contains(t, links, "redis")
+					assert.NotContains(t, links, "postgres")
+					require.Len(t, links, 1)
 				})
 			})
 
-			ginkgo.It("returns links from host config when depends-on labels are absent", func() {
-				container = MockContainer(WithLinks([]string{
+			t.Run("returns links from host config when depends-on labels are absent", func(t *testing.T) {
+				t.Parallel()
+
+				container := MockContainer(WithLinks([]string{
 					"redis:test-watchtower",
 					"postgres:test-watchtower",
 				}))
 				links := container.Links(true)
-				gomega.Expect(links).To(gomega.SatisfyAll(
-					gomega.ContainElement("redis"),
-					gomega.ContainElement("postgres"),
-					gomega.HaveLen(2),
-				))
+				assert.Contains(t, links, "redis")
+				assert.Contains(t, links, "postgres")
+				require.Len(t, links, 2)
 			})
 
-			ginkgo.It("warns and skips invalid link format without colon", func() {
+			t.Run("warns and skips invalid link format without colon", func(t *testing.T) {
+				t.Parallel()
+
 				logOutput := &bytes.Buffer{}
 				w := logging.LogfmtWriter(logOutput)
 				l := zerolog.New(w).Level(zerolog.DebugLevel).With().Timestamp().Logger()
-				container = MockContainer(WithLinks([]string{"invalidlink"}))
+				container := MockContainer(WithLinks([]string{"invalidlink"}))
 				container.log = &l
 				links := container.Links(true)
-				gomega.Expect(links).To(gomega.BeEmpty())
-				gomega.Expect(logOutput.String()).
-					To(gomega.ContainSubstring("Invalid link format in host config, expected 'name:alias'"))
+				assert.Empty(t, links)
+				assert.Contains(t, logOutput.String(), "Invalid link format in host config, expected 'name:alias'")
 			})
 
-			ginkgo.It("warns and skips link with empty container name", func() {
+			t.Run("warns and skips link with empty container name", func(t *testing.T) {
+				t.Parallel()
+
 				logOutput := &bytes.Buffer{}
 				w := logging.LogfmtWriter(logOutput)
 				l := zerolog.New(w).Level(zerolog.DebugLevel).With().Timestamp().Logger()
-				container = MockContainer(WithLinks([]string{":alias"}))
+				container := MockContainer(WithLinks([]string{":alias"}))
 				container.log = &l
 				links := container.Links(true)
-				gomega.Expect(links).To(gomega.BeEmpty())
-				gomega.Expect(logOutput.String()).
-					To(gomega.ContainSubstring("Invalid link format in host config, missing container name"))
+				assert.Empty(t, links)
+				assert.Contains(t, logOutput.String(), "Invalid link format in host config, missing container name")
 			})
 
-			ginkgo.It("normalizes container names with leading slashes", func() {
-				container = MockContainer(WithLinks([]string{"/redis:test-watchtower"}))
+			t.Run("normalizes container names with leading slashes", func(t *testing.T) {
+				t.Parallel()
+
+				container := MockContainer(WithLinks([]string{"/redis:test-watchtower"}))
 				links := container.Links(true)
-				gomega.Expect(links).To(gomega.ContainElement("redis"))
+				assert.Contains(t, links, "redis")
 			})
 
-			ginkgo.It("does not prefix already prefixed container names", func() {
-				container = MockContainer(
+			t.Run("does not prefix already prefixed container names", func(t *testing.T) {
+				t.Parallel()
+
+				container := MockContainer(
 					WithLinks([]string{"myproject-redis:test-watchtower"}),
 					WithLabels(map[string]string{"com.docker.compose.project": "myproject"}),
 				)
 				links := container.Links(true)
-				gomega.Expect(links).To(gomega.ContainElement("myproject-redis"))
+				assert.Contains(t, links, "myproject-redis")
 			})
 
-			ginkgo.It("does not prefix when project name is empty", func() {
-				container = MockContainer(WithLinks([]string{"redis:test-watchtower"}))
+			t.Run("does not prefix when project name is empty", func(t *testing.T) {
+				t.Parallel()
+
+				container := MockContainer(WithLinks([]string{"redis:test-watchtower"}))
 				links := container.Links(true)
-				gomega.Expect(links).To(gomega.ContainElement("redis"))
+				assert.Contains(t, links, "redis")
 			})
 
-			ginkgo.Context("network mode", func() {
-				ginkgo.It("includes network mode dependencies", func() {
-					container = MockContainer(
+			t.Run("network mode", func(t *testing.T) {
+				t.Parallel()
+
+				t.Run("includes network mode dependencies", func(t *testing.T) {
+					t.Parallel()
+
+					container := MockContainer(
 						WithNetworkMode("container:other"),
 						WithLabels(map[string]string{"com.docker.compose.project": "myproject"}),
 					)
 					links := container.Links(true)
-					gomega.Expect(links).To(gomega.ContainElement("other"))
-					gomega.Expect(links).NotTo(gomega.ContainElement("myproject-other"))
+					assert.Contains(t, links, "other")
+					assert.NotContains(t, links, "myproject-other")
 				})
 
-				ginkgo.It("includes the bare network mode container name", func() {
+				t.Run("includes the bare network mode container name", func(t *testing.T) {
+					t.Parallel()
+
 					// The network mode holds a real container name, including when
 					// that container belongs to another Compose project.
-					container = MockContainer(
+					container := MockContainer(
 						WithNetworkMode("container:gluetun"),
 						WithLabels(map[string]string{"com.docker.compose.project": "qbittorrent"}),
 					)
 					links := container.Links(true)
-					gomega.Expect(links).To(gomega.ConsistOf("gluetun"))
+					assert.ElementsMatch(t, []string{"gluetun"}, links)
 				})
 
-				ginkgo.It("strips a leading slash from the network mode container name", func() {
+				t.Run("strips a leading slash from the network mode container name", func(t *testing.T) {
+					t.Parallel()
+
 					// Inspect rewrite stores container: plus the Docker name, which
 					// includes a leading slash.
-					container = MockContainer(
+					container := MockContainer(
 						WithNetworkMode("container:/gluetun"),
 						WithLabels(map[string]string{"com.docker.compose.project": "qbittorrent"}),
 					)
 					links := container.Links(true)
-					gomega.Expect(links).To(gomega.ConsistOf("gluetun"))
+					assert.ElementsMatch(t, []string{"gluetun"}, links)
 				})
 
-				ginkgo.It("does not double-prefix an already project-qualified network mode name", func() {
-					container = MockContainer(
+				t.Run("does not double-prefix an already project-qualified network mode name", func(t *testing.T) {
+					t.Parallel()
+
+					container := MockContainer(
 						WithNetworkMode("container:gluetun-vpn-1"),
 						WithLabels(map[string]string{"com.docker.compose.project": "gluetun"}),
 					)
 					links := container.Links(true)
-					gomega.Expect(links).To(gomega.ConsistOf("gluetun-vpn-1"))
+					assert.ElementsMatch(t, []string{"gluetun-vpn-1"}, links)
 				})
 
-				ginkgo.It("does not prefix a network mode container ID", func() {
+				t.Run("does not prefix a network mode container ID", func(t *testing.T) {
+					t.Parallel()
+
 					// Moby inspect stores container:<id> after create. Prefixing
 					// that ID with the dependent's project would never match.
 					const providerID = "25e75393800b5c450a6841212a3b92ed28fa35414a586dec9f2c8a520d4910c2"
 
-					container = MockContainer(
+					container := MockContainer(
 						WithNetworkMode("container:"+providerID),
 						WithLabels(map[string]string{"com.docker.compose.project": "qbittorrent"}),
 					)
 					links := container.Links(true)
-					gomega.Expect(links).To(gomega.ConsistOf(providerID))
+					assert.ElementsMatch(t, []string{providerID}, links)
 				})
 			})
 
-			ginkgo.Context("volumes-from", func() {
-				ginkgo.It("includes volumes-from container names without a project prefix", func() {
-					container = MockContainer(
+			t.Run("volumes-from", func(t *testing.T) {
+				t.Parallel()
+
+				t.Run("includes volumes-from container names without a project prefix", func(t *testing.T) {
+					t.Parallel()
+
+					container := MockContainer(
 						WithVolumesFrom([]string{"app:rw"}),
 						WithLabels(map[string]string{"com.docker.compose.project": "nextcloud"}),
 					)
 					links := container.Links(true)
-					gomega.Expect(links).To(gomega.ConsistOf("app"))
+					assert.ElementsMatch(t, []string{"app"}, links)
 				})
 
-				ginkgo.It("includes volumes-from container IDs without a project prefix", func() {
+				t.Run("includes volumes-from container IDs without a project prefix", func(t *testing.T) {
+					t.Parallel()
+
 					const appID = "9b738d6a78250d731816cc5020d8cfaf55e605cd510f4d4662688bd9a6c4e0c7"
 
-					container = MockContainer(
+					container := MockContainer(
 						WithVolumesFrom([]string{appID}),
 						WithLabels(map[string]string{"com.docker.compose.project": "nextcloud"}),
 					)
 					links := container.Links(true)
-					gomega.Expect(links).To(gomega.ConsistOf(appID))
+					assert.ElementsMatch(t, []string{appID}, links)
 				})
 
-				ginkgo.It("strips a leading slash from a volumes-from container name", func() {
-					container = MockContainer(
+				t.Run("strips a leading slash from a volumes-from container name", func(t *testing.T) {
+					t.Parallel()
+
+					container := MockContainer(
 						WithVolumesFrom([]string{"/nextcloud-app:ro"}),
 					)
 					links := container.Links(true)
-					gomega.Expect(links).To(gomega.ConsistOf("nextcloud-app"))
+					assert.ElementsMatch(t, []string{"nextcloud-app"}, links)
 				})
 
-				ginkgo.It("includes multiple volumes-from identities", func() {
-					container = MockContainer(
+				t.Run("includes multiple volumes-from identities", func(t *testing.T) {
+					t.Parallel()
+
+					container := MockContainer(
 						WithVolumesFrom([]string{"app:rw", "db:ro"}),
 					)
 					links := container.Links(true)
-					gomega.Expect(links).To(gomega.ConsistOf("app", "db"))
+					assert.ElementsMatch(t, []string{"app", "db"}, links)
 				})
 
-				ginkgo.It("skips empty volumes-from specs", func() {
-					container = MockContainer(
+				t.Run("skips empty volumes-from specs", func(t *testing.T) {
+					t.Parallel()
+
+					container := MockContainer(
 						WithVolumesFrom([]string{"", "app:rw"}),
 					)
 					links := container.Links(true)
-					gomega.Expect(links).To(gomega.ConsistOf("app"))
+					assert.ElementsMatch(t, []string{"app"}, links)
 				})
 
-				ginkgo.It("does not treat a non-mode colon suffix as a volumes-from mode", func() {
-					container = MockContainer(
+				t.Run("does not treat a non-mode colon suffix as a volumes-from mode", func(t *testing.T) {
+					t.Parallel()
+
+					container := MockContainer(
 						WithVolumesFrom([]string{"app:latest"}),
 					)
 					links := container.Links(true)
-					gomega.Expect(links).To(gomega.ConsistOf("app:latest"))
+					assert.ElementsMatch(t, []string{"app:latest"}, links)
 				})
 
-				ginkgo.It("includes volumes-from along with a watchtower depends-on label", func() {
-					container = MockContainer(
+				t.Run("includes volumes-from along with a watchtower depends-on label", func(t *testing.T) {
+					t.Parallel()
+
+					container := MockContainer(
 						WithLabels(map[string]string{
 							"com.centurylinklabs.watchtower.depends-on": "redis",
 						}),
 						WithVolumesFrom([]string{"app:rw"}),
 					)
 					links := container.Links(true)
-					gomega.Expect(links).To(gomega.Equal([]string{"redis", "app"}))
+					assert.Equal(t, []string{"redis", "app"}, links)
 				})
 
-				ginkgo.It("includes volumes-from along with a compose depends_on label", func() {
-					container = MockContainer(
+				t.Run("includes volumes-from along with a compose depends_on label", func(t *testing.T) {
+					t.Parallel()
+
+					container := MockContainer(
 						WithLabels(map[string]string{
 							"com.docker.compose.depends_on": "postgres",
 						}),
 						WithVolumesFrom([]string{"app:rw"}),
 					)
 					links := container.Links(true)
-					gomega.Expect(links).To(gomega.Equal([]string{"postgres", "app"}))
+					assert.Equal(t, []string{"postgres", "app"}, links)
 				})
 
-				ginkgo.It("does not duplicate a volumes-from identity already listed by depends-on", func() {
-					container = MockContainer(
+				t.Run("does not duplicate a volumes-from identity already listed by depends-on", func(t *testing.T) {
+					t.Parallel()
+
+					container := MockContainer(
 						WithLabels(map[string]string{
 							"com.centurylinklabs.watchtower.depends-on": "app",
 						}),
 						WithVolumesFrom([]string{"app:rw"}),
 					)
 					links := container.Links(true)
-					gomega.Expect(links).To(gomega.Equal([]string{"app"}))
+					assert.Equal(t, []string{"app"}, links)
 				})
 
-				ginkgo.It("includes network mode and volumes-from identities together", func() {
-					container = MockContainer(
+				t.Run("includes network mode and volumes-from identities together", func(t *testing.T) {
+					t.Parallel()
+
+					container := MockContainer(
 						WithNetworkMode("container:gluetun"),
 						WithVolumesFrom([]string{"app:rw"}),
 						WithLabels(map[string]string{"com.docker.compose.project": "qbittorrent"}),
 					)
 					links := container.Links(true)
-					gomega.Expect(links).To(gomega.ConsistOf("gluetun", "app"))
+					assert.ElementsMatch(t, []string{"gluetun", "app"}, links)
 				})
 			})
 		})
 
-		ginkgo.It("returns pre and post update timeout values", func() {
-			container = MockContainer(WithLabels(map[string]string{
+		t.Run("returns pre and post update timeout values", func(t *testing.T) {
+			t.Parallel()
+
+			container := MockContainer(WithLabels(map[string]string{
 				"com.centurylinklabs.watchtower.lifecycle.pre-update-timeout":  "3",
 				"com.centurylinklabs.watchtower.lifecycle.post-update-timeout": "5",
 			}))
-			gomega.Expect(container.PreUpdateTimeout()).To(gomega.Equal(3))
-			gomega.Expect(container.PostUpdateTimeout()).To(gomega.Equal(5))
+			assert.Equal(t, 3, container.PreUpdateTimeout())
+			assert.Equal(t, 5, container.PostUpdateTimeout())
 		})
 	})
 
-	ginkgo.Describe("ResolveContainerIdentifier", func() {
-		ginkgo.It("returns service name when compose service label is present", func() {
+	t.Run("ResolveContainerIdentifier", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("returns service name when compose service label is present", func(t *testing.T) {
+			t.Parallel()
+
 			container := MockContainer(WithLabels(map[string]string{
 				"com.docker.compose.service": "web-service",
 			}))
 			identifier := ResolveContainerIdentifier(container)
-			gomega.Expect(identifier).To(gomega.Equal("web-service"))
+			assert.Equal(t, "web-service", identifier)
 		})
 
-		ginkgo.It("returns container name when compose service label is absent", func() {
+		t.Run("returns container name when compose service label is absent", func(t *testing.T) {
+			t.Parallel()
+
 			container := MockContainer(WithLabels(map[string]string{
 				"other.label": "value",
 			}))
 			identifier := ResolveContainerIdentifier(container)
-			gomega.Expect(identifier).To(gomega.Equal("test-watchtower"))
+			assert.Equal(t, "test-watchtower", identifier)
 		})
 
-		ginkgo.It("returns container name when labels are empty", func() {
+		t.Run("returns container name when labels are empty", func(t *testing.T) {
+			t.Parallel()
+
 			container := MockContainer(WithLabels(map[string]string{}))
 			identifier := ResolveContainerIdentifier(container)
-			gomega.Expect(identifier).To(gomega.Equal("test-watchtower"))
+			assert.Equal(t, "test-watchtower", identifier)
 		})
 
-		ginkgo.It("returns container name when labels are nil", func() {
+		t.Run("returns container name when labels are nil", func(t *testing.T) {
+			t.Parallel()
+
 			container := MockContainer(WithLabels(nil))
 			identifier := ResolveContainerIdentifier(container)
-			gomega.Expect(identifier).To(gomega.Equal("test-watchtower"))
+			assert.Equal(t, "test-watchtower", identifier)
 		})
 
-		ginkgo.It("returns service name when compose service label has value", func() {
+		t.Run("returns service name when compose service label has value", func(t *testing.T) {
+			t.Parallel()
+
 			container := MockContainer(WithLabels(map[string]string{
 				"com.docker.compose.service": "api",
 			}))
 			identifier := ResolveContainerIdentifier(container)
-			gomega.Expect(identifier).To(gomega.Equal("api"))
+			assert.Equal(t, "api", identifier)
 		})
 
-		ginkgo.It("handles multiple labels with service name present", func() {
+		t.Run("handles multiple labels with service name present", func(t *testing.T) {
+			t.Parallel()
+
 			container := MockContainer(WithLabels(map[string]string{
 				"com.docker.compose.service":     "db-service",
 				"com.docker.compose.project":     "myproject",
 				"com.centurylinklabs.watchtower": "true",
 			}))
 			identifier := ResolveContainerIdentifier(container)
-			gomega.Expect(identifier).To(gomega.Equal("myproject-db-service"))
+			assert.Equal(t, "myproject-db-service", identifier)
 		})
 
-		ginkgo.It("returns container name when ContainerInfo returns nil", func() {
-			container := mockTypes.NewMockContainer(ginkgo.GinkgoT())
+		t.Run("returns container name when ContainerInfo returns nil", func(t *testing.T) {
+			t.Parallel()
+
+			container := mockTypes.NewMockContainer(t)
 			container.EXPECT().ContainerInfo().Return(nil)
 			container.EXPECT().Name().Return("test-watchtower")
 			identifier := ResolveContainerIdentifier(container)
-			gomega.Expect(identifier).To(gomega.Equal("test-watchtower"))
+			assert.Equal(t, "test-watchtower", identifier)
 		})
 
-		ginkgo.It("returns container name when ContainerInfo.Config is nil", func() {
+		t.Run("returns container name when ContainerInfo.Config is nil", func(t *testing.T) {
+			t.Parallel()
+
 			container := MockContainer(WithLabels(map[string]string{}))
 			container.containerInfo.Config = nil
 			identifier := ResolveContainerIdentifier(container)
-			gomega.Expect(identifier).To(gomega.Equal("test-watchtower"))
+			assert.Equal(t, "test-watchtower", identifier)
 		})
 
-		ginkgo.It("returns container name for replica containers", func() {
-			mockContainer := mockTypes.NewMockContainer(ginkgo.GinkgoT())
+		t.Run("returns container name for replica containers", func(t *testing.T) {
+			t.Parallel()
+
+			mockContainer := mockTypes.NewMockContainer(t)
 			mockContainer.EXPECT().ContainerInfo().Return(&dockerContainer.InspectResponse{
 				Config: &dockerContainer.Config{
 					Labels: map[string]string{
@@ -1033,105 +1222,78 @@ var _ = ginkgo.Describe("Container", func() {
 			})
 			mockContainer.EXPECT().Name().Return("myproject-web-1")
 			result := ResolveContainerIdentifier(mockContainer)
-			gomega.Expect(result).To(gomega.Equal("myproject-web-1"))
+			assert.Equal(t, "myproject-web-1", result)
 		})
 
-		ginkgo.DescribeTable("replica container identifiers",
-			func(name string, labels map[string]string, expected, description string) {
-				container := MockContainer(WithLabels(labels))
-				container.containerInfo.Name = name
-				container.normalizedName = name
-				result := ResolveContainerIdentifier(container)
-				gomega.Expect(result).To(gomega.Equal(expected), "Test case: %s", description)
-			},
-			ginkgo.Entry(
-				"single replica returns unique name",
-				"myproject-web-1",
-				map[string]string{
+		t.Run("replica container identifiers", func(t *testing.T) {
+			t.Parallel()
+
+			tests := []struct {
+				title       string
+				name        string
+				labels      map[string]string
+				expected    string
+				description string
+			}{
+				{title: "single replica returns unique name", name: "myproject-web-1", labels: map[string]string{
 					"com.docker.compose.service":          "web",
 					"com.docker.compose.project":          "myproject",
 					"com.docker.compose.container-number": "1",
-				},
-				"myproject-web-1",
-				"Replica should return full name to ensure uniqueness",
-			),
-			ginkgo.Entry(
-				"multiple replicas with different numbers",
-				"myproject-web-2",
-				map[string]string{
+				}, expected: "myproject-web-1", description: "Replica should return full name to ensure uniqueness"},
+				{title: "multiple replicas with different numbers", name: "myproject-web-2", labels: map[string]string{
 					"com.docker.compose.service":          "web",
 					"com.docker.compose.project":          "myproject",
 					"com.docker.compose.container-number": "2",
-				},
-				"myproject-web-2",
-				"Each replica should have unique identifier",
-			),
-			ginkgo.Entry(
-				"replica without container number label",
-				"app-db-3",
-				map[string]string{
+				}, expected: "myproject-web-2", description: "Each replica should have unique identifier"},
+				{title: "replica without container number label", name: "app-db-3", labels: map[string]string{
 					"com.docker.compose.service": "db",
 					"com.docker.compose.project": "app",
-				},
-				"app-db-3",
-				"Should return full name even without container number to avoid collisions",
-			),
-			ginkgo.Entry(
-				"non-replica with container number",
-				"mydb",
-				map[string]string{
+				}, expected: "app-db-3", description: "Should return full name even without container number to avoid collisions"},
+				{title: "non-replica with container number", name: "mydb", labels: map[string]string{
 					"com.docker.compose.service":          "db",
 					"com.docker.compose.project":          "my",
 					"com.docker.compose.container-number": "1",
-				},
-				"my-db-1",
-				"Non-replica should use project-service-number format",
-			),
-			ginkgo.Entry(
-				"replica with missing service label",
-				"myproject-orphan-1",
-				map[string]string{
+				}, expected: "my-db-1", description: "Non-replica should use project-service-number format"},
+				{title: "replica with missing service label", name: "myproject-orphan-1", labels: map[string]string{
 					"com.docker.compose.project": "myproject",
-				},
-				"myproject-orphan-1",
-				"Container with project prefix but no service should return full name",
-			),
-			ginkgo.Entry(
-				"container with service but no project",
-				"unknown-web-2",
-				map[string]string{
+				}, expected: "myproject-orphan-1", description: "Container with project prefix but no service should return full name"},
+				{title: "container with service but no project", name: "unknown-web-2", labels: map[string]string{
 					"com.docker.compose.service": "web",
-				},
-				"web",
-				"Non-replica container with service label returns service name",
-			),
-			ginkgo.Entry(
-				"collision prevention for replicas",
-				"test-app-1",
-				map[string]string{
+				}, expected: "web", description: "Non-replica container with service label returns service name"},
+				{title: "collision prevention for replicas", name: "test-app-1", labels: map[string]string{
 					"com.docker.compose.service":          "app",
 					"com.docker.compose.project":          "test",
 					"com.docker.compose.container-number": "1",
-				},
-				"test-app-1",
-				"Should return unique name instead of potentially colliding 'test-app'",
-			),
-			ginkgo.Entry(
-				"collision prevention for replicas with same number",
-				"prod-api-1",
-				map[string]string{
+				}, expected: "test-app-1", description: "Should return unique name instead of potentially colliding 'test-app'"},
+				{title: "collision prevention for replicas with same number", name: "prod-api-1", labels: map[string]string{
 					"com.docker.compose.service":          "api",
 					"com.docker.compose.project":          "prod",
 					"com.docker.compose.container-number": "1",
-				},
-				"prod-api-1",
-				"Multiple replicas with same number should still be unique",
-			),
-		)
+				}, expected: "prod-api-1", description: "Multiple replicas with same number should still be unique"},
+			}
 
-		ginkgo.Describe("replica collision scenarios", func() {
-			ginkgo.It("prevents collision between replicas without unique identifiers", func() {
-				replica1 := mockTypes.NewMockContainer(ginkgo.GinkgoT())
+			for _, tt := range tests {
+				t.Run(tt.title, func(t *testing.T) {
+					t.Parallel()
+
+					name, labels, expected, description := tt.name, tt.labels, tt.expected, tt.description
+
+					container := MockContainer(WithLabels(labels))
+					container.containerInfo.Name = name
+					container.normalizedName = name
+					result := ResolveContainerIdentifier(container)
+					assert.Equal(t, expected, result, "Test case: %s", description)
+				})
+			}
+		})
+
+		t.Run("replica collision scenarios", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("prevents collision between replicas without unique identifiers", func(t *testing.T) {
+				t.Parallel()
+
+				replica1 := mockTypes.NewMockContainer(t)
 				replica1.EXPECT().ContainerInfo().Return(&dockerContainer.InspectResponse{
 					Config: &dockerContainer.Config{
 						Labels: map[string]string{
@@ -1142,7 +1304,7 @@ var _ = ginkgo.Describe("Container", func() {
 				})
 				replica1.EXPECT().Name().Return("myapp-service-1")
 
-				replica2 := mockTypes.NewMockContainer(ginkgo.GinkgoT())
+				replica2 := mockTypes.NewMockContainer(t)
 				replica2.EXPECT().ContainerInfo().Return(&dockerContainer.InspectResponse{
 					Config: &dockerContainer.Config{
 						Labels: map[string]string{
@@ -1156,13 +1318,15 @@ var _ = ginkgo.Describe("Container", func() {
 				id1 := ResolveContainerIdentifier(replica1)
 				id2 := ResolveContainerIdentifier(replica2)
 
-				gomega.Expect(id1).To(gomega.Equal("myapp-service-1"))
-				gomega.Expect(id2).To(gomega.Equal("myapp-service-2"))
-				gomega.Expect(id1).ToNot(gomega.Equal(id2))
+				assert.Equal(t, "myapp-service-1", id1)
+				assert.Equal(t, "myapp-service-2", id2)
+				assert.NotEqual(t, id2, id1)
 			})
 
-			ginkgo.It("handles replicas with and without container number labels", func() {
-				replicaWithNumber := mockTypes.NewMockContainer(ginkgo.GinkgoT())
+			t.Run("handles replicas with and without container number labels", func(t *testing.T) {
+				t.Parallel()
+
+				replicaWithNumber := mockTypes.NewMockContainer(t)
 				replicaWithNumber.EXPECT().ContainerInfo().Return(&dockerContainer.InspectResponse{
 					Config: &dockerContainer.Config{
 						Labels: map[string]string{
@@ -1174,7 +1338,7 @@ var _ = ginkgo.Describe("Container", func() {
 				})
 				replicaWithNumber.EXPECT().Name().Return("queue-worker-5")
 
-				replicaWithoutNumber := mockTypes.NewMockContainer(ginkgo.GinkgoT())
+				replicaWithoutNumber := mockTypes.NewMockContainer(t)
 				replicaWithoutNumber.EXPECT().
 					ContainerInfo().
 					Return(&dockerContainer.InspectResponse{
@@ -1190,115 +1354,153 @@ var _ = ginkgo.Describe("Container", func() {
 				idWith := ResolveContainerIdentifier(replicaWithNumber)
 				idWithout := ResolveContainerIdentifier(replicaWithoutNumber)
 
-				gomega.Expect(idWith).To(gomega.Equal("queue-worker-5"))
-				gomega.Expect(idWithout).To(gomega.Equal("queue-worker-6"))
+				assert.Equal(t, "queue-worker-5", idWith)
+				assert.Equal(t, "queue-worker-6", idWithout)
 			})
 		})
 
-		ginkgo.Describe("filterSelfReferences", func() {
-			ginkgo.It("filters out basic self-references from links", func() {
+		t.Run("filterSelfReferences", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("filters out basic self-references from links", func(t *testing.T) {
+				t.Parallel()
+
 				links := []string{"db", webContainerName, "cache"}
 				containerName := webContainerName
 				result := filterSelfReferences(links, containerName)
-				gomega.Expect(result).To(gomega.Equal([]string{"db", "cache"}))
+				assert.Equal(t, []string{"db", "cache"}, result)
 			})
 
-			ginkgo.It("filters out multiple self-references", func() {
+			t.Run("filters out multiple self-references", func(t *testing.T) {
+				t.Parallel()
+
 				links := []string{"first", webContainerName, "second", webContainerName, "third"}
 				containerName := webContainerName
 				result := filterSelfReferences(links, containerName)
-				gomega.Expect(result).To(gomega.Equal([]string{"first", "second", "third"}))
+				assert.Equal(t, []string{"first", "second", "third"}, result)
 			})
 
-			ginkgo.It("returns empty slice when all links are self-references", func() {
+			t.Run("returns empty slice when all links are self-references", func(t *testing.T) {
+				t.Parallel()
+
 				links := []string{webContainerName}
 				containerName := webContainerName
 				result := filterSelfReferences(links, containerName)
-				gomega.Expect(result).To(gomega.BeEmpty())
+				assert.Empty(t, result)
 			})
 
-			ginkgo.It("preserves order of non-self links", func() {
+			t.Run("preserves order of non-self links", func(t *testing.T) {
+				t.Parallel()
+
 				links := []string{"db", webContainerName, "cache", webContainerName, "redis"}
 				containerName := webContainerName
 				result := filterSelfReferences(links, containerName)
-				gomega.Expect(result).To(gomega.Equal([]string{"db", "cache", "redis"}))
+				assert.Equal(t, []string{"db", "cache", "redis"}, result)
 			})
 
-			ginkgo.It("returns original slice unchanged when no self-references exist", func() {
+			t.Run("returns original slice unchanged when no self-references exist", func(t *testing.T) {
+				t.Parallel()
+
 				links := []string{"db", "cache"}
 				containerName := webContainerName
 				result := filterSelfReferences(links, containerName)
-				gomega.Expect(result).To(gomega.Equal([]string{"db", "cache"}))
+				assert.Equal(t, []string{"db", "cache"}, result)
 			})
 		})
 	})
 
-	ginkgo.Describe("No-Pull Configuration", func() {
-		ginkgo.When("no-pull argument is not set", func() {
-			ginkgo.It("returns true when no-pull label is true", func() {
+	t.Run("No-Pull Configuration", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("no-pull argument is not set", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("returns true when no-pull label is true", func(t *testing.T) {
+				t.Parallel()
+
 				c := MockContainer(WithLabels(map[string]string{
 					"com.centurylinklabs.watchtower.no-pull": "true",
 				}))
-				gomega.Expect(c.IsNoPull(types.UpdateParams{})).To(gomega.BeTrue())
+				assert.True(t, c.IsNoPull(types.UpdateParams{}))
 			})
 
-			ginkgo.It("returns false when no-pull label is false", func() {
+			t.Run("returns false when no-pull label is false", func(t *testing.T) {
+				t.Parallel()
+
 				c := MockContainer(WithLabels(map[string]string{
 					"com.centurylinklabs.watchtower.no-pull": "false",
 				}))
-				gomega.Expect(c.IsNoPull(types.UpdateParams{})).To(gomega.BeFalse())
+				assert.False(t, c.IsNoPull(types.UpdateParams{}))
 			})
 
-			ginkgo.It("returns false for invalid no-pull label", func() {
+			t.Run("returns false for invalid no-pull label", func(t *testing.T) {
+				t.Parallel()
+
 				c := MockContainer(WithLabels(map[string]string{
 					"com.centurylinklabs.watchtower.no-pull": "maybe",
 				}))
-				gomega.Expect(c.IsNoPull(types.UpdateParams{})).To(gomega.BeFalse())
+				assert.False(t, c.IsNoPull(types.UpdateParams{}))
 			})
 
-			ginkgo.It("returns false when no-pull label is unset", func() {
+			t.Run("returns false when no-pull label is unset", func(t *testing.T) {
+				t.Parallel()
+
 				c := MockContainer(WithLabels(map[string]string{}))
-				gomega.Expect(c.IsNoPull(types.UpdateParams{})).To(gomega.BeFalse())
+				assert.False(t, c.IsNoPull(types.UpdateParams{}))
 			})
 		})
 
-		ginkgo.When("no-pull argument is true", func() {
-			ginkgo.It("returns true when no-pull label is true", func() {
+		t.Run("no-pull argument is true", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("returns true when no-pull label is true", func(t *testing.T) {
+				t.Parallel()
+
 				c := MockContainer(WithLabels(map[string]string{
 					"com.centurylinklabs.watchtower.no-pull": "true",
 				}))
-				gomega.Expect(c.IsNoPull(types.UpdateParams{NoPull: true})).To(gomega.BeTrue())
+				assert.True(t, c.IsNoPull(types.UpdateParams{NoPull: true}))
 			})
 
-			ginkgo.It("returns true when no-pull label is false", func() {
+			t.Run("returns true when no-pull label is false", func(t *testing.T) {
+				t.Parallel()
+
 				c := MockContainer(WithLabels(map[string]string{
 					"com.centurylinklabs.watchtower.no-pull": "false",
 				}))
-				gomega.Expect(c.IsNoPull(types.UpdateParams{NoPull: true})).To(gomega.BeTrue())
+				assert.True(t, c.IsNoPull(types.UpdateParams{NoPull: true}))
 			})
 
-			ginkgo.When("label-take-precedence is true", func() {
-				ginkgo.It("returns true when no-pull label is true", func() {
+			t.Run("label-take-precedence is true", func(t *testing.T) {
+				t.Parallel()
+
+				t.Run("returns true when no-pull label is true", func(t *testing.T) {
+					t.Parallel()
+
 					c := MockContainer(WithLabels(map[string]string{
 						"com.centurylinklabs.watchtower.no-pull": "true",
 					}))
-					gomega.Expect(c.IsNoPull(types.UpdateParams{LabelPrecedence: true, NoPull: true})).
-						To(gomega.BeTrue())
+					assert.True(t, c.IsNoPull(types.UpdateParams{LabelPrecedence: true, NoPull: true}))
 				})
 
-				ginkgo.It("returns false when no-pull label is false", func() {
+				t.Run("returns false when no-pull label is false", func(t *testing.T) {
+					t.Parallel()
+
 					c := MockContainer(WithLabels(map[string]string{
 						"com.centurylinklabs.watchtower.no-pull": "false",
 					}))
-					gomega.Expect(c.IsNoPull(types.UpdateParams{LabelPrecedence: true, NoPull: true})).
-						To(gomega.BeFalse())
+					assert.False(t, c.IsNoPull(types.UpdateParams{LabelPrecedence: true, NoPull: true}))
 				})
 			})
 		})
 	})
 
-	ginkgo.Describe("Host Config Creation", func() {
-		ginkgo.It("preserves volume mount subpath in host config", func() {
+	t.Run("Host Config Creation", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("preserves volume mount subpath in host config", func(t *testing.T) {
+			t.Parallel()
+
 			volumeMount := dockerMount.Mount{
 				Type:   dockerMount.TypeVolume,
 				Source: "test_volume",
@@ -1311,19 +1513,18 @@ var _ = ginkgo.Describe("Container", func() {
 			container := MockContainer(WithMounts([]dockerMount.Mount{volumeMount}))
 			hostConfig := container.GetCreateHostConfig()
 
-			gomega.Expect(hostConfig.Mounts).To(gomega.HaveLen(1), "Expected exactly one mount")
+			require.Len(t, hostConfig.Mounts, 1, "Expected exactly one mount")
 			mount := hostConfig.Mounts[0]
-			gomega.Expect(mount.Type).
-				To(gomega.Equal(dockerMount.TypeVolume), "Mount type should be volume")
-			gomega.Expect(mount.Source).To(gomega.Equal("test_volume"), "Mount source should match")
-			gomega.Expect(mount.Target).
-				To(gomega.Equal("/config/nest"), "Mount target should match")
-			gomega.Expect(mount.VolumeOptions).ToNot(gomega.BeNil(), "VolumeOptions should be set")
-			gomega.Expect(mount.VolumeOptions.Subpath).
-				To(gomega.Equal("ha/nest"), "Subpath should be preserved")
+			assert.Equal(t, dockerMount.TypeVolume, mount.Type, "Mount type should be volume")
+			assert.Equal(t, "test_volume", mount.Source, "Mount source should match")
+			assert.Equal(t, "/config/nest", mount.Target, "Mount target should match")
+			require.NotNil(t, mount.VolumeOptions, "VolumeOptions should be set")
+			assert.Equal(t, "ha/nest", mount.VolumeOptions.Subpath, "Subpath should be preserved")
 		})
 
-		ginkgo.It("defaults empty device CgroupPermissions to 'rwm' for Podman compatibility", func() {
+		t.Run("defaults empty device CgroupPermissions to 'rwm' for Podman compatibility", func(t *testing.T) {
+			t.Parallel()
+
 			devices := []dockerContainer.DeviceMapping{
 				{
 					PathOnHost:        "/dev/net/tun",
@@ -1340,54 +1541,73 @@ var _ = ginkgo.Describe("Container", func() {
 			container := MockContainer(WithDevices(devices))
 			hostConfig := container.GetCreateHostConfig()
 
-			gomega.Expect(hostConfig.Devices).To(gomega.HaveLen(2))
+			require.Len(t, hostConfig.Devices, 2)
 
 			// Empty permissions must be defaulted (this fixes the Podman "empty device mode" error)
-			gomega.Expect(hostConfig.Devices[0].PathOnHost).To(gomega.Equal("/dev/net/tun"))
-			gomega.Expect(hostConfig.Devices[0].CgroupPermissions).
-				To(gomega.Equal("rwm"), "empty CgroupPermissions should default to 'rwm'")
+			assert.Equal(t, "/dev/net/tun", hostConfig.Devices[0].PathOnHost)
+			assert.Equal(t, "rwm", hostConfig.Devices[0].CgroupPermissions, "empty CgroupPermissions should default to 'rwm'")
 
 			// Explicit permissions must be left untouched
-			gomega.Expect(hostConfig.Devices[1].PathOnHost).To(gomega.Equal("/dev/dri/renderD128"))
-			gomega.Expect(hostConfig.Devices[1].CgroupPermissions).
-				To(gomega.Equal("rw"), "explicit CgroupPermissions must be preserved")
+			assert.Equal(t, "/dev/dri/renderD128", hostConfig.Devices[1].PathOnHost)
+			assert.Equal(t, "rw", hostConfig.Devices[1].CgroupPermissions, "explicit CgroupPermissions must be preserved")
 		})
 
-		ginkgo.It("returns a copy of VolumesFrom so create config does not alias inspect data", func() {
+		t.Run("returns a copy of VolumesFrom so create config does not alias inspect data", func(t *testing.T) {
+			t.Parallel()
+
 			container := MockContainer(WithVolumesFrom([]string{"app:rw"}))
 			hostConfig := container.GetCreateHostConfig()
 			hostConfig.VolumesFrom[0] = "mutated"
 
-			gomega.Expect(container.ContainerInfo().HostConfig.VolumesFrom).
-				To(gomega.Equal([]string{"app:rw"}))
+			assert.Equal(t, []string{"app:rw"}, container.ContainerInfo().HostConfig.VolumesFrom)
 		})
 	})
 
-	ginkgo.DescribeTable("parseVolumesFromSpec",
-		func(spec, wantName, wantMode string) {
-			name, mode := parseVolumesFromSpec(spec)
-			gomega.Expect(name).To(gomega.Equal(wantName))
-			gomega.Expect(mode).To(gomega.Equal(wantMode))
-		},
-		ginkgo.Entry("empty spec", "", "", ""),
-		ginkgo.Entry("bare name", "app", "app", ""),
-		ginkgo.Entry("name with rw", "app:rw", "app", "rw"),
-		ginkgo.Entry("name with ro", "app:ro", "app", "ro"),
-		ginkgo.Entry("name with SELinux z", "app:z", "app", "z"),
-		ginkgo.Entry("name with SELinux Z", "app:Z", "app", "Z"),
-		ginkgo.Entry("combined ro and z", "app:ro,z", "app", "ro,z"),
-		ginkgo.Entry("full container ID",
-			"9b738d6a78250d731816cc5020d8cfaf55e605cd510f4d4662688bd9a6c4e0c7",
-			"9b738d6a78250d731816cc5020d8cfaf55e605cd510f4d4662688bd9a6c4e0c7",
-			""),
-		ginkgo.Entry("full container ID with rw",
-			"9b738d6a78250d731816cc5020d8cfaf55e605cd510f4d4662688bd9a6c4e0c7:rw",
-			"9b738d6a78250d731816cc5020d8cfaf55e605cd510f4d4662688bd9a6c4e0c7",
-			"rw"),
-		ginkgo.Entry("non-mode suffix stays part of the name", "app:latest", "app:latest", ""),
-		ginkgo.Entry("trailing colon is not a mode", "app:", "app:", ""),
-	)
-})
+	t.Run("parseVolumesFromSpec", func(t *testing.T) {
+		t.Parallel()
+
+		tests := []struct {
+			name     string
+			spec     string
+			wantName string
+			wantMode string
+		}{
+			{name: "empty spec", spec: "", wantName: "", wantMode: ""},
+			{name: "bare name", spec: "app", wantName: "app", wantMode: ""},
+			{name: "name with rw", spec: "app:rw", wantName: "app", wantMode: "rw"},
+			{name: "name with ro", spec: "app:ro", wantName: "app", wantMode: "ro"},
+			{name: "name with SELinux z", spec: "app:z", wantName: "app", wantMode: "z"},
+			{name: "name with SELinux Z", spec: "app:Z", wantName: "app", wantMode: "Z"},
+			{name: "combined ro and z", spec: "app:ro,z", wantName: "app", wantMode: "ro,z"},
+			{
+				name:     "full container ID",
+				spec:     "9b738d6a78250d731816cc5020d8cfaf55e605cd510f4d4662688bd9a6c4e0c7",
+				wantName: "9b738d6a78250d731816cc5020d8cfaf55e605cd510f4d4662688bd9a6c4e0c7",
+				wantMode: "",
+			},
+			{
+				name:     "full container ID with rw",
+				spec:     "9b738d6a78250d731816cc5020d8cfaf55e605cd510f4d4662688bd9a6c4e0c7:rw",
+				wantName: "9b738d6a78250d731816cc5020d8cfaf55e605cd510f4d4662688bd9a6c4e0c7",
+				wantMode: "rw",
+			},
+			{name: "non-mode suffix stays part of the name", spec: "app:latest", wantName: "app:latest", wantMode: ""},
+			{name: "trailing colon is not a mode", spec: "app:", wantName: "app:", wantMode: ""},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				t.Parallel()
+
+				spec, wantName, wantMode := tt.spec, tt.wantName, tt.wantMode
+
+				name, mode := parseVolumesFromSpec(spec)
+				assert.Equal(t, wantName, name)
+				assert.Equal(t, wantMode, mode)
+			})
+		}
+	})
+}
 
 // TestContainer_Links_NoConfig verifies that a container without inspect
 // config data still reports its host-config dependencies instead of panicking.
