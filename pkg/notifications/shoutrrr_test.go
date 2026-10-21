@@ -1799,7 +1799,7 @@ func TestDefaultLegacyGitMessages(t *testing.T) {
 		{
 			Message: "Found new Git revision",
 			Data: map[string]any{
-				"revision":     "forgejo.papago.casa/nick/watchtower-git-support-test@v1.2.1",
+				"revision":     "git.example.com/org/watchtower-git-support-test@v1.2.1",
 				"short_commit": "7ab67c773bf4",
 			},
 		},
@@ -1821,7 +1821,7 @@ func TestDefaultLegacyGitMessages(t *testing.T) {
 	})
 	require.NoError(t, err)
 	assert.Equal(t, strings.Join([]string{
-		"Found new Git revision: forgejo.papago.casa/nick/watchtower-git-support-test@v1.2.1 (7ab67c773bf4)",
+		"Found new Git revision: git.example.com/org/watchtower-git-support-test@v1.2.1 (7ab67c773bf4)",
 		"Built image: wtgit-semver:git-7ab67c773bf4 (27c196745ab8)",
 		"Stopped stale container: wtgit-semver (76caeb3ef2ce)",
 		"Started new container: wtgit-semver (0f492bb11f3b)",
