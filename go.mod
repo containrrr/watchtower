@@ -12,7 +12,7 @@ require (
 	github.com/containerd/platforms v1.0.0-rc.5
 	github.com/distribution/reference v0.6.0
 	github.com/docker/cli v29.9.2+incompatible
-	github.com/docker/compose/v5 v5.6.0
+	github.com/docker/compose/v5 v5.6.1
 	github.com/go-git/go-git/v5 v5.19.3
 	github.com/gofiber/contrib/v3/swaggo v1.0.13
 	github.com/gofiber/contrib/v3/zerolog v1.1.7
