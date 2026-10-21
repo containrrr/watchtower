@@ -130,7 +130,7 @@ Add `-v` to a `go test` command to see the output of passing tests too.
 Two further tasks help catch concurrency and test-isolation bugs:
 
 * `task test:race` - runs the tests with the race detector
-* `task test:repeat` - runs the repeat-safe packages twice in shuffled order to catch state leaking between tests
+* `task test:repeat` - runs every package twice in shuffled order to catch state leaking between tests
 
 ### Fuzzing
 

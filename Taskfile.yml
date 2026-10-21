@@ -9,10 +9,6 @@ vars:
   MKDOCS_CONFIG: build/mkdocs/mkdocs.yaml
   DOCS_VENV: watchtower-docs
   TPLPREV_DIR: tools/tplprev
-  # Packages that cannot run under -count yet: Ginkgo suites reject -count>1.
-  # Packages leave this list as their suites are converted.
-  REPEAT_EXCLUDE: >-
-    /pkg/notifications$
 
 tasks:
   default:
@@ -49,9 +45,9 @@ tasks:
       - go test -race -timeout 120s ./...
 
   test:repeat:
-    desc: Run repeat-safe packages twice in shuffled order to catch leaked state
+    desc: Run every package twice in shuffled order to catch leaked state
     cmds:
-      - go test -count=2 -shuffle=on -timeout 120s $(go list ./... | grep -Ev '{{.REPEAT_EXCLUDE}}')
+      - go test -count=2 -shuffle=on -timeout 120s ./...
 
   fuzz:
     desc: "Run each fuzz target for 10s (FUZZTIME), in FUZZPKGS (default ./...), with FUZZPARALLEL workers (default 8)"

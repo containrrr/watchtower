@@ -18,9 +18,6 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
-	"github.com/onsi/gomega/gbytes"
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
@@ -41,35 +38,76 @@ var allButTrace = zerolog.DebugLevel
 
 const shoutrrrFatalHelperEnv = "WATCHTOWER_SHOUTRRR_FATAL_HELPER"
 
-// testLogBuffer is the per-test capture buffer for notifier localLog output.
-var (
-	testLogBuffer *gbytes.Buffer
-	testLog       *zerolog.Logger
-)
-
-// testLogger returns the buffer-backed logger for the current test (or nop if unset).
-func testLogger() *zerolog.Logger {
-	if testLog != nil {
-		return testLog
-	}
-
-	l := zerolog.Nop()
-
-	return &l
+// lockedBuffer is a buffer that is safe for concurrent writes, for logs that
+// the notifier's goroutines write while the test reads them.
+type lockedBuffer struct {
+	// mu guards buf.
+	mu sync.Mutex
+	// buf holds the written bytes.
+	buf bytes.Buffer
 }
 
-// resetTestLogger installs a fresh buffer-backed debug logger for log assertions.
-func resetTestLogger() {
-	testLogBuffer = gbytes.NewBuffer()
+// Write appends p to the buffer.
+//
+// Parameters:
+//   - p: Bytes to append.
+//
+// Returns:
+//   - int: Number of bytes written.
+//   - error: Always nil.
+func (b *lockedBuffer) Write(p []byte) (int, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	return b.buf.Write(p)
+}
+
+// String returns everything written so far.
+//
+// Returns:
+//   - string: The buffer's contents.
+func (b *lockedBuffer) String() string {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	return b.buf.String()
+}
+
+// newTestLogger returns a logger that writes each event to the test's log, so a
+// failing test shows what it logged.
+//
+// Parameters:
+//   - t: Test that receives the log lines.
+//
+// Returns:
+//   - *zerolog.Logger: Logger writing to t.
+func newTestLogger(t *testing.T) *zerolog.Logger {
+	t.Helper()
+
+	// Frame 4 skips zerolog's write path, so each line names the log call.
+	w := zerolog.TestWriter{T: t, Frame: 4}
+
+	return new(zerolog.New(w))
+}
+
+// newBufferLogger returns a JSON logger at trace level and the buffer it writes
+// to, for tests that check what the notifier logs.
+//
+// Returns:
+//   - *zerolog.Logger: Logger writing to the buffer.
+//   - *lockedBuffer: Buffer holding the log output.
+func newBufferLogger() (*zerolog.Logger, *lockedBuffer) {
+	buf := &lockedBuffer{}
 	// JSON encoding keeps field assertions simple (failure_type, failed_count, etc.).
-	l := zerolog.New(testLogBuffer).Level(zerolog.TraceLevel).With().Timestamp().Logger()
-	testLog = &l
+	l := zerolog.New(buf).Level(zerolog.TraceLevel).With().Timestamp().Logger()
+
+	return &l, buf
 }
 
-// createTestNotifier wraps createNotifier with the per-test buffer-backed logger.
-// Template string is always empty (default template). Pass a custom template via
-// createNotifier directly when a test needs one.
+// createTestNotifier wraps createNotifier with the default template. Pass a
+// custom template to createNotifier directly when a test needs one.
 func createTestNotifier(
+	log *zerolog.Logger,
 	urls []string,
 	level zerolog.Level,
 	legacy bool,
@@ -77,7 +115,7 @@ func createTestNotifier(
 	stdout bool,
 	delay time.Duration,
 ) *shoutrrrTypeNotifier {
-	return createNotifier(testLogger(), urls, level, "", legacy, data, stdout, delay)
+	return createNotifier(log, urls, level, "", legacy, data, stdout, delay)
 }
 
 // TODO: Remove legacyMockData when legacy notification types are removed.
@@ -120,14 +158,16 @@ var mockDataAllFresh = notificationData{
 // TODO: Remove legacyMockData reference when legacy notification types are removed.
 //
 //nolint:godox
-func mockDataFromStates(states ...session.State) notificationData {
+func mockDataFromStates(t *testing.T, states ...session.State) notificationData {
+	t.Helper()
+
 	hostname := "Mock"
 	prefix := ""
 
 	return notificationData{
 		Entries: legacyMockData.Entries,
 		Report:  newProgressReport(states...),
-		Title:   getTitle(testLogger(), hostname, prefix),
+		Title:   getTitle(newTestLogger(t), hostname, prefix),
 		Host:    hostname,
 	}
 }
@@ -259,33 +299,36 @@ func newProgressContainer(index, idPrefix int, nameFormat string) (types.Contain
 	return container.NewContainer(nil, &inspect, &imageInfo), types.ImageID("d0a" + idSuffix)
 }
 
-var _ = ginkgo.Describe("Shoutrrr", func() {
-	var logBuffer *gbytes.Buffer
+// TestShoutrrr verifies the shoutrrr notifier: message templates, the log
+// hook, batching, the title, send error logging, closing, which reports it
+// sends, and deduplication of grouped entries.
+func TestShoutrrr(t *testing.T) {
+	t.Parallel()
 
-	// BeforeEach sets up a buffer-backed zerolog logger for each test.
-	ginkgo.BeforeEach(func() {
-		resetTestLogger()
+	t.Run("passing a common template name", func(t *testing.T) {
+		t.Parallel()
 
-		logBuffer = testLogBuffer
-	})
+		t.Run("should format using that template", func(t *testing.T) {
+			t.Parallel()
 
-	ginkgo.When("passing a common template name", func() {
-		ginkgo.It("should format using that template", func() {
 			expected := `
 updt1 (mock/updt1:latest): Updated
 `[1:]
-			data := mockDataFromStates(session.UpdatedState)
-			gomega.Expect(getTemplatedResult(`porcelain.v1.summary-no-log`, false, data)).
-				To(gomega.Equal(expected))
+			data := mockDataFromStates(t, session.UpdatedState)
+			assert.Equal(t, expected, getTemplatedResult(t, `porcelain.v1.summary-no-log`, false, data))
 		})
 	})
 
-	ginkgo.When("rendering porcelain JSON", func() {
-		ginkgo.It("should produce valid JSON with container details", func() {
-			data := mockDataFromStates(session.UpdatedState, session.FreshState, session.FailedState)
-			result := getTemplatedResult(`porcelain.json`, false, data)
+	t.Run("rendering porcelain JSON", func(t *testing.T) {
+		t.Parallel()
 
-			gomega.Expect(result).To(gomega.MatchJSON(`{
+		t.Run("should produce valid JSON with container details", func(t *testing.T) {
+			t.Parallel()
+
+			data := mockDataFromStates(t, session.UpdatedState, session.FreshState, session.FailedState)
+			result := getTemplatedResult(t, `porcelain.json`, false, data)
+
+			assert.JSONEq(t, `{
 				"containers": [
 					{
 						"name": "updt1",
@@ -313,15 +356,22 @@ updt1 (mock/updt1:latest): Updated
 						"update_available": false
 					}
 				]
-			}`))
+			}`, result)
 		})
 	})
 
-	ginkgo.When("adding a log hook", func() {
-		ginkgo.When("it has not been added before", func() {
-			ginkgo.It("should start receiving via RegisterHook", func() {
+	t.Run("adding a log hook", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("it has not been added before", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should start receiving via RegisterHook", func(t *testing.T) {
+				t.Parallel()
+
 				level := zerolog.TraceLevel
 				shoutrrr := createTestNotifier(
+					newTestLogger(t),
 					[]string{},
 					level,
 					true,
@@ -329,20 +379,25 @@ updt1 (mock/updt1:latest): Updated
 					false,
 					time.Second,
 				)
-				gomega.Expect(shoutrrr.receiving.Load()).To(gomega.BeFalse())
+				assert.False(t, shoutrrr.receiving.Load())
 
-				log := testLogger()
+				log := newTestLogger(t)
 
 				shoutrrr.RegisterHook(log)
 				defer shoutrrr.Close()
 
-				gomega.Expect(shoutrrr.receiving.Load()).To(gomega.BeTrue())
+				assert.True(t, shoutrrr.receiving.Load())
 			})
 		})
-		ginkgo.When("it is being added a second time", func() {
-			ginkgo.It("should be idempotent", func() {
+		t.Run("it is being added a second time", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should be idempotent", func(t *testing.T) {
+				t.Parallel()
+
 				level := zerolog.TraceLevel
 				shoutrrr := createTestNotifier(
+					newTestLogger(t),
 					[]string{},
 					level,
 					true,
@@ -350,26 +405,33 @@ updt1 (mock/updt1:latest): Updated
 					false,
 					time.Second,
 				)
-				log := testLogger()
+				log := newTestLogger(t)
 
 				shoutrrr.RegisterHook(log)
 				defer shoutrrr.Close()
 
 				shoutrrr.RegisterHook(log)
-				gomega.Expect(shoutrrr.receiving.Load()).To(gomega.BeTrue())
+				assert.True(t, shoutrrr.receiving.Load())
 			})
 		})
 	})
 
 	//nolint:godox
 	// TODO: Remove legacy template tests when legacy notification types are removed.
-	ginkgo.When("using legacy templates", func() {
-		ginkgo.When("no custom template is provided", func() {
-			ginkgo.It("should format the messages using the default template", func() {
+	t.Run("using legacy templates", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("no custom template is provided", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should format the messages using the default template", func(t *testing.T) {
+				t.Parallel()
+
 				cmd := new(cobra.Command)
 				flags.RegisterAll(cmd)
 
 				shoutrrr := createTestNotifier(
+					newTestLogger(t),
 					[]string{},
 					zerolog.TraceLevel,
 					true,
@@ -382,12 +444,15 @@ updt1 (mock/updt1:latest): Updated
 				}
 
 				s, err := shoutrrr.buildMessage(notificationData{Entries: entries})
-				gomega.Expect(err).NotTo(gomega.HaveOccurred())
-				gomega.Expect(s).To(gomega.Equal("foo bar"))
+				require.NoError(t, err)
+				assert.Equal(t, "foo bar", s)
 			})
 
-			ginkgo.It("should format image usage-check skips without dumping raw fields", func() {
+			t.Run("should format image usage-check skips without dumping raw fields", func(t *testing.T) {
+				t.Parallel()
+
 				shoutrrr := createTestNotifier(
+					newTestLogger(t),
 					[]string{},
 					zerolog.TraceLevel,
 					true,
@@ -407,16 +472,17 @@ updt1 (mock/updt1:latest): Updated
 				}
 
 				s, err := shoutrrr.buildMessage(notificationData{Entries: entries})
-				gomega.Expect(err).NotTo(gomega.HaveOccurred())
-				gomega.Expect(s).To(gomega.Equal(
-					"Skipped image cleanup: ghcr.io/amir20/dtop:latest (769846626f2f): " +
-						`Get "http://socket-proxy-write:2375/v1.55/containers/json?all=1": terminated signal received`,
-				))
-				gomega.Expect(s).NotTo(gomega.ContainSubstring(" | "))
+				require.NoError(t, err)
+				assert.Equal(t, "Skipped image cleanup: ghcr.io/amir20/dtop:latest (769846626f2f): "+
+					`Get "http://socket-proxy-write:2375/v1.55/containers/json?all=1": terminated signal received`, s)
+				assert.NotContains(t, s, " | ")
 			})
 
-			ginkgo.It("should format Docker image usage budget messages without dumping raw fields", func() {
+			t.Run("should format Docker image usage budget messages without dumping raw fields", func(t *testing.T) {
+				t.Parallel()
+
 				shoutrrr := createTestNotifier(
+					newTestLogger(t),
 					[]string{},
 					zerolog.TraceLevel,
 					true,
@@ -468,31 +534,25 @@ updt1 (mock/updt1:latest): Updated
 				}
 
 				s, err := shoutrrr.buildMessage(notificationData{Entries: entries})
-				gomega.Expect(err).NotTo(gomega.HaveOccurred())
-				gomega.Expect(s).To(gomega.ContainSubstring(
-					"Docker image usage exceeds configured maximum: 10 KB of 10 KB used (2 KB reclaimable, 4 images)",
-				))
-				gomega.Expect(s).To(gomega.ContainSubstring(
-					"Docker image usage exceeds configured warning threshold: 8 KB of 8 KB used (2 KB reclaimable, 4 images)",
-				))
-				gomega.Expect(s).To(gomega.ContainSubstring(
-					"Failed to query Docker image disk usage: df unavailable",
-				))
-				gomega.Expect(s).To(gomega.ContainSubstring(
-					"Docker image usage budget enabled: maximum 40 GB, warning at 32 GB",
-				))
-				gomega.Expect(s).To(gomega.ContainSubstring(
-					"Docker image usage exceeds configured maximum: 0 B of 0 B used (0 B reclaimable, 0 images)",
-				))
-				gomega.Expect(s).NotTo(gomega.ContainSubstring("unknown"))
-				gomega.Expect(s).NotTo(gomega.ContainSubstring(" | "))
+				require.NoError(t, err)
+				assert.Contains(t, s, "Docker image usage exceeds configured maximum: 10 KB of 10 KB used (2 KB reclaimable, 4 images)")
+				assert.Contains(t, s, "Docker image usage exceeds configured warning threshold: 8 KB of 8 KB used (2 KB reclaimable, 4 images)")
+				assert.Contains(t, s, "Failed to query Docker image disk usage: df unavailable")
+				assert.Contains(t, s, "Docker image usage budget enabled: maximum 40 GB, warning at 32 GB")
+				assert.Contains(t, s, "Docker image usage exceeds configured maximum: 0 B of 0 B used (0 B reclaimable, 0 images)")
+				assert.NotContains(t, s, "unknown")
+				assert.NotContains(t, s, " | ")
 			})
 		})
-		ginkgo.When("given a valid custom template", func() {
-			ginkgo.It("should format the messages using the custom template", func() {
+		t.Run("given a valid custom template", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should format the messages using the custom template", func(t *testing.T) {
+				t.Parallel()
+
 				tplString := `{{range .}}{{.Level}}: {{.Message}}{{println}}{{end}}`
-				tpl, err := getShoutrrrTemplate(testLogger(), tplString, true)
-				gomega.Expect(err).ToNot(gomega.HaveOccurred())
+				tpl, err := getShoutrrrTemplate(newTestLogger(t), tplString, true)
+				require.NoError(t, err)
 
 				shoutrrr := &shoutrrrTypeNotifier{
 					template:       tpl,
@@ -507,112 +567,148 @@ updt1 (mock/updt1:latest): Updated
 				}
 
 				s, err := shoutrrr.buildMessage(notificationData{Entries: entries})
-				gomega.Expect(err).NotTo(gomega.HaveOccurred())
-				gomega.Expect(s).To(gomega.Equal("info: foo bar\n"))
+				require.NoError(t, err)
+				assert.Equal(t, "info: foo bar\n", s)
 			})
 		})
 
-		ginkgo.Describe("the default template", func() {
-			ginkgo.When("all containers are fresh", func() {
-				ginkgo.It("should return an empty string", func() {
-					gomega.Expect(getTemplatedResult(``, true, mockDataAllFresh)).
-						To(gomega.Equal(""))
+		t.Run("the default template", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("all containers are fresh", func(t *testing.T) {
+				t.Parallel()
+
+				t.Run("should return an empty string", func(t *testing.T) {
+					t.Parallel()
+
+					assert.Empty(t, getTemplatedResult(t, ``, true, mockDataAllFresh))
 				})
 			})
 		})
 
-		ginkgo.When("given an invalid custom template", func() {
-			ginkgo.It("should format the messages using the default template", func() {
-				invNotif, err := createNotifierWithTemplate(`{{ intentionalSyntaxError`, true)
-				gomega.Expect(err).To(gomega.HaveOccurred())
+		t.Run("given an invalid custom template", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should format the messages using the default template", func(t *testing.T) {
+				t.Parallel()
+
+				invNotif, err := createNotifierWithTemplate(t, `{{ intentionalSyntaxError`, true)
+				require.Error(t, err)
 				invMsg, err := invNotif.buildMessage(legacyMockData)
-				gomega.Expect(err).NotTo(gomega.HaveOccurred())
+				require.NoError(t, err)
 
-				defNotif, err := createNotifierWithTemplate(``, true)
-				gomega.Expect(err).ToNot(gomega.HaveOccurred())
+				defNotif, err := createNotifierWithTemplate(t, ``, true)
+				require.NoError(t, err)
 				defMsg, err := defNotif.buildMessage(legacyMockData)
-				gomega.Expect(err).ToNot(gomega.HaveOccurred())
+				require.NoError(t, err)
 
-				gomega.Expect(invMsg).To(gomega.Equal(defMsg))
+				assert.Equal(t, defMsg, invMsg)
 			})
 		})
 
-		ginkgo.When("given a template that is using ToUpper function", func() {
-			ginkgo.It("should return the text in UPPER CASE", func() {
+		t.Run("given a template that is using ToUpper function", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should return the text in UPPER CASE", func(t *testing.T) {
+				t.Parallel()
+
 				tplString := `{{range .}}{{ .Message | ToUpper }}{{end}}`
-				gomega.Expect(getTemplatedResult(tplString, true, legacyMockData)).
-					To(gomega.Equal("FOO BAR"))
+				assert.Equal(t, "FOO BAR", getTemplatedResult(t, tplString, true, legacyMockData))
 			})
 		})
 
-		ginkgo.When("given a template that is using ToLower function", func() {
-			ginkgo.It("should return the text in lower case", func() {
+		t.Run("given a template that is using ToLower function", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should return the text in lower case", func(t *testing.T) {
+				t.Parallel()
+
 				tplString := `{{range .}}{{ .Message | ToLower }}{{end}}`
-				gomega.Expect(getTemplatedResult(tplString, true, legacyMockData)).
-					To(gomega.Equal("foo bar"))
+				assert.Equal(t, "foo bar", getTemplatedResult(t, tplString, true, legacyMockData))
 			})
 		})
 
-		ginkgo.When("given a template that is using Title function", func() {
-			ginkgo.It("should return the text in Title Case", func() {
+		t.Run("given a template that is using Title function", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should return the text in Title Case", func(t *testing.T) {
+				t.Parallel()
+
 				tplString := `{{range .}}{{ .Message | Title }}{{end}}`
-				gomega.Expect(getTemplatedResult(tplString, true, legacyMockData)).
-					To(gomega.Equal("Foo Bar"))
+				assert.Equal(t, "Foo Bar", getTemplatedResult(t, tplString, true, legacyMockData))
 			})
 		})
 	})
 
-	ginkgo.When("using report templates", func() {
-		ginkgo.When("no custom template is provided", func() {
-			ginkgo.It("should format the messages using the default template", func() {
+	t.Run("using report templates", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("no custom template is provided", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should format the messages using the default template", func(t *testing.T) {
+				t.Parallel()
+
 				expected := `4 Scanned, 2 Updated, 0 Restarted, 1 Failed, 1 Fresh, 1 Skipped
 - updt1 (mock/updt1:latest): 01d110000000 updated to d0a110000000
 - updt2 (mock/updt2:latest): 01d120000000 updated to d0a120000000
 - frsh1 (mock/frsh1:latest): Fresh
 - skip1 (mock/skip1:latest): Skipped: unpossible
 - fail1 (mock/fail1:latest): Failed: accidentally the whole container`
-				data := mockDataFromStates(
+				data := mockDataFromStates(t,
 					session.UpdatedState,
 					session.FreshState,
 					session.FailedState,
 					session.SkippedState,
 					session.UpdatedState,
 				)
-				gomega.Expect(getTemplatedResult(``, false, data)).To(gomega.Equal(expected))
+				assert.Equal(t, expected, getTemplatedResult(t, ``, false, data))
 			})
-			ginkgo.It("should use image IDs for container update reporting", func() {
-				data := mockDataFromStates(session.UpdatedState)
-				result := getTemplatedResult(``, false, data)
+			t.Run("should use image IDs for container update reporting", func(t *testing.T) {
+				t.Parallel()
+
+				data := mockDataFromStates(t, session.UpdatedState)
+				result := getTemplatedResult(t, ``, false, data)
 
 				// Verify that the result contains image ID formats, not container IDs
 				// Image IDs in the mock data are like "01d110000000" and "d0a110000000"
 				// Container IDs are like "c79110000000"
-				gomega.Expect(result).To(gomega.ContainSubstring("01d110000000"))
-				gomega.Expect(result).To(gomega.ContainSubstring("d0a110000000"))
-				gomega.Expect(result).NotTo(gomega.ContainSubstring("c79110000000"))
+				assert.Contains(t, result, "01d110000000")
+				assert.Contains(t, result, "d0a110000000")
+				assert.NotContains(t, result, "c79110000000")
 			})
 		})
 
-		ginkgo.When("using a template referencing Title", func() {
-			ginkgo.It("should contain the title in the output", func() {
+		t.Run("using a template referencing Title", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should contain the title in the output", func(t *testing.T) {
+				t.Parallel()
+
 				expected := `Watchtower updates on Mock`
-				data := mockDataFromStates(session.UpdatedState)
-				gomega.Expect(getTemplatedResult(`{{ .Title }}`, false, data)).
-					To(gomega.Equal(expected))
+				data := mockDataFromStates(t, session.UpdatedState)
+				assert.Equal(t, expected, getTemplatedResult(t, `{{ .Title }}`, false, data))
 			})
 		})
 
-		ginkgo.When("using a template referencing Host", func() {
-			ginkgo.It("should contain the hostname in the output", func() {
+		t.Run("using a template referencing Host", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should contain the hostname in the output", func(t *testing.T) {
+				t.Parallel()
+
 				expected := `Mock`
-				data := mockDataFromStates(session.UpdatedState)
-				gomega.Expect(getTemplatedResult(`{{ .Host }}`, false, data)).
-					To(gomega.Equal(expected))
+				data := mockDataFromStates(t, session.UpdatedState)
+				assert.Equal(t, expected, getTemplatedResult(t, `{{ .Host }}`, false, data))
 			})
 		})
 
-		ginkgo.When("using a template referencing Git and OCI report fields", func() {
-			ginkgo.It("should render Changelog, GitRepo, and Source", func() {
+		t.Run("using a template referencing Git and OCI report fields", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should render Changelog, GitRepo, and Source", func(t *testing.T) {
+				t.Parallel()
+
 				status := updatedAppStatus()
 				status.SetGitMetadata(container.ReportMeta{
 					GitRepo:         "https://github.com/org/app.git",
@@ -633,106 +729,140 @@ updt1 (mock/updt1:latest): Updated
 				tpl, err := template.New("git").Parse(
 					`{{ range .Report.Updated }}{{ .Name }} {{ .Changelog }}{{ if .Source }} ({{ .Source }}){{ end }} repo={{ .GitRepo }}{{ end }}`,
 				)
-				gomega.Expect(err).ToNot(gomega.HaveOccurred())
+				require.NoError(t, err)
 
 				var buf bytes.Buffer
 
 				err = tpl.Execute(&buf, notificationData{Report: report})
-				gomega.Expect(err).ToNot(gomega.HaveOccurred())
-				gomega.Expect(buf.String()).To(gomega.Equal(
-					"app https://github.com/org/app/releases (https://github.com/org/app) repo=https://github.com/org/app.git",
-				))
+				require.NoError(t, err)
+				assert.Equal(t, "app https://github.com/org/app/releases (https://github.com/org/app) repo=https://github.com/org/app.git", buf.String())
 			})
 		})
 
-		ginkgo.Describe("the default template", func() {
-			ginkgo.When("all containers are fresh", func() {
-				ginkgo.It("should return the summary", func() {
+		t.Run("the default template", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("all containers are fresh", func(t *testing.T) {
+				t.Parallel()
+
+				t.Run("should return the summary", func(t *testing.T) {
+					t.Parallel()
+
 					expected := `1 Scanned, 0 Updated, 0 Restarted, 0 Failed, 1 Fresh, 0 Skipped
 - frsh1 (mock/frsh1:latest): Fresh`
-					gomega.Expect(getTemplatedResult(``, false, mockDataAllFresh)).
-						To(gomega.Equal(expected))
+					assert.Equal(t, expected, getTemplatedResult(t, ``, false, mockDataAllFresh))
 				})
 			})
-			ginkgo.When("at least one container was updated", func() {
-				ginkgo.It("should send a report", func() {
+			t.Run("at least one container was updated", func(t *testing.T) {
+				t.Parallel()
+
+				t.Run("should send a report", func(t *testing.T) {
+					t.Parallel()
+
 					expected := `1 Scanned, 1 Updated, 0 Restarted, 0 Failed, 0 Fresh, 0 Skipped
 - updt1 (mock/updt1:latest): 01d110000000 updated to d0a110000000`
-					data := mockDataFromStates(session.UpdatedState)
-					gomega.Expect(getTemplatedResult(``, false, data)).To(gomega.Equal(expected))
+					data := mockDataFromStates(t, session.UpdatedState)
+					assert.Equal(t, expected, getTemplatedResult(t, ``, false, data))
 				})
 			})
-			ginkgo.When("at least one container failed to update", func() {
-				ginkgo.It("should send a report", func() {
+			t.Run("at least one container failed to update", func(t *testing.T) {
+				t.Parallel()
+
+				t.Run("should send a report", func(t *testing.T) {
+					t.Parallel()
+
 					expected := `1 Scanned, 0 Updated, 0 Restarted, 1 Failed, 0 Fresh, 0 Skipped
 - fail1 (mock/fail1:latest): Failed: accidentally the whole container`
-					data := mockDataFromStates(session.FailedState)
-					gomega.Expect(getTemplatedResult(``, false, data)).To(gomega.Equal(expected))
+					data := mockDataFromStates(t, session.FailedState)
+					assert.Equal(t, expected, getTemplatedResult(t, ``, false, data))
 				})
 			})
-			ginkgo.When("containers are restarted due to dependencies", func() {
-				ginkgo.It("should send a report with restarted containers", func() {
+			t.Run("containers are restarted due to dependencies", func(t *testing.T) {
+				t.Parallel()
+
+				t.Run("should send a report with restarted containers", func(t *testing.T) {
+					t.Parallel()
+
 					expected := `2 Scanned, 1 Updated, 1 Restarted, 0 Failed, 0 Fresh, 0 Skipped
 - updt1 (mock/updt1:latest): 01d110000000 updated to d0a110000000
 - rstr1 (mock/rstr1:latest): Restarted`
-					data := mockDataFromStates(session.UpdatedState, session.RestartedState)
-					gomega.Expect(getTemplatedResult(``, false, data)).To(gomega.Equal(expected))
+					data := mockDataFromStates(t, session.UpdatedState, session.RestartedState)
+					assert.Equal(t, expected, getTemplatedResult(t, ``, false, data))
 				})
 			})
-			ginkgo.When("mixing updated and restarted containers", func() {
-				ginkgo.It("should show different states for updated vs restarted", func() {
+			t.Run("mixing updated and restarted containers", func(t *testing.T) {
+				t.Parallel()
+
+				t.Run("should show different states for updated vs restarted", func(t *testing.T) {
+					t.Parallel()
+
 					expected := `3 Scanned, 2 Updated, 1 Restarted, 0 Failed, 0 Fresh, 0 Skipped
 - updt1 (mock/updt1:latest): 01d110000000 updated to d0a110000000
 - updt2 (mock/updt2:latest): 01d120000000 updated to d0a120000000
 - rstr1 (mock/rstr1:latest): Restarted`
-					data := mockDataFromStates(
+					data := mockDataFromStates(t,
 						session.UpdatedState,
 						session.RestartedState,
 						session.UpdatedState,
 					)
-					gomega.Expect(getTemplatedResult(``, false, data)).To(gomega.Equal(expected))
+					assert.Equal(t, expected, getTemplatedResult(t, ``, false, data))
 				})
 			})
-			ginkgo.When("testing JSON output format", func() {
-				ginkgo.It("should include restarted containers in JSON response", func() {
-					data := mockDataFromStates(session.UpdatedState, session.RestartedState)
-					jsonResult := getTemplatedResult(`{{ . | ToJSON }}`, false, data)
+			t.Run("testing JSON output format", func(t *testing.T) {
+				t.Parallel()
+
+				t.Run("should include restarted containers in JSON response", func(t *testing.T) {
+					t.Parallel()
+
+					data := mockDataFromStates(t, session.UpdatedState, session.RestartedState)
+					jsonResult := getTemplatedResult(t, `{{ . | ToJSON }}`, false, data)
 
 					var result map[string]any
-					gomega.Expect(json.Unmarshal([]byte(jsonResult), &result)).To(gomega.Succeed())
+					require.NoError(t, json.Unmarshal([]byte(jsonResult), &result))
 
 					report, ok := result["report"].(map[string]any)
-					gomega.Expect(ok).To(gomega.BeTrue())
+					assert.True(t, ok)
 
 					updated, ok := report["updated"].([]any)
-					gomega.Expect(ok).To(gomega.BeTrue())
-					gomega.Expect(updated).To(gomega.HaveLen(1))
+					assert.True(t, ok)
+					require.Len(t, updated, 1)
 
 					restarted, ok := report["restarted"].([]any)
-					gomega.Expect(ok).To(gomega.BeTrue())
-					gomega.Expect(restarted).To(gomega.HaveLen(1))
-					gomega.Expect(restarted[0]).To(gomega.HaveKey("state"))
-					gomega.Expect(restarted[0].(map[string]any)["state"]).
-						To(gomega.Equal("Restarted"))
+					assert.True(t, ok)
+					require.Len(t, restarted, 1)
+					assert.Contains(t, restarted[0], "state")
+					assert.Equal(t, "Restarted", restarted[0].(map[string]any)["state"])
 				})
 			})
-			ginkgo.When("the report is nil", func() {
-				ginkgo.It("should return the logged entries", func() {
+			t.Run("the report is nil", func(t *testing.T) {
+				t.Parallel()
+
+				t.Run("should return the logged entries", func(t *testing.T) {
+					t.Parallel()
+
 					expected := `The situation is under control
 All the smoke might be covering up some problems
 Turns out everything is on fire
 `
-					gomega.Expect(getTemplatedResult(``, false, mockDataMultipleEntries)).
-						To(gomega.Equal(expected))
+					assert.Equal(t, expected, getTemplatedResult(t, ``, false, mockDataMultipleEntries))
 				})
 			})
 		})
 	})
 
-	ginkgo.When("batching notifications", func() {
-		ginkgo.When("no messages are queued", func() {
-			ginkgo.It("should not send any notification", func() {
+	t.Run("batching notifications", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("no messages are queued", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should not send any notification", func(t *testing.T) {
+				t.Parallel()
+
+				log, logBuffer := newBufferLogger()
+
 				shoutrrr := createTestNotifier(
+					log,
 					[]string{"logger://"},
 					allButTrace,
 					true,
@@ -742,12 +872,20 @@ Turns out everything is on fire
 				)
 				shoutrrr.StartNotification(false)
 				shoutrrr.SendNotification(nil)
-				gomega.Consistently(logBuffer).ShouldNot(gbytes.Say(`Shoutrrr:`))
+				shoutrrr.Close()
+				assert.NotContains(t, logBuffer.String(), `Shoutrrr:`)
 			})
 		})
-		ginkgo.When("at least one message is queued", func() {
-			ginkgo.It("should send a notification", func() {
+		t.Run("at least one message is queued", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should send a notification", func(t *testing.T) {
+				t.Parallel()
+
+				log, logBuffer := newBufferLogger()
+
 				shoutrrr := createTestNotifier(
+					log,
 					[]string{"logger://"},
 					allButTrace,
 					true,
@@ -755,7 +893,6 @@ Turns out everything is on fire
 					false,
 					time.Duration(0),
 				)
-				log := testLogger()
 
 				shoutrrr.RegisterHook(log)
 				defer shoutrrr.Close()
@@ -763,30 +900,42 @@ Turns out everything is on fire
 				shoutrrr.StartNotification(false)
 				log.Info().Msg("This log message is sponsored by ContainrrrVPN")
 				shoutrrr.SendNotification(nil)
-				gomega.Eventually(logBuffer).
-					Should(gbytes.Say(`Shoutrrr: This log message is sponsored by ContainrrrVPN`))
+				require.Eventually(t, func() bool {
+					return strings.Contains(logBuffer.String(), `Shoutrrr: This log message is sponsored by ContainrrrVPN`)
+				}, 5*time.Second, 10*time.Millisecond)
 			})
 		})
 	})
 
-	ginkgo.When("the title data field is empty", func() {
-		ginkgo.It("should not have set the title param", func() {
-			shoutrrr := createTestNotifier([]string{"logger://"}, allButTrace, true, StaticData{
+	t.Run("the title data field is empty", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("should not have set the title param", func(t *testing.T) {
+			t.Parallel()
+
+			shoutrrr := createTestNotifier(newTestLogger(t), []string{"logger://"}, allButTrace, true, StaticData{
 				Host:  "test.host",
 				Title: "",
 			}, false, time.Second)
 			_, found := shoutrrr.params.Title()
-			gomega.Expect(found).ToNot(gomega.BeTrue())
+			assert.False(t, found)
 		})
 	})
 
-	ginkgo.When("sending notifications with error handling", func() {
-		ginkgo.It("should handle index guard when errs length exceeds URLs length", func() {
+	t.Run("sending notifications with error handling", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("should handle index guard when errs length exceeds URLs length", func(t *testing.T) {
+			t.Parallel()
+
+			log, logBuffer := newBufferLogger()
+
 			mockRouter := &mockRouter{
 				sendErrors: []error{errors.New("test error"), errors.New("extra error")},
 			}
 
 			shoutrrr := createTestNotifier(
+				log,
 				[]string{"logger://"},
 				allButTrace,
 				true,
@@ -795,22 +944,26 @@ Turns out everything is on fire
 				time.Duration(0),
 			)
 			shoutrrr.Router = mockRouter
-			log := testLogger()
 			shoutrrr.RegisterHook(log)
 			shoutrrr.StartNotification(false)
 			log.Info().Msg("test message")
 			shoutrrr.SendNotification(nil)
 
 			shoutrrr.Close()
-			gomega.Eventually(logBuffer).Should(gbytes.Say(`index_mismatch`))
+			assert.Contains(t, logBuffer.String(), `index_mismatch`)
 		})
 
-		ginkgo.It("should categorize authentication errors", func() {
+		t.Run("should categorize authentication errors", func(t *testing.T) {
+			t.Parallel()
+
+			log, logBuffer := newBufferLogger()
+
 			mockRouter := &mockRouter{
 				sendErrors: []error{errors.New("unauthorized access")},
 			}
 
 			shoutrrr := createTestNotifier(
+				log,
 				[]string{"logger://"},
 				allButTrace,
 				true,
@@ -819,22 +972,26 @@ Turns out everything is on fire
 				time.Duration(0),
 			)
 			shoutrrr.Router = mockRouter
-			log := testLogger()
 			shoutrrr.RegisterHook(log)
 			shoutrrr.StartNotification(false)
 			log.Info().Msg("test message")
 			shoutrrr.SendNotification(nil)
 
 			shoutrrr.Close()
-			gomega.Eventually(logBuffer).Should(gbytes.Say(`failure_type.*authentication`))
+			assert.Regexp(t, `failure_type.*authentication`, logBuffer.String())
 		})
 
-		ginkgo.It("should categorize network errors", func() {
+		t.Run("should categorize network errors", func(t *testing.T) {
+			t.Parallel()
+
+			log, logBuffer := newBufferLogger()
+
 			mockRouter := &mockRouter{
 				sendErrors: []error{errors.New("connection timeout")},
 			}
 
 			shoutrrr := createTestNotifier(
+				log,
 				[]string{"logger://"},
 				allButTrace,
 				true,
@@ -843,22 +1000,26 @@ Turns out everything is on fire
 				time.Duration(0),
 			)
 			shoutrrr.Router = mockRouter
-			log := testLogger()
 			shoutrrr.RegisterHook(log)
 			shoutrrr.StartNotification(false)
 			log.Info().Msg("test message")
 			shoutrrr.SendNotification(nil)
 
 			shoutrrr.Close()
-			gomega.Eventually(logBuffer).Should(gbytes.Say(`failure_type.*network`))
+			assert.Regexp(t, `failure_type.*network`, logBuffer.String())
 		})
 
-		ginkgo.It("should categorize rate limit errors", func() {
+		t.Run("should categorize rate limit errors", func(t *testing.T) {
+			t.Parallel()
+
+			log, logBuffer := newBufferLogger()
+
 			mockRouter := &mockRouter{
 				sendErrors: []error{errors.New("too many requests")},
 			}
 
 			shoutrrr := createTestNotifier(
+				log,
 				[]string{"logger://"},
 				allButTrace,
 				true,
@@ -867,22 +1028,26 @@ Turns out everything is on fire
 				time.Duration(0),
 			)
 			shoutrrr.Router = mockRouter
-			log := testLogger()
 			shoutrrr.RegisterHook(log)
 			shoutrrr.StartNotification(false)
 			log.Info().Msg("test message")
 			shoutrrr.SendNotification(nil)
 
 			shoutrrr.Close()
-			gomega.Eventually(logBuffer).Should(gbytes.Say(`failure_type.*rate_limit`))
+			assert.Regexp(t, `failure_type.*rate_limit`, logBuffer.String())
 		})
 
-		ginkgo.It("should categorize unknown errors", func() {
+		t.Run("should categorize unknown errors", func(t *testing.T) {
+			t.Parallel()
+
+			log, logBuffer := newBufferLogger()
+
 			mockRouter := &mockRouter{
 				sendErrors: []error{errors.New("some unknown error")},
 			}
 
 			shoutrrr := createTestNotifier(
+				log,
 				[]string{"logger://"},
 				allButTrace,
 				true,
@@ -891,22 +1056,26 @@ Turns out everything is on fire
 				time.Duration(0),
 			)
 			shoutrrr.Router = mockRouter
-			log := testLogger()
 			shoutrrr.RegisterHook(log)
 			shoutrrr.StartNotification(false)
 			log.Info().Msg("test message")
 			shoutrrr.SendNotification(nil)
 
 			shoutrrr.Close()
-			gomega.Eventually(logBuffer).Should(gbytes.Say(`failure_type.*unknown`))
+			assert.Regexp(t, `failure_type.*unknown`, logBuffer.String())
 		})
 
-		ginkgo.It("should log summary with failure counts", func() {
+		t.Run("should log summary with failure counts", func(t *testing.T) {
+			t.Parallel()
+
+			log, logBuffer := newBufferLogger()
+
 			mockRouter := &mockRouter{
 				sendErrors: []error{errors.New("auth error"), errors.New("network error")},
 			}
 
 			shoutrrr := createTestNotifier(
+				log,
 				[]string{"logger://", "logger://"},
 				allButTrace,
 				true,
@@ -915,21 +1084,27 @@ Turns out everything is on fire
 				time.Duration(0),
 			)
 			shoutrrr.Router = mockRouter
-			log := testLogger()
 			shoutrrr.RegisterHook(log)
 			shoutrrr.StartNotification(false)
 			log.Info().Msg("test message")
 			shoutrrr.SendNotification(nil)
 
 			shoutrrr.Close()
-			gomega.Eventually(logBuffer).Should(gbytes.Say(`failed_count.*2`))
+			assert.Regexp(t, `failed_count.*2`, logBuffer.String())
 		})
 	})
 
-	ginkgo.When("closing the notifier", func() {
-		ginkgo.When("Close() is called multiple times", func() {
-			ginkgo.It("should be idempotent and not panic", func() {
+	t.Run("closing the notifier", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("Close() is called multiple times", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should be idempotent and not panic", func(t *testing.T) {
+				t.Parallel()
+
 				shoutrrr := createTestNotifier(
+					newTestLogger(t),
 					[]string{"logger://"},
 					allButTrace,
 					true,
@@ -937,7 +1112,7 @@ Turns out everything is on fire
 					false,
 					time.Duration(0),
 				)
-				shoutrrr.RegisterHook(testLogger())
+				shoutrrr.RegisterHook(newTestLogger(t))
 
 				// First close should work normally
 				shoutrrr.Close()
@@ -950,9 +1125,14 @@ Turns out everything is on fire
 			})
 		})
 
-		ginkgo.When("Close() is called without starting the goroutine", func() {
-			ginkgo.It("should not panic or block", func() {
+		t.Run("Close() is called without starting the goroutine", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should not panic or block", func(t *testing.T) {
+				t.Parallel()
+
 				shoutrrr := createTestNotifier(
+					newTestLogger(t),
 					[]string{"logger://"},
 					allButTrace,
 					true,
@@ -969,9 +1149,14 @@ Turns out everything is on fire
 			})
 		})
 
-		ginkgo.When("operations are attempted after Close()", func() {
-			ginkgo.It("should handle gracefully without panicking", func() {
+		t.Run("operations are attempted after Close()", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should handle gracefully without panicking", func(t *testing.T) {
+				t.Parallel()
+
 				shoutrrr := createTestNotifier(
+					newTestLogger(t),
 					[]string{"logger://"},
 					allButTrace,
 					true,
@@ -979,7 +1164,7 @@ Turns out everything is on fire
 					false,
 					time.Duration(0),
 				)
-				shoutrrr.RegisterHook(testLogger())
+				shoutrrr.RegisterHook(newTestLogger(t))
 
 				// Close the notifier
 				shoutrrr.Close()
@@ -994,15 +1179,20 @@ Turns out everything is on fire
 				shoutrrr.Run(nil, zerolog.InfoLevel, entry.Message)
 
 				err := error(nil)
-				gomega.Expect(err).ToNot(gomega.HaveOccurred())
+				require.NoError(t, err)
 
 				// Should not panic
 			})
 		})
 
-		ginkgo.When("Close() is called concurrently", func() {
-			ginkgo.It("should handle concurrent calls safely", func() {
+		t.Run("Close() is called concurrently", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should handle concurrent calls safely", func(t *testing.T) {
+				t.Parallel()
+
 				shoutrrr := createTestNotifier(
+					newTestLogger(t),
 					[]string{"logger://"},
 					allButTrace,
 					true,
@@ -1010,7 +1200,7 @@ Turns out everything is on fire
 					false,
 					time.Duration(0),
 				)
-				shoutrrr.RegisterHook(testLogger())
+				shoutrrr.RegisterHook(newTestLogger(t))
 
 				// Start multiple goroutines calling Close concurrently
 				done := make(chan bool, 10)
@@ -1025,7 +1215,11 @@ Turns out everything is on fire
 
 				// Wait for all to complete
 				for range 10 {
-					gomega.Eventually(done).Should(gomega.Receive())
+					select {
+					case <-done:
+					case <-time.After(5 * time.Second):
+						t.Fatal("Close did not return")
+					}
 				}
 
 				// Should not panic and all should complete
@@ -1033,10 +1227,17 @@ Turns out everything is on fire
 		})
 	})
 
-	ginkgo.Describe("ShouldSendNotification", func() {
-		ginkgo.When("notification level is error", func() {
-			ginkgo.It("should return true when report has failed containers", func() {
+	t.Run("ShouldSendNotification", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("notification level is error", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should return true when report has failed containers", func(t *testing.T) {
+				t.Parallel()
+
 				shoutrrr := createTestNotifier(
+					newTestLogger(t),
 					[]string{"logger://"},
 					zerolog.ErrorLevel,
 					false,
@@ -1047,11 +1248,14 @@ Turns out everything is on fire
 
 				mockReport := newProgressReport(session.FailedState)
 				result := shoutrrr.ShouldSendNotification(mockReport)
-				gomega.Expect(result).To(gomega.BeTrue())
+				assert.True(t, result)
 			})
 
-			ginkgo.It("should return false when report has no failed containers", func() {
+			t.Run("should return false when report has no failed containers", func(t *testing.T) {
+				t.Parallel()
+
 				shoutrrr := createTestNotifier(
+					newTestLogger(t),
 					[]string{"logger://"},
 					zerolog.ErrorLevel,
 					false,
@@ -1062,13 +1266,18 @@ Turns out everything is on fire
 
 				mockReport := newProgressReport(session.FreshState)
 				result := shoutrrr.ShouldSendNotification(mockReport)
-				gomega.Expect(result).To(gomega.BeFalse())
+				assert.False(t, result)
 			})
 		})
 
-		ginkgo.When("notification level is warn", func() {
-			ginkgo.It("should return true regardless of report content", func() {
+		t.Run("notification level is warn", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should return true regardless of report content", func(t *testing.T) {
+				t.Parallel()
+
 				shoutrrr := createTestNotifier(
+					newTestLogger(t),
 					[]string{"logger://"},
 					zerolog.WarnLevel,
 					false,
@@ -1079,13 +1288,18 @@ Turns out everything is on fire
 
 				mockReport := newProgressReport(session.FreshState)
 				result := shoutrrr.ShouldSendNotification(mockReport)
-				gomega.Expect(result).To(gomega.BeTrue())
+				assert.True(t, result)
 			})
 		})
 
-		ginkgo.When("notification level is info", func() {
-			ginkgo.It("should return true regardless of report content", func() {
+		t.Run("notification level is info", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should return true regardless of report content", func(t *testing.T) {
+				t.Parallel()
+
 				shoutrrr := createTestNotifier(
+					newTestLogger(t),
 					[]string{"logger://"},
 					zerolog.InfoLevel,
 					false,
@@ -1096,13 +1310,18 @@ Turns out everything is on fire
 
 				mockReport := newProgressReport(session.FreshState)
 				result := shoutrrr.ShouldSendNotification(mockReport)
-				gomega.Expect(result).To(gomega.BeTrue())
+				assert.True(t, result)
 			})
 		})
 
-		ginkgo.When("notification level is debug", func() {
-			ginkgo.It("should return true regardless of report content", func() {
+		t.Run("notification level is debug", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should return true regardless of report content", func(t *testing.T) {
+				t.Parallel()
+
 				shoutrrr := createTestNotifier(
+					newTestLogger(t),
 					[]string{"logger://"},
 					zerolog.DebugLevel,
 					false,
@@ -1113,13 +1332,18 @@ Turns out everything is on fire
 
 				mockReport := newProgressReport(session.FreshState)
 				result := shoutrrr.ShouldSendNotification(mockReport)
-				gomega.Expect(result).To(gomega.BeTrue())
+				assert.True(t, result)
 			})
 		})
 
-		ginkgo.When("notification level is trace", func() {
-			ginkgo.It("should return true regardless of report content", func() {
+		t.Run("notification level is trace", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should return true regardless of report content", func(t *testing.T) {
+				t.Parallel()
+
 				shoutrrr := createTestNotifier(
+					newTestLogger(t),
 					[]string{"logger://"},
 					zerolog.TraceLevel,
 					false,
@@ -1130,13 +1354,18 @@ Turns out everything is on fire
 
 				mockReport := newProgressReport(session.FreshState)
 				result := shoutrrr.ShouldSendNotification(mockReport)
-				gomega.Expect(result).To(gomega.BeTrue())
+				assert.True(t, result)
 			})
 		})
 
-		ginkgo.When("report is nil", func() {
-			ginkgo.It("should return true", func() {
+		t.Run("report is nil", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should return true", func(t *testing.T) {
+				t.Parallel()
+
 				shoutrrr := createTestNotifier(
+					newTestLogger(t),
 					[]string{"logger://"},
 					zerolog.ErrorLevel,
 					false,
@@ -1146,73 +1375,91 @@ Turns out everything is on fire
 				)
 
 				result := shoutrrr.ShouldSendNotification(nil)
-				gomega.Expect(result).To(gomega.BeTrue())
+				assert.True(t, result)
 			})
 		})
 	})
 
-	ginkgo.When("deduplicating entries for grouped notifications", func() {
-		ginkgo.It("should return empty slice for empty input", func() {
+	t.Run("deduplicating entries for grouped notifications", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("should return empty slice for empty input", func(t *testing.T) {
+			t.Parallel()
+
 			result := deduplicateEntries([]*notificationEntry{})
-			gomega.Expect(result).To(gomega.BeEmpty())
+			assert.Empty(t, result)
 		})
 
-		ginkgo.It("should return single entry unchanged", func() {
+		t.Run("should return single entry unchanged", func(t *testing.T) {
+			t.Parallel()
+
 			entries := []*notificationEntry{
 				{Message: "Found new image", Data: map[string]any{"image": "nginx:latest", "new_id": "abc123"}},
 			}
 			result := deduplicateEntries(entries)
-			gomega.Expect(result).To(gomega.HaveLen(1))
+			require.Len(t, result, 1)
 		})
 
-		ginkgo.It("should deduplicate 'Found new image' entries with same image and new ID", func() {
+		t.Run("should deduplicate 'Found new image' entries with same image and new ID", func(t *testing.T) {
+			t.Parallel()
+
 			entries := []*notificationEntry{
 				{Message: "Found new image", Data: map[string]any{"container": "app-a", "image": "nginx:latest", "new_id": "abc123"}},
 				{Message: "Found new image", Data: map[string]any{"container": "app-b", "image": "nginx:latest", "new_id": "abc123"}},
 			}
 			result := deduplicateEntries(entries)
-			gomega.Expect(result).To(gomega.HaveLen(1))
-			gomega.Expect(result[0].Data["container"]).To(gomega.Equal("app-a"))
+			require.Len(t, result, 1)
+			assert.Equal(t, "app-a", result[0].Data["container"])
 		})
 
-		ginkgo.It("should keep 'Found new image' entries with different images", func() {
+		t.Run("should keep 'Found new image' entries with different images", func(t *testing.T) {
+			t.Parallel()
+
 			entries := []*notificationEntry{
 				{Message: "Found new image", Data: map[string]any{"image": "nginx:latest", "new_id": "abc123"}},
 				{Message: "Found new image", Data: map[string]any{"image": "redis:latest", "new_id": "def456"}},
 			}
 			result := deduplicateEntries(entries)
-			gomega.Expect(result).To(gomega.HaveLen(2))
+			require.Len(t, result, 2)
 		})
 
-		ginkgo.It("should keep 'Found new image' entries with same image but different new IDs", func() {
+		t.Run("should keep 'Found new image' entries with same image but different new IDs", func(t *testing.T) {
+			t.Parallel()
+
 			entries := []*notificationEntry{
 				{Message: "Found new image", Data: map[string]any{"image": "nginx:latest", "new_id": "abc123"}},
 				{Message: "Found new image", Data: map[string]any{"image": "nginx:latest", "new_id": "def456"}},
 			}
 			result := deduplicateEntries(entries)
-			gomega.Expect(result).To(gomega.HaveLen(2))
+			require.Len(t, result, 2)
 		})
 
-		ginkgo.It("should deduplicate 'Removing image' entries with same image ID", func() {
+		t.Run("should deduplicate 'Removing image' entries with same image ID", func(t *testing.T) {
+			t.Parallel()
+
 			entries := []*notificationEntry{
 				{Message: "Removing image", Data: map[string]any{"container_name": "app-a", "image_id": "sha256:abc"}},
 				{Message: "Removing image", Data: map[string]any{"container_name": "app-b", "image_id": "sha256:abc"}},
 			}
 			result := deduplicateEntries(entries)
-			gomega.Expect(result).To(gomega.HaveLen(1))
-			gomega.Expect(result[0].Data["container_name"]).To(gomega.Equal("app-a"))
+			require.Len(t, result, 1)
+			assert.Equal(t, "app-a", result[0].Data["container_name"])
 		})
 
-		ginkgo.It("should not deduplicate other message types", func() {
+		t.Run("should not deduplicate other message types", func(t *testing.T) {
+			t.Parallel()
+
 			entries := []*notificationEntry{
 				{Message: "Stopping container", Data: map[string]any{"container": "app-a"}},
 				{Message: "Stopping container", Data: map[string]any{"container": "app-b"}},
 			}
 			result := deduplicateEntries(entries)
-			gomega.Expect(result).To(gomega.HaveLen(2))
+			require.Len(t, result, 2)
 		})
 
-		ginkgo.It("should handle mixed entry types correctly", func() {
+		t.Run("should handle mixed entry types correctly", func(t *testing.T) {
+			t.Parallel()
+
 			entries := []*notificationEntry{
 				{Message: "Found new image", Data: map[string]any{"image": "nginx:latest", "new_id": "abc123"}},
 				{Message: "Stopping container", Data: map[string]any{"container": "app-a"}},
@@ -1222,18 +1469,20 @@ Turns out everything is on fire
 				{Message: "Removing image", Data: map[string]any{"image_id": "sha256:old"}},
 			}
 			result := deduplicateEntries(entries)
-			gomega.Expect(result).To(gomega.HaveLen(4))
-			gomega.Expect(result[0].Message).To(gomega.Equal("Found new image"))
-			gomega.Expect(result[1].Message).To(gomega.Equal("Stopping container"))
-			gomega.Expect(result[2].Message).To(gomega.Equal("Removing image"))
-			gomega.Expect(result[3].Message).To(gomega.Equal("Started new container"))
+			require.Len(t, result, 4)
+			assert.Equal(t, "Found new image", result[0].Message)
+			assert.Equal(t, "Stopping container", result[1].Message)
+			assert.Equal(t, "Removing image", result[2].Message)
+			assert.Equal(t, "Started new container", result[3].Message)
 		})
 	})
-})
+}
 
+// TestSlowNotificationNotSent verifies that a message is not reported as sent
+// while the router is still sending it.
 func TestSlowNotificationNotSent(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
-		shoutrrr, blockingRouter, err := sendNotificationsWithBlockingRouter()
+		shoutrrr, blockingRouter, err := sendNotificationsWithBlockingRouter(t)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1259,9 +1508,11 @@ func TestSlowNotificationNotSent(t *testing.T) {
 	})
 }
 
+// TestSlowNotificationSent verifies that a message is sent once the router
+// finishes sending it.
 func TestSlowNotificationSent(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
-		shoutrrr, blockingRouter, err := sendNotificationsWithBlockingRouter()
+		shoutrrr, blockingRouter, err := sendNotificationsWithBlockingRouter(t)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1289,9 +1540,12 @@ func TestSlowNotificationSent(t *testing.T) {
 	})
 }
 
+// TestGracefulTerminationNotificationGoroutine verifies that canceling the
+// notifier's context ends an idle worker.
 func TestGracefulTerminationNotificationGoroutine(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		shoutrrr := createTestNotifier(
+			newTestLogger(t),
 			[]string{"logger://"},
 			allButTrace,
 			true,
@@ -1319,9 +1573,12 @@ func TestGracefulTerminationNotificationGoroutine(t *testing.T) {
 	})
 }
 
+// TestGracefulTerminationDuringMessageProcessing verifies that the worker
+// finishes the message it is sending and then ends when the context is
+// canceled.
 func TestGracefulTerminationDuringMessageProcessing(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
-		shoutrrr, blockingRouter, err := sendNotificationsWithBlockingRouter()
+		shoutrrr, blockingRouter, err := sendNotificationsWithBlockingRouter(t)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1358,9 +1615,12 @@ func TestGracefulTerminationDuringMessageProcessing(t *testing.T) {
 	})
 }
 
+// TestContextCancellationIndependentOfStopChannel verifies that canceling the
+// context ends the worker without closing the stop channel.
 func TestContextCancellationIndependentOfStopChannel(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		shoutrrr := createTestNotifier(
+			newTestLogger(t),
 			[]string{"logger://"},
 			allButTrace,
 			true,
@@ -1430,7 +1690,9 @@ func (b blockingRouter) Send(_ string, _ *shoutrrrTypes.Params) []error {
 // TODO: Remove legacy template usage when legacy notification types are removed.
 //
 //nolint:godox
-func sendNotificationsWithBlockingRouter() (*shoutrrrTypeNotifier, *blockingRouter, error) {
+func sendNotificationsWithBlockingRouter(t *testing.T) (*shoutrrrTypeNotifier, *blockingRouter, error) {
+	t.Helper()
+
 	legacy := true
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -1440,7 +1702,7 @@ func sendNotificationsWithBlockingRouter() (*shoutrrrTypeNotifier, *blockingRout
 		ctx:    ctx,
 	}
 
-	tpl, err := getShoutrrrTemplate(testLogger(), "", legacy)
+	tpl, err := getShoutrrrTemplate(newTestLogger(t), "", legacy)
 	if err != nil {
 		cancel()
 
@@ -1482,8 +1744,10 @@ func sendNotificationsWithBlockingRouter() (*shoutrrrTypeNotifier, *blockingRout
 // TODO: Remove legacy parameter and default-legacy fallback when legacy notification types are removed.
 //
 //nolint:godox
-func createNotifierWithTemplate(tplString string, legacy bool) (*shoutrrrTypeNotifier, error) {
-	tpl, err := getShoutrrrTemplate(testLogger(), tplString, legacy)
+func createNotifierWithTemplate(t *testing.T, tplString string, legacy bool) (*shoutrrrTypeNotifier, error) {
+	t.Helper()
+
+	tpl, err := getShoutrrrTemplate(newTestLogger(t), tplString, legacy)
 	if err != nil {
 		_ = err // template construction error ignored for this helper
 
@@ -1511,15 +1775,19 @@ func createNotifierWithTemplate(tplString string, legacy bool) (*shoutrrrTypeNot
 // TODO: Remove legacy parameter when legacy notification types are removed.
 //
 //nolint:godox
-func getTemplatedResult(tplString string, legacy bool, data notificationData) string {
-	notifier, err := createNotifierWithTemplate(tplString, legacy)
-	gomega.ExpectWithOffset(1, err).NotTo(gomega.HaveOccurred())
+func getTemplatedResult(t *testing.T, tplString string, legacy bool, data notificationData) string {
+	t.Helper()
+
+	notifier, err := createNotifierWithTemplate(t, tplString, legacy)
+	require.NoError(t, err)
 	msg, err := notifier.buildMessage(data)
-	gomega.ExpectWithOffset(1, err).NotTo(gomega.HaveOccurred())
+	require.NoError(t, err)
 
 	return msg
 }
 
+// TestDefaultLegacyGitMessages verifies how the default legacy template
+// renders Git monitoring messages.
 func TestDefaultLegacyGitMessages(t *testing.T) {
 	t.Parallel()
 
@@ -1560,6 +1828,8 @@ func TestDefaultLegacyGitMessages(t *testing.T) {
 	}, "\n"), strings.TrimSpace(buf.String()))
 }
 
+// TestDefaultLegacyGitSkipAndComposeMessages verifies how the default legacy
+// template renders Git skip and Compose messages.
 func TestDefaultLegacyGitSkipAndComposeMessages(t *testing.T) {
 	t.Parallel()
 
@@ -1657,7 +1927,7 @@ func TestShutdownGracePeriodConstant(t *testing.T) {
 func TestCloseDoesNotHangWithBlockingRouter(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		// Create a notifier with a blocking router
-		shoutrrr, blockingRouter, err := sendNotificationsWithBlockingRouter()
+		shoutrrr, blockingRouter, err := sendNotificationsWithBlockingRouter(t)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1748,7 +2018,7 @@ func TestGracePeriodAllowsInFlightMessages(t *testing.T) {
 			ctx:        ctx,
 		}
 
-		tpl, err := getShoutrrrTemplate(testLogger(), "", true)
+		tpl, err := getShoutrrrTemplate(newTestLogger(t), "", true)
 		if err != nil {
 			cancel()
 			t.Fatal(err)
@@ -1811,10 +2081,47 @@ func TestGracePeriodAllowsInFlightMessages(t *testing.T) {
 	})
 }
 
+// TestSendNotifications_SendsQueuedMessagesAfterStop verifies that the worker
+// sends every message still queued when the stop signal arrives. The worker
+// picks at random between a queued message and the stop signal, so with many
+// messages queued it reaches the shutdown drain with near certainty, and each
+// message must be sent on either path.
+func TestSendNotifications_SendsQueuedMessagesAfterStop(t *testing.T) {
+	t.Parallel()
+
+	const queued = 64
+
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+
+	router := &countingRouter{}
+	notifier := &shoutrrrTypeNotifier{
+		messages: make(chan string, queued),
+		done:     make(chan struct{}, 1),
+		stop:     make(chan struct{}),
+		Router:   router,
+		params:   &shoutrrrTypes.Params{},
+		ctx:      ctx,
+		cancel:   cancel,
+		localLog: newTestLogger(t),
+	}
+
+	for i := range queued {
+		notifier.messages <- fmt.Sprintf("message %d", i)
+	}
+
+	close(notifier.stop)
+
+	sendNotifications(notifier)
+
+	assert.Equal(t, int32(queued), router.sends.Load())
+}
+
 // TestCloseWithNoGoroutine verifies that Close() works correctly when the
 // notification goroutine was never started.
 func TestCloseWithNoGoroutine(t *testing.T) {
 	shoutrrr := createTestNotifier(
+		newTestLogger(t),
 		[]string{"logger://"},
 		allButTrace,
 		true,
@@ -1903,7 +2210,7 @@ func TestLevelToString_WarnMapsToWarning(t *testing.T) {
 			{Level: levelToString(zerolog.WarnLevel), Message: "caution"},
 		},
 	}
-	notifier, err := createNotifierWithTemplate(tpl, false)
+	notifier, err := createNotifierWithTemplate(t, tpl, false)
 	require.NoError(t, err)
 
 	result, err := notifier.buildMessage(data)
@@ -1918,6 +2225,7 @@ func TestRun_EventFieldMapPreservesLargeIntegers(t *testing.T) {
 
 	root := zerolog.New(io.Discard).Level(zerolog.TraceLevel).With().Timestamp().Logger()
 	n := createTestNotifier(
+		newTestLogger(t),
 		[]string{},
 		zerolog.TraceLevel,
 		true,
@@ -1949,7 +2257,7 @@ func TestRun_EventFieldMapPreservesLargeIntegers(t *testing.T) {
 	// Template must render the exact decimal digits (no scientific notation).
 	const tpl = `{{ range .Entries }}{{ index .Data "removed_orchestrators" }}{{ end }}`
 
-	notifier, err := createNotifierWithTemplate(tpl, false)
+	notifier, err := createNotifierWithTemplate(t, tpl, false)
 	require.NoError(t, err)
 
 	rendered, err := notifier.buildMessage(notificationData{Entries: entries})
@@ -1968,6 +2276,7 @@ func TestRun_EventFieldMapPreservesApplicationFields(t *testing.T) {
 
 	root := zerolog.New(io.Discard).Level(zerolog.TraceLevel).With().Timestamp().Logger()
 	n := createTestNotifier(
+		newTestLogger(t),
 		[]string{},
 		zerolog.TraceLevel,
 		true,
@@ -2015,6 +2324,7 @@ func TestRun_NotifyNoAndFailClosed(t *testing.T) {
 	t.Parallel()
 
 	n := createTestNotifier(
+		newTestLogger(t),
 		[]string{},
 		zerolog.TraceLevel,
 		true,
@@ -2063,6 +2373,7 @@ func TestRun_ConcurrentEnqueue(t *testing.T) {
 
 	root := zerolog.New(io.Discard).Level(zerolog.TraceLevel)
 	n := createTestNotifier(
+		newTestLogger(t),
 		[]string{},
 		zerolog.TraceLevel,
 		true,
@@ -2101,6 +2412,7 @@ func TestRun_ConcurrentEnqueue(t *testing.T) {
 // empty slice so subsequent Run calls continue batching.
 func TestSendNotification_SingleFocusKeepsBatchingActive(t *testing.T) {
 	n := createTestNotifier(
+		newTestLogger(t),
 		[]string{"logger://"},
 		zerolog.InfoLevel,
 		true,
@@ -2143,6 +2455,7 @@ func TestSendNotification_SingleFocusKeepsBatchingActive(t *testing.T) {
 // succeeds when given a valid Gotify URL matching expanded secret content.
 func TestCreateNotifier_AcceptsGotifyURLFromFileExpansion(t *testing.T) {
 	notifier := createTestNotifier(
+		newTestLogger(t),
 		[]string{"gotify://gotify.example.com/token123"},
 		zerolog.InfoLevel,
 		true,
@@ -2154,6 +2467,9 @@ func TestCreateNotifier_AcceptsGotifyURLFromFileExpansion(t *testing.T) {
 	require.NotNil(t, notifier)
 }
 
+// TestReportCategoryCount verifies that reportCategoryCount adds up the
+// scanned, updated, failed, skipped, and restarted containers, and is zero for
+// a nil report.
 func TestReportCategoryCount(t *testing.T) {
 	t.Parallel()
 
@@ -2167,6 +2483,8 @@ func TestReportCategoryCount(t *testing.T) {
 	assert.Equal(t, 4, reportCategoryCount(report))
 }
 
+// TestSend_CanceledBeforeSend verifies that send does not call the router once
+// the notifier's context is canceled.
 func TestSend_CanceledBeforeSend(t *testing.T) {
 	t.Parallel()
 
@@ -2184,6 +2502,8 @@ func TestSend_CanceledBeforeSend(t *testing.T) {
 	assert.Equal(t, int32(0), router.sends.Load())
 }
 
+// TestEventFieldMap_NilEvent verifies that eventFieldMap reports no fields for
+// a nil event.
 func TestEventFieldMap_NilEvent(t *testing.T) {
 	t.Parallel()
 
@@ -2192,6 +2512,8 @@ func TestEventFieldMap_NilEvent(t *testing.T) {
 	assert.Nil(t, fields)
 }
 
+// TestEventFieldMap_NumbersAndTimestamp verifies that eventFieldMap reads
+// numeric fields from an event whose timestamp field is not a valid time.
 func TestEventFieldMap_NumbersAndTimestamp(t *testing.T) {
 	t.Parallel()
 
@@ -2248,10 +2570,10 @@ func TestCreateNotifier_InvalidTemplateFallsBackToDefault(t *testing.T) {
 
 	for _, legacy := range []bool{true, false} {
 		t.Run(fmt.Sprintf("legacy=%t", legacy), func(t *testing.T) {
-			invalid := createNotifier(testLogger(), []string{}, zerolog.TraceLevel, "{{ .Broken", legacy, StaticData{}, false, 0)
+			invalid := createNotifier(newTestLogger(t), []string{}, zerolog.TraceLevel, "{{ .Broken", legacy, StaticData{}, false, 0)
 			t.Cleanup(invalid.Close)
 
-			fallback := createNotifier(testLogger(), []string{}, zerolog.TraceLevel, "", legacy, StaticData{}, false, 0)
+			fallback := createNotifier(newTestLogger(t), []string{}, zerolog.TraceLevel, "", legacy, StaticData{}, false, 0)
 			t.Cleanup(fallback.Close)
 
 			want, err := fallback.buildMessage(data)

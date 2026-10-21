@@ -64,7 +64,7 @@ func withContainer(data map[string]any, container string) map[string]any {
 func newBatchingNotifier(t *testing.T, entries []*notificationEntry) *shoutrrrTypeNotifier {
 	t.Helper()
 
-	notifier := createTestNotifier([]string{}, zerolog.TraceLevel, true, StaticData{}, false, 0)
+	notifier := createTestNotifier(newTestLogger(t), []string{}, zerolog.TraceLevel, true, StaticData{}, false, 0)
 	t.Cleanup(notifier.Close)
 
 	notifier.entries = entries

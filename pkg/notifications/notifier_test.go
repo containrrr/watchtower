@@ -1,146 +1,200 @@
-package notifications_test
+package notifications
 
 import (
 	"bytes"
 	"fmt"
 	"net/url"
 	"os"
+	"slices"
+	"strings"
+	"sync"
+	"testing"
 	"time"
 
-	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
 	"github.com/rs/zerolog"
+	"github.com/spf13/cobra"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
-	"github.com/nicholas-fedor/watchtower/cmd"
 	"github.com/nicholas-fedor/watchtower/internal/config"
 	notifyConfig "github.com/nicholas-fedor/watchtower/internal/config/notify"
 	"github.com/nicholas-fedor/watchtower/internal/flags"
-	"github.com/nicholas-fedor/watchtower/pkg/notifications"
 )
 
-var testLog = func() *zerolog.Logger {
-	l := zerolog.Nop()
+// fatalExitMu serializes the tests that replace zerolog.FatalExitFunc, which
+// is process-wide.
+var fatalExitMu sync.Mutex
 
-	return &l
-}()
+// TestNotifier verifies the notifier that NewNotifier builds from the
+// notification settings: its services, title, delay, and the shoutrrr URLs of
+// the legacy notifiers, and that a legacy email notifier without a required
+// setting is fatal.
+func TestNotifier(t *testing.T) {
+	t.Parallel()
 
-var _ = ginkgo.Describe("notifications", func() {
-	ginkgo.Describe("the notifier", func() {
-		ginkgo.When("only empty notifier types are provided", func() {
-			ginkgo.It("should configure no services", func() {
-				notifier := notifications.NewNotifier(testLog, loadNotify([]string{
+	t.Run("the notifier", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("only empty notifier types are provided", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should configure no services", func(t *testing.T) {
+				t.Parallel()
+
+				notifier := NewNotifier(newTestLogger(t), loadNotify(t, []string{
 					"--notifications",
 					"shoutrrr",
 				}))
 
-				gomega.Expect(notifier.GetNames()).To(gomega.BeEmpty())
+				assert.Empty(t, notifier.GetNames())
 			})
 		})
-		ginkgo.When("title is overridden in flag", func() {
-			ginkgo.It("should use the specified hostname in the title", func() {
-				data := templateData([]string{
+		t.Run("title is overridden in flag", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should use the specified hostname in the title", func(t *testing.T) {
+				t.Parallel()
+
+				data := templateDataFromFlags(t, []string{
 					"--notifications-hostname",
 					"test.host",
 				})
 				title := data.Title
-				gomega.Expect(title).To(gomega.Equal("Watchtower updates on test.host"))
+				assert.Equal(t, "Watchtower updates on test.host", title)
 			})
 		})
-		ginkgo.When("no hostname can be resolved", func() {
-			ginkgo.It("should use the default simple title", func() {
-				title := notifications.GetTitle(testLog, "", "")
-				gomega.Expect(title).To(gomega.Equal("Watchtower updates"))
+		t.Run("no hostname can be resolved", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should use the default simple title", func(t *testing.T) {
+				t.Parallel()
+
+				title := getTitle(newTestLogger(t), "", "")
+				assert.Equal(t, "Watchtower updates", title)
 			})
 		})
-		ginkgo.When("title tag is set", func() {
-			ginkgo.It("should use the prefix in the title", func() {
-				data := templateData([]string{
+		t.Run("title tag is set", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should use the prefix in the title", func(t *testing.T) {
+				t.Parallel()
+
+				data := templateDataFromFlags(t, []string{
 					"--notification-title-tag",
 					"PREFIX",
 				})
-				gomega.Expect(data.Title).To(gomega.HavePrefix("[PREFIX]"))
+				assert.True(t, strings.HasPrefix(data.Title, "[PREFIX]"))
 			})
 		})
-		ginkgo.When("legacy email tag is set", func() {
+		t.Run("legacy email tag is set", func(t *testing.T) {
+			t.Parallel()
+
 			//nolint:godox
 			// TODO: Remove legacy email subjecttag test when legacy notification types are removed.
-			ginkgo.It("should use the prefix in the title", func() {
-				data := templateData([]string{
+			t.Run("should use the prefix in the title", func(t *testing.T) {
+				t.Parallel()
+
+				data := templateDataFromFlags(t, []string{
 					"--notification-email-subjecttag",
 					"PREFIX",
 				})
-				gomega.Expect(data.Title).To(gomega.HavePrefix("[PREFIX]"))
+				assert.True(t, strings.HasPrefix(data.Title, "[PREFIX]"))
 			})
 		})
-		ginkgo.When("the skip title flag is set", func() {
-			ginkgo.It("should return an empty title", func() {
-				data := templateData([]string{
+		t.Run("the skip title flag is set", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should return an empty title", func(t *testing.T) {
+				t.Parallel()
+
+				data := templateDataFromFlags(t, []string{
 					"--notification-skip-title",
 				})
-				gomega.Expect(data.Title).To(gomega.BeEmpty())
+				assert.Empty(t, data.Title)
 			})
 		})
-		ginkgo.When("no delay is defined", func() {
-			ginkgo.It("should use the default delay", func() {
-				delay := notifications.GetDelay(testLog, 0, time.Duration(0))
-				gomega.Expect(delay).To(gomega.Equal(time.Duration(0)))
+		t.Run("no delay is defined", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should use the default delay", func(t *testing.T) {
+				t.Parallel()
+
+				delay := getDelay(newTestLogger(t), 0, time.Duration(0))
+				assert.Equal(t, time.Duration(0), delay)
 			})
 		})
-		ginkgo.When("delay is defined", func() {
-			ginkgo.It("should use the specified delay", func() {
-				delay := notifications.GetDelay(testLog, 5, time.Duration(0))
-				gomega.Expect(delay).To(gomega.Equal(5 * time.Second))
+		t.Run("delay is defined", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should use the specified delay", func(t *testing.T) {
+				t.Parallel()
+
+				delay := getDelay(newTestLogger(t), 5, time.Duration(0))
+				assert.Equal(t, 5*time.Second, delay)
 			})
 		})
-		ginkgo.When("legacy delay is defined", func() {
+		t.Run("legacy delay is defined", func(t *testing.T) {
+			t.Parallel()
+
 			//nolint:godox
 			// TODO: Remove legacy delay tests when legacy notification types are removed.
-			ginkgo.It("should use the specified legacy delay", func() {
-				delay := notifications.GetDelay(testLog, 0, 5*time.Second)
-				gomega.Expect(delay).To(gomega.Equal(5 * time.Second))
+			t.Run("should use the specified legacy delay", func(t *testing.T) {
+				t.Parallel()
+
+				delay := getDelay(newTestLogger(t), 0, 5*time.Second)
+				assert.Equal(t, 5*time.Second, delay)
 			})
 		})
-		ginkgo.When("legacy delay and delay is defined", func() {
+		t.Run("legacy delay and delay is defined", func(t *testing.T) {
+			t.Parallel()
+
 			//nolint:godox
 			// TODO: Remove legacy delay tests when legacy notification types are removed.
-			ginkgo.It(
-				"should use the specified legacy delay and ignore the specified delay",
-				func() {
-					delay := notifications.GetDelay(testLog, 5, 7*time.Second)
-					gomega.Expect(delay).To(gomega.Equal(7 * time.Second))
-				},
-			)
+			t.Run("should use the specified legacy delay and ignore the specified delay", func(t *testing.T) {
+				t.Parallel()
+
+				delay := getDelay(newTestLogger(t), 5, 7*time.Second)
+				assert.Equal(t, 7*time.Second, delay)
+			})
 		})
-		ginkgo.When("notification template file is specified", func() {
-			ginkgo.It("should load template from file", func() {
+		t.Run("notification template file is specified", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should load template from file", func(t *testing.T) {
+				t.Parallel()
+
 				content := "{{.Data.Host}} updated"
 				tmpFile, err := os.CreateTemp("", "template")
-				gomega.Expect(err).NotTo(gomega.HaveOccurred())
+				require.NoError(t, err)
 
 				defer os.Remove(tmpFile.Name())
 
 				_, err = tmpFile.WriteString(content)
-				gomega.Expect(err).NotTo(gomega.HaveOccurred())
+				require.NoError(t, err)
 				tmpFile.Close()
 
-				notifier := notifications.NewNotifier(testLog, loadNotify([]string{
+				notifier := NewNotifier(newTestLogger(t), loadNotify(t, []string{
 					"--notification-url",
 					"logger://",
 					"--notification-template-file",
 					tmpFile.Name(),
 				}))
-				gomega.Expect(notifier).NotTo(gomega.BeNil())
-				gomega.Expect(notifier.GetNames()).To(gomega.ContainElement("logger"))
+				require.NotNil(t, notifier)
+				assert.Contains(t, notifier.GetNames(), "logger")
 			})
 		})
 	})
 	//nolint:godox
 	// TODO: Remove legacy slack notifier tests when legacy notification types are removed.
-	ginkgo.Describe("the slack notifier", func() {
-		ginkgo.When("passing a discord url to the slack notifier", func() {
+	t.Run("the slack notifier", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("passing a discord url to the slack notifier", func(t *testing.T) {
+			t.Parallel()
+
 			channel := "123456789"
 			token := "abvsihdbau"
-			color := notifications.ColorInt
+			color := colorInt
 			username := "containrrrbot"
 			iconURL := "https://github.com/nicholas-fedor/watchtower/blob/main/watchtower-sq180.png"
 			expected := fmt.Sprintf(
@@ -158,32 +212,34 @@ var _ = ginkgo.Describe("notifications", func() {
 				}
 			}
 
-			ginkgo.It(
-				"should return a discord url ginkgo.when using a hook url with the domain discord.com",
-				func() {
-					hookURL := fmt.Sprintf(
-						"https://%s/api/webhooks/%s/%s/slack",
-						"discord.com",
-						channel,
-						token,
-					)
-					testURL(buildArgs(hookURL), expected, time.Duration(0))
-				},
-			)
-			ginkgo.It(
-				"should return a discord url ginkgo.when using a hook url with the domain discordapp.com",
-				func() {
-					hookURL := fmt.Sprintf(
-						"https://%s/api/webhooks/%s/%s/slack",
-						"discordapp.com",
-						channel,
-						token,
-					)
-					testURL(buildArgs(hookURL), expected, time.Duration(0))
-				},
-			)
-			ginkgo.When("icon URL and username are specified", func() {
-				ginkgo.It("should return the expected URL", func() {
+			t.Run("should return a discord url when using a hook url with the domain discord.com", func(t *testing.T) {
+				t.Parallel()
+
+				hookURL := fmt.Sprintf(
+					"https://%s/api/webhooks/%s/%s/slack",
+					"discord.com",
+					channel,
+					token,
+				)
+				testURL(t, buildArgs(hookURL), expected, time.Duration(0))
+			})
+			t.Run("should return a discord url when using a hook url with the domain discordapp.com", func(t *testing.T) {
+				t.Parallel()
+
+				hookURL := fmt.Sprintf(
+					"https://%s/api/webhooks/%s/%s/slack",
+					"discordapp.com",
+					channel,
+					token,
+				)
+				testURL(t, buildArgs(hookURL), expected, time.Duration(0))
+			})
+			t.Run("icon URL and username are specified", func(t *testing.T) {
+				t.Parallel()
+
+				t.Run("should return the expected URL", func(t *testing.T) {
+					t.Parallel()
+
 					hookURL := fmt.Sprintf(
 						"https://%s/api/webhooks/%s/%s/slack",
 						"discord.com",
@@ -212,21 +268,27 @@ var _ = ginkgo.Describe("notifications", func() {
 						fmt.Sprint(expectedDelay.Seconds()),
 					}
 
-					testURL(args, expectedOutput, expectedDelay)
+					testURL(t, args, expectedOutput, expectedDelay)
 				})
 			})
 		})
-		ginkgo.When("converting a slack service config into a shoutrrr url", func() {
+		t.Run("converting a slack service config into a shoutrrr url", func(t *testing.T) {
+			t.Parallel()
+
 			username := "containrrrbot"
 			tokenA := "AAAAAAAAA"
 			tokenB := "BBBBBBBBB"
 			tokenC := "123456789123456789123456"
-			color := url.QueryEscape(notifications.ColorHex)
+			color := url.QueryEscape(colorHex)
 			iconURL := "https://github.com/nicholas-fedor/watchtower/blob/main/watchtower-sq180.png"
 			iconEmoji := "whale"
 
-			ginkgo.When("icon URL is specified", func() {
-				ginkgo.It("should return the expected URL", func() {
+			t.Run("icon URL is specified", func(t *testing.T) {
+				t.Parallel()
+
+				t.Run("should return the expected URL", func(t *testing.T) {
+					t.Parallel()
+
 					hookURL := fmt.Sprintf(
 						"https://hooks.slack.com/services/%s/%s/%s",
 						tokenA,
@@ -257,12 +319,16 @@ var _ = ginkgo.Describe("notifications", func() {
 						fmt.Sprint(expectedDelay.Seconds()),
 					}
 
-					testURL(args, expectedOutput, expectedDelay)
+					testURL(t, args, expectedOutput, expectedDelay)
 				})
 			})
 
-			ginkgo.When("icon emoji is specified", func() {
-				ginkgo.It("should return the expected URL", func() {
+			t.Run("icon emoji is specified", func(t *testing.T) {
+				t.Parallel()
+
+				t.Run("should return the expected URL", func(t *testing.T) {
+					t.Parallel()
+
 					hookURL := fmt.Sprintf(
 						"https://hooks.slack.com/services/%s/%s/%s",
 						tokenA,
@@ -290,13 +356,17 @@ var _ = ginkgo.Describe("notifications", func() {
 						iconEmoji,
 					}
 
-					testURL(args, expectedOutput, time.Duration(0))
+					testURL(t, args, expectedOutput, time.Duration(0))
 				})
 			})
 		})
-		ginkgo.When("the hook URL is empty", func() {
-			ginkgo.It("should fatal with a clear missing argument message", func() {
-				expectNewNotifierFatal([]string{
+		t.Run("the hook URL is empty", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should fatal with a clear missing argument message", func(t *testing.T) {
+				t.Parallel()
+
+				expectNewNotifierFatal(t, []string{
 					"--notifications",
 					"slack",
 				}, "Slack hook URL is empty.")
@@ -306,9 +376,15 @@ var _ = ginkgo.Describe("notifications", func() {
 
 	//nolint:godox
 	// TODO: Remove legacy gotify notifier tests when legacy notification types are removed.
-	ginkgo.Describe("the gotify notifier", func() {
-		ginkgo.When("converting a gotify service config into a shoutrrr url", func() {
-			ginkgo.It("should return the expected URL", func() {
+	t.Run("the gotify notifier", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("converting a gotify service config into a shoutrrr url", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should return the expected URL", func(t *testing.T) {
+				t.Parallel()
+
 				token := "aaa"
 				host := "shoutrrr.local"
 
@@ -323,14 +399,15 @@ var _ = ginkgo.Describe("notifications", func() {
 					token,
 				}
 
-				testURL(args, expectedOutput, time.Duration(0))
+				testURL(t, args, expectedOutput, time.Duration(0))
 			})
 		})
-		ginkgo.When("initializing a gotify notifier via NewNotifier", func() {
-			ginkgo.BeforeEach(func() {
-			})
+		t.Run("initializing a gotify notifier via NewNotifier", func(t *testing.T) {
+			t.Parallel()
 
-			ginkgo.It("should configure with valid flags", func() {
+			t.Run("should configure with valid flags", func(t *testing.T) {
+				t.Parallel()
+
 				args := []string{
 					"--notifications",
 					"gotify",
@@ -340,16 +417,23 @@ var _ = ginkgo.Describe("notifications", func() {
 					"test-token",
 					"--notification-gotify-tls-skip-verify",
 				}
-				notifier := notifications.NewNotifier(testLog, loadNotify(args))
+				notifier := NewNotifier(newTestLogger(t), loadNotify(t, args))
 				names := notifier.GetNames()
-				gomega.Expect(names).To(gomega.ContainElement("gotify"))
+				assert.Contains(t, names, "gotify")
 
 				urls := notifier.GetURLs()
-				gomega.Expect(urls).
-					To(gomega.ContainElement(gomega.ContainSubstring("gotify://gotify.example.com/test-token")))
+				assert.True(
+					t,
+					slices.ContainsFunc(urls, func(u string) bool { return strings.Contains(u, "gotify://gotify.example.com/test-token") }),
+					"no URL contains %q: %v",
+					"gotify://gotify.example.com/test-token",
+					urls,
+				)
 			})
 
-			ginkgo.It("should log token at trace level", func() {
+			t.Run("should log the token length, not the token, at trace level", func(t *testing.T) {
+				t.Parallel()
+
 				args := []string{
 					"--notifications",
 					"gotify",
@@ -358,25 +442,33 @@ var _ = ginkgo.Describe("notifications", func() {
 					"--notification-gotify-token",
 					"test-token",
 				}
-				notifier := notifications.NewNotifier(testLog, loadNotify(args))
-				names := notifier.GetNames()
-				gomega.Expect(names).To(gomega.ContainElement("gotify"))
 
-				urls := notifier.GetURLs()
-				gomega.Expect(urls).
-					To(gomega.ContainElement(gomega.ContainSubstring("gotify://gotify.example.com/test-token")))
+				var buf lockedBuffer
+
+				log := zerolog.New(&buf).Level(zerolog.TraceLevel)
+
+				notifier := NewNotifier(&log, loadNotify(t, args))
+				assert.Contains(t, notifier.GetNames(), "gotify")
+
+				out := buf.String()
+				assert.Contains(t, out, `"token_length":10,"message":"Gotify notifier token loaded"`)
+				assert.NotContains(t, out, "test-token")
 			})
 		})
 	})
 
 	//nolint:godox
 	// TODO: Remove legacy msteams notifier tests when legacy notification types are removed.
-	ginkgo.Describe("the teams notifier", func() {
-		ginkgo.BeforeEach(func() {
-		})
-		ginkgo.When("converting a teams service config into a shoutrrr url", func() {
-			ginkgo.It("should return the expected URL", func() {
-				color := url.QueryEscape(notifications.ColorHex)
+	t.Run("the teams notifier", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("converting a teams service config into a shoutrrr url", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should return the expected URL", func(t *testing.T) {
+				t.Parallel()
+
+				color := url.QueryEscape(colorHex)
 
 				// Power Automate workflow incoming webhook URL.
 				hookURL := "https://default.environment.api.powerplatform.com/powerautomate/automations/direct/workflows/abc123/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=XXXXXXXX"
@@ -393,16 +485,22 @@ var _ = ginkgo.Describe("notifications", func() {
 					hookURL,
 				}
 
-				testURL(args, expectedOutput, time.Duration(0))
+				testURL(t, args, expectedOutput, time.Duration(0))
 			})
 		})
 	})
 
 	//nolint:godox
 	// TODO: Remove legacy email notifier tests when legacy notification types are removed.
-	ginkgo.Describe("the email notifier", func() {
-		ginkgo.When("converting an email service config into a shoutrrr url", func() {
-			ginkgo.It("should set the from address in the URL", func() {
+	t.Run("the email notifier", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("converting an email service config into a shoutrrr url", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should set the from address in the URL", func(t *testing.T) {
+				t.Parallel()
+
 				fromAddress := "lala@example.com"
 				expectedOutput := buildExpectedURL(
 					"containrrrbot",
@@ -431,10 +529,12 @@ var _ = ginkgo.Describe("notifications", func() {
 					"--notifications-delay",
 					fmt.Sprint(expectedDelay.Seconds()),
 				}
-				testURL(args, expectedOutput, expectedDelay)
+				testURL(t, args, expectedOutput, expectedDelay)
 			})
 
-			ginkgo.It("should return the expected URL", func() {
+			t.Run("should return the expected URL", func(t *testing.T) {
+				t.Parallel()
+
 				fromAddress := "sender@example.com"
 				toAddress := "receiver@example.com"
 				expectedOutput := buildExpectedURL(
@@ -465,12 +565,16 @@ var _ = ginkgo.Describe("notifications", func() {
 					fmt.Sprint(expectedDelay.Seconds()),
 				}
 
-				testURL(args, expectedOutput, expectedDelay)
+				testURL(t, args, expectedOutput, expectedDelay)
 			})
 		})
-		ginkgo.When("a required field is empty", func() {
-			ginkgo.It("should fatal when the from address is empty", func() {
-				expectNewNotifierFatal([]string{
+		t.Run("a required field is empty", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should fatal when the from address is empty", func(t *testing.T) {
+				t.Parallel()
+
+				expectNewNotifierFatal(t, []string{
 					"--notifications",
 					"email",
 					"--notification-email-to",
@@ -480,8 +584,10 @@ var _ = ginkgo.Describe("notifications", func() {
 				}, "Email from address is empty.")
 			})
 
-			ginkgo.It("should fatal when the to address is empty", func() {
-				expectNewNotifierFatal([]string{
+			t.Run("should fatal when the to address is empty", func(t *testing.T) {
+				t.Parallel()
+
+				expectNewNotifierFatal(t, []string{
 					"--notifications",
 					"email",
 					"--notification-email-from",
@@ -491,8 +597,10 @@ var _ = ginkgo.Describe("notifications", func() {
 				}, "Email to address is empty.")
 			})
 
-			ginkgo.It("should fatal when the server is empty", func() {
-				expectNewNotifierFatal([]string{
+			t.Run("should fatal when the server is empty", func(t *testing.T) {
+				t.Parallel()
+
+				expectNewNotifierFatal(t, []string{
 					"--notifications",
 					"email",
 					"--notification-email-from",
@@ -503,17 +611,21 @@ var _ = ginkgo.Describe("notifications", func() {
 			})
 		})
 	})
-})
+}
 
 // expectNewNotifierFatal runs NewNotifier under a temporary FatalExitFunc
 // that panics instead of os.Exit, captures buffer-backed fatal log output, and
 // restores the previous exit callback.
 //
 // Parameters:
+//   - t: Test that receives the failures.
 //   - args: CLI flags to load before constructing the notifier
 //   - wantMsg: exact fatal message text expected in the log output
-func expectNewNotifierFatal(args []string, wantMsg string) {
-	ginkgo.GinkgoHelper()
+func expectNewNotifierFatal(t *testing.T, args []string, wantMsg string) {
+	t.Helper()
+
+	fatalExitMu.Lock()
+	defer fatalExitMu.Unlock()
 
 	oldFatalExit := zerolog.FatalExitFunc
 	defer func() { zerolog.FatalExitFunc = oldFatalExit }()
@@ -526,15 +638,14 @@ func expectNewNotifierFatal(args []string, wantMsg string) {
 		panic("fatal exit")
 	}
 
-	cfg := loadNotify(args)
+	cfg := loadNotify(t, args)
 
-	gomega.Expect(func() {
-		notifications.NewNotifier(&log, cfg)
-	}).To(gomega.PanicWith("fatal exit"))
+	assert.PanicsWithValue(t, "fatal exit", func() {
+		NewNotifier(&log, cfg)
+	})
 
 	out := buf.String()
-	gomega.Expect(out).To(gomega.ContainSubstring(`"message":"`+wantMsg+`"`),
-		"expected exact fatal message %q in output:\n%s", wantMsg, out)
+	assert.Contains(t, out, `"message":"`+wantMsg+`"`, "expected exact fatal message %q in output:\n%s", wantMsg, out)
 }
 
 // TODO: Remove buildExpectedURL helper when legacy notification tests are removed.
@@ -562,51 +673,54 @@ func buildExpectedURL(
 // TODO: Remove testURL helper when legacy notification tests are removed.
 //
 //nolint:godox
-func testURL(args []string, expectedURL string, expectedDelay time.Duration) {
-	defer ginkgo.GinkgoRecover()
+func testURL(t *testing.T, args []string, expectedURL string, expectedDelay time.Duration) {
+	t.Helper()
 
-	cfg := loadNotify(args)
+	cfg := loadNotify(t, args)
 
-	urls, legacyDelay := notifications.AppendLegacyURLs(testLog, []string{}, cfg.LegacyTypes, cfg.Legacy)
-	delay := notifications.GetDelay(testLog, cfg.DelaySeconds, legacyDelay)
+	urls, legacyDelay := appendLegacyURLs(newTestLogger(t), []string{}, cfg.LegacyTypes, cfg.Legacy)
+	delay := getDelay(newTestLogger(t), cfg.DelaySeconds, legacyDelay)
 
-	gomega.Expect(urls).To(gomega.ContainElement(expectedURL))
-	gomega.Expect(delay).To(gomega.Equal(expectedDelay))
+	assert.Contains(t, urls, expectedURL)
+	assert.Equal(t, expectedDelay, delay)
 }
 
 // loadNotify loads the notification settings from args the way production
-// does, by parsing them into the root command's flags and running config.Load.
+// does, by parsing them into a command with every flag registered and running
+// config.Load.
 //
 // Parameters:
+//   - t: Test that receives the failures.
 //   - args: CLI flags to parse.
 //
 // Returns:
 //   - notifyConfig.Notify: The resolved notification settings.
-func loadNotify(args []string) notifyConfig.Notify {
-	ginkgo.GinkgoHelper()
+func loadNotify(t *testing.T, args []string) notifyConfig.Notify {
+	t.Helper()
 
-	command := cmd.NewRootCommand()
+	command := &cobra.Command{Use: "watchtower"}
 	flags.RegisterAll(command)
-	gomega.Expect(command.ParseFlags(args)).To(gomega.Succeed())
+	require.NoError(t, command.ParseFlags(args))
 
-	cfg, err := config.Load(testLog, command, nil)
-	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	cfg, err := config.Load(newTestLogger(t), command, nil)
+	require.NoError(t, err)
 
 	return cfg.Notify
 }
 
-// templateData returns the static notification data for the settings loaded
+// templateDataFromFlags returns the static notification data for the settings loaded
 // from args.
 //
 // Parameters:
+//   - t: Test that receives the failures.
 //   - args: CLI flags to parse.
 //
 // Returns:
-//   - notifications.StaticData: Host and title for notification templates.
-func templateData(args []string) notifications.StaticData {
-	ginkgo.GinkgoHelper()
+//   - StaticData: Host and title for notification templates.
+func templateDataFromFlags(t *testing.T, args []string) StaticData {
+	t.Helper()
 
-	cfg := loadNotify(args)
+	cfg := loadNotify(t, args)
 
-	return notifications.TemplateData(testLog, cfg.Hostname, cfg.TitleTag, cfg.EmailSubjectTag, cfg.SkipTitle)
+	return templateData(newTestLogger(t), cfg.Hostname, cfg.TitleTag, cfg.EmailSubjectTag, cfg.SkipTitle)
 }
