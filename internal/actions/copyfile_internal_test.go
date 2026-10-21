@@ -1,13 +1,13 @@
 package actions
 
 import (
-	"context"
 	"errors"
+	"testing"
 	"time"
 
-	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 
 	cerrdefs "github.com/containerd/errdefs"
 
@@ -24,6 +24,10 @@ type copyFileAwareClient struct {
 	container.CopyFileStore
 }
 
+// staleMockContainer returns a stale container for the copy-file recreate tests.
+//
+// Returns:
+//   - types.Container: The stale container.
 func staleMockContainer() types.Container {
 	source := mockActions.CreateMockContainer("container-id", "/app", "app:latest", time.Now())
 	source.(*container.Container).SetStale(true)
@@ -31,13 +35,25 @@ func staleMockContainer() types.Container {
 	return source
 }
 
-func newCopyFileAwareClient() (
+// newCopyFileAwareClient returns a client that is also a copy-file store, with
+// the mocks behind each side.
+//
+// Parameters:
+//   - t: Test the mocks belong to.
+//
+// Returns:
+//   - *copyFileAwareClient: The combined client.
+//   - *mockContainer.MockClient: Mock behind the client methods.
+//   - *mockContainer.MockCopyFileStore: Mock behind the copy-file store methods.
+func newCopyFileAwareClient(t *testing.T) (
 	*copyFileAwareClient,
 	*mockContainer.MockClient,
 	*mockContainer.MockCopyFileStore,
 ) {
-	mockClient := mockContainer.NewMockClient(ginkgo.GinkgoT())
-	mockStore := mockContainer.NewMockCopyFileStore(ginkgo.GinkgoT())
+	t.Helper()
+
+	mockClient := mockContainer.NewMockClient(t)
+	mockStore := mockContainer.NewMockCopyFileStore(t)
 
 	return &copyFileAwareClient{
 		Client:        mockClient,
@@ -45,40 +61,59 @@ func newCopyFileAwareClient() (
 	}, mockClient, mockStore
 }
 
-var _ = ginkgo.Describe("copy-file recreate helpers", func() {
-	ginkgo.It("skips snapshot when the client is not a CopyFileStore", func() {
-		client := mockContainer.NewMockClient(ginkgo.GinkgoT())
+// TestCopyFileRecreateHelpers verifies that labeled files are snapshotted and
+// leftovers discarded only on a client that stores copy files, and that
+// snapshot failures are wrapped.
+func TestCopyFileRecreateHelpers(t *testing.T) {
+	t.Parallel()
+
+	t.Run("skips snapshot when the client is not a CopyFileStore", func(t *testing.T) {
+		t.Parallel()
+
+		client := mockContainer.NewMockClient(t)
 		source := staleMockContainer()
 
-		gomega.Expect(snapshotCopyFilesForRecreate(context.Background(), client, source)).To(gomega.Succeed())
+		require.NoError(t, snapshotCopyFilesForRecreate(t.Context(), client, source))
 		discardCopyFilesForRecreate(client, source.ID())
 	})
 
-	ginkgo.It("wraps SnapshotCopyFiles errors", func() {
-		client, _, mockStore := newCopyFileAwareClient()
+	t.Run("wraps SnapshotCopyFiles errors", func(t *testing.T) {
+		t.Parallel()
+
+		client, _, mockStore := newCopyFileAwareClient(t)
 		source := staleMockContainer()
 		mockStore.EXPECT().
 			SnapshotCopyFiles(mock.Anything, source).
 			Return(errors.New("denied"))
 
-		err := snapshotCopyFilesForRecreate(context.Background(), client, source)
-		gomega.Expect(err).To(gomega.HaveOccurred())
-		gomega.Expect(err.Error()).To(gomega.ContainSubstring("snapshot copy-file paths"))
+		err := snapshotCopyFilesForRecreate(t.Context(), client, source)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "snapshot copy-file paths")
 	})
 
-	ginkgo.It("discards leftovers on a CopyFileStore client", func() {
-		client, _, mockStore := newCopyFileAwareClient()
+	t.Run("discards leftovers on a CopyFileStore client", func(t *testing.T) {
+		t.Parallel()
+
+		client, _, mockStore := newCopyFileAwareClient(t)
 		source := staleMockContainer()
 		mockStore.EXPECT().DiscardCopyFiles(source.ID())
 
 		discardCopyFilesForRecreate(client, source.ID())
 	})
-})
+}
 
-var _ = ginkgo.Describe("stopStaleContainer copy-file", func() {
-	ginkgo.It("snapshots before stop and does not discard on success", func() {
+// TestStopStaleContainerCopyFile verifies that a stale container's labeled
+// files are snapshotted before it stops and kept on success, that a failed
+// snapshot prevents the stop, and that the snapshot is discarded when the stop
+// fails or the container is already gone.
+func TestStopStaleContainerCopyFile(t *testing.T) {
+	t.Parallel()
+
+	t.Run("snapshots before stop and does not discard on success", func(t *testing.T) {
+		t.Parallel()
+
 		source := staleMockContainer()
-		client, mockClient, mockStore := newCopyFileAwareClient()
+		client, mockClient, mockStore := newCopyFileAwareClient(t)
 		mockStore.EXPECT().
 			SnapshotCopyFiles(mock.Anything, source).
 			Return(nil)
@@ -87,36 +122,40 @@ var _ = ginkgo.Describe("stopStaleContainer copy-file", func() {
 			Return(nil)
 
 		stopped, err := stopStaleContainer(
-			newNopLogger(),
-			context.Background(),
+			newTestLogger(t),
+			t.Context(),
 			source,
 			client,
 			types.UpdateParams{Timeout: time.Second},
 		)
-		gomega.Expect(err).ToNot(gomega.HaveOccurred())
-		gomega.Expect(stopped).To(gomega.BeTrue())
+		require.NoError(t, err)
+		assert.True(t, stopped)
 	})
 
-	ginkgo.It("does not stop when snapshot fails", func() {
+	t.Run("does not stop when snapshot fails", func(t *testing.T) {
+		t.Parallel()
+
 		source := staleMockContainer()
-		client, _, mockStore := newCopyFileAwareClient()
+		client, _, mockStore := newCopyFileAwareClient(t)
 		mockStore.EXPECT().
 			SnapshotCopyFiles(mock.Anything, source).
 			Return(errors.New("denied"))
 
 		_, err := stopStaleContainer(
-			newNopLogger(),
-			context.Background(),
+			newTestLogger(t),
+			t.Context(),
 			source,
 			client,
 			types.UpdateParams{Timeout: time.Second},
 		)
-		gomega.Expect(err).To(gomega.HaveOccurred())
+		require.Error(t, err)
 	})
 
-	ginkgo.It("discards the snapshot when stop fails", func() {
+	t.Run("discards the snapshot when stop fails", func(t *testing.T) {
+		t.Parallel()
+
 		source := staleMockContainer()
-		client, mockClient, mockStore := newCopyFileAwareClient()
+		client, mockClient, mockStore := newCopyFileAwareClient(t)
 		mockStore.EXPECT().
 			SnapshotCopyFiles(mock.Anything, source).
 			Return(nil)
@@ -126,18 +165,20 @@ var _ = ginkgo.Describe("stopStaleContainer copy-file", func() {
 		mockStore.EXPECT().DiscardCopyFiles(source.ID())
 
 		_, err := stopStaleContainer(
-			newNopLogger(),
-			context.Background(),
+			newTestLogger(t),
+			t.Context(),
 			source,
 			client,
 			types.UpdateParams{Timeout: time.Second},
 		)
-		gomega.Expect(err).To(gomega.HaveOccurred())
+		require.Error(t, err)
 	})
 
-	ginkgo.It("skips and discards the snapshot when the container is already gone", func() {
+	t.Run("skips and discards the snapshot when the container is already gone", func(t *testing.T) {
+		t.Parallel()
+
 		source := staleMockContainer()
-		client, mockClient, mockStore := newCopyFileAwareClient()
+		client, mockClient, mockStore := newCopyFileAwareClient(t)
 		mockStore.EXPECT().
 			SnapshotCopyFiles(mock.Anything, source).
 			Return(nil)
@@ -147,14 +188,14 @@ var _ = ginkgo.Describe("stopStaleContainer copy-file", func() {
 		mockStore.EXPECT().DiscardCopyFiles(source.ID())
 
 		stopped, err := stopStaleContainer(
-			newNopLogger(),
-			context.Background(),
+			newTestLogger(t),
+			t.Context(),
 			source,
 			client,
 			types.UpdateParams{Timeout: time.Second},
 		)
-		gomega.Expect(stopped).To(gomega.BeFalse())
-		gomega.Expect(isSkip(err)).To(gomega.BeTrue())
-		gomega.Expect(errors.Is(err, errContainerGone)).To(gomega.BeTrue())
+		assert.False(t, stopped)
+		assert.True(t, isSkip(err))
+		assert.ErrorIs(t, err, errContainerGone)
 	})
-})
+}

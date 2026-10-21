@@ -86,6 +86,8 @@ type TestData struct {
 	ImageDiskUsage            types.ImageDiskUsage          // Usage returned by GetImageDiskUsage.
 	GetImageDiskUsageError    error                         // Error to return from GetImageDiskUsage.
 	ImageAnnotations          map[string]oci.Annotations    // OCI annotations returned per image reference.
+	LastExecUID               int                           // UID passed to the last ExecuteCommand call.
+	LastExecGID               int                           // GID passed to the last ExecuteCommand call.
 }
 
 // recordOperation appends an operation name to OperationOrder for sequencing tests.
@@ -455,11 +457,16 @@ func (client MockClient) ExecuteCommand(
 	_ types.Container,
 	command string,
 	_ int,
-	_ int,
-	_ int,
+	uid int,
+	gid int,
 ) (bool, error) {
 	if err := client.checkContextCancellation(ctx); err != nil {
 		return false, err
+	}
+
+	if client.TestData != nil {
+		client.TestData.LastExecUID = uid
+		client.TestData.LastExecGID = gid
 	}
 
 	switch command {

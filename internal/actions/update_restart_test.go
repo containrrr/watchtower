@@ -4,10 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
+	"testing"
 	"time"
 
-	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	dockerContainer "github.com/moby/moby/api/types/container"
 	dockerNetwork "github.com/moby/moby/api/types/network"
@@ -93,9 +95,19 @@ func createStaleContainersForTest() *mockActions.TestData {
 	return testData
 }
 
-var _ = ginkgo.Describe("the update action", func() {
-	ginkgo.When("restarting stale Watchtower containers in non-rolling mode", func() {
-		ginkgo.It("should restart stale Watchtower containers even if stop is skipped", func() {
+// TestUpdateAction_Restarts verifies how an update restarts stale and linked
+// containers, including Watchtower itself, how it reports them as updated,
+// restarted, or fresh in notifications and metrics, and how restarts interact
+// with dependency chains and cancellation.
+func TestUpdateAction_Restarts(t *testing.T) {
+	t.Parallel()
+
+	t.Run("restarting stale Watchtower containers in non-rolling mode", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("should restart stale Watchtower containers even if stop is skipped", func(t *testing.T) {
+			t.Parallel()
+
 			client := mockActions.CreateMockClient(
 				&mockActions.TestData{
 					Containers: []types.Container{
@@ -121,8 +133,8 @@ var _ = ginkgo.Describe("the update action", func() {
 				false,
 			)
 
-			report, cleanupImageInfos, err := actions.Update(newNopLogger(),
-				context.Background(),
+			report, cleanupImageInfos, err := actions.Update(newTestLogger(t),
+				t.Context(),
 				client,
 				types.UpdateParams{
 					Cleanup: true,
@@ -130,113 +142,112 @@ var _ = ginkgo.Describe("the update action", func() {
 				},
 			)
 
-			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-			gomega.Expect(report.Updated()).To(gomega.HaveLen(1))
-			gomega.Expect(cleanupImageInfos).
-				To(gomega.BeEmpty(), "No cleanup for renamed Watchtower container")
-			gomega.Expect(client.TestData.StopContainerCount.Load()).
-				To(gomega.Equal(int32(0)), "StopContainer should not be called for old Watchtower (handled by cleanup logic)")
-			gomega.Expect(client.TestData.StartContainerCount.Load()).
-				To(gomega.Equal(int32(1)), "StartContainer should be called for Watchtower restart")
-			gomega.Expect(client.TestData.RenameContainerCount.Load()).
-				To(gomega.Equal(int32(1)), "RenameContainer should be called once")
-			gomega.Expect(client.TestData.IsContainerStaleCount.Load()).
-				To(gomega.Equal(int32(1)), "IsContainerStale should be called once for Watchtower")
+			require.NoError(t, err)
+			require.Len(t, report.Updated(), 1)
+			assert.Empty(t, cleanupImageInfos, "No cleanup for renamed Watchtower container")
+			assert.Equal(t, int32(0), client.TestData.StopContainerCount.Load(), "StopContainer should not be called for old Watchtower (handled by cleanup logic)")
+			assert.Equal(t, int32(1), client.TestData.StartContainerCount.Load(), "StartContainer should be called for Watchtower restart")
+			assert.Equal(t, int32(1), client.TestData.RenameContainerCount.Load(), "RenameContainer should be called once")
+			assert.Equal(t, int32(1), client.TestData.IsContainerStaleCount.Load(), "IsContainerStale should be called once for Watchtower")
 		})
 	})
 
-	ginkgo.When("handling chained dependencies with multiple dependents", func() {
-		ginkgo.It(
-			"should restart all containers depending on the same base dependency when it updates",
-			func() {
-				// Create a base container that will be updated
-				baseContainer := mockActions.CreateMockContainerWithConfig(
-					"stale-container",
-					"/stale-container",
-					"stale-image:latest",
-					true,
-					false,
-					time.Now().AddDate(0, 0, -1), // Make it stale
-					&dockerContainer.Config{
-						Labels:       map[string]string{},
-						ExposedPorts: dockerNetwork.PortSet{},
+	t.Run("handling chained dependencies with multiple dependents", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("should restart all containers depending on the same base dependency when it updates", func(t *testing.T) {
+			t.Parallel()
+
+			// Create a base container that will be updated
+			baseContainer := mockActions.CreateMockContainerWithConfig(
+				"stale-container",
+				"/stale-container",
+				"stale-image:latest",
+				true,
+				false,
+				time.Now().AddDate(0, 0, -1), // Make it stale
+				&dockerContainer.Config{
+					Labels:       map[string]string{},
+					ExposedPorts: dockerNetwork.PortSet{},
+				},
+			)
+
+			// Create two containers that depend on the base
+			restartContainer1 := mockActions.CreateMockContainerWithConfig(
+				"restart-container-1",
+				"/restart-container-1",
+				"restart-image1:latest",
+				true,
+				false,
+				time.Now(), // Not stale
+				&dockerContainer.Config{
+					Labels: map[string]string{
+						"com.centurylinklabs.watchtower.depends-on": "stale-container",
 					},
-				)
+					ExposedPorts: dockerNetwork.PortSet{},
+				},
+			)
 
-				// Create two containers that depend on the base
-				restartContainer1 := mockActions.CreateMockContainerWithConfig(
-					"restart-container-1",
-					"/restart-container-1",
-					"restart-image1:latest",
-					true,
-					false,
-					time.Now(), // Not stale
-					&dockerContainer.Config{
-						Labels: map[string]string{
-							"com.centurylinklabs.watchtower.depends-on": "stale-container",
-						},
-						ExposedPorts: dockerNetwork.PortSet{},
+			restartContainer2 := mockActions.CreateMockContainerWithConfig(
+				"restart-container-2",
+				"/restart-container-2",
+				"restart-image2:latest",
+				true,
+				false,
+				time.Now(), // Not stale
+				&dockerContainer.Config{
+					Labels: map[string]string{
+						"com.centurylinklabs.watchtower.depends-on": "stale-container",
 					},
-				)
+					ExposedPorts: dockerNetwork.PortSet{},
+				},
+			)
 
-				restartContainer2 := mockActions.CreateMockContainerWithConfig(
-					"restart-container-2",
-					"/restart-container-2",
-					"restart-image2:latest",
-					true,
-					false,
-					time.Now(), // Not stale
-					&dockerContainer.Config{
-						Labels: map[string]string{
-							"com.centurylinklabs.watchtower.depends-on": "stale-container",
-						},
-						ExposedPorts: dockerNetwork.PortSet{},
+			client := mockActions.CreateMockClient(
+				&mockActions.TestData{
+					Containers: []types.Container{
+						baseContainer,
+						restartContainer1,
+						restartContainer2,
 					},
-				)
-
-				client := mockActions.CreateMockClient(
-					&mockActions.TestData{
-						Containers: []types.Container{
-							baseContainer,
-							restartContainer1,
-							restartContainer2,
-						},
-						Staleness: map[string]bool{
-							"stale-container":     true,
-							"restart-container-1": false,
-							"restart-container-2": false,
-						},
+					Staleness: map[string]bool{
+						"stale-container":     true,
+						"restart-container-1": false,
+						"restart-container-2": false,
 					},
-					false,
-					false,
-				)
+				},
+				false,
+				false,
+			)
 
-				report, cleanupImageInfos, err := actions.Update(newNopLogger(),
-					context.Background(),
-					client,
-					types.UpdateParams{Cleanup: true},
-				)
+			report, cleanupImageInfos, err := actions.Update(newTestLogger(t),
+				t.Context(),
+				client,
+				types.UpdateParams{Cleanup: true},
+			)
 
-				gomega.Expect(err).NotTo(gomega.HaveOccurred())
-				gomega.Expect(report.Updated()).To(gomega.HaveLen(1))
-				gomega.Expect(report.Restarted()).To(gomega.HaveLen(2))
-				gomega.Expect(cleanupImageInfos).To(gomega.HaveLen(1))
-				gomega.Expect(cleanupImageInfos[0].ContainerName).
-					To(gomega.Equal("stale-container"))
+			require.NoError(t, err)
+			require.Len(t, report.Updated(), 1)
+			require.Len(t, report.Restarted(), 2)
+			require.Len(t, cleanupImageInfos, 1)
+			assert.Equal(t, "stale-container", cleanupImageInfos[0].ContainerName)
 
-				// Verify categorization
-				updated := report.Updated()
-				restarted := report.Restarted()
+			// Verify categorization
+			updated := report.Updated()
+			restarted := report.Restarted()
 
-				gomega.Expect(updated[0].Name()).To(gomega.Equal("stale-container"))
-				gomega.Expect(restarted[0].Name()).To(gomega.Equal("restart-container-1"))
-				gomega.Expect(restarted[1].Name()).To(gomega.Equal("restart-container-2"))
-			},
-		)
+			assert.Equal(t, "stale-container", updated[0].Name())
+			assert.Equal(t, "restart-container-1", restarted[0].Name())
+			assert.Equal(t, "restart-container-2", restarted[1].Name())
+		})
 	})
 
-	ginkgo.When("testing container categorization logic for restarted containers", func() {
-		ginkgo.It("should correctly categorize containers as updated, restarted, or fresh", func() {
+	t.Run("testing container categorization logic for restarted containers", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("should correctly categorize containers as updated, restarted, or fresh", func(t *testing.T) {
+			t.Parallel()
+
 			// Create containers with different states
 			updatedContainer := mockActions.CreateMockContainerWithConfig(
 				"updated-container",
@@ -296,97 +307,36 @@ var _ = ginkgo.Describe("the update action", func() {
 				false,
 			)
 
-			report, _, err := actions.Update(newNopLogger(),
-				context.Background(),
+			report, _, err := actions.Update(newTestLogger(t),
+				t.Context(),
 				client,
 				types.UpdateParams{Cleanup: true},
 			)
 
-			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-			gomega.Expect(report.Updated()).To(gomega.HaveLen(1))
-			gomega.Expect(report.Restarted()).To(gomega.HaveLen(1))
-			gomega.Expect(report.Fresh()).To(gomega.HaveLen(1))
+			require.NoError(t, err)
+			require.Len(t, report.Updated(), 1)
+			require.Len(t, report.Restarted(), 1)
+			require.Len(t, report.Fresh(), 1)
 
 			// Verify categorization
 			updated := report.Updated()
 			restarted := report.Restarted()
 			fresh := report.Fresh()
 
-			gomega.Expect(updated[0].Name()).To(gomega.Equal("updated-container"))
-			gomega.Expect(restarted[0].Name()).To(gomega.Equal("restarted-container"))
-			gomega.Expect(fresh[0].Name()).To(gomega.Equal("fresh-container"))
+			assert.Equal(t, "updated-container", updated[0].Name())
+			assert.Equal(t, "restarted-container", restarted[0].Name())
+			assert.Equal(t, "fresh-container", fresh[0].Name())
 		})
 	})
 
-	ginkgo.When(
-		"testing notification message generation for restarted vs updated containers",
-		func() {
-			ginkgo.It(
-				"should generate different notification messages for updated and restarted containers",
-				func() {
-					// This test would require mocking the notification system
-					// For now, we'll test the report generation which feeds into notifications
-					updatedContainer := mockActions.CreateMockContainerWithConfig(
-						"updated-container",
-						"/updated-container",
-						"updated-image:latest",
-						true,
-						false,
-						time.Now().AddDate(0, 0, -1),
-						&dockerContainer.Config{
-							Labels:       map[string]string{},
-							ExposedPorts: dockerNetwork.PortSet{},
-						},
-					)
+	t.Run("testing notification message generation for restarted vs updated containers", func(t *testing.T) {
+		t.Parallel()
 
-					restartedContainer := mockActions.CreateMockContainerWithConfig(
-						"restarted-container",
-						"/restarted-container",
-						"restart-image:latest",
-						true,
-						false,
-						time.Now(),
-						&dockerContainer.Config{
-							Labels: map[string]string{
-								"com.centurylinklabs.watchtower.depends-on": "updated-container",
-							},
-							ExposedPorts: dockerNetwork.PortSet{},
-						},
-					)
+		t.Run("should generate different notification messages for updated and restarted containers", func(t *testing.T) {
+			t.Parallel()
 
-					client := mockActions.CreateMockClient(
-						&mockActions.TestData{
-							Containers: []types.Container{updatedContainer, restartedContainer},
-							Staleness: map[string]bool{
-								"updated-container":   true,
-								"restarted-container": false,
-							},
-						},
-						false,
-						false,
-					)
-
-					report, _, err := actions.Update(newNopLogger(),
-						context.Background(),
-						client,
-						types.UpdateParams{Cleanup: true},
-					)
-
-					gomega.Expect(err).NotTo(gomega.HaveOccurred())
-					gomega.Expect(report.Updated()).To(gomega.HaveLen(1))
-					gomega.Expect(report.Restarted()).To(gomega.HaveLen(1))
-
-					// Verify that the report correctly distinguishes between updated and restarted
-					gomega.Expect(report.Updated()[0].Name()).To(gomega.Equal("updated-container"))
-					gomega.Expect(report.Restarted()[0].Name()).
-						To(gomega.Equal("restarted-container"))
-				},
-			)
-		},
-	)
-
-	ginkgo.When("testing metrics collection for restarted containers", func() {
-		ginkgo.It("should include restarted containers in metrics", func() {
+			// This test would require mocking the notification system
+			// For now, we'll test the report generation which feeds into notifications
 			updatedContainer := mockActions.CreateMockContainerWithConfig(
 				"updated-container",
 				"/updated-container",
@@ -427,27 +377,93 @@ var _ = ginkgo.Describe("the update action", func() {
 				false,
 			)
 
-			report, _, err := actions.Update(newNopLogger(),
-				context.Background(),
+			report, _, err := actions.Update(newTestLogger(t),
+				t.Context(),
 				client,
 				types.UpdateParams{Cleanup: true},
 			)
 
-			gomega.Expect(err).NotTo(gomega.HaveOccurred())
+			require.NoError(t, err)
+			require.Len(t, report.Updated(), 1)
+			require.Len(t, report.Restarted(), 1)
+
+			// Verify that the report correctly distinguishes between updated and restarted
+			assert.Equal(t, "updated-container", report.Updated()[0].Name())
+			assert.Equal(t, "restarted-container", report.Restarted()[0].Name())
+		})
+	})
+
+	t.Run("testing metrics collection for restarted containers", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("should include restarted containers in metrics", func(t *testing.T) {
+			t.Parallel()
+
+			updatedContainer := mockActions.CreateMockContainerWithConfig(
+				"updated-container",
+				"/updated-container",
+				"updated-image:latest",
+				true,
+				false,
+				time.Now().AddDate(0, 0, -1),
+				&dockerContainer.Config{
+					Labels:       map[string]string{},
+					ExposedPorts: dockerNetwork.PortSet{},
+				},
+			)
+
+			restartedContainer := mockActions.CreateMockContainerWithConfig(
+				"restarted-container",
+				"/restarted-container",
+				"restart-image:latest",
+				true,
+				false,
+				time.Now(),
+				&dockerContainer.Config{
+					Labels: map[string]string{
+						"com.centurylinklabs.watchtower.depends-on": "updated-container",
+					},
+					ExposedPorts: dockerNetwork.PortSet{},
+				},
+			)
+
+			client := mockActions.CreateMockClient(
+				&mockActions.TestData{
+					Containers: []types.Container{updatedContainer, restartedContainer},
+					Staleness: map[string]bool{
+						"updated-container":   true,
+						"restarted-container": false,
+					},
+				},
+				false,
+				false,
+			)
+
+			report, _, err := actions.Update(newTestLogger(t),
+				t.Context(),
+				client,
+				types.UpdateParams{Cleanup: true},
+			)
+
+			require.NoError(t, err)
 
 			// Generate metrics from the report
 			metric := metrics.NewMetric(report)
 
 			// Verify metrics include both updated and restarted containers
-			gomega.Expect(metric.Updated).To(gomega.Equal(1))
-			gomega.Expect(metric.Scanned).To(gomega.Equal(2))
+			assert.Equal(t, 1, metric.Updated)
+			assert.Equal(t, 2, metric.Scanned)
 			// Note: restarted containers are not counted separately in metrics,
 			// they are included in scanned but not in updated
 		})
 	})
 
-	ginkgo.When("testing edge cases with restarted containers", func() {
-		ginkgo.It("should handle containers that become stale after dependency restart", func() {
+	t.Run("testing edge cases with restarted containers", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("should handle containers that become stale after dependency restart", func(t *testing.T) {
+			t.Parallel()
+
 			// Create a scenario where a dependent becomes stale independently
 			dependency := mockActions.CreateMockContainerWithConfig(
 				"dependency",
@@ -489,19 +505,21 @@ var _ = ginkgo.Describe("the update action", func() {
 				false,
 			)
 
-			report, _, err := actions.Update(newNopLogger(),
-				context.Background(),
+			report, _, err := actions.Update(newTestLogger(t),
+				t.Context(),
 				client,
 				types.UpdateParams{Cleanup: true},
 			)
 
-			gomega.Expect(err).NotTo(gomega.HaveOccurred())
+			require.NoError(t, err)
 			// Both should be updated since both are stale
-			gomega.Expect(report.Updated()).To(gomega.HaveLen(2))
-			gomega.Expect(report.Restarted()).To(gomega.BeEmpty())
+			require.Len(t, report.Updated(), 2)
+			assert.Empty(t, report.Restarted())
 		})
 
-		ginkgo.It("should handle mixed dependency chains with multiple restart levels", func() {
+		t.Run("should handle mixed dependency chains with multiple restart levels", func(t *testing.T) {
+			t.Parallel()
+
 			// A -> B -> C where A and C are stale, B is fresh
 			containerC := mockActions.CreateMockContainerWithConfig(
 				"container-c",
@@ -559,18 +577,20 @@ var _ = ginkgo.Describe("the update action", func() {
 				false,
 			)
 
-			report, _, err := actions.Update(newNopLogger(),
-				context.Background(),
+			report, _, err := actions.Update(newTestLogger(t),
+				t.Context(),
 				client,
 				types.UpdateParams{Cleanup: true},
 			)
 
-			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-			gomega.Expect(report.Updated()).To(gomega.HaveLen(2))   // A and C
-			gomega.Expect(report.Restarted()).To(gomega.HaveLen(1)) // B
+			require.NoError(t, err)
+			require.Len(t, report.Updated(), 2)   // A and C
+			require.Len(t, report.Restarted(), 1) // B
 		})
 
-		ginkgo.It("should drop a linked restart when nothing is stale", func() {
+		t.Run("should drop a linked restart when nothing is stale", func(t *testing.T) {
+			t.Parallel()
+
 			// Restart marks are derived from containers that are still stale.
 			// A mark with no stale anchor does not stop the container.
 			container := mockActions.CreateMockContainerWithConfig(
@@ -599,68 +619,73 @@ var _ = ginkgo.Describe("the update action", func() {
 				false,
 			)
 
-			report, _, err := actions.Update(newNopLogger(),
-				context.Background(),
+			report, _, err := actions.Update(newTestLogger(t),
+				t.Context(),
 				client,
 				types.UpdateParams{Cleanup: true},
 			)
 
-			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-			gomega.Expect(report.Updated()).To(gomega.BeEmpty())
-			gomega.Expect(report.Restarted()).To(gomega.BeEmpty())
-			gomega.Expect(container.IsLinkedToRestarting()).To(gomega.BeFalse())
+			require.NoError(t, err)
+			assert.Empty(t, report.Updated())
+			assert.Empty(t, report.Restarted())
+			assert.False(t, container.IsLinkedToRestarting())
 		})
 	})
 
-	ginkgo.When("testing restarted container functionality", func() {
-		ginkgo.When("testing UpdateImplicitRestart function", func() {
-			ginkgo.It(
-				"should handle error handling in dependency resolution for restarted containers",
-				func() {
-					// Create containers with invalid dependency references
-					containerA := mockActions.CreateMockContainerWithConfig(
-						"container-a",
-						"/container-a",
-						"image-a:latest",
-						true,
-						false,
-						time.Now().AddDate(0, 0, -1),
-						&dockerContainer.Config{
-							Labels: map[string]string{
-								"com.centurylinklabs.watchtower.depends-on": "nonexistent",
-							},
-							ExposedPorts: dockerNetwork.PortSet{},
+	t.Run("testing restarted container functionality", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("testing UpdateImplicitRestart function", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should handle error handling in dependency resolution for restarted containers", func(t *testing.T) {
+				t.Parallel()
+
+				// Create containers with invalid dependency references
+				containerA := mockActions.CreateMockContainerWithConfig(
+					"container-a",
+					"/container-a",
+					"image-a:latest",
+					true,
+					false,
+					time.Now().AddDate(0, 0, -1),
+					&dockerContainer.Config{
+						Labels: map[string]string{
+							"com.centurylinklabs.watchtower.depends-on": "nonexistent",
 						},
-					)
+						ExposedPorts: dockerNetwork.PortSet{},
+					},
+				)
 
-					containerB := mockActions.CreateMockContainerWithConfig(
-						"container-b",
-						"/container-b",
-						"image-b:latest",
-						true,
-						false,
-						time.Now(),
-						&dockerContainer.Config{
-							Labels:       map[string]string{},
-							ExposedPorts: dockerNetwork.PortSet{},
-						},
-					)
+				containerB := mockActions.CreateMockContainerWithConfig(
+					"container-b",
+					"/container-b",
+					"image-b:latest",
+					true,
+					false,
+					time.Now(),
+					&dockerContainer.Config{
+						Labels:       map[string]string{},
+						ExposedPorts: dockerNetwork.PortSet{},
+					},
+				)
 
-					containers := []types.Container{containerA, containerB}
+				containers := []types.Container{containerA, containerB}
 
-					// Mark container B as stale (should trigger restart)
-					containerB.SetStale(true)
+				// Mark container B as stale (should trigger restart)
+				containerB.SetStale(true)
 
-					// Run UpdateImplicitRestart - should not panic or error on invalid dependencies
-					actions.UpdateImplicitRestart(newNopLogger(), containers, containers, true)
+				// Run UpdateImplicitRestart - should not panic or error on invalid dependencies
+				actions.UpdateImplicitRestart(newTestLogger(t), containers, containers, true)
 
-					// Container A should not be marked for restart due to invalid dependency
-					gomega.Expect(containerA.ToRestart()).To(gomega.BeFalse())
-					gomega.Expect(containerB.ToRestart()).To(gomega.BeTrue())
-				},
-			)
+				// Container A should not be marked for restart due to invalid dependency
+				assert.False(t, containerA.ToRestart())
+				assert.True(t, containerB.ToRestart())
+			})
 
-			ginkgo.It("should handle state transitions during complex restart chains", func() {
+			t.Run("should handle state transitions during complex restart chains", func(t *testing.T) {
+				t.Parallel()
+
 				// Create a complex chain: A -> B -> C -> D
 				containerD := mockActions.CreateMockContainerWithConfig(
 					"container-d",
@@ -724,22 +749,24 @@ var _ = ginkgo.Describe("the update action", func() {
 
 				// Initially, only D should be marked for restart
 				containerD.SetStale(true)
-				gomega.Expect(containerD.ToRestart()).To(gomega.BeTrue())
-				gomega.Expect(containerC.ToRestart()).To(gomega.BeFalse())
-				gomega.Expect(containerB.ToRestart()).To(gomega.BeFalse())
-				gomega.Expect(containerA.ToRestart()).To(gomega.BeFalse())
+				assert.True(t, containerD.ToRestart())
+				assert.False(t, containerC.ToRestart())
+				assert.False(t, containerB.ToRestart())
+				assert.False(t, containerA.ToRestart())
 
 				// Run UpdateImplicitRestart to propagate restart through the chain
-				actions.UpdateImplicitRestart(newNopLogger(), containers, containers, true)
+				actions.UpdateImplicitRestart(newTestLogger(t), containers, containers, true)
 
 				// Verify state transitions: all containers should now be marked for restart
-				gomega.Expect(containerD.ToRestart()).To(gomega.BeTrue())
-				gomega.Expect(containerC.ToRestart()).To(gomega.BeTrue())
-				gomega.Expect(containerB.ToRestart()).To(gomega.BeTrue())
-				gomega.Expect(containerA.ToRestart()).To(gomega.BeTrue())
+				assert.True(t, containerD.ToRestart())
+				assert.True(t, containerC.ToRestart())
+				assert.True(t, containerB.ToRestart())
+				assert.True(t, containerA.ToRestart())
 			})
 
-			ginkgo.It("should handle priority ordering in restart sequences", func() {
+			t.Run("should handle priority ordering in restart sequences", func(t *testing.T) {
+				t.Parallel()
+
 				// Create containers with multiple dependencies
 				base := mockActions.CreateMockContainerWithConfig(
 					"base",
@@ -805,16 +832,18 @@ var _ = ginkgo.Describe("the update action", func() {
 				base.SetStale(true)
 
 				// Run UpdateImplicitRestart
-				actions.UpdateImplicitRestart(newNopLogger(), containers, containers, true)
+				actions.UpdateImplicitRestart(newTestLogger(t), containers, containers, true)
 
 				// Verify all dependents are marked for restart
-				gomega.Expect(base.ToRestart()).To(gomega.BeTrue())
-				gomega.Expect(dep1.ToRestart()).To(gomega.BeTrue())
-				gomega.Expect(dep2.ToRestart()).To(gomega.BeTrue())
-				gomega.Expect(dep3.ToRestart()).To(gomega.BeTrue())
+				assert.True(t, base.ToRestart())
+				assert.True(t, dep1.ToRestart())
+				assert.True(t, dep2.ToRestart())
+				assert.True(t, dep3.ToRestart())
 			})
 
-			ginkgo.It("marks a container sharing a network namespace across Compose projects", func() {
+			t.Run("marks a container sharing a network namespace across Compose projects", func(t *testing.T) {
+				t.Parallel()
+
 				// gluetun and qbittorrent are separate Compose projects, which is
 				// the usual layout when one VPN container is shared between
 				// several stacks.
@@ -829,13 +858,15 @@ var _ = ginkgo.Describe("the update action", func() {
 				containers := []types.Container{gluetun, qbittorrent}
 				gluetun.SetStale(true)
 
-				actions.UpdateImplicitRestart(newNopLogger(), containers, containers, true)
+				actions.UpdateImplicitRestart(newTestLogger(t), containers, containers, true)
 
-				gomega.Expect(gluetun.ToRestart()).To(gomega.BeTrue())
-				gomega.Expect(qbittorrent.ToRestart()).To(gomega.BeTrue())
+				assert.True(t, gluetun.ToRestart())
+				assert.True(t, qbittorrent.ToRestart())
 			})
 
-			ginkgo.It("marks a dependent whose network mode still references the provider ID", func() {
+			t.Run("marks a dependent whose network mode still references the provider ID", func(t *testing.T) {
+				t.Parallel()
+
 				// Moby inspect stores container:<id> until Watchtower rewrites
 				// it to a name. Matching must accept the ID form as well.
 				const providerID = "25e75393800b5c450a6841212a3b92ed28fa35414a586dec9f2c8a520d4910c2"
@@ -851,13 +882,15 @@ var _ = ginkgo.Describe("the update action", func() {
 				containers := []types.Container{gluetun, qbittorrent}
 				gluetun.SetStale(true)
 
-				actions.UpdateImplicitRestart(newNopLogger(), containers, containers, true)
+				actions.UpdateImplicitRestart(newTestLogger(t), containers, containers, true)
 
-				gomega.Expect(gluetun.ToRestart()).To(gomega.BeTrue())
-				gomega.Expect(qbittorrent.ToRestart()).To(gomega.BeTrue())
+				assert.True(t, gluetun.ToRestart())
+				assert.True(t, qbittorrent.ToRestart())
 			})
 
-			ginkgo.It("does not treat a project-prefixed peer name as the network provider", func() {
+			t.Run("does not treat a project-prefixed peer name as the network provider", func(t *testing.T) {
+				t.Parallel()
+
 				gluetun := createNetworkModeContainer(
 					"gluetun-id", "/gluetun", "gluetun", "app", "",
 				)
@@ -872,14 +905,16 @@ var _ = ginkgo.Describe("the update action", func() {
 				containers := []types.Container{gluetun, decoy, qbittorrent}
 				decoy.SetStale(true)
 
-				actions.UpdateImplicitRestart(newNopLogger(), containers, containers, true)
+				actions.UpdateImplicitRestart(newTestLogger(t), containers, containers, true)
 
-				gomega.Expect(decoy.ToRestart()).To(gomega.BeTrue())
-				gomega.Expect(gluetun.ToRestart()).To(gomega.BeFalse())
-				gomega.Expect(qbittorrent.ToRestart()).To(gomega.BeFalse())
+				assert.True(t, decoy.ToRestart())
+				assert.False(t, gluetun.ToRestart())
+				assert.False(t, qbittorrent.ToRestart())
 			})
 
-			ginkgo.It("should handle restarted containers with circular dependencies", func() {
+			t.Run("should handle restarted containers with circular dependencies", func(t *testing.T) {
+				t.Parallel()
+
 				// Create circular dependency: A -> B -> A
 				containerA := mockActions.CreateMockContainerWithConfig(
 					"container-a",
@@ -917,14 +952,16 @@ var _ = ginkgo.Describe("the update action", func() {
 				containerA.SetStale(true)
 
 				// Run UpdateImplicitRestart - should handle circular dependency gracefully
-				actions.UpdateImplicitRestart(newNopLogger(), containers, containers, true)
+				actions.UpdateImplicitRestart(newTestLogger(t), containers, containers, true)
 
 				// Both should be marked for restart despite circular dependency
-				gomega.Expect(containerA.ToRestart()).To(gomega.BeTrue())
-				gomega.Expect(containerB.ToRestart()).To(gomega.BeTrue())
+				assert.True(t, containerA.ToRestart())
+				assert.True(t, containerB.ToRestart())
 			})
 
-			ginkgo.It("should handle restarted containers with mixed update types", func() {
+			t.Run("should handle restarted containers with mixed update types", func(t *testing.T) {
+				t.Parallel()
+
 				// Create containers with different update scenarios
 				staleNoDeps := mockActions.CreateMockContainerWithConfig(
 					"stale-no-deps",
@@ -976,17 +1013,18 @@ var _ = ginkgo.Describe("the update action", func() {
 				staleWithDeps.SetStale(true)
 
 				// Run UpdateImplicitRestart
-				actions.UpdateImplicitRestart(newNopLogger(), containers, containers, true)
+				actions.UpdateImplicitRestart(newTestLogger(t), containers, containers, true)
 
 				// Verify correct restart marking
-				gomega.Expect(staleNoDeps.ToRestart()).To(gomega.BeTrue())
-				gomega.Expect(freshWithDeps.ToRestart()).
-					To(gomega.BeTrue())
-					// Should be restarted due to dependency
-				gomega.Expect(staleWithDeps.ToRestart()).To(gomega.BeTrue())
+				assert.True(t, staleNoDeps.ToRestart())
+				assert.True(t, freshWithDeps.ToRestart())
+				// Should be restarted due to dependency
+				assert.True(t, staleWithDeps.ToRestart())
 			})
 
-			ginkgo.It("should propagate restart through deep dependency chains", func() {
+			t.Run("should propagate restart through deep dependency chains", func(t *testing.T) {
+				t.Parallel()
+
 				// Create a deep dependency chain: A -> B -> C -> D -> E -> F
 				containerF := mockActions.CreateMockContainerWithConfig(
 					"container-f",
@@ -1087,237 +1125,231 @@ var _ = ginkgo.Describe("the update action", func() {
 
 				// Initially, only F should be marked for restart
 				containerF.SetStale(true)
-				gomega.Expect(containerF.ToRestart()).To(gomega.BeTrue())
-				gomega.Expect(containerE.ToRestart()).To(gomega.BeFalse())
-				gomega.Expect(containerD.ToRestart()).To(gomega.BeFalse())
-				gomega.Expect(containerC.ToRestart()).To(gomega.BeFalse())
-				gomega.Expect(containerB.ToRestart()).To(gomega.BeFalse())
-				gomega.Expect(containerA.ToRestart()).To(gomega.BeFalse())
+				assert.True(t, containerF.ToRestart())
+				assert.False(t, containerE.ToRestart())
+				assert.False(t, containerD.ToRestart())
+				assert.False(t, containerC.ToRestart())
+				assert.False(t, containerB.ToRestart())
+				assert.False(t, containerA.ToRestart())
 
 				// Run UpdateImplicitRestart to propagate restart through the deep chain
-				actions.UpdateImplicitRestart(newNopLogger(), containers, containers, true)
+				actions.UpdateImplicitRestart(newTestLogger(t), containers, containers, true)
 
 				// Verify state transitions: all containers should now be marked for restart
-				gomega.Expect(containerF.ToRestart()).To(gomega.BeTrue())
-				gomega.Expect(containerE.ToRestart()).To(gomega.BeTrue())
-				gomega.Expect(containerD.ToRestart()).To(gomega.BeTrue())
-				gomega.Expect(containerC.ToRestart()).To(gomega.BeTrue())
-				gomega.Expect(containerB.ToRestart()).To(gomega.BeTrue())
-				gomega.Expect(containerA.ToRestart()).To(gomega.BeTrue())
+				assert.True(t, containerF.ToRestart())
+				assert.True(t, containerE.ToRestart())
+				assert.True(t, containerD.ToRestart())
+				assert.True(t, containerC.ToRestart())
+				assert.True(t, containerB.ToRestart())
+				assert.True(t, containerA.ToRestart())
 			})
 
-			ginkgo.It(
-				"should handle container names different from service names in depends-on",
-				func() {
-					// Create containers with names that include project/service suffixes (like Docker Compose)
-					// and depends-on labels that reference the service names
-					dbContainer := mockActions.CreateMockContainerWithConfig(
-						"project1-db-1",
-						"/project1-db-1",
-						"mariadb:latest",
-						true,
-						false,
-						time.Now().AddDate(0, 0, -1),
-						&dockerContainer.Config{
-							Labels:       map[string]string{},
-							ExposedPorts: dockerNetwork.PortSet{},
+			t.Run("should handle container names different from service names in depends-on", func(t *testing.T) {
+				t.Parallel()
+
+				// Create containers with names that include project/service suffixes (like Docker Compose)
+				// and depends-on labels that reference the service names
+				dbContainer := mockActions.CreateMockContainerWithConfig(
+					"project1-db-1",
+					"/project1-db-1",
+					"mariadb:latest",
+					true,
+					false,
+					time.Now().AddDate(0, 0, -1),
+					&dockerContainer.Config{
+						Labels:       map[string]string{},
+						ExposedPorts: dockerNetwork.PortSet{},
+					},
+				)
+
+				appContainer := mockActions.CreateMockContainerWithConfig(
+					"project1-app-1",
+					"/project1-app-1",
+					"php:fpm",
+					true,
+					false,
+					time.Now(),
+					&dockerContainer.Config{
+						Labels: map[string]string{
+							"com.centurylinklabs.watchtower.depends-on": "db",
 						},
-					)
+						ExposedPorts: dockerNetwork.PortSet{},
+					},
+				)
 
-					appContainer := mockActions.CreateMockContainerWithConfig(
-						"project1-app-1",
-						"/project1-app-1",
-						"php:fpm",
-						true,
-						false,
-						time.Now(),
-						&dockerContainer.Config{
-							Labels: map[string]string{
-								"com.centurylinklabs.watchtower.depends-on": "db",
-							},
-							ExposedPorts: dockerNetwork.PortSet{},
+				webContainer := mockActions.CreateMockContainerWithConfig(
+					"project1-web-1",
+					"/project1-web-1",
+					"nginx:alpine",
+					true,
+					false,
+					time.Now(),
+					&dockerContainer.Config{
+						Labels: map[string]string{
+							"com.centurylinklabs.watchtower.depends-on": "app",
 						},
-					)
+						ExposedPorts: dockerNetwork.PortSet{},
+					},
+				)
 
-					webContainer := mockActions.CreateMockContainerWithConfig(
-						"project1-web-1",
-						"/project1-web-1",
-						"nginx:alpine",
-						true,
-						false,
-						time.Now(),
-						&dockerContainer.Config{
-							Labels: map[string]string{
-								"com.centurylinklabs.watchtower.depends-on": "app",
-							},
-							ExposedPorts: dockerNetwork.PortSet{},
-						},
-					)
+				containers := []types.Container{dbContainer, appContainer, webContainer}
 
-					containers := []types.Container{dbContainer, appContainer, webContainer}
+				// Initially, only db should be marked for restart
+				dbContainer.SetStale(true)
+				assert.True(t, dbContainer.ToRestart())
+				assert.False(t, appContainer.ToRestart())
+				assert.False(t, webContainer.ToRestart())
 
-					// Initially, only db should be marked for restart
-					dbContainer.SetStale(true)
-					gomega.Expect(dbContainer.ToRestart()).To(gomega.BeTrue())
-					gomega.Expect(appContainer.ToRestart()).To(gomega.BeFalse())
-					gomega.Expect(webContainer.ToRestart()).To(gomega.BeFalse())
+				// Run UpdateImplicitRestart - should match "project1-db-1" to "db" and propagate
+				actions.UpdateImplicitRestart(newTestLogger(t), containers, containers, true)
 
-					// Run UpdateImplicitRestart - should match "project1-db-1" to "db" and propagate
-					actions.UpdateImplicitRestart(newNopLogger(), containers, containers, true)
-
-					// Verify that restart propagates through service name matching
-					gomega.Expect(dbContainer.ToRestart()).To(gomega.BeTrue())
-					gomega.Expect(appContainer.ToRestart()).
-						To(gomega.BeTrue())
-						// depends on "db", matches "project1-db-1"
-					gomega.Expect(webContainer.ToRestart()).
-						To(gomega.BeTrue())
-					// depends on "app", matches "project1-app-1"
-				},
-			)
+				// Verify that restart propagates through service name matching
+				assert.True(t, dbContainer.ToRestart())
+				assert.True(t, appContainer.ToRestart())
+				// depends on "db", matches "project1-db-1"
+				assert.True(t, webContainer.ToRestart())
+				// depends on "app", matches "project1-app-1"
+			})
 		})
 
-		ginkgo.When("testing rolling restart functionality", func() {
-			ginkgo.It(
-				"should handle integration with filtering and restarted containers in rolling mode",
-				func() {
-					// Create containers with dependency for rolling restart
-					staleContainer := mockActions.CreateMockContainerWithConfig(
-						"stale-container",
-						"/stale-container",
-						"stale:latest",
-						true,
-						false,
-						time.Now().AddDate(0, 0, -1),
-						&dockerContainer.Config{
-							Labels:       map[string]string{},
-							ExposedPorts: dockerNetwork.PortSet{},
+		t.Run("testing rolling restart functionality", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should handle integration with filtering and restarted containers in rolling mode", func(t *testing.T) {
+				t.Parallel()
+
+				// Create containers with dependency for rolling restart
+				staleContainer := mockActions.CreateMockContainerWithConfig(
+					"stale-container",
+					"/stale-container",
+					"stale:latest",
+					true,
+					false,
+					time.Now().AddDate(0, 0, -1),
+					&dockerContainer.Config{
+						Labels:       map[string]string{},
+						ExposedPorts: dockerNetwork.PortSet{},
+					},
+				)
+
+				restartContainer := mockActions.CreateMockContainerWithConfig(
+					"restart-container",
+					"/restart-container",
+					"restart:latest",
+					true,
+					false,
+					time.Now(),
+					&dockerContainer.Config{
+						Labels: map[string]string{
+							"com.centurylinklabs.watchtower.depends-on": "stale-container",
 						},
-					)
+						ExposedPorts: dockerNetwork.PortSet{},
+					},
+				)
 
-					restartContainer := mockActions.CreateMockContainerWithConfig(
-						"restart-container",
-						"/restart-container",
-						"restart:latest",
-						true,
-						false,
-						time.Now(),
-						&dockerContainer.Config{
-							Labels: map[string]string{
-								"com.centurylinklabs.watchtower.depends-on": "stale-container",
-							},
-							ExposedPorts: dockerNetwork.PortSet{},
+				client := mockActions.CreateMockClient(
+					&mockActions.TestData{
+						Containers: []types.Container{staleContainer, restartContainer},
+						Staleness: map[string]bool{
+							"stale-container":   true,
+							"restart-container": false,
 						},
-					)
+					},
+					false,
+					false,
+				)
 
-					client := mockActions.CreateMockClient(
-						&mockActions.TestData{
-							Containers: []types.Container{staleContainer, restartContainer},
-							Staleness: map[string]bool{
-								"stale-container":   true,
-								"restart-container": false,
-							},
-						},
-						false,
-						false,
-					)
+				// Run Update with rolling restart
+				report, cleanupImageInfos, err := actions.Update(newTestLogger(t),
+					t.Context(),
+					client,
+					types.UpdateParams{
+						Cleanup:        true,
+						RollingRestart: true,
+					},
+				)
 
-					// Run Update with rolling restart
-					report, cleanupImageInfos, err := actions.Update(newNopLogger(),
-						context.Background(),
-						client,
-						types.UpdateParams{
-							Cleanup:        true,
-							RollingRestart: true,
-						},
-					)
+				// Verify successful execution
+				require.NoError(t, err)
+				require.Len(t, report.Updated(), 1)
+				require.Len(t, report.Restarted(), 1)
+				require.Len(t, cleanupImageInfos, 1)
+				assert.Equal(t, int32(2), client.TestData.WaitForContainerHealthyCount.Load())
+			})
 
-					// Verify successful execution
-					gomega.Expect(err).NotTo(gomega.HaveOccurred())
-					gomega.Expect(report.Updated()).To(gomega.HaveLen(1))
-					gomega.Expect(report.Restarted()).To(gomega.HaveLen(1))
-					gomega.Expect(cleanupImageInfos).To(gomega.HaveLen(1))
-					gomega.Expect(client.TestData.WaitForContainerHealthyCount.Load()).To(gomega.Equal(int32(2)))
-				},
-			)
+			t.Run("should handle performance testing for large restart chains in rolling mode", func(t *testing.T) {
+				t.Parallel()
 
-			ginkgo.It(
-				"should handle performance testing for large restart chains in rolling mode",
-				func() {
-					// Create a large chain of containers for performance testing
-					numContainers := 10 // Reduced for test performance
-					containers := make([]types.Container, numContainers)
+				// Create a large chain of containers for performance testing
+				numContainers := 10 // Reduced for test performance
+				containers := make([]types.Container, numContainers)
 
-					for i := range numContainers {
-						name := fmt.Sprintf("perf-container-%d", i)
-						image := fmt.Sprintf("perf-image-%d:latest", i)
-						labels := make(map[string]string)
+				for i := range numContainers {
+					name := fmt.Sprintf("perf-container-%d", i)
+					image := fmt.Sprintf("perf-image-%d:latest", i)
+					labels := make(map[string]string)
 
-						// Create dependency chain: each depends on the previous
-						if i > 0 {
-							labels["com.centurylinklabs.watchtower.depends-on"] = fmt.Sprintf(
-								"perf-container-%d",
-								i-1,
-							)
-						}
-
-						containers[i] = mockActions.CreateMockContainerWithConfig(
-							name,
-							"/"+name,
-							image,
-							true,
-							false,
-							time.Now().AddDate(0, 0, -1), // Make all stale
-							&dockerContainer.Config{
-								Labels:       labels,
-								ExposedPorts: dockerNetwork.PortSet{},
-							},
+					// Create dependency chain: each depends on the previous
+					if i > 0 {
+						labels["com.centurylinklabs.watchtower.depends-on"] = fmt.Sprintf(
+							"perf-container-%d",
+							i-1,
 						)
 					}
 
-					client := mockActions.CreateMockClient(
-						&mockActions.TestData{
-							Containers: containers,
-						},
+					containers[i] = mockActions.CreateMockContainerWithConfig(
+						name,
+						"/"+name,
+						image,
+						true,
 						false,
-						false,
-					)
-
-					// Mark all as stale
-					if client.TestData.Staleness == nil {
-						client.TestData.Staleness = make(map[string]bool)
-					}
-
-					for i := range containers {
-						name := fmt.Sprintf("perf-container-%d", i)
-						client.TestData.Staleness[name] = true
-					}
-
-					// Measure performance of rolling restart
-					startTime := time.Now()
-					report, _, err := actions.Update(newNopLogger(),
-						context.Background(),
-						client,
-						types.UpdateParams{
-							Cleanup:        true,
-							RollingRestart: true,
+						time.Now().AddDate(0, 0, -1), // Make all stale
+						&dockerContainer.Config{
+							Labels:       labels,
+							ExposedPorts: dockerNetwork.PortSet{},
 						},
 					)
-					duration := time.Since(startTime)
+				}
 
-					// Verify completion and reasonable performance
-					gomega.Expect(err).NotTo(gomega.HaveOccurred())
-					gomega.Expect(report.Updated()).To(gomega.HaveLen(numContainers))
-					gomega.Expect(client.TestData.WaitForContainerHealthyCount.Load()).
-						To(gomega.Equal(int32(numContainers)))
-					// Performance should be reasonable (less than 2 seconds for 10 containers)
-					gomega.Expect(duration).To(gomega.BeNumerically("<", 2*time.Second))
-				},
-			)
+				client := mockActions.CreateMockClient(
+					&mockActions.TestData{
+						Containers: containers,
+					},
+					false,
+					false,
+				)
+
+				// Mark all as stale
+				if client.TestData.Staleness == nil {
+					client.TestData.Staleness = make(map[string]bool)
+				}
+
+				for i := range containers {
+					name := fmt.Sprintf("perf-container-%d", i)
+					client.TestData.Staleness[name] = true
+				}
+
+				report, _, err := actions.Update(newTestLogger(t),
+					t.Context(),
+					client,
+					types.UpdateParams{
+						Cleanup:        true,
+						RollingRestart: true,
+					},
+				)
+
+				require.NoError(t, err)
+				require.Len(t, report.Updated(), numContainers)
+				assert.Equal(t, int32(numContainers), client.TestData.WaitForContainerHealthyCount.Load())
+			})
 		})
 
-		ginkgo.When("testing context cancellation in rolling restart", func() {
-			ginkgo.It("should return early with context cancellation error when context is canceled before processing", func() {
+		t.Run("testing context cancellation in rolling restart", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should return early with context cancellation error when context is canceled before processing", func(t *testing.T) {
+				t.Parallel()
+
 				// Create multiple containers that would need rolling restart
 				testData := createStaleContainersForTest()
 
@@ -1328,11 +1360,11 @@ var _ = ginkgo.Describe("the update action", func() {
 				)
 
 				// Create a canceled context - this will trigger the early context cancellation check in Update
-				ctx, cancel := context.WithCancel(context.Background())
+				ctx, cancel := context.WithCancel(t.Context())
 				cancel() // Cancel immediately
 
 				// Run Update with rolling restart and canceled context
-				_, _, err := actions.Update(newNopLogger(),
+				_, _, err := actions.Update(newTestLogger(t),
 					ctx,
 					client,
 					types.UpdateParams{
@@ -1341,15 +1373,15 @@ var _ = ginkgo.Describe("the update action", func() {
 					},
 				)
 
-				// Verify that an error is returned
-				gomega.Expect(err).To(gomega.HaveOccurred())
-				// Verify that the error wraps context cancellation
-				gomega.Expect(errors.Is(err, context.Canceled)).To(gomega.BeTrue())
+				// The error wraps the context cancellation.
+				require.ErrorIs(t, err, context.Canceled)
 				// Verify error message contains "canceled" (early check in Update uses "update canceled")
-				gomega.Expect(err.Error()).To(gomega.ContainSubstring("canceled"))
+				assert.Contains(t, err.Error(), "canceled")
 			})
 
-			ginkgo.It("should handle context cancellation with timeout during rolling restart", func() {
+			t.Run("should handle context cancellation with timeout during rolling restart", func(t *testing.T) {
+				t.Parallel()
+
 				// Create multiple containers - all stale so they all go through rolling restart
 				testData := createStaleContainersForTest()
 
@@ -1361,11 +1393,11 @@ var _ = ginkgo.Describe("the update action", func() {
 
 				// Use a context with an already-expired deadline to deterministically trigger context cancellation.
 				// This is more reliable than a short timeout which may expire before Update runs.
-				ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(-1*time.Hour))
+				ctx, cancel := context.WithDeadline(t.Context(), time.Now().Add(-1*time.Hour))
 				defer cancel()
 
 				// Run Update with rolling restart - should timeout quickly
-				_, _, err := actions.Update(newNopLogger(),
+				_, _, err := actions.Update(newTestLogger(t),
 					ctx,
 					client,
 					types.UpdateParams{
@@ -1375,19 +1407,21 @@ var _ = ginkgo.Describe("the update action", func() {
 				)
 
 				// Verify that an error is returned
-				gomega.Expect(err).To(gomega.HaveOccurred())
+				require.Error(t, err)
 				// Verify that the error wraps context cancellation or deadline exceeded
-				gomega.Expect(errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded)).To(gomega.BeTrue())
+				assert.True(t, errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded))
 				// Verify error message contains "canceled" or similar
-				gomega.Expect(err.Error()).To(gomega.SatisfyAny(
-					gomega.ContainSubstring("canceled"),
-					gomega.ContainSubstring("deadline"),
-				))
+				assert.True(t, strings.Contains(err.Error(), "canceled") || strings.Contains(err.Error(), "deadline"),
+					"error: %v", err)
 			})
 		})
 
-		ginkgo.When("testing restart ordering functionality", func() {
-			ginkgo.It("should handle priority ordering in restart sequences", func() {
+		t.Run("testing restart ordering functionality", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should handle priority ordering in restart sequences", func(t *testing.T) {
+				t.Parallel()
+
 				// Create containers with specific dependency order: A -> B -> C
 				containerC := mockActions.CreateMockContainerWithConfig(
 					"priority-c",
@@ -1449,8 +1483,8 @@ var _ = ginkgo.Describe("the update action", func() {
 				)
 
 				// Run Update to test restart ordering
-				report, _, err := actions.Update(newNopLogger(),
-					context.Background(),
+				report, _, err := actions.Update(newTestLogger(t),
+					t.Context(),
 					client,
 					types.UpdateParams{
 						Cleanup: true,
@@ -1458,17 +1492,18 @@ var _ = ginkgo.Describe("the update action", func() {
 				)
 
 				// Verify successful execution and correct categorization
-				gomega.Expect(err).NotTo(gomega.HaveOccurred())
-				gomega.Expect(report.Updated()).To(gomega.HaveLen(1))
-				gomega.Expect(report.Restarted()).To(gomega.HaveLen(2))
+				require.NoError(t, err)
+				require.Len(t, report.Updated(), 1)
+				require.Len(t, report.Restarted(), 2)
 
-				// Verify create order respects dependencies (dependencies first)
-				gomega.Expect(client.TestData.CreateOrder).To(gomega.ContainElement("priority-c"))
-				gomega.Expect(client.TestData.CreateOrder).To(gomega.ContainElement("priority-b"))
-				gomega.Expect(client.TestData.CreateOrder).To(gomega.ContainElement("priority-a"))
+				// Dependents stop first, and dependencies are created first.
+				assert.Equal(t, []string{"priority-a", "priority-b", "priority-c"}, client.TestData.StopOrder)
+				assert.Equal(t, []string{"priority-c", "priority-b", "priority-a"}, client.TestData.CreateOrder)
 			})
 
-			ginkgo.It("should handle mixed update types in restart sequences", func() {
+			t.Run("should handle mixed update types in restart sequences", func(t *testing.T) {
+				t.Parallel()
+
 				// Create mix of stale (updated) and fresh (restarted) containers
 				staleContainer := mockActions.CreateMockContainerWithConfig(
 					"mixed-stale",
@@ -1531,8 +1566,8 @@ var _ = ginkgo.Describe("the update action", func() {
 				)
 
 				// Run Update
-				report, cleanupImageInfos, err := actions.Update(newNopLogger(),
-					context.Background(),
+				report, cleanupImageInfos, err := actions.Update(newTestLogger(t),
+					t.Context(),
 					client,
 					types.UpdateParams{
 						Cleanup: true,
@@ -1540,14 +1575,14 @@ var _ = ginkgo.Describe("the update action", func() {
 				)
 
 				// Verify successful execution
-				gomega.Expect(err).NotTo(gomega.HaveOccurred())
-				gomega.Expect(report.Updated()).To(gomega.HaveLen(1))
-				gomega.Expect(report.Restarted()).To(gomega.HaveLen(2))
+				require.NoError(t, err)
+				require.Len(t, report.Updated(), 1)
+				require.Len(t, report.Restarted(), 2)
 
 				// Verify stale container was updated (added to cleanup)
-				gomega.Expect(cleanupImageInfos).To(gomega.HaveLen(1))
-				gomega.Expect(cleanupImageInfos[0].ContainerName).To(gomega.Equal("mixed-stale"))
+				require.Len(t, cleanupImageInfos, 1)
+				assert.Equal(t, "mixed-stale", cleanupImageInfos[0].ContainerName)
 			})
 		})
 	})
-})
+}

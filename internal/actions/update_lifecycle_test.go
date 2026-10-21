@@ -1,11 +1,12 @@
 package actions_test
 
 import (
-	"context"
+	"slices"
+	"testing"
 	"time"
 
-	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	dockerContainer "github.com/moby/moby/api/types/container"
 	dockerNetwork "github.com/moby/moby/api/types/network"
@@ -15,10 +16,21 @@ import (
 	"github.com/nicholas-fedor/watchtower/pkg/types"
 )
 
-var _ = ginkgo.Describe("the update action", func() {
-	ginkgo.When("watchtower has been instructed to run lifecycle hooks", func() {
-		ginkgo.When("pre-update script returns 1", func() {
-			ginkgo.It("should not update those containers and collect no image IDs", func() {
+// TestUpdateAction_LifecycleHooks verifies how pre-update hook exit codes,
+// hook user and group IDs, and container state decide whether an update runs
+// the hooks and proceeds.
+func TestUpdateAction_LifecycleHooks(t *testing.T) {
+	t.Parallel()
+
+	t.Run("watchtower has been instructed to run lifecycle hooks", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("pre-update script returns 1", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should not update those containers and collect no image IDs", func(t *testing.T) {
+				t.Parallel()
+
 				client := mockActions.CreateMockClient(
 					&mockActions.TestData{
 						Containers: []types.Container{
@@ -45,24 +57,27 @@ var _ = ginkgo.Describe("the update action", func() {
 				client.TestData.Staleness = map[string]bool{
 					"test-container-02": true,
 				}
-				report, cleanupImageInfos, err := actions.Update(newNopLogger(),
-					context.Background(),
+				report, cleanupImageInfos, err := actions.Update(newTestLogger(t),
+					t.Context(),
 					client,
 					types.UpdateParams{
 						Cleanup:        true,
 						LifecycleHooks: true,
 					},
 				)
-				gomega.Expect(err).NotTo(gomega.HaveOccurred())
-				gomega.Expect(report.Updated()).To(gomega.BeEmpty())
-				gomega.Expect(cleanupImageInfos).To(gomega.BeEmpty())
-				gomega.Expect(client.TestData.TriedToRemoveImageCount.Load()).
-					To(gomega.Equal(int32(0)), "RemoveImageByID should not be called during Update")
+				require.NoError(t, err)
+				assert.Empty(t, report.Updated())
+				assert.Empty(t, cleanupImageInfos)
+				assert.Equal(t, int32(0), client.TestData.TriedToRemoveImageCount.Load(), "RemoveImageByID should not be called during Update")
 			})
 		})
 
-		ginkgo.When("lifecycle UID and GID are specified", func() {
-			ginkgo.It("should pass UID and GID to lifecycle hook execution", func() {
+		t.Run("lifecycle UID and GID are specified", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should pass UID and GID to lifecycle hook execution", func(t *testing.T) {
+				t.Parallel()
+
 				client := mockActions.CreateMockClient(
 					&mockActions.TestData{
 						Containers: []types.Container{
@@ -88,8 +103,8 @@ var _ = ginkgo.Describe("the update action", func() {
 				client.TestData.Staleness = map[string]bool{
 					"test-container-uid-gid": true,
 				}
-				report, cleanupImageInfos, err := actions.Update(newNopLogger(),
-					context.Background(),
+				report, cleanupImageInfos, err := actions.Update(newTestLogger(t),
+					t.Context(),
 					client,
 					types.UpdateParams{
 						Cleanup:        true,
@@ -98,18 +113,22 @@ var _ = ginkgo.Describe("the update action", func() {
 						LifecycleGID:   1001,
 					},
 				)
-				gomega.Expect(err).NotTo(gomega.HaveOccurred())
-				gomega.Expect(report.Updated()).To(gomega.HaveLen(1))
-				gomega.Expect(cleanupImageInfos).
-					To(gomega.ContainElement(gomega.HaveField("ImageID", types.ImageID("fake-image:latest"))))
-				gomega.Expect(cleanupImageInfos).To(gomega.HaveLen(1))
-				gomega.Expect(client.TestData.TriedToRemoveImageCount.Load()).
-					To(gomega.Equal(int32(0)), "RemoveImageByID should not be called during Update")
+				require.NoError(t, err)
+				require.Len(t, report.Updated(), 1)
+				assert.True(t, slices.ContainsFunc(cleanupImageInfos, func(info types.RemovedImageInfo) bool { return info.ImageID == types.ImageID("fake-image:latest") }))
+				require.Len(t, cleanupImageInfos, 1)
+				assert.Equal(t, int32(0), client.TestData.TriedToRemoveImageCount.Load(), "RemoveImageByID should not be called during Update")
+				assert.Equal(t, 1000, client.TestData.LastExecUID, "the hook runs as the configured UID")
+				assert.Equal(t, 1001, client.TestData.LastExecGID, "the hook runs as the configured GID")
 			})
 		})
 
-		ginkgo.When("preupdate script returns 75", func() {
-			ginkgo.It("should skip those containers and collect no image IDs", func() {
+		t.Run("preupdate script returns 75", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should skip those containers and collect no image IDs", func(t *testing.T) {
+				t.Parallel()
+
 				client := mockActions.CreateMockClient(
 					&mockActions.TestData{
 						Containers: []types.Container{
@@ -136,26 +155,29 @@ var _ = ginkgo.Describe("the update action", func() {
 				client.TestData.Staleness = map[string]bool{
 					"test-container-02": true,
 				}
-				report, cleanupImageInfos, err := actions.Update(newNopLogger(),
-					context.Background(),
+				report, cleanupImageInfos, err := actions.Update(newTestLogger(t),
+					t.Context(),
 					client,
 					types.UpdateParams{
 						Cleanup:        true,
 						LifecycleHooks: true,
 					},
 				)
-				gomega.Expect(err).NotTo(gomega.HaveOccurred())
-				gomega.Expect(report.Updated()).To(gomega.BeEmpty())
-				gomega.Expect(report.Failed()).To(gomega.BeEmpty())
-				gomega.Expect(report.Skipped()).To(gomega.HaveLen(1))
-				gomega.Expect(cleanupImageInfos).To(gomega.BeEmpty())
-				gomega.Expect(client.TestData.TriedToRemoveImageCount.Load()).
-					To(gomega.Equal(int32(0)), "RemoveImageByID should not be called during Update")
+				require.NoError(t, err)
+				assert.Empty(t, report.Updated())
+				assert.Empty(t, report.Failed())
+				require.Len(t, report.Skipped(), 1)
+				assert.Empty(t, cleanupImageInfos)
+				assert.Equal(t, int32(0), client.TestData.TriedToRemoveImageCount.Load(), "RemoveImageByID should not be called during Update")
 			})
 		})
 
-		ginkgo.When("preupdate script returns 0", func() {
-			ginkgo.It("should update those containers and collect image IDs", func() {
+		t.Run("preupdate script returns 0", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should update those containers and collect image IDs", func(t *testing.T) {
+				t.Parallel()
+
 				client := mockActions.CreateMockClient(
 					&mockActions.TestData{
 						Containers: []types.Container{
@@ -182,180 +204,28 @@ var _ = ginkgo.Describe("the update action", func() {
 				client.TestData.Staleness = map[string]bool{
 					"test-container-02": true,
 				}
-				report, cleanupImageInfos, err := actions.Update(newNopLogger(),
-					context.Background(),
+				report, cleanupImageInfos, err := actions.Update(newTestLogger(t),
+					t.Context(),
 					client,
 					types.UpdateParams{
 						Cleanup:        true,
 						LifecycleHooks: true,
 					},
 				)
-				gomega.Expect(err).NotTo(gomega.HaveOccurred())
-				gomega.Expect(report.Updated()).To(gomega.HaveLen(1))
-				gomega.Expect(cleanupImageInfos).
-					To(gomega.ContainElement(gomega.HaveField("ImageID", types.ImageID("fake-image2:latest"))))
-				gomega.Expect(cleanupImageInfos).To(gomega.HaveLen(1))
-				gomega.Expect(client.TestData.TriedToRemoveImageCount.Load()).
-					To(gomega.Equal(int32(0)), "RemoveImageByID should not be called during Update")
+				require.NoError(t, err)
+				require.Len(t, report.Updated(), 1)
+				assert.True(t, slices.ContainsFunc(cleanupImageInfos, func(info types.RemovedImageInfo) bool { return info.ImageID == types.ImageID("fake-image2:latest") }))
+				require.Len(t, cleanupImageInfos, 1)
+				assert.Equal(t, int32(0), client.TestData.TriedToRemoveImageCount.Load(), "RemoveImageByID should not be called during Update")
 			})
 		})
 
-		ginkgo.When("container is linked to restarting containers", func() {
-			ginkgo.It("should be marked for restart and collect image IDs", func() {
-				provider := mockActions.CreateMockContainerWithConfig(
-					"test-container-provider",
-					"/test-container-provider",
-					"fake-image2:latest",
-					true,
-					false,
-					time.Now(),
-					&dockerContainer.Config{
-						Labels:       map[string]string{},
-						ExposedPorts: dockerNetwork.PortSet{},
-					},
-				)
+		t.Run("container is not running", func(t *testing.T) {
+			t.Parallel()
 
-				provider.SetStale(true)
+			t.Run("should skip running preupdate and collect image IDs", func(t *testing.T) {
+				t.Parallel()
 
-				consumer := mockActions.CreateMockContainerWithConfig(
-					"test-container-consumer",
-					"/test-container-consumer",
-					"fake-image3:latest",
-					true,
-					false,
-					time.Now(),
-					&dockerContainer.Config{
-						Labels: map[string]string{
-							"com.centurylinklabs.watchtower.depends-on": "test-container-provider",
-						},
-						ExposedPorts: dockerNetwork.PortSet{},
-					},
-				)
-
-				containers := []types.Container{
-					provider,
-					consumer,
-				}
-
-				gomega.Expect(provider.ToRestart()).To(gomega.BeTrue())
-				gomega.Expect(consumer.ToRestart()).To(gomega.BeFalse())
-
-				actions.UpdateImplicitRestart(newNopLogger(), containers, containers, true)
-
-				gomega.Expect(containers[0].ToRestart()).To(gomega.BeTrue())
-				gomega.Expect(containers[1].ToRestart()).To(gomega.BeTrue())
-			})
-
-			ginkgo.It(
-				"should propagate restart in Docker Compose with service name mismatch",
-				func() {
-					testData := getComposeTestData()
-					containers := testData.Containers
-
-					// db container is stale
-					containers[0].SetStale(true)
-
-					gomega.Expect(containers[0].ToRestart()).To(gomega.BeTrue())  // db
-					gomega.Expect(containers[1].ToRestart()).To(gomega.BeFalse()) // web
-
-					actions.UpdateImplicitRestart(newNopLogger(), containers, containers, true)
-
-					// web should be marked for restart because it depends on db
-					gomega.Expect(containers[0].ToRestart()).To(gomega.BeTrue())
-					gomega.Expect(containers[1].ToRestart()).To(gomega.BeTrue())
-				},
-			)
-
-			ginkgo.It(
-				"should propagate restart through multi-hop chains in Docker Compose",
-				func() {
-					testData := getComposeMultiHopTestData()
-					containers := testData.Containers
-
-					// cache container is stale
-					containers[0].SetStale(true)
-
-					gomega.Expect(containers[0].ToRestart()).To(gomega.BeTrue())  // cache
-					gomega.Expect(containers[1].ToRestart()).To(gomega.BeFalse()) // db
-					gomega.Expect(containers[2].ToRestart()).To(gomega.BeFalse()) // app
-
-					actions.UpdateImplicitRestart(newNopLogger(), containers, containers, true)
-
-					// All should be marked for restart: cache -> db -> app
-					gomega.Expect(containers[0].ToRestart()).To(gomega.BeTrue())
-					gomega.Expect(containers[1].ToRestart()).To(gomega.BeTrue())
-					gomega.Expect(containers[2].ToRestart()).To(gomega.BeTrue())
-				},
-			)
-			ginkgo.It("should propagate restart through chained dependencies", func() {
-				// Create a transitive dependency chain: A depends on B, B depends on C
-				containerC := mockActions.CreateMockContainerWithConfig(
-					"test-container-c",
-					"/test-container-c",
-					"fake-image-c:latest",
-					true,
-					false,
-					time.Now(),
-					&dockerContainer.Config{
-						Labels:       map[string]string{},
-						ExposedPorts: dockerNetwork.PortSet{},
-					},
-				)
-
-				containerB := mockActions.CreateMockContainerWithConfig(
-					"test-container-b",
-					"/test-container-b",
-					"fake-image-b:latest",
-					true,
-					false,
-					time.Now(),
-					&dockerContainer.Config{
-						Labels: map[string]string{
-							"com.centurylinklabs.watchtower.depends-on": "test-container-c",
-						},
-						ExposedPorts: dockerNetwork.PortSet{},
-					},
-				)
-
-				containerA := mockActions.CreateMockContainerWithConfig(
-					"test-container-a",
-					"/test-container-a",
-					"fake-image-a:latest",
-					true,
-					false,
-					time.Now(),
-					&dockerContainer.Config{
-						Labels: map[string]string{
-							"com.centurylinklabs.watchtower.depends-on": "test-container-b",
-						},
-						ExposedPorts: dockerNetwork.PortSet{},
-					},
-				)
-
-				containers := []types.Container{
-					containerC,
-					containerB,
-					containerA,
-				}
-
-				// Initially, only C should be marked for restart
-				containerC.SetStale(true)
-				gomega.Expect(containerC.ToRestart()).To(gomega.BeTrue())
-				gomega.Expect(containerB.ToRestart()).To(gomega.BeFalse())
-				gomega.Expect(containerA.ToRestart()).To(gomega.BeFalse())
-
-				// Run UpdateImplicitRestart to propagate restart through the chain
-				actions.UpdateImplicitRestart(newNopLogger(), containers, containers, true)
-
-				// Verify that restart propagates: A and B should now be marked for restart
-				gomega.Expect(containers[0].ToRestart()).To(gomega.BeTrue()) // C
-				gomega.Expect(containers[1].ToRestart()).To(gomega.BeTrue()) // B
-				gomega.Expect(containers[2].ToRestart()).To(gomega.BeTrue()) // A
-			})
-		})
-
-		ginkgo.When("container is not running", func() {
-			ginkgo.It("should skip running preupdate and collect image IDs", func() {
 				client := mockActions.CreateMockClient(
 					&mockActions.TestData{
 						Containers: []types.Container{
@@ -382,26 +252,28 @@ var _ = ginkgo.Describe("the update action", func() {
 				client.TestData.Staleness = map[string]bool{
 					"test-container-02": true,
 				}
-				report, cleanupImageInfos, err := actions.Update(newNopLogger(),
-					context.Background(),
+				report, cleanupImageInfos, err := actions.Update(newTestLogger(t),
+					t.Context(),
 					client,
 					types.UpdateParams{
 						Cleanup:        true,
 						LifecycleHooks: true,
 					},
 				)
-				gomega.Expect(err).NotTo(gomega.HaveOccurred())
-				gomega.Expect(report.Updated()).To(gomega.HaveLen(1))
-				gomega.Expect(cleanupImageInfos).
-					To(gomega.ContainElement(gomega.HaveField("ImageID", types.ImageID("fake-image2:latest"))))
-				gomega.Expect(cleanupImageInfos).To(gomega.HaveLen(1))
-				gomega.Expect(client.TestData.TriedToRemoveImageCount.Load()).
-					To(gomega.Equal(int32(0)), "RemoveImageByID should not be called during Update")
+				require.NoError(t, err)
+				require.Len(t, report.Updated(), 1)
+				assert.True(t, slices.ContainsFunc(cleanupImageInfos, func(info types.RemovedImageInfo) bool { return info.ImageID == types.ImageID("fake-image2:latest") }))
+				require.Len(t, cleanupImageInfos, 1)
+				assert.Equal(t, int32(0), client.TestData.TriedToRemoveImageCount.Load(), "RemoveImageByID should not be called during Update")
 			})
 		})
 
-		ginkgo.When("container is restarting", func() {
-			ginkgo.It("should skip running preupdate and collect image IDs", func() {
+		t.Run("container is restarting", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should skip running preupdate and collect image IDs", func(t *testing.T) {
+				t.Parallel()
+
 				client := mockActions.CreateMockClient(
 					&mockActions.TestData{
 						Containers: []types.Container{
@@ -428,22 +300,20 @@ var _ = ginkgo.Describe("the update action", func() {
 				client.TestData.Staleness = map[string]bool{
 					"test-container-02": true,
 				}
-				report, cleanupImageInfos, err := actions.Update(newNopLogger(),
-					context.Background(),
+				report, cleanupImageInfos, err := actions.Update(newTestLogger(t),
+					t.Context(),
 					client,
 					types.UpdateParams{
 						Cleanup:        true,
 						LifecycleHooks: true,
 					},
 				)
-				gomega.Expect(err).NotTo(gomega.HaveOccurred())
-				gomega.Expect(report.Updated()).To(gomega.HaveLen(1))
-				gomega.Expect(cleanupImageInfos).
-					To(gomega.ContainElement(gomega.HaveField("ImageID", types.ImageID("fake-image2:latest"))))
-				gomega.Expect(cleanupImageInfos).To(gomega.HaveLen(1))
-				gomega.Expect(client.TestData.TriedToRemoveImageCount.Load()).
-					To(gomega.Equal(int32(0)), "RemoveImageByID should not be called during Update")
+				require.NoError(t, err)
+				require.Len(t, report.Updated(), 1)
+				assert.True(t, slices.ContainsFunc(cleanupImageInfos, func(info types.RemovedImageInfo) bool { return info.ImageID == types.ImageID("fake-image2:latest") }))
+				require.Len(t, cleanupImageInfos, 1)
+				assert.Equal(t, int32(0), client.TestData.TriedToRemoveImageCount.Load(), "RemoveImageByID should not be called during Update")
 			})
 		})
 	})
-})
+}
