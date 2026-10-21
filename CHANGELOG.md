@@ -94,6 +94,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Chores
 
+- Update dependency python to v3.15.1 by @renovate[bot] in [#2995](https://github.com/nicholas-fedor/watchtower/pull/2995)
+- Update github/codeql-action action to v4.39.1 by @renovate[bot] in [#2996](https://github.com/nicholas-fedor/watchtower/pull/2996)
 - Update module github.com/docker/compose/v5 to v5.6.1 by @renovate[bot] in [#2981](https://github.com/nicholas-fedor/watchtower/pull/2981)
 - Update module github.com/moby/buildkit to v0.34.1 by @renovate[bot] in [#2973](https://github.com/nicholas-fedor/watchtower/pull/2973)
 - Update module github.com/docker/docker-credential-helpers to v0.9.12 by @renovate[bot] in [#2968](https://github.com/nicholas-fedor/watchtower/pull/2968)
