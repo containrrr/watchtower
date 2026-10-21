@@ -1,4 +1,4 @@
-package actions_test
+package actions
 
 import (
 	"context"
@@ -14,11 +14,11 @@ import (
 	dockerContainer "github.com/moby/moby/api/types/container"
 	dockerNetwork "github.com/moby/moby/api/types/network"
 
-	"github.com/nicholas-fedor/watchtower/internal/actions"
 	mockActions "github.com/nicholas-fedor/watchtower/internal/actions/mocks"
 	"github.com/nicholas-fedor/watchtower/internal/metrics"
 	"github.com/nicholas-fedor/watchtower/pkg/container"
 	"github.com/nicholas-fedor/watchtower/pkg/filters"
+	"github.com/nicholas-fedor/watchtower/pkg/registry/ratelimit"
 	"github.com/nicholas-fedor/watchtower/pkg/types"
 )
 
@@ -133,14 +133,10 @@ func TestUpdateAction_Restarts(t *testing.T) {
 				false,
 			)
 
-			report, cleanupImageInfos, err := actions.Update(newTestLogger(t),
-				t.Context(),
-				client,
-				types.UpdateParams{
-					Cleanup: true,
-					Filter:  filters.WatchtowerContainersFilter,
-				},
-			)
+			report, cleanupImageInfos, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{
+				Cleanup: true,
+				Filter:  filters.WatchtowerContainersFilter,
+			}, ratelimit.New())
 
 			require.NoError(t, err)
 			require.Len(t, report.Updated(), 1)
@@ -220,11 +216,7 @@ func TestUpdateAction_Restarts(t *testing.T) {
 				false,
 			)
 
-			report, cleanupImageInfos, err := actions.Update(newTestLogger(t),
-				t.Context(),
-				client,
-				types.UpdateParams{Cleanup: true},
-			)
+			report, cleanupImageInfos, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{Cleanup: true}, ratelimit.New())
 
 			require.NoError(t, err)
 			require.Len(t, report.Updated(), 1)
@@ -307,11 +299,7 @@ func TestUpdateAction_Restarts(t *testing.T) {
 				false,
 			)
 
-			report, _, err := actions.Update(newTestLogger(t),
-				t.Context(),
-				client,
-				types.UpdateParams{Cleanup: true},
-			)
+			report, _, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{Cleanup: true}, ratelimit.New())
 
 			require.NoError(t, err)
 			require.Len(t, report.Updated(), 1)
@@ -377,11 +365,7 @@ func TestUpdateAction_Restarts(t *testing.T) {
 				false,
 			)
 
-			report, _, err := actions.Update(newTestLogger(t),
-				t.Context(),
-				client,
-				types.UpdateParams{Cleanup: true},
-			)
+			report, _, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{Cleanup: true}, ratelimit.New())
 
 			require.NoError(t, err)
 			require.Len(t, report.Updated(), 1)
@@ -439,11 +423,7 @@ func TestUpdateAction_Restarts(t *testing.T) {
 				false,
 			)
 
-			report, _, err := actions.Update(newTestLogger(t),
-				t.Context(),
-				client,
-				types.UpdateParams{Cleanup: true},
-			)
+			report, _, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{Cleanup: true}, ratelimit.New())
 
 			require.NoError(t, err)
 
@@ -505,11 +485,7 @@ func TestUpdateAction_Restarts(t *testing.T) {
 				false,
 			)
 
-			report, _, err := actions.Update(newTestLogger(t),
-				t.Context(),
-				client,
-				types.UpdateParams{Cleanup: true},
-			)
+			report, _, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{Cleanup: true}, ratelimit.New())
 
 			require.NoError(t, err)
 			// Both should be updated since both are stale
@@ -577,11 +553,7 @@ func TestUpdateAction_Restarts(t *testing.T) {
 				false,
 			)
 
-			report, _, err := actions.Update(newTestLogger(t),
-				t.Context(),
-				client,
-				types.UpdateParams{Cleanup: true},
-			)
+			report, _, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{Cleanup: true}, ratelimit.New())
 
 			require.NoError(t, err)
 			require.Len(t, report.Updated(), 2)   // A and C
@@ -619,11 +591,7 @@ func TestUpdateAction_Restarts(t *testing.T) {
 				false,
 			)
 
-			report, _, err := actions.Update(newTestLogger(t),
-				t.Context(),
-				client,
-				types.UpdateParams{Cleanup: true},
-			)
+			report, _, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{Cleanup: true}, ratelimit.New())
 
 			require.NoError(t, err)
 			assert.Empty(t, report.Updated())
@@ -635,7 +603,7 @@ func TestUpdateAction_Restarts(t *testing.T) {
 	t.Run("testing restarted container functionality", func(t *testing.T) {
 		t.Parallel()
 
-		t.Run("testing UpdateImplicitRestart function", func(t *testing.T) {
+		t.Run("testing updateImplicitRestart function", func(t *testing.T) {
 			t.Parallel()
 
 			t.Run("should handle error handling in dependency resolution for restarted containers", func(t *testing.T) {
@@ -675,8 +643,8 @@ func TestUpdateAction_Restarts(t *testing.T) {
 				// Mark container B as stale (should trigger restart)
 				containerB.SetStale(true)
 
-				// Run UpdateImplicitRestart - should not panic or error on invalid dependencies
-				actions.UpdateImplicitRestart(newTestLogger(t), containers, containers, true)
+				// Run updateImplicitRestart - should not panic or error on invalid dependencies
+				updateImplicitRestart(newTestLogger(t), containers, containers, true)
 
 				// Container A should not be marked for restart due to invalid dependency
 				assert.False(t, containerA.ToRestart())
@@ -754,8 +722,8 @@ func TestUpdateAction_Restarts(t *testing.T) {
 				assert.False(t, containerB.ToRestart())
 				assert.False(t, containerA.ToRestart())
 
-				// Run UpdateImplicitRestart to propagate restart through the chain
-				actions.UpdateImplicitRestart(newTestLogger(t), containers, containers, true)
+				// Run updateImplicitRestart to propagate restart through the chain
+				updateImplicitRestart(newTestLogger(t), containers, containers, true)
 
 				// Verify state transitions: all containers should now be marked for restart
 				assert.True(t, containerD.ToRestart())
@@ -831,8 +799,8 @@ func TestUpdateAction_Restarts(t *testing.T) {
 				// Mark base as stale
 				base.SetStale(true)
 
-				// Run UpdateImplicitRestart
-				actions.UpdateImplicitRestart(newTestLogger(t), containers, containers, true)
+				// Run updateImplicitRestart
+				updateImplicitRestart(newTestLogger(t), containers, containers, true)
 
 				// Verify all dependents are marked for restart
 				assert.True(t, base.ToRestart())
@@ -858,7 +826,7 @@ func TestUpdateAction_Restarts(t *testing.T) {
 				containers := []types.Container{gluetun, qbittorrent}
 				gluetun.SetStale(true)
 
-				actions.UpdateImplicitRestart(newTestLogger(t), containers, containers, true)
+				updateImplicitRestart(newTestLogger(t), containers, containers, true)
 
 				assert.True(t, gluetun.ToRestart())
 				assert.True(t, qbittorrent.ToRestart())
@@ -882,7 +850,7 @@ func TestUpdateAction_Restarts(t *testing.T) {
 				containers := []types.Container{gluetun, qbittorrent}
 				gluetun.SetStale(true)
 
-				actions.UpdateImplicitRestart(newTestLogger(t), containers, containers, true)
+				updateImplicitRestart(newTestLogger(t), containers, containers, true)
 
 				assert.True(t, gluetun.ToRestart())
 				assert.True(t, qbittorrent.ToRestart())
@@ -905,7 +873,7 @@ func TestUpdateAction_Restarts(t *testing.T) {
 				containers := []types.Container{gluetun, decoy, qbittorrent}
 				decoy.SetStale(true)
 
-				actions.UpdateImplicitRestart(newTestLogger(t), containers, containers, true)
+				updateImplicitRestart(newTestLogger(t), containers, containers, true)
 
 				assert.True(t, decoy.ToRestart())
 				assert.False(t, gluetun.ToRestart())
@@ -951,8 +919,8 @@ func TestUpdateAction_Restarts(t *testing.T) {
 				// Mark container A as stale
 				containerA.SetStale(true)
 
-				// Run UpdateImplicitRestart - should handle circular dependency gracefully
-				actions.UpdateImplicitRestart(newTestLogger(t), containers, containers, true)
+				// Run updateImplicitRestart - should handle circular dependency gracefully
+				updateImplicitRestart(newTestLogger(t), containers, containers, true)
 
 				// Both should be marked for restart despite circular dependency
 				assert.True(t, containerA.ToRestart())
@@ -1012,8 +980,8 @@ func TestUpdateAction_Restarts(t *testing.T) {
 				staleNoDeps.SetStale(true)
 				staleWithDeps.SetStale(true)
 
-				// Run UpdateImplicitRestart
-				actions.UpdateImplicitRestart(newTestLogger(t), containers, containers, true)
+				// Run updateImplicitRestart
+				updateImplicitRestart(newTestLogger(t), containers, containers, true)
 
 				// Verify correct restart marking
 				assert.True(t, staleNoDeps.ToRestart())
@@ -1132,8 +1100,8 @@ func TestUpdateAction_Restarts(t *testing.T) {
 				assert.False(t, containerB.ToRestart())
 				assert.False(t, containerA.ToRestart())
 
-				// Run UpdateImplicitRestart to propagate restart through the deep chain
-				actions.UpdateImplicitRestart(newTestLogger(t), containers, containers, true)
+				// Run updateImplicitRestart to propagate restart through the deep chain
+				updateImplicitRestart(newTestLogger(t), containers, containers, true)
 
 				// Verify state transitions: all containers should now be marked for restart
 				assert.True(t, containerF.ToRestart())
@@ -1200,8 +1168,8 @@ func TestUpdateAction_Restarts(t *testing.T) {
 				assert.False(t, appContainer.ToRestart())
 				assert.False(t, webContainer.ToRestart())
 
-				// Run UpdateImplicitRestart - should match "project1-db-1" to "db" and propagate
-				actions.UpdateImplicitRestart(newTestLogger(t), containers, containers, true)
+				// Run updateImplicitRestart - should match "project1-db-1" to "db" and propagate
+				updateImplicitRestart(newTestLogger(t), containers, containers, true)
 
 				// Verify that restart propagates through service name matching
 				assert.True(t, dbContainer.ToRestart())
@@ -1260,14 +1228,10 @@ func TestUpdateAction_Restarts(t *testing.T) {
 				)
 
 				// Run Update with rolling restart
-				report, cleanupImageInfos, err := actions.Update(newTestLogger(t),
-					t.Context(),
-					client,
-					types.UpdateParams{
-						Cleanup:        true,
-						RollingRestart: true,
-					},
-				)
+				report, cleanupImageInfos, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{
+					Cleanup:        true,
+					RollingRestart: true,
+				}, ratelimit.New())
 
 				// Verify successful execution
 				require.NoError(t, err)
@@ -1329,14 +1293,10 @@ func TestUpdateAction_Restarts(t *testing.T) {
 					client.TestData.Staleness[name] = true
 				}
 
-				report, _, err := actions.Update(newTestLogger(t),
-					t.Context(),
-					client,
-					types.UpdateParams{
-						Cleanup:        true,
-						RollingRestart: true,
-					},
-				)
+				report, _, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{
+					Cleanup:        true,
+					RollingRestart: true,
+				}, ratelimit.New())
 
 				require.NoError(t, err)
 				require.Len(t, report.Updated(), numContainers)
@@ -1364,14 +1324,10 @@ func TestUpdateAction_Restarts(t *testing.T) {
 				cancel() // Cancel immediately
 
 				// Run Update with rolling restart and canceled context
-				_, _, err := actions.Update(newTestLogger(t),
-					ctx,
-					client,
-					types.UpdateParams{
-						Cleanup:        true,
-						RollingRestart: true,
-					},
-				)
+				_, _, err := update(newTestLogger(t), ctx, client, types.UpdateParams{
+					Cleanup:        true,
+					RollingRestart: true,
+				}, ratelimit.New())
 
 				// The error wraps the context cancellation.
 				require.ErrorIs(t, err, context.Canceled)
@@ -1397,14 +1353,10 @@ func TestUpdateAction_Restarts(t *testing.T) {
 				defer cancel()
 
 				// Run Update with rolling restart - should timeout quickly
-				_, _, err := actions.Update(newTestLogger(t),
-					ctx,
-					client,
-					types.UpdateParams{
-						Cleanup:        true,
-						RollingRestart: true,
-					},
-				)
+				_, _, err := update(newTestLogger(t), ctx, client, types.UpdateParams{
+					Cleanup:        true,
+					RollingRestart: true,
+				}, ratelimit.New())
 
 				// Verify that an error is returned
 				require.Error(t, err)
@@ -1483,13 +1435,9 @@ func TestUpdateAction_Restarts(t *testing.T) {
 				)
 
 				// Run Update to test restart ordering
-				report, _, err := actions.Update(newTestLogger(t),
-					t.Context(),
-					client,
-					types.UpdateParams{
-						Cleanup: true,
-					},
-				)
+				report, _, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{
+					Cleanup: true,
+				}, ratelimit.New())
 
 				// Verify successful execution and correct categorization
 				require.NoError(t, err)
@@ -1566,13 +1514,9 @@ func TestUpdateAction_Restarts(t *testing.T) {
 				)
 
 				// Run Update
-				report, cleanupImageInfos, err := actions.Update(newTestLogger(t),
-					t.Context(),
-					client,
-					types.UpdateParams{
-						Cleanup: true,
-					},
-				)
+				report, cleanupImageInfos, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{
+					Cleanup: true,
+				}, ratelimit.New())
 
 				// Verify successful execution
 				require.NoError(t, err)

@@ -1,4 +1,4 @@
-package actions_test
+package actions
 
 import (
 	"slices"
@@ -11,8 +11,8 @@ import (
 	dockerContainer "github.com/moby/moby/api/types/container"
 	dockerNetwork "github.com/moby/moby/api/types/network"
 
-	"github.com/nicholas-fedor/watchtower/internal/actions"
 	mockActions "github.com/nicholas-fedor/watchtower/internal/actions/mocks"
+	"github.com/nicholas-fedor/watchtower/pkg/registry/ratelimit"
 	"github.com/nicholas-fedor/watchtower/pkg/types"
 )
 
@@ -57,14 +57,11 @@ func TestUpdateAction_LifecycleHooks(t *testing.T) {
 				client.TestData.Staleness = map[string]bool{
 					"test-container-02": true,
 				}
-				report, cleanupImageInfos, err := actions.Update(newTestLogger(t),
-					t.Context(),
-					client,
-					types.UpdateParams{
-						Cleanup:        true,
-						LifecycleHooks: true,
-					},
-				)
+				report, cleanupImageInfos, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{
+					Cleanup:        true,
+					LifecycleHooks: true,
+				}, ratelimit.New())
+
 				require.NoError(t, err)
 				assert.Empty(t, report.Updated())
 				assert.Empty(t, cleanupImageInfos)
@@ -103,16 +100,13 @@ func TestUpdateAction_LifecycleHooks(t *testing.T) {
 				client.TestData.Staleness = map[string]bool{
 					"test-container-uid-gid": true,
 				}
-				report, cleanupImageInfos, err := actions.Update(newTestLogger(t),
-					t.Context(),
-					client,
-					types.UpdateParams{
-						Cleanup:        true,
-						LifecycleHooks: true,
-						LifecycleUID:   1000,
-						LifecycleGID:   1001,
-					},
-				)
+				report, cleanupImageInfos, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{
+					Cleanup:        true,
+					LifecycleHooks: true,
+					LifecycleUID:   1000,
+					LifecycleGID:   1001,
+				}, ratelimit.New())
+
 				require.NoError(t, err)
 				require.Len(t, report.Updated(), 1)
 				assert.True(t, slices.ContainsFunc(cleanupImageInfos, func(info types.RemovedImageInfo) bool { return info.ImageID == types.ImageID("fake-image:latest") }))
@@ -155,14 +149,11 @@ func TestUpdateAction_LifecycleHooks(t *testing.T) {
 				client.TestData.Staleness = map[string]bool{
 					"test-container-02": true,
 				}
-				report, cleanupImageInfos, err := actions.Update(newTestLogger(t),
-					t.Context(),
-					client,
-					types.UpdateParams{
-						Cleanup:        true,
-						LifecycleHooks: true,
-					},
-				)
+				report, cleanupImageInfos, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{
+					Cleanup:        true,
+					LifecycleHooks: true,
+				}, ratelimit.New())
+
 				require.NoError(t, err)
 				assert.Empty(t, report.Updated())
 				assert.Empty(t, report.Failed())
@@ -204,14 +195,11 @@ func TestUpdateAction_LifecycleHooks(t *testing.T) {
 				client.TestData.Staleness = map[string]bool{
 					"test-container-02": true,
 				}
-				report, cleanupImageInfos, err := actions.Update(newTestLogger(t),
-					t.Context(),
-					client,
-					types.UpdateParams{
-						Cleanup:        true,
-						LifecycleHooks: true,
-					},
-				)
+				report, cleanupImageInfos, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{
+					Cleanup:        true,
+					LifecycleHooks: true,
+				}, ratelimit.New())
+
 				require.NoError(t, err)
 				require.Len(t, report.Updated(), 1)
 				assert.True(t, slices.ContainsFunc(cleanupImageInfos, func(info types.RemovedImageInfo) bool { return info.ImageID == types.ImageID("fake-image2:latest") }))
@@ -252,14 +240,11 @@ func TestUpdateAction_LifecycleHooks(t *testing.T) {
 				client.TestData.Staleness = map[string]bool{
 					"test-container-02": true,
 				}
-				report, cleanupImageInfos, err := actions.Update(newTestLogger(t),
-					t.Context(),
-					client,
-					types.UpdateParams{
-						Cleanup:        true,
-						LifecycleHooks: true,
-					},
-				)
+				report, cleanupImageInfos, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{
+					Cleanup:        true,
+					LifecycleHooks: true,
+				}, ratelimit.New())
+
 				require.NoError(t, err)
 				require.Len(t, report.Updated(), 1)
 				assert.True(t, slices.ContainsFunc(cleanupImageInfos, func(info types.RemovedImageInfo) bool { return info.ImageID == types.ImageID("fake-image2:latest") }))
@@ -300,14 +285,11 @@ func TestUpdateAction_LifecycleHooks(t *testing.T) {
 				client.TestData.Staleness = map[string]bool{
 					"test-container-02": true,
 				}
-				report, cleanupImageInfos, err := actions.Update(newTestLogger(t),
-					t.Context(),
-					client,
-					types.UpdateParams{
-						Cleanup:        true,
-						LifecycleHooks: true,
-					},
-				)
+				report, cleanupImageInfos, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{
+					Cleanup:        true,
+					LifecycleHooks: true,
+				}, ratelimit.New())
+
 				require.NoError(t, err)
 				require.Len(t, report.Updated(), 1)
 				assert.True(t, slices.ContainsFunc(cleanupImageInfos, func(info types.RemovedImageInfo) bool { return info.ImageID == types.ImageID("fake-image2:latest") }))

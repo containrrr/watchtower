@@ -1,4 +1,4 @@
-package actions_test
+package actions
 
 import (
 	"bytes"
@@ -12,7 +12,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/nicholas-fedor/watchtower/internal/actions"
 	mockActions "github.com/nicholas-fedor/watchtower/internal/actions/mocks"
 	"github.com/nicholas-fedor/watchtower/pkg/filters"
 	"github.com/nicholas-fedor/watchtower/pkg/registry/ratelimit"
@@ -54,11 +53,8 @@ func TestUpdateAction_ImageReferences(t *testing.T) {
 				},
 				Stopped: make(map[string]bool),
 			}
-			report, cleanupImageInfos, err := actions.Update(newTestLogger(t),
-				t.Context(),
-				client,
-				config,
-			)
+			report, cleanupImageInfos, err := update(newTestLogger(t), t.Context(), client, config, ratelimit.New())
+
 			require.NoError(t, err)
 			require.Len(t, report.Scanned(), 1, "Tagged container should be scanned")
 			require.Len(t, report.Updated(), 1, "Tagged container should be updated if stale")
@@ -85,11 +81,8 @@ func TestUpdateAction_ImageReferences(t *testing.T) {
 				},
 				Stopped: make(map[string]bool),
 			}
-			report, cleanupImageInfos, err := actions.Update(newTestLogger(t),
-				t.Context(),
-				client,
-				config,
-			)
+			report, cleanupImageInfos, err := update(newTestLogger(t), t.Context(), client, config, ratelimit.New())
+
 			require.NoError(t, err)
 			require.Len(t, report.Scanned(), 1, "Untagged container should be scanned")
 			require.Len(t, report.Updated(), 1, "Untagged container should be updated if stale")
@@ -116,11 +109,8 @@ func TestUpdateAction_ImageReferences(t *testing.T) {
 				},
 				Stopped: make(map[string]bool),
 			}
-			report, cleanupImageInfos, err := actions.Update(newTestLogger(t),
-				t.Context(),
-				client,
-				config,
-			)
+			report, cleanupImageInfos, err := update(newTestLogger(t), t.Context(), client, config, ratelimit.New())
+
 			require.NoError(t, err)
 			require.Len(t, report.Scanned(), 1, "Pinned container should be scanned")
 			assert.Empty(t, report.Updated(), "Pinned container should not be updated")
@@ -148,11 +138,8 @@ func TestUpdateAction_ImageReferences(t *testing.T) {
 				},
 				Stopped: make(map[string]bool),
 			}
-			report, cleanupImageInfos, err := actions.Update(newTestLogger(t),
-				t.Context(),
-				client,
-				config,
-			)
+			report, cleanupImageInfos, err := update(newTestLogger(t), t.Context(), client, config, ratelimit.New())
+
 			require.NoError(t, err)
 			require.Len(t, report.Scanned(), 1, "Bare digest container should be scanned")
 			assert.Empty(t, report.Updated(), "Bare digest container should not be updated")
@@ -179,11 +166,8 @@ func TestUpdateAction_ImageReferences(t *testing.T) {
 				},
 				Stopped: make(map[string]bool),
 			}
-			report, cleanupImageInfos, err := actions.Update(newTestLogger(t),
-				t.Context(),
-				client,
-				config,
-			)
+			report, cleanupImageInfos, err := update(newTestLogger(t), t.Context(), client, config, ratelimit.New())
+
 			require.NoError(t, err)
 			require.Len(t, report.Scanned(), 1, "Pinned container should be scanned")
 			assert.Empty(t, report.Updated(), "Pinned container should not be updated")
@@ -211,11 +195,8 @@ func TestUpdateAction_ImageReferences(t *testing.T) {
 				},
 				Stopped: make(map[string]bool),
 			}
-			report, cleanupImageInfos, err := actions.Update(newTestLogger(t),
-				t.Context(),
-				client,
-				config,
-			)
+			report, cleanupImageInfos, err := update(newTestLogger(t), t.Context(), client, config, ratelimit.New())
+
 			require.NoError(t, err)
 			require.Len(t, report.Scanned(), 1, "Invalid container should be scanned with fallback")
 			require.Len(t, report.Updated(), 1, "Invalid container should be updated with valid fallback")
@@ -243,11 +224,8 @@ func TestUpdateAction_ImageReferences(t *testing.T) {
 				},
 				Stopped: make(map[string]bool),
 			}
-			report, cleanupImageInfos, err := actions.Update(newTestLogger(t),
-				t.Context(),
-				client,
-				config,
-			)
+			report, cleanupImageInfos, err := update(newTestLogger(t), t.Context(), client, config, ratelimit.New())
+
 			require.NoError(t, err)
 			require.Len(t, report.Skipped(), 1, "Container with missing image info should be skipped")
 			assert.Empty(t, report.Scanned(), "Container should not be scanned")
@@ -280,11 +258,8 @@ func TestUpdateAction_ImageReferences(t *testing.T) {
 				},
 				Stopped: make(map[string]bool),
 			}
-			report, cleanupImageInfos, err := actions.Update(newTestLogger(t),
-				t.Context(),
-				client,
-				config,
-			)
+			report, cleanupImageInfos, err := update(newTestLogger(t), t.Context(), client, config, ratelimit.New())
+
 			require.NoError(t, err)
 			require.Len(t, report.Skipped(), 1, "Container with invalid fallback image should be skipped")
 			assert.Empty(t, report.Scanned(), "Container should not be scanned")
@@ -332,11 +307,8 @@ func TestUpdateAction_ImageReferences(t *testing.T) {
 			}
 			client.TestData.IsContainerStaleError = errors.New("stale check failed")
 
-			report, cleanupImageInfos, err := actions.Update(newTestLogger(t),
-				t.Context(),
-				client,
-				config,
-			)
+			report, cleanupImageInfos, err := update(newTestLogger(t), t.Context(), client, config, ratelimit.New())
+
 			require.NoError(t, err)
 			require.Len(t, report.Skipped(), 3, "All three containers should be skipped when IsContainerStale fails")
 			assert.Empty(t, report.Scanned(), "No containers should be scanned when all fail")
@@ -371,11 +343,8 @@ func TestUpdateAction_ImageReferences(t *testing.T) {
 				Host:          "ghcr.io",
 			}
 
-			report, cleanupImageInfos, err := actions.Update(newTestLogger(t),
-				t.Context(),
-				client,
-				config,
-			)
+			report, cleanupImageInfos, err := update(newTestLogger(t), t.Context(), client, config, ratelimit.New())
+
 			require.NoError(t, err)
 			require.Len(t, report.Failed(), 1, "Rate-limited staleness checks should be failed")
 			assert.Empty(t, report.Skipped(), "Rate-limited staleness checks should not be skipped")
@@ -413,11 +382,8 @@ func TestUpdateAction_ImageReferences(t *testing.T) {
 
 			log := zerolog.New(&logs)
 
-			report, _, err := actions.Update(&log,
-				t.Context(),
-				client,
-				config,
-			)
+			report, _, err := update(&log, t.Context(), client, config, ratelimit.New())
+
 			require.NoError(t, err)
 			require.Len(t, report.Failed(), 1)
 
@@ -464,11 +430,8 @@ func TestUpdateAction_ImageReferences(t *testing.T) {
 
 			log := zerolog.New(&logs)
 
-			report, _, err := actions.Update(&log,
-				t.Context(),
-				client,
-				config,
-			)
+			report, _, err := update(&log, t.Context(), client, config, ratelimit.New())
+
 			require.NoError(t, err)
 			require.Len(t, report.Failed(), 1)
 			assert.NotContains(t, logs.String(), "Registry rate limit retries exhausted", "The retry loop already warned about a Retry-After beyond the honor window")

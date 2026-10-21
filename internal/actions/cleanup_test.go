@@ -18,6 +18,7 @@ import (
 	dockerImage "github.com/moby/moby/api/types/image"
 	dockerNetwork "github.com/moby/moby/api/types/network"
 
+	mockActions "github.com/nicholas-fedor/watchtower/internal/actions/mocks"
 	"github.com/nicholas-fedor/watchtower/pkg/container"
 	mockContainer "github.com/nicholas-fedor/watchtower/pkg/container/mocks"
 	"github.com/nicholas-fedor/watchtower/pkg/types"
@@ -2831,6 +2832,384 @@ func Test_cleanupOldWatchtowerContainers(t *testing.T) {
 
 			require.NoError(t, err)
 			assert.Equal(t, 0, removed)
+		})
+	})
+}
+
+// TestRemoveExcessWatchtowerInstances_RunningInstances verifies which
+// Watchtower instances keep running after excess instances are removed, using
+// the client fake that tracks each container's running state.
+func TestRemoveExcessWatchtowerInstances_RunningInstances(t *testing.T) {
+	t.Parallel()
+
+	t.Run("given an empty array", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("should not do anything", func(t *testing.T) {
+			t.Parallel()
+
+			mockClient := mockActions.CreateMockClient(
+				&mockActions.TestData{},
+				false,
+				false,
+			)
+
+			var cleanupImageIDs []types.RemovedImageInfo
+
+			ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+			defer cancel()
+
+			cleanupOccurred, err := RemoveExcessWatchtowerInstances(newTestLogger(t),
+				ctx,
+				mockClient,
+				false,
+				"",
+				&cleanupImageIDs,
+				nil,
+			)
+			require.NoError(t, err)
+			assert.Equal(t, 0, cleanupOccurred)
+			assert.Empty(t, cleanupImageIDs)
+			assert.Equal(t, int32(0), mockClient.TestData.TriedToRemoveImageCount.Load())
+		})
+	})
+	t.Run("given an array of one", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("should not do anything", func(t *testing.T) {
+			t.Parallel()
+
+			client := mockActions.CreateMockClient(
+				&mockActions.TestData{
+					Containers: []types.Container{
+						mockActions.CreateMockContainerWithConfig(
+							"test-container",
+							"test-container",
+							"watchtower",
+							true,
+							false,
+							time.Now(),
+							&dockerContainer.Config{
+								Labels: map[string]string{
+									"com.centurylinklabs.watchtower": "true",
+								},
+								ExposedPorts: dockerNetwork.PortSet{},
+							},
+						),
+					},
+				},
+				false,
+				false,
+			)
+
+			var cleanupImageIDs []types.RemovedImageInfo
+
+			ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+			defer cancel()
+
+			cleanupOccurred, err := RemoveExcessWatchtowerInstances(newTestLogger(t),
+				ctx,
+				client,
+				false,
+				"",
+				&cleanupImageIDs,
+				nil,
+			)
+			require.NoError(t, err)
+			assert.Equal(t, 0, cleanupOccurred)
+			assert.Empty(t, cleanupImageIDs)
+			assert.Equal(t, int32(0), client.TestData.TriedToRemoveImageCount.Load())
+		})
+	})
+
+	t.Run("given multiple containers", func(t *testing.T) {
+		t.Parallel()
+
+		// newClient returns a client fake holding the group's instances.
+		newClient := func() mockActions.MockClient {
+			return mockActions.CreateMockClient(
+				&mockActions.TestData{
+					NameOfContainerToKeep: "test-container-02",
+					Containers: []types.Container{
+						mockActions.CreateMockContainerWithConfig(
+							"test-container-01",
+							"test-container-01",
+							"watchtower:old",
+							true,
+							false,
+							time.Now().AddDate(0, 0, -1),
+							&dockerContainer.Config{
+								Labels: map[string]string{
+									"com.centurylinklabs.watchtower": "true",
+								},
+								ExposedPorts: dockerNetwork.PortSet{},
+							},
+						),
+						mockActions.CreateMockContainerWithConfig(
+							"test-container-02",
+							"test-container-02",
+							"watchtower:latest",
+							true,
+							false,
+							time.Now(),
+							&dockerContainer.Config{
+								Labels: map[string]string{
+									"com.centurylinklabs.watchtower": "true",
+								},
+								ExposedPorts: dockerNetwork.PortSet{},
+							},
+						),
+					},
+				},
+				false,
+				false,
+			)
+		}
+
+		t.Run("should stop all but the latest one", func(t *testing.T) {
+			t.Parallel()
+
+			client := newClient()
+
+			var cleanupImageIDs []types.RemovedImageInfo
+
+			ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+			defer cancel()
+
+			cleanupOccurred, err := RemoveExcessWatchtowerInstances(newTestLogger(t),
+				ctx,
+				client,
+				false,
+				"",
+				&cleanupImageIDs,
+				client.TestData.Containers[1], // current is the latest
+			)
+			require.NoError(t, err)
+			assert.Equal(t, 1, cleanupOccurred)
+			assert.False(t, client.IsContainerRunning(client.TestData.Containers[0]), "test-container-01 should be stopped")
+			assert.True(t, client.IsContainerRunning(client.TestData.Containers[1]), "test-container-02 should remain running")
+			assert.Empty(t, cleanupImageIDs)
+			assert.Equal(t, int32(0), client.TestData.TriedToRemoveImageCount.Load())
+		})
+
+		t.Run("should collect image IDs for the caller to remove when cleanup is enabled", func(t *testing.T) {
+			t.Parallel()
+
+			client := newClient()
+
+			var cleanupImageIDs []types.RemovedImageInfo
+
+			ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+			defer cancel()
+
+			cleanupOccurred, err := RemoveExcessWatchtowerInstances(newTestLogger(t),
+				ctx,
+				client,
+				true,
+				"",
+				&cleanupImageIDs,
+				client.TestData.Containers[1], // current is the latest
+			)
+			require.NoError(t, err)
+			assert.Equal(t, 1, cleanupOccurred)
+			assert.False(t, client.IsContainerRunning(client.TestData.Containers[0]), "test-container-01 should be stopped")
+			assert.True(t, client.IsContainerRunning(client.TestData.Containers[1]), "test-container-02 should remain running")
+			assert.Contains(t, removedImageIDs(cleanupImageIDs), types.ImageID("watchtower:old"))
+			require.Len(t, cleanupImageIDs, 1)
+			assert.Equal(t, int32(0), client.TestData.TriedToRemoveImageCount.Load(), "the caller removes the collected image")
+		})
+	})
+	t.Run("simulating a self-update with excess Watchtower instances", func(t *testing.T) {
+		t.Parallel()
+
+		// newClient returns a client fake holding the group's instances.
+		newClient := func() mockActions.MockClient {
+			return mockActions.CreateMockClient(
+				&mockActions.TestData{
+					NameOfContainerToKeep: "test-container-new",
+					Containers: []types.Container{
+						mockActions.CreateMockContainerWithConfig(
+							"test-container-old",
+							"test-container-old",
+							"watchtower:1.11.0",
+							true,
+							false,
+							time.Now().AddDate(0, 0, -1),
+							&dockerContainer.Config{
+								Labels: map[string]string{
+									"com.centurylinklabs.watchtower": "true",
+								},
+								ExposedPorts: dockerNetwork.PortSet{},
+							},
+						),
+						mockActions.CreateMockContainerWithConfig(
+							"test-container-new",
+							"test-container-new",
+							"watchtower:1.11.1",
+							true,
+							false,
+							time.Now(),
+							&dockerContainer.Config{
+								Labels: map[string]string{
+									"com.centurylinklabs.watchtower": "true",
+								},
+								ExposedPorts: dockerNetwork.PortSet{},
+							},
+						),
+					},
+				},
+				false,
+				false,
+			)
+		}
+
+		t.Run("should stop the old instance and collect its image", func(t *testing.T) {
+			t.Parallel()
+
+			client := newClient()
+
+			var cleanupImageIDs []types.RemovedImageInfo
+
+			ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+			defer cancel()
+
+			cleanupOccurred, err := RemoveExcessWatchtowerInstances(newTestLogger(t),
+				ctx,
+				client,
+				true,
+				"",
+				&cleanupImageIDs,
+				client.TestData.Containers[1], // current is the new one
+			)
+			require.NoError(t, err)
+			assert.Equal(t, 1, cleanupOccurred)
+			assert.False(t, client.IsContainerRunning(client.TestData.Containers[0]), "test-container-old should be stopped")
+			assert.True(t, client.IsContainerRunning(client.TestData.Containers[1]), "test-container-new should remain running")
+			assert.Contains(t, removedImageIDs(cleanupImageIDs), types.ImageID("watchtower:1.11.0"))
+			require.Len(t, cleanupImageIDs, 1, "cleanupImageIDs should only include old container's image")
+			assert.Equal(t, int32(0), client.TestData.TriedToRemoveImageCount.Load(), "the caller removes the collected image")
+		})
+	})
+
+	t.Run("unscoped and scoped instances coexist", func(t *testing.T) {
+		t.Parallel()
+
+		// newClient returns a client fake holding the group's instances.
+		newClient := func() mockActions.MockClient {
+			return mockActions.CreateMockClient(
+				&mockActions.TestData{
+					Containers: []types.Container{
+						// Unscoped Watchtower (older)
+						mockActions.CreateMockContainerWithConfig(
+							"unscoped-old",
+							"/unscoped-old",
+							"watchtower:old",
+							true,
+							false,
+							time.Now().AddDate(0, 0, -1),
+							&dockerContainer.Config{
+								Labels: map[string]string{
+									"com.centurylinklabs.watchtower": "true",
+								},
+								ExposedPorts: dockerNetwork.PortSet{},
+							},
+						),
+						// Scoped Watchtower (should be ignored by unscoped cleanup)
+						mockActions.CreateMockContainerWithConfig(
+							"scoped-new",
+							"/scoped-new",
+							"watchtower:new",
+							true,
+							false,
+							time.Now(),
+							&dockerContainer.Config{
+								Labels: map[string]string{
+									"com.centurylinklabs.watchtower":       "true",
+									"com.centurylinklabs.watchtower.scope": "prod",
+								},
+								ExposedPorts: dockerNetwork.PortSet{},
+							},
+						),
+						// Unscoped Watchtower (newer)
+						mockActions.CreateMockContainerWithConfig(
+							"unscoped-new",
+							"/unscoped-new",
+							"watchtower:latest",
+							true,
+							false,
+							time.Now(),
+							&dockerContainer.Config{
+								Labels: map[string]string{
+									"com.centurylinklabs.watchtower": "true",
+								},
+								ExposedPorts: dockerNetwork.PortSet{},
+							},
+						),
+					},
+				},
+				false,
+				false,
+			)
+		}
+
+		t.Run("should only clean up unscoped instances when scope is empty", func(t *testing.T) {
+			t.Parallel()
+
+			client := newClient()
+
+			var cleanupImageIDs []types.RemovedImageInfo
+
+			ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+			defer cancel()
+
+			cleanupOccurred, err := RemoveExcessWatchtowerInstances(newTestLogger(t),
+				ctx,
+				client,
+				false,
+				"",
+				&cleanupImageIDs,
+				client.TestData.Containers[2], // current is the newer unscoped
+			)
+			require.NoError(t, err)
+			assert.Equal(t, 1, cleanupOccurred)
+
+			// Should stop the older unscoped instance
+			assert.False(t, client.IsContainerRunning(client.TestData.Containers[0]), "unscoped-old should be stopped")
+			// Should keep the scoped instance running (not affected by unscoped cleanup)
+			assert.True(t, client.IsContainerRunning(client.TestData.Containers[1]), "scoped-new should remain running")
+			// Should keep the newer unscoped instance running
+			assert.True(t, client.IsContainerRunning(client.TestData.Containers[2]), "unscoped-new should remain running")
+			assert.Empty(t, cleanupImageIDs)
+			assert.Equal(t, int32(0), client.TestData.TriedToRemoveImageCount.Load())
+		})
+
+		t.Run("should clean up within scoped instances when scope is specified", func(t *testing.T) {
+			t.Parallel()
+
+			client := newClient()
+
+			var cleanupImageIDs []types.RemovedImageInfo
+
+			ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+			defer cancel()
+
+			cleanupOccurred, err := RemoveExcessWatchtowerInstances(newTestLogger(t),
+				ctx,
+				client,
+				false,
+				"prod",
+				&cleanupImageIDs,
+				client.TestData.Containers[1], // current is the scoped one
+			)
+			require.NoError(t, err)
+			assert.Equal(t, 0, cleanupOccurred)
+
+			// Scoped cleanup should only see the scoped container, so no cleanup needed
+			assert.True(t, client.IsContainerRunning(client.TestData.Containers[0]), "unscoped-old should remain running")
+			assert.True(t, client.IsContainerRunning(client.TestData.Containers[1]), "scoped-new should remain running")
+			assert.True(t, client.IsContainerRunning(client.TestData.Containers[2]), "unscoped-new should remain running")
+			assert.Empty(t, cleanupImageIDs)
+			assert.Equal(t, int32(0), client.TestData.TriedToRemoveImageCount.Load())
 		})
 	})
 }

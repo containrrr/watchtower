@@ -1,22 +1,28 @@
-package actions_test
+package actions
 
 import (
-	"context"
+	"testing"
 	"time"
 
-	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	dockerContainer "github.com/moby/moby/api/types/container"
 	dockerNetwork "github.com/moby/moby/api/types/network"
 
-	"github.com/nicholas-fedor/watchtower/internal/actions"
 	mockActions "github.com/nicholas-fedor/watchtower/internal/actions/mocks"
+	"github.com/nicholas-fedor/watchtower/pkg/registry/ratelimit"
 	"github.com/nicholas-fedor/watchtower/pkg/types"
 )
 
-var _ = ginkgo.Describe("updating a stale container beside a dependency cycle", func() {
-	ginkgo.It("updates the stale container and does not fail the session", func() {
+// TestUpdateAction_StaleContainerBesideCycle verifies that a dependency cycle
+// among other containers does not prevent updating a stale container.
+func TestUpdateAction_StaleContainerBesideCycle(t *testing.T) {
+	t.Parallel()
+
+	t.Run("updates the stale container and does not fail the session", func(t *testing.T) {
+		t.Parallel()
+
 		containerA := mockActions.CreateMockContainerWithConfig(
 			"cycle-a",
 			"/cycle-a",
@@ -67,14 +73,10 @@ var _ = ginkgo.Describe("updating a stale container beside a dependency cycle", 
 			false,
 		)
 
-		report, _, err := actions.Update(newNopLogger(),
-			context.Background(),
-			client,
-			types.UpdateParams{Cleanup: true},
-		)
+		report, _, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{Cleanup: true}, ratelimit.New())
 
-		gomega.Expect(err).NotTo(gomega.HaveOccurred())
-		gomega.Expect(report.Updated()).To(gomega.HaveLen(1))
-		gomega.Expect(report.Updated()[0].Name()).To(gomega.Equal("cycle-c"))
+		require.NoError(t, err)
+		require.Len(t, report.Updated(), 1)
+		assert.Equal(t, "cycle-c", report.Updated()[0].Name())
 	})
-})
+}

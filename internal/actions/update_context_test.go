@@ -1,4 +1,4 @@
-package actions_test
+package actions
 
 import (
 	"context"
@@ -8,92 +8,91 @@ import (
 	"testing/synctest"
 	"time"
 
-	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	dockerContainer "github.com/moby/moby/api/types/container"
 
-	"github.com/nicholas-fedor/watchtower/internal/actions"
 	mockActions "github.com/nicholas-fedor/watchtower/internal/actions/mocks"
+	"github.com/nicholas-fedor/watchtower/pkg/registry/ratelimit"
 	"github.com/nicholas-fedor/watchtower/pkg/types"
 )
 
-var _ = ginkgo.Describe("the update action", func() {
-	ginkgo.When("handling context cancellation and timeout scenarios", func() {
-		ginkgo.It("should handle context cancellation during container listing", func() {
+// TestUpdateAction_Context verifies that an update reports context
+// cancellation during listing and staleness checks, and how it handles a
+// current container that is an old Watchtower instance.
+func TestUpdateAction_Context(t *testing.T) {
+	t.Parallel()
+
+	t.Run("handling context cancellation and timeout scenarios", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("should handle context cancellation during container listing", func(t *testing.T) {
+			t.Parallel()
+
 			client := mockActions.CreateMockClient(getCommonTestData(), false, false)
-			canceledCtx, cancel := context.WithCancel(context.Background())
+			canceledCtx, cancel := context.WithCancel(t.Context())
 			cancel() // Cancel the context immediately
 
-			report, cleanupImageInfos, err := actions.Update(newNopLogger(),
-				canceledCtx,
-				client,
-				types.UpdateParams{Cleanup: true},
-			)
+			report, cleanupImageInfos, err := update(newTestLogger(t), canceledCtx, client, types.UpdateParams{Cleanup: true}, ratelimit.New())
 
-			gomega.Expect(err).To(gomega.HaveOccurred())
-			gomega.Expect(errors.Is(err, context.Canceled)).To(gomega.BeTrue())
-			gomega.Expect(report).To(gomega.BeNil())
-			gomega.Expect(cleanupImageInfos).To(gomega.BeEmpty())
+			require.ErrorIs(t, err, context.Canceled)
+			assert.Nil(t, report)
+			assert.Empty(t, cleanupImageInfos)
 		})
 
-		ginkgo.It("should handle context cancellation during staleness checking", func() {
+		t.Run("should handle context cancellation during staleness checking", func(t *testing.T) {
+			t.Parallel()
+
 			client := mockActions.CreateMockClient(getCommonTestData(), false, false)
 			// Simulate IsContainerStale error
 			client.TestData.IsContainerStaleError = context.Canceled
 
-			report, cleanupImageInfos, err := actions.Update(newNopLogger(),
-				context.Background(),
-				client,
-				types.UpdateParams{Cleanup: true},
-			)
+			report, cleanupImageInfos, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{Cleanup: true}, ratelimit.New())
 
 			// Context cancellation from IsContainerStale is propagated as the
 			// final Update error rather than being swallowed.
-			gomega.Expect(err).To(gomega.HaveOccurred())
-			gomega.Expect(errors.Is(err, context.Canceled)).To(gomega.BeTrue())
+			require.ErrorIs(t, err, context.Canceled)
 			// Workers returning context.Canceled do not add partial results to progress.
-			gomega.Expect(report.Skipped()).To(gomega.BeEmpty())
-			gomega.Expect(cleanupImageInfos).To(gomega.BeEmpty())
+			assert.Empty(t, report.Skipped())
+			assert.Empty(t, cleanupImageInfos)
 		})
 
-		ginkgo.It(
-			"should ensure cleanup operations are attempted even with partial failures",
-			func() {
-				// Create test data with multiple stale containers
-				testData := getCommonTestData()
-				testData.Staleness = map[string]bool{
-					"test-container-01": true,
-					"test-container-02": true,
-					"test-container-03": true,
-				}
+		t.Run("should ensure cleanup operations are attempted even with partial failures", func(t *testing.T) {
+			t.Parallel()
 
-				client := mockActions.CreateMockClient(testData, false, false)
-				// Simulate StopContainer failure for some containers
-				client.TestData.StopContainerError = context.Canceled
-				client.TestData.StopContainerFailCount = 1 // Fail the first stop attempt
+			// Create test data with multiple stale containers
+			testData := getCommonTestData()
+			testData.Staleness = map[string]bool{
+				"test-container-01": true,
+				"test-container-02": true,
+				"test-container-03": true,
+			}
 
-				report, cleanupImageInfos, err := actions.Update(newNopLogger(),
-					context.Background(),
-					client,
-					types.UpdateParams{Cleanup: true},
-				)
+			client := mockActions.CreateMockClient(testData, false, false)
+			// Simulate StopContainer failure for some containers
+			client.TestData.StopContainerError = context.Canceled
+			client.TestData.StopContainerFailCount = 1 // Fail the first stop attempt
 
-				// Should still attempt to process and return a report
-				gomega.Expect(err).
-					NotTo(gomega.HaveOccurred())
-					// Update completes despite some failures
-				gomega.Expect(report).NotTo(gomega.BeNil())
-				gomega.Expect(report.Failed()).To(gomega.HaveLen(1)) // One container failed to stop
-				// Cleanup should still be attempted for successful operations.
-				// 2 of 3 containers succeeded and each gets its own entry for split notifications.
-				gomega.Expect(cleanupImageInfos).To(gomega.HaveLen(2))
-			},
-		)
+			report, cleanupImageInfos, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{Cleanup: true}, ratelimit.New())
+
+			// Should still attempt to process and return a report
+			require.NoError(t, err)
+			// Update completes despite some failures
+			require.NotNil(t, report)
+			require.Len(t, report.Failed(), 1) // One container failed to stop
+			// Cleanup should still be attempted for successful operations.
+			// 2 of 3 containers succeeded and each gets its own entry for split notifications.
+			require.Len(t, cleanupImageInfos, 2)
+		})
 	})
 
-	ginkgo.When("the current container is an old Watchtower container", func() {
-		ginkgo.It("should detect self as old and return error without updating", func() {
+	t.Run("the current container is an old Watchtower container", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("should detect self as old and return error without updating", func(t *testing.T) {
+			t.Parallel()
+
 			config := &dockerContainer.Config{
 				Image:  "watchtower:latest",
 				Labels: map[string]string{"com.centurylinklabs.watchtower": "true"},
@@ -112,22 +111,20 @@ var _ = ginkgo.Describe("the update action", func() {
 			}
 			client := mockActions.CreateMockClient(testData, false, false)
 
-			report, cleanupImageInfos, err := actions.Update(newNopLogger(),
-				context.Background(),
-				client,
-				types.UpdateParams{
-					Cleanup:            true,
-					CurrentContainerID: "old-container-id",
-				},
-			)
+			report, cleanupImageInfos, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{
+				Cleanup:            true,
+				CurrentContainerID: "old-container-id",
+			}, ratelimit.New())
 
-			gomega.Expect(err).To(gomega.HaveOccurred())
-			gomega.Expect(err.Error()).To(gomega.ContainSubstring("old Watchtower container"))
-			gomega.Expect(report).To(gomega.BeNil())
-			gomega.Expect(cleanupImageInfos).To(gomega.BeEmpty())
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "old Watchtower container")
+			assert.Nil(t, report)
+			assert.Empty(t, cleanupImageInfos)
 		})
 
-		ginkgo.It("should update restart policy to no when detecting self as old", func() {
+		t.Run("should update restart policy to no when detecting self as old", func(t *testing.T) {
+			t.Parallel()
+
 			config := &dockerContainer.Config{
 				Image:  "watchtower:latest",
 				Labels: map[string]string{"com.centurylinklabs.watchtower": "true"},
@@ -146,22 +143,20 @@ var _ = ginkgo.Describe("the update action", func() {
 			}
 			client := mockActions.CreateMockClient(testData, false, false)
 
-			_, _, err := actions.Update(newNopLogger(),
-				context.Background(),
-				client,
-				types.UpdateParams{
-					Cleanup:            true,
-					CurrentContainerID: "old-container-id",
-				},
-			)
+			_, _, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{
+				Cleanup:            true,
+				CurrentContainerID: "old-container-id",
+			}, ratelimit.New())
 
-			gomega.Expect(err).To(gomega.HaveOccurred())
-			gomega.Expect(client.TestData.SetRestartPolicyCount.Load()).To(gomega.Equal(int32(1)))
-			gomega.Expect(client.TestData.SetRestartPolicyContainer).NotTo(gomega.BeNil())
-			gomega.Expect(client.TestData.SetRestartPolicyContainer.ID()).To(gomega.Equal(types.ContainerID("old-container-id")))
+			require.Error(t, err)
+			assert.Equal(t, int32(1), client.TestData.SetRestartPolicyCount.Load())
+			require.NotNil(t, client.TestData.SetRestartPolicyContainer)
+			assert.Equal(t, types.ContainerID("old-container-id"), client.TestData.SetRestartPolicyContainer.ID())
 		})
 
-		ginkgo.It("should proceed normally when current container is not old", func() {
+		t.Run("should proceed normally when current container is not old", func(t *testing.T) {
+			t.Parallel()
+
 			normalContainer := mockActions.CreateMockContainer(
 				"current-id",
 				"watchtower",
@@ -173,52 +168,44 @@ var _ = ginkgo.Describe("the update action", func() {
 			}
 			client := mockActions.CreateMockClient(testData, false, false)
 
-			report, _, err := actions.Update(newNopLogger(),
-				context.Background(),
-				client,
-				types.UpdateParams{
-					Cleanup:            true,
-					CurrentContainerID: "current-id",
-				},
-			)
+			report, _, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{
+				Cleanup:            true,
+				CurrentContainerID: "current-id",
+			}, ratelimit.New())
 
-			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-			gomega.Expect(report).NotTo(gomega.BeNil())
+			require.NoError(t, err)
+			require.NotNil(t, report)
 		})
 
-		ginkgo.It("should proceed normally when current container ID is empty", func() {
+		t.Run("should proceed normally when current container ID is empty", func(t *testing.T) {
+			t.Parallel()
+
 			testData := &mockActions.TestData{
 				Containers: []types.Container{},
 			}
 			client := mockActions.CreateMockClient(testData, false, false)
 
-			report, _, err := actions.Update(newNopLogger(),
-				context.Background(),
-				client,
-				types.UpdateParams{
-					Cleanup: true,
-				},
-			)
+			report, _, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{
+				Cleanup: true,
+			}, ratelimit.New())
 
-			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-			gomega.Expect(report).NotTo(gomega.BeNil())
+			require.NoError(t, err)
+			require.NotNil(t, report)
 		})
 	})
-})
+}
 
+// TestUpdateAction_HandleTimeout verifies that an update with an expired
+// deadline returns a deadline error.
 func TestUpdateAction_HandleTimeout(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		client := mockActions.CreateMockClient(getCommonTestData(), false, false)
 		pastDeadline := time.Now().Add(-time.Second)
 
-		ctx, cancel := context.WithDeadline(context.Background(), pastDeadline)
+		ctx, cancel := context.WithDeadline(t.Context(), pastDeadline)
 		defer cancel()
 
-		report, cleanupImageInfos, err := actions.Update(newTestLogger(t),
-			ctx,
-			client,
-			types.UpdateParams{Cleanup: true},
-		)
+		report, cleanupImageInfos, err := update(newTestLogger(t), ctx, client, types.UpdateParams{Cleanup: true}, ratelimit.New())
 
 		synctest.Wait()
 
@@ -240,17 +227,15 @@ func TestUpdateAction_HandleTimeout(t *testing.T) {
 	})
 }
 
+// TestUpdateAction_EarlyCancellationCheck verifies that an update with an
+// already canceled context returns a cancellation error.
 func TestUpdateAction_EarlyCancellationCheck(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		client := mockActions.CreateMockClient(getCommonTestData(), false, false)
-		canceledCtx, cancel := context.WithCancel(context.Background())
+		canceledCtx, cancel := context.WithCancel(t.Context())
 		cancel() // Cancel the context immediately
 
-		report, cleanupImageInfos, err := actions.Update(newTestLogger(t),
-			canceledCtx,
-			client,
-			types.UpdateParams{Cleanup: true},
-		)
+		report, cleanupImageInfos, err := update(newTestLogger(t), canceledCtx, client, types.UpdateParams{Cleanup: true}, ratelimit.New())
 
 		synctest.Wait()
 
@@ -272,9 +257,11 @@ func TestUpdateAction_EarlyCancellationCheck(t *testing.T) {
 	})
 }
 
+// TestUpdateAction_MidOperationCancellationCheck verifies that canceling the
+// context while an update runs ends it with a cancellation error.
 func TestUpdateAction_MidOperationCancellationCheck(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(t.Context())
 		testData := getCommonTestData()
 		// Set simulated latency to allow operations to start before cancellation
 		testData.SimulatedLatency = 10 * time.Millisecond
@@ -291,11 +278,7 @@ func TestUpdateAction_MidOperationCancellationCheck(t *testing.T) {
 		go func() {
 			defer close(done)
 
-			report, _, err = actions.Update(newTestLogger(t),
-				ctx,
-				client,
-				types.UpdateParams{Cleanup: true},
-			)
+			report, _, err = update(newTestLogger(t), ctx, client, types.UpdateParams{Cleanup: true}, ratelimit.New())
 		}()
 
 		// Let the goroutine reach its first blocking point (SimulatedLatency timer
@@ -340,16 +323,12 @@ func TestUpdateAction_ContextCancellationStartContainer(t *testing.T) {
 		}
 
 		// Create client with pre-canceled context
-		canceledCtx, cancel := context.WithCancel(context.Background())
+		canceledCtx, cancel := context.WithCancel(t.Context())
 		cancel() // Cancel immediately
 
 		client := mockActions.CreateMockClientWithContext(canceledCtx, testData, false, false)
 
-		_, _, err := actions.Update(newTestLogger(t),
-			canceledCtx,
-			client,
-			types.UpdateParams{Cleanup: true},
-		)
+		_, _, err := update(newTestLogger(t), canceledCtx, client, types.UpdateParams{Cleanup: true}, ratelimit.New())
 
 		synctest.Wait()
 
@@ -373,7 +352,7 @@ func TestUpdateAction_ContextTimeoutDuringProcessing(t *testing.T) {
 		}
 
 		// Create client with context that expires immediately
-		shortCtx, cancel := context.WithTimeout(context.Background(), 0)
+		shortCtx, cancel := context.WithTimeout(t.Context(), 0)
 		defer cancel()
 
 		client := mockActions.CreateMockClientWithContext(shortCtx, testData, false, false)
@@ -381,11 +360,7 @@ func TestUpdateAction_ContextTimeoutDuringProcessing(t *testing.T) {
 		// Capture start time to verify the call completes within a reasonable bound
 		start := time.Now()
 
-		report, _, err := actions.Update(newTestLogger(t),
-			shortCtx,
-			client,
-			types.UpdateParams{Cleanup: true},
-		)
+		report, _, err := update(newTestLogger(t), shortCtx, client, types.UpdateParams{Cleanup: true}, ratelimit.New())
 
 		synctest.Wait()
 
@@ -407,10 +382,13 @@ func TestUpdateAction_ContextTimeoutDuringProcessing(t *testing.T) {
 // runErrorPropagationTest is a helper function that sets up a mock client with
 // configurable error injection and runs the Update action for testing error propagation.
 func runErrorPropagationTest(
+	t *testing.T,
 	errorToReturn error,
 	containerStaleness map[string]bool,
 	targetOperation string,
 ) (types.Report, []types.RemovedImageInfo, error) {
+	t.Helper()
+
 	testData := getCommonTestData()
 	testData.Staleness = containerStaleness
 
@@ -426,11 +404,7 @@ func runErrorPropagationTest(
 		client.TestData.StartContainerError = errorToReturn
 	}
 
-	report, cleanupImageInfos, err := actions.Update(newNopLogger(),
-		context.Background(),
-		client,
-		types.UpdateParams{Cleanup: true},
-	)
+	report, cleanupImageInfos, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{Cleanup: true}, ratelimit.New())
 
 	return report, cleanupImageInfos, err
 }
@@ -449,6 +423,7 @@ func TestUpdateAction_ErrorPropagationContextErrors(t *testing.T) {
 			expectedErrorPattern := "update canceled"
 
 			report, cleanupImageInfos, err := runErrorPropagationTest(
+				t,
 				context.Canceled,
 				nil,
 				"ListContainers",
@@ -472,6 +447,7 @@ func TestUpdateAction_ErrorPropagationContextErrors(t *testing.T) {
 	t.Run("StopContainer context error", func(t *testing.T) {
 		synctest.Test(t, func(t *testing.T) {
 			report, cleanupImageInfos, err := runErrorPropagationTest(
+				t,
 				context.DeadlineExceeded,
 				allStale,
 				"StopContainer",
@@ -504,6 +480,7 @@ func TestUpdateAction_ErrorPropagationContextErrors(t *testing.T) {
 	t.Run("StartContainer context error", func(t *testing.T) {
 		synctest.Test(t, func(t *testing.T) {
 			report, cleanupImageInfos, err := runErrorPropagationTest(
+				t,
 				context.Canceled,
 				allStale,
 				"StartContainer",
@@ -538,14 +515,14 @@ func TestUpdateAction_ErrorPropagationContextErrors(t *testing.T) {
 func TestUpdateAction_ContextEdgeCases(t *testing.T) {
 	tests := []struct {
 		name             string
-		contextSetup     func() (context.Context, context.CancelFunc)
+		contextSetup     func(parent context.Context) (context.Context, context.CancelFunc)
 		staleContainers  map[string]bool
 		simulatedLatency time.Duration // Optional latency for context timeout testing
 	}{
 		{
 			name: "Background context should work",
-			contextSetup: func() (context.Context, context.CancelFunc) {
-				return context.Background(), func() {}
+			contextSetup: func(parent context.Context) (context.Context, context.CancelFunc) {
+				return parent, func() {}
 			},
 			staleContainers: map[string]bool{
 				"test-container-01": true,
@@ -555,8 +532,8 @@ func TestUpdateAction_ContextEdgeCases(t *testing.T) {
 		},
 		{
 			name: "WithCancel context immediately canceled",
-			contextSetup: func() (context.Context, context.CancelFunc) {
-				ctx, cancel := context.WithCancel(context.Background())
+			contextSetup: func(parent context.Context) (context.Context, context.CancelFunc) {
+				ctx, cancel := context.WithCancel(parent)
 				cancel()
 
 				return ctx, func() {}
@@ -569,9 +546,9 @@ func TestUpdateAction_ContextEdgeCases(t *testing.T) {
 		},
 		{
 			name: "WithTimeout already expired",
-			contextSetup: func() (context.Context, context.CancelFunc) {
+			contextSetup: func(parent context.Context) (context.Context, context.CancelFunc) {
 				// Use a past deadline to simulate immediate timeout
-				return context.WithDeadline(context.Background(), time.Now().Add(-time.Hour))
+				return context.WithDeadline(parent, time.Now().Add(-time.Hour))
 			},
 			staleContainers: map[string]bool{
 				"test-container-01": true,
@@ -581,8 +558,8 @@ func TestUpdateAction_ContextEdgeCases(t *testing.T) {
 		},
 		{
 			name: "WithTimeout short timeout",
-			contextSetup: func() (context.Context, context.CancelFunc) {
-				return context.WithTimeout(context.Background(), 1*time.Millisecond)
+			contextSetup: func(parent context.Context) (context.Context, context.CancelFunc) {
+				return context.WithTimeout(parent, 1*time.Millisecond)
 			},
 			staleContainers: map[string]bool{
 				"test-container-01": true,
@@ -604,16 +581,12 @@ func TestUpdateAction_ContextEdgeCases(t *testing.T) {
 					testData.SimulatedLatency = tc.simulatedLatency
 				}
 
-				ctx, cancel := tc.contextSetup()
+				ctx, cancel := tc.contextSetup(t.Context())
 				defer cancel()
 
 				client := mockActions.CreateMockClientWithContext(ctx, testData, false, false)
 
-				report, cleanupImageInfos, err := actions.Update(newTestLogger(t),
-					ctx,
-					client,
-					types.UpdateParams{Cleanup: true},
-				)
+				report, cleanupImageInfos, err := update(newTestLogger(t), ctx, client, types.UpdateParams{Cleanup: true}, ratelimit.New())
 
 				synctest.Wait()
 
@@ -665,7 +638,7 @@ func TestUpdateAction_ParallelStalenessCheckCancellationPropagation(t *testing.T
 		}
 		testData.SimulatedLatency = 10 * time.Millisecond
 
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(t.Context())
 		client := mockActions.CreateMockClientWithContext(ctx, testData, false, false)
 
 		done := make(chan struct{})
@@ -675,11 +648,7 @@ func TestUpdateAction_ParallelStalenessCheckCancellationPropagation(t *testing.T
 		go func() {
 			defer close(done)
 
-			_, _, err = actions.Update(newTestLogger(t),
-				ctx,
-				client,
-				types.UpdateParams{Cleanup: true},
-			)
+			_, _, err = update(newTestLogger(t), ctx, client, types.UpdateParams{Cleanup: true}, ratelimit.New())
 		}()
 
 		synctest.Wait()
@@ -716,7 +685,7 @@ func TestEarlyCancellationStopContainers(t *testing.T) {
 		testData.SimulatedLatency = 5 * time.Millisecond
 
 		// Create a context that is NOT canceled immediately
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(t.Context())
 		client := mockActions.CreateMockClientWithContext(ctx, testData, false, false)
 
 		// Start update in a goroutine
@@ -731,11 +700,7 @@ func TestEarlyCancellationStopContainers(t *testing.T) {
 		go func() {
 			defer close(done)
 
-			report, cleanupImageInfos, err = actions.Update(newTestLogger(t),
-				ctx,
-				client,
-				types.UpdateParams{Cleanup: true},
-			)
+			report, cleanupImageInfos, err = update(newTestLogger(t), ctx, client, types.UpdateParams{Cleanup: true}, ratelimit.New())
 		}()
 
 		// Let the goroutine reach its first blocking point (SimulatedLatency timer
@@ -781,7 +746,7 @@ func TestEarlyCancellationRestartContainers(t *testing.T) {
 		testData.SimulatedLatency = 3 * time.Millisecond
 
 		// Create a context that is NOT canceled immediately
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(t.Context())
 		client := mockActions.CreateMockClientWithContext(ctx, testData, false, false)
 
 		// Start update in a goroutine
@@ -796,11 +761,7 @@ func TestEarlyCancellationRestartContainers(t *testing.T) {
 		go func() {
 			defer close(done)
 
-			report, cleanupImageInfos, err = actions.Update(newTestLogger(t),
-				ctx,
-				client,
-				types.UpdateParams{Cleanup: true},
-			)
+			report, cleanupImageInfos, err = update(newTestLogger(t), ctx, client, types.UpdateParams{Cleanup: true}, ratelimit.New())
 		}()
 
 		// Let the goroutine reach its first blocking point (SimulatedLatency timer

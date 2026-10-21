@@ -1,23 +1,34 @@
-package actions_test
+package actions
 
 import (
-	"context"
+	"testing"
 	"time"
 
-	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	dockerContainer "github.com/moby/moby/api/types/container"
 
-	"github.com/nicholas-fedor/watchtower/internal/actions"
 	mockActions "github.com/nicholas-fedor/watchtower/internal/actions/mocks"
+	"github.com/nicholas-fedor/watchtower/pkg/registry/ratelimit"
 	"github.com/nicholas-fedor/watchtower/pkg/types"
 )
 
-var _ = ginkgo.Describe("the update action", func() {
-	ginkgo.When("watchtower has been instructed to monitor only", func() {
-		ginkgo.When("certain containers are set to monitor only", func() {
-			ginkgo.It("should not update those containers and collect no image IDs", func() {
+// TestUpdateAction_MonitorOnly verifies that monitor-only containers, set by
+// label or globally, are not updated and collect no images, and how the
+// label-precedence setting resolves the two.
+func TestUpdateAction_MonitorOnly(t *testing.T) {
+	t.Parallel()
+
+	t.Run("watchtower has been instructed to monitor only", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("certain containers are set to monitor only", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should not update those containers and collect no image IDs", func(t *testing.T) {
+				t.Parallel()
+
 				client := mockActions.CreateMockClient(
 					&mockActions.TestData{
 						NameOfContainerToKeep: "test-container-02",
@@ -50,23 +61,22 @@ var _ = ginkgo.Describe("the update action", func() {
 					"test-container-01": true,
 					"test-container-02": true,
 				}
-				report, cleanupImageInfos, err := actions.Update(newNopLogger(),
-					context.Background(),
-					client,
-					types.UpdateParams{Cleanup: true},
-				)
-				gomega.Expect(err).NotTo(gomega.HaveOccurred())
-				gomega.Expect(report.Updated()).To(gomega.HaveLen(1))
-				gomega.Expect(cleanupImageInfos).
-					To(gomega.ContainElement(gomega.HaveField("ImageID", types.ImageID("fake-image1:latest"))))
-				gomega.Expect(cleanupImageInfos).To(gomega.HaveLen(1))
-				gomega.Expect(client.TestData.TriedToRemoveImageCount.Load()).
-					To(gomega.Equal(int32(0)), "RemoveImageByID should not be called during Update")
+				report, cleanupImageInfos, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{Cleanup: true}, ratelimit.New())
+
+				require.NoError(t, err)
+				require.Len(t, report.Updated(), 1)
+				assert.Contains(t, removedImageIDs(cleanupImageInfos), types.ImageID("fake-image1:latest"))
+				require.Len(t, cleanupImageInfos, 1)
+				assert.Equal(t, int32(0), client.TestData.TriedToRemoveImageCount.Load(), "RemoveImageByID should not be called during Update")
 			})
 		})
 
-		ginkgo.When("monitor only is set globally", func() {
-			ginkgo.It("should not update any containers and collect no image IDs", func() {
+		t.Run("monitor only is set globally", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should not update any containers and collect no image IDs", func(t *testing.T) {
+				t.Parallel()
+
 				client := mockActions.CreateMockClient(
 					&mockActions.TestData{
 						Containers: []types.Container{
@@ -91,20 +101,20 @@ var _ = ginkgo.Describe("the update action", func() {
 					"test-container-01": true,
 					"test-container-02": true,
 				}
-				report, cleanupImageInfos, err := actions.Update(newNopLogger(),
-					context.Background(),
-					client,
-					types.UpdateParams{Cleanup: true, MonitorOnly: true},
-				)
-				gomega.Expect(err).NotTo(gomega.HaveOccurred())
-				gomega.Expect(report.Updated()).To(gomega.BeEmpty())
-				gomega.Expect(cleanupImageInfos).To(gomega.BeEmpty())
-				gomega.Expect(client.TestData.TriedToRemoveImageCount.Load()).
-					To(gomega.Equal(int32(0)), "RemoveImageByID should not be called during Update")
+				report, cleanupImageInfos, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{Cleanup: true, MonitorOnly: true}, ratelimit.New())
+
+				require.NoError(t, err)
+				assert.Empty(t, report.Updated())
+				assert.Empty(t, cleanupImageInfos)
+				assert.Equal(t, int32(0), client.TestData.TriedToRemoveImageCount.Load(), "RemoveImageByID should not be called during Update")
 			})
 
-			ginkgo.When("watchtower has been instructed to have label take precedence", func() {
-				ginkgo.It("it should update containers when monitor only is set to false", func() {
+			t.Run("watchtower has been instructed to have label take precedence", func(t *testing.T) {
+				t.Parallel()
+
+				t.Run("it should update containers when monitor only is set to false", func(t *testing.T) {
+					t.Parallel()
+
 					client := mockActions.CreateMockClient(
 						&mockActions.TestData{
 							Containers: []types.Container{
@@ -129,69 +139,61 @@ var _ = ginkgo.Describe("the update action", func() {
 					client.TestData.Staleness = map[string]bool{
 						"test-container-02": true,
 					}
-					report, cleanupImageInfos, err := actions.Update(newNopLogger(),
-						context.Background(),
-						client,
-						types.UpdateParams{
-							Cleanup:         true,
-							MonitorOnly:     true,
-							LabelPrecedence: true,
-						},
-					)
-					gomega.Expect(err).NotTo(gomega.HaveOccurred())
-					gomega.Expect(report.Updated()).To(gomega.HaveLen(1))
-					gomega.Expect(cleanupImageInfos).
-						To(gomega.ContainElement(gomega.HaveField("ImageID", types.ImageID("fake-image2:latest"))))
-					gomega.Expect(cleanupImageInfos).To(gomega.HaveLen(1))
-					gomega.Expect(client.TestData.TriedToRemoveImageCount.Load()).
-						To(gomega.Equal(int32(0)), "RemoveImageByID should not be called during Update")
+					report, cleanupImageInfos, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{
+						Cleanup:         true,
+						MonitorOnly:     true,
+						LabelPrecedence: true,
+					}, ratelimit.New())
+
+					require.NoError(t, err)
+					require.Len(t, report.Updated(), 1)
+					assert.Contains(t, removedImageIDs(cleanupImageInfos), types.ImageID("fake-image2:latest"))
+					require.Len(t, cleanupImageInfos, 1)
+					assert.Equal(t, int32(0), client.TestData.TriedToRemoveImageCount.Load(), "RemoveImageByID should not be called during Update")
 				})
 
-				ginkgo.It(
-					"it should not update containers when monitor only is set to true",
-					func() {
-						client := mockActions.CreateMockClient(
-							&mockActions.TestData{
-								Containers: []types.Container{
-									mockActions.CreateMockContainerWithConfig(
-										"test-container-02",
-										"test-container-02",
-										"fake-image2:latest",
-										false,
-										false,
-										time.Now(),
-										&dockerContainer.Config{
-											Labels: map[string]string{
-												"com.centurylinklabs.watchtower.monitor-only": "true",
-											},
-										},
-									),
-								},
-							},
-							false,
-							false,
-						)
-						client.TestData.Staleness = map[string]bool{
-							"test-container-02": true,
-						}
-						report, cleanupImageInfos, err := actions.Update(newNopLogger(),
-							context.Background(),
-							client,
-							types.UpdateParams{
-								Cleanup:         true,
-								MonitorOnly:     true,
-								LabelPrecedence: true,
-							},
-						)
-						gomega.Expect(err).NotTo(gomega.HaveOccurred())
-						gomega.Expect(report.Updated()).To(gomega.BeEmpty())
-						gomega.Expect(cleanupImageInfos).To(gomega.BeEmpty())
-						gomega.Expect(client.TestData.TriedToRemoveImageCount.Load()).
-							To(gomega.Equal(int32(0)), "RemoveImageByID should not be called during Update")
-					},
-				)
+				t.Run("it should not update containers when monitor only is set to true", func(t *testing.T) {
+					t.Parallel()
 
-				ginkgo.It("it should not update containers when monitor only is not set", func() {
+					client := mockActions.CreateMockClient(
+						&mockActions.TestData{
+							Containers: []types.Container{
+								mockActions.CreateMockContainerWithConfig(
+									"test-container-02",
+									"test-container-02",
+									"fake-image2:latest",
+									false,
+									false,
+									time.Now(),
+									&dockerContainer.Config{
+										Labels: map[string]string{
+											"com.centurylinklabs.watchtower.monitor-only": "true",
+										},
+									},
+								),
+							},
+						},
+						false,
+						false,
+					)
+					client.TestData.Staleness = map[string]bool{
+						"test-container-02": true,
+					}
+					report, cleanupImageInfos, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{
+						Cleanup:         true,
+						MonitorOnly:     true,
+						LabelPrecedence: true,
+					}, ratelimit.New())
+
+					require.NoError(t, err)
+					assert.Empty(t, report.Updated())
+					assert.Empty(t, cleanupImageInfos)
+					assert.Equal(t, int32(0), client.TestData.TriedToRemoveImageCount.Load(), "RemoveImageByID should not be called during Update")
+				})
+
+				t.Run("it should not update containers when monitor only is not set", func(t *testing.T) {
+					t.Parallel()
+
 					client := mockActions.CreateMockClient(
 						&mockActions.TestData{
 							Containers: []types.Container{
@@ -209,22 +211,18 @@ var _ = ginkgo.Describe("the update action", func() {
 					client.TestData.Staleness = map[string]bool{
 						"test-container-01": true,
 					}
-					report, cleanupImageInfos, err := actions.Update(newNopLogger(),
-						context.Background(),
-						client,
-						types.UpdateParams{
-							Cleanup:         true,
-							MonitorOnly:     true,
-							LabelPrecedence: true,
-						},
-					)
-					gomega.Expect(err).NotTo(gomega.HaveOccurred())
-					gomega.Expect(report.Updated()).To(gomega.BeEmpty())
-					gomega.Expect(cleanupImageInfos).To(gomega.BeEmpty())
-					gomega.Expect(client.TestData.TriedToRemoveImageCount.Load()).
-						To(gomega.Equal(int32(0)), "RemoveImageByID should not be called during Update")
+					report, cleanupImageInfos, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{
+						Cleanup:         true,
+						MonitorOnly:     true,
+						LabelPrecedence: true,
+					}, ratelimit.New())
+
+					require.NoError(t, err)
+					assert.Empty(t, report.Updated())
+					assert.Empty(t, cleanupImageInfos)
+					assert.Equal(t, int32(0), client.TestData.TriedToRemoveImageCount.Load(), "RemoveImageByID should not be called during Update")
 				})
 			})
 		})
 	})
-})
+}

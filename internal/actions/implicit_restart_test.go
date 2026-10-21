@@ -2,6 +2,7 @@ package actions
 
 import (
 	"bytes"
+	"cmp"
 	"crypto/sha256"
 	"encoding/hex"
 	"sort"
@@ -25,6 +26,8 @@ import (
 type restartSpec struct {
 	// name is the container name, without the leading slash.
 	name string
+	// id is the container ID. Empty means an ID derived from the name.
+	id string
 	// project, service, and number are the Compose labels. Empty means unset.
 	project, service, number string
 	// dependsOn is the Watchtower depends-on label.
@@ -68,7 +71,7 @@ func (s restartSpec) build() types.Container {
 	}
 
 	c := container.NewContainer(nil, &dockerContainer.InspectResponse{
-		ID:         restartSpecID(s.name),
+		ID:         cmp.Or(s.id, restartSpecID(s.name)),
 		Name:       "/" + s.name,
 		HostConfig: &dockerContainer.HostConfig{NetworkMode: dockerContainer.NetworkMode(s.networkMode)},
 		Config:     &dockerContainer.Config{Labels: labels},
@@ -299,7 +302,9 @@ func TestUpdate_WarnsOnUnresolvedDependsOn(t *testing.T) {
 	t.Parallel()
 
 	specs := []restartSpec{
-		{name: "app", dependsOn: "db,missing"},
+		// Problems are logged at warn once per process, so app needs an ID no
+		// earlier run has seen.
+		{name: "app", id: randomContainerID(t), dependsOn: "db,missing"},
 		{name: "a-db-1", project: "a", service: "db", number: "1"},
 		{name: "b-db-1", project: "b", service: "db", number: "1"},
 	}
@@ -325,4 +330,55 @@ func TestUpdate_WarnsOnUnresolvedDependsOn(t *testing.T) {
 	assert.Contains(t, output.String(),
 		`{"level":"warn","container":"app","depends_on":"missing","message":"Ignoring depends-on entry that names no container"}`)
 	assert.NotContains(t, output.String(), `"depends_on":"db","message":"Ignoring depends-on entry`)
+}
+
+// updateImplicitRestart marks the containers that depend on a restarting
+// container as linked to restarting, as an update scan does. The dependency
+// graph is built from containers, with the rest of allContainers unmonitored.
+//
+// Parameters:
+//   - log: Process logger.
+//   - allContainers: Every listed container.
+//   - containers: The monitored containers, which may be marked.
+//   - useComposeDependsOn: Whether to include Compose depends_on labels as links.
+func updateImplicitRestart(log *zerolog.Logger, allContainers, containers []types.Container, useComposeDependsOn bool) {
+	graph, err := sorter.NewDependencyGraph(log,
+		containers,
+		unmonitoredContainers(allContainers, containers),
+		useComposeDependsOn,
+	)
+	if err != nil {
+		return
+	}
+
+	markImplicitRestarts(log, graph, allContainers, containers, nil)
+}
+
+// reconcileImplicitRestarts clears linked-restart marks and derives them again
+// with a dependency graph built from containers, with the rest of
+// allContainers unmonitored.
+//
+// Parameters:
+//   - log: Process logger.
+//   - allContainers: Every listed container.
+//   - containers: The monitored containers.
+//   - params: Update parameters.
+//
+// Returns:
+//   - []types.Container: Containers that should still restart.
+func reconcileImplicitRestarts(
+	log *zerolog.Logger,
+	allContainers, containers []types.Container,
+	params types.UpdateParams,
+) []types.Container {
+	graph, err := sorter.NewDependencyGraph(log,
+		containers,
+		unmonitoredContainers(allContainers, containers),
+		params.UseComposeDependsOn,
+	)
+	if err != nil {
+		return nil
+	}
+
+	return reconcileImplicitRestartsExcluding(log, graph, allContainers, containers, params, nil)
 }

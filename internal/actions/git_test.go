@@ -1885,7 +1885,7 @@ func Test_gitSession(t *testing.T) {
 
 			app.SetStale(true)
 			containers := []types.Container{app, db}
-			UpdateImplicitRestart(log, containers, containers, false)
+			updateImplicitRestart(log, containers, containers, false)
 			assert.True(t, db.IsLinkedToRestarting())
 
 			app.SetStale(false)

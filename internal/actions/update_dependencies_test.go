@@ -1,4 +1,4 @@
-package actions_test
+package actions
 
 import (
 	"slices"
@@ -11,8 +11,8 @@ import (
 	dockerContainer "github.com/moby/moby/api/types/container"
 	dockerNetwork "github.com/moby/moby/api/types/network"
 
-	"github.com/nicholas-fedor/watchtower/internal/actions"
 	mockActions "github.com/nicholas-fedor/watchtower/internal/actions/mocks"
+	"github.com/nicholas-fedor/watchtower/pkg/registry/ratelimit"
 	"github.com/nicholas-fedor/watchtower/pkg/types"
 )
 
@@ -90,11 +90,7 @@ func TestUpdateAction_Dependencies(t *testing.T) {
 				false,
 			)
 
-			report, cleanupImageInfos, err := actions.Update(newTestLogger(t),
-				t.Context(),
-				client,
-				types.UpdateParams{Cleanup: true},
-			)
+			report, cleanupImageInfos, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{Cleanup: true}, ratelimit.New())
 
 			require.NoError(t, err)
 			require.Len(t, report.Updated(), 3)
@@ -151,7 +147,7 @@ func TestUpdateAction_Dependencies(t *testing.T) {
 			assert.True(t, provider.ToRestart())
 			assert.False(t, consumer.ToRestart())
 
-			actions.UpdateImplicitRestart(newTestLogger(t), containers, containers, true)
+			updateImplicitRestart(newTestLogger(t), containers, containers, true)
 
 			assert.True(t, containers[0].ToRestart())
 			assert.True(t, containers[1].ToRestart())
@@ -169,7 +165,7 @@ func TestUpdateAction_Dependencies(t *testing.T) {
 			assert.True(t, containers[0].ToRestart())  // db
 			assert.False(t, containers[1].ToRestart()) // web
 
-			actions.UpdateImplicitRestart(newTestLogger(t), containers, containers, true)
+			updateImplicitRestart(newTestLogger(t), containers, containers, true)
 
 			// web should be marked for restart because it depends on db
 			assert.True(t, containers[0].ToRestart())
@@ -189,7 +185,7 @@ func TestUpdateAction_Dependencies(t *testing.T) {
 			assert.False(t, containers[1].ToRestart()) // db
 			assert.False(t, containers[2].ToRestart()) // app
 
-			actions.UpdateImplicitRestart(newTestLogger(t), containers, containers, true)
+			updateImplicitRestart(newTestLogger(t), containers, containers, true)
 
 			// All should be marked for restart: cache -> db -> app
 			assert.True(t, containers[0].ToRestart())
@@ -209,7 +205,7 @@ func TestUpdateAction_Dependencies(t *testing.T) {
 			assert.True(t, containers[0].ToRestart())  // db
 			assert.False(t, containers[1].ToRestart()) // web
 
-			actions.UpdateImplicitRestart(newTestLogger(t), containers, containers, true)
+			updateImplicitRestart(newTestLogger(t), containers, containers, true)
 
 			// web should be marked for restart because it depends on db
 			assert.True(t, containers[0].ToRestart())
@@ -228,7 +224,7 @@ func TestUpdateAction_Dependencies(t *testing.T) {
 			assert.True(t, containers[0].ToRestart())  // base
 			assert.False(t, containers[1].ToRestart()) // dependent
 
-			actions.UpdateImplicitRestart(newTestLogger(t), containers, containers, true)
+			updateImplicitRestart(newTestLogger(t), containers, containers, true)
 
 			assert.True(t, containers[0].ToRestart())
 			assert.True(t, containers[1].ToRestart())
@@ -247,7 +243,7 @@ func TestUpdateAction_Dependencies(t *testing.T) {
 			assert.False(t, containers[1].ToRestart()) // dependent-simple
 			assert.False(t, containers[2].ToRestart()) // dependent-network
 
-			actions.UpdateImplicitRestart(newTestLogger(t), containers, containers, true)
+			updateImplicitRestart(newTestLogger(t), containers, containers, true)
 
 			assert.True(t, containers[0].ToRestart())
 			assert.True(t, containers[1].ToRestart(), "dependent-simple should be marked via depends_on")
@@ -299,8 +295,8 @@ func TestUpdateAction_Dependencies(t *testing.T) {
 			assert.True(t, dbContainer.ToRestart())
 			assert.False(t, webContainer.ToRestart())
 
-			// Call UpdateImplicitRestart with UseComposeDependsOn = false
-			actions.UpdateImplicitRestart(newTestLogger(t), containers, containers, false)
+			// Call updateImplicitRestart with UseComposeDependsOn = false
+			updateImplicitRestart(newTestLogger(t), containers, containers, false)
 
 			// web should NOT be marked for restart because compose depends_on is disabled
 			assert.True(t, dbContainer.ToRestart())
@@ -349,9 +345,9 @@ func TestUpdateAction_Dependencies(t *testing.T) {
 			assert.True(t, dbContainer.ToRestart())
 			assert.False(t, webContainer.ToRestart())
 
-			// Call UpdateImplicitRestart with UseComposeDependsOn = false
+			// Call updateImplicitRestart with UseComposeDependsOn = false
 			// But watchtower depends-on should still work
-			actions.UpdateImplicitRestart(newTestLogger(t), containers, containers, false)
+			updateImplicitRestart(newTestLogger(t), containers, containers, false)
 
 			// web should be marked for restart because it depends on db via watchtower label
 			assert.True(t, dbContainer.ToRestart())
@@ -416,8 +412,8 @@ func TestUpdateAction_Dependencies(t *testing.T) {
 			assert.False(t, containerB.ToRestart())
 			assert.False(t, containerA.ToRestart())
 
-			// Run UpdateImplicitRestart to propagate restart through the chain
-			actions.UpdateImplicitRestart(newTestLogger(t), containers, containers, true)
+			// Run updateImplicitRestart to propagate restart through the chain
+			updateImplicitRestart(newTestLogger(t), containers, containers, true)
 
 			// Verify that restart propagates: A and B should now be marked for restart
 			assert.True(t, containers[0].ToRestart()) // C
@@ -457,11 +453,8 @@ func TestUpdateAction_Dependencies(t *testing.T) {
 				false,
 				false,
 			)
-			report, cleanupImageInfos, err := actions.Update(newTestLogger(t),
-				t.Context(),
-				client,
-				types.UpdateParams{Cleanup: true},
-			)
+			report, cleanupImageInfos, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{Cleanup: true}, ratelimit.New())
+
 			require.NoError(t, err)
 			require.Len(t, report.Updated(), 1)
 			require.Len(t, cleanupImageInfos, 1)
@@ -520,7 +513,7 @@ func TestUpdateAction_Dependencies(t *testing.T) {
 			containers := []types.Container{badContainer, base, dependent}
 			base.SetStale(true)
 
-			actions.UpdateImplicitRestart(newTestLogger(t), containers, containers, true)
+			updateImplicitRestart(newTestLogger(t), containers, containers, true)
 
 			// The valid dependent should still be marked despite the bad container
 			assert.True(t, dependent.ToRestart())
@@ -569,7 +562,7 @@ func TestUpdateAction_Dependencies(t *testing.T) {
 			containers := []types.Container{base, dependent}
 			base.SetStale(true)
 
-			actions.UpdateImplicitRestart(newTestLogger(t), containers, containers, true)
+			updateImplicitRestart(newTestLogger(t), containers, containers, true)
 
 			// The qualified link resolves to the restarting replica.
 			assert.True(t, dependent.ToRestart())
@@ -620,7 +613,7 @@ func TestUpdateAction_Dependencies(t *testing.T) {
 			containers := []types.Container{base, dependent}
 			base.SetStale(true)
 
-			actions.UpdateImplicitRestart(newTestLogger(t), containers, containers, true)
+			updateImplicitRestart(newTestLogger(t), containers, containers, true)
 
 			// The dependent should still be marked, even though the base resolved
 			// to its runtime name "myproject-db-1" due to the special case.
@@ -671,7 +664,7 @@ func TestUpdateAction_Dependencies(t *testing.T) {
 			containers := []types.Container{base, dependent}
 			base.SetStale(true)
 
-			actions.UpdateImplicitRestart(newTestLogger(t), containers, containers, true)
+			updateImplicitRestart(newTestLogger(t), containers, containers, true)
 
 			assert.True(t, dependent.ToRestart())
 		})
@@ -698,11 +691,8 @@ func TestUpdateAction_Dependencies(t *testing.T) {
 				false,
 				false,
 			)
-			report, cleanupImageInfos, err := actions.Update(newTestLogger(t),
-				t.Context(),
-				client,
-				types.UpdateParams{Cleanup: true},
-			)
+			report, cleanupImageInfos, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{Cleanup: true}, ratelimit.New())
+
 			require.NoError(t, err)
 			require.Len(t, report.Updated(), 3)
 			require.Len(t, cleanupImageInfos, 3)
@@ -771,11 +761,8 @@ func TestUpdateAction_Dependencies(t *testing.T) {
 				false,
 				false,
 			)
-			report, cleanupImageInfos, err := actions.Update(newTestLogger(t),
-				t.Context(),
-				client,
-				types.UpdateParams{Cleanup: true},
-			)
+			report, cleanupImageInfos, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{Cleanup: true}, ratelimit.New())
+
 			require.NoError(t, err)
 			require.Len(t, report.Updated(), 1)
 			require.Len(t, cleanupImageInfos, 1)
@@ -837,11 +824,7 @@ func TestUpdateAction_Dependencies(t *testing.T) {
 				false,
 			)
 
-			report, cleanupImageInfos, err := actions.Update(newTestLogger(t),
-				t.Context(),
-				client,
-				types.UpdateParams{Cleanup: true},
-			)
+			report, cleanupImageInfos, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{Cleanup: true}, ratelimit.New())
 
 			require.NoError(t, err, "Circular dependencies should not cause an error")
 			require.Len(t, report.Skipped(), 2, "Both containers should be skipped due to circular dependency")
@@ -884,11 +867,7 @@ func TestUpdateAction_Dependencies(t *testing.T) {
 				false,
 			)
 
-			report, cleanupImageInfos, err := actions.Update(newTestLogger(t),
-				t.Context(),
-				client,
-				types.UpdateParams{Cleanup: true},
-			)
+			report, cleanupImageInfos, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{Cleanup: true}, ratelimit.New())
 
 			require.NoError(t, err, "Non-existent dependencies should not cause errors")
 			require.Len(t, report.Updated(), 1, "Dependent container should still be updated")
@@ -983,11 +962,7 @@ func TestUpdateAction_Dependencies(t *testing.T) {
 				false,
 			)
 
-			report, cleanupImageInfos, err := actions.Update(newTestLogger(t),
-				t.Context(),
-				client,
-				types.UpdateParams{Cleanup: true},
-			)
+			report, cleanupImageInfos, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{Cleanup: true}, ratelimit.New())
 
 			require.NoError(t, err)
 			require.Len(t, report.Updated(), 1) // Only base container D is stale and updated
@@ -1033,11 +1008,7 @@ func TestUpdateAction_Dependencies(t *testing.T) {
 				false,
 			)
 
-			report, cleanupImageInfos, err := actions.Update(newTestLogger(t),
-				t.Context(),
-				client,
-				types.UpdateParams{Cleanup: true},
-			)
+			report, cleanupImageInfos, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{Cleanup: true}, ratelimit.New())
 
 			require.NoError(t, err, "Self-dependency should not cause an error")
 			require.Len(t, report.Skipped(), 1, "Self-dependent container should be skipped")
@@ -1080,11 +1051,7 @@ func TestUpdateAction_Dependencies(t *testing.T) {
 				false,
 			)
 
-			report, cleanupImageInfos, err := actions.Update(newTestLogger(t),
-				t.Context(),
-				client,
-				types.UpdateParams{Cleanup: true},
-			)
+			report, cleanupImageInfos, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{Cleanup: true}, ratelimit.New())
 
 			require.NoError(t, err, "Malformed names should not cause errors")
 			require.Len(t, report.Updated(), 1, "Dependent container should still be updated")
@@ -1196,11 +1163,7 @@ func TestUpdateAction_Dependencies(t *testing.T) {
 				false,
 			)
 
-			report, cleanupImageInfos, err := actions.Update(newTestLogger(t),
-				t.Context(),
-				client,
-				types.UpdateParams{Cleanup: true},
-			)
+			report, cleanupImageInfos, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{Cleanup: true}, ratelimit.New())
 
 			require.NoError(t, err)
 			require.Len(t, report.Updated(), 1) // Only base container E is stale and updated
@@ -1261,11 +1224,7 @@ func TestUpdateAction_Dependencies(t *testing.T) {
 				false,
 			)
 
-			report, cleanupImageInfos, err := actions.Update(newTestLogger(t),
-				t.Context(),
-				client,
-				types.UpdateParams{Cleanup: true},
-			)
+			report, cleanupImageInfos, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{Cleanup: true}, ratelimit.New())
 
 			require.NoError(t, err, "Mixed valid/invalid dependencies should not cause errors")
 			require.Len(t, report.Updated(), 1, "Only stale container should be updated")
@@ -1319,7 +1278,7 @@ func TestUpdateAction_Dependencies(t *testing.T) {
 			assert.True(t, dependency.ToRestart())
 			assert.False(t, dependent.ToRestart())
 
-			actions.UpdateImplicitRestart(newTestLogger(t), containers, containers, true)
+			updateImplicitRestart(newTestLogger(t), containers, containers, true)
 
 			// Verify that restart propagates to dependent
 			assert.True(t, containers[0].ToRestart()) // dependency
@@ -1390,14 +1349,10 @@ func TestUpdateAction_Dependencies(t *testing.T) {
 				false,
 			)
 
-			report, cleanupImageInfos, err := actions.Update(newTestLogger(t),
-				t.Context(),
-				client,
-				types.UpdateParams{
-					Cleanup:        true,
-					RollingRestart: true,
-				},
-			)
+			report, cleanupImageInfos, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{
+				Cleanup:        true,
+				RollingRestart: true,
+			}, ratelimit.New())
 
 			require.NoError(t, err)
 			require.Len(t, report.Updated(), 3)
@@ -1458,11 +1413,7 @@ func TestUpdateAction_Dependencies(t *testing.T) {
 				false,
 			)
 
-			report, cleanupImageInfos, err := actions.Update(newTestLogger(t),
-				t.Context(),
-				client,
-				types.UpdateParams{Cleanup: true},
-			)
+			report, cleanupImageInfos, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{Cleanup: true}, ratelimit.New())
 
 			require.NoError(t, err)
 			require.Len(t, report.Updated(), 1)
@@ -1518,11 +1469,7 @@ func TestUpdateAction_Dependencies(t *testing.T) {
 				false,
 			)
 
-			report, cleanupImageInfos, err := actions.Update(newTestLogger(t),
-				t.Context(),
-				client,
-				types.UpdateParams{Cleanup: true},
-			)
+			report, cleanupImageInfos, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{Cleanup: true}, ratelimit.New())
 
 			require.NoError(t, err)
 			require.Len(t, report.Updated(), 1)
@@ -1619,11 +1566,7 @@ func TestUpdateAction_Dependencies(t *testing.T) {
 				false,
 			)
 
-			report, cleanupImageInfos, err := actions.Update(newTestLogger(t),
-				t.Context(),
-				client,
-				types.UpdateParams{Cleanup: true},
-			)
+			report, cleanupImageInfos, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{Cleanup: true}, ratelimit.New())
 
 			require.NoError(t, err)
 			require.Len(t, report.Updated(), 1)
@@ -1726,11 +1669,7 @@ func TestUpdateAction_Dependencies(t *testing.T) {
 				false,
 			)
 
-			report, cleanupImageInfos, err := actions.Update(newTestLogger(t),
-				t.Context(),
-				client,
-				types.UpdateParams{Cleanup: true},
-			)
+			report, cleanupImageInfos, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{Cleanup: true}, ratelimit.New())
 
 			require.NoError(t, err)
 			require.Len(t, report.Updated(), 1)
@@ -1786,7 +1725,7 @@ func TestUpdateAction_Dependencies(t *testing.T) {
 			assert.True(t, dependency.ToRestart())
 			assert.False(t, dependent.ToRestart())
 
-			actions.UpdateImplicitRestart(newTestLogger(t), containers, containers, true)
+			updateImplicitRestart(newTestLogger(t), containers, containers, true)
 
 			assert.True(t, containers[0].ToRestart()) // dependency
 			assert.True(t, containers[1].ToRestart()) // dependent
@@ -1800,7 +1739,7 @@ func TestUpdateAction_Dependencies(t *testing.T) {
 			assert.False(t, dependency.ToRestart())
 			assert.True(t, dependent.ToRestart())
 
-			actions.UpdateImplicitRestart(newTestLogger(t), containers, containers, true)
+			updateImplicitRestart(newTestLogger(t), containers, containers, true)
 
 			// Restart does not propagate from the dependent to its dependency,
 			// so the dependency is not marked as linked.
@@ -1889,11 +1828,7 @@ func TestUpdateAction_Dependencies(t *testing.T) {
 				false,
 			)
 
-			report, cleanupImageInfos, err := actions.Update(newTestLogger(t),
-				t.Context(),
-				client,
-				types.UpdateParams{Cleanup: true},
-			)
+			report, cleanupImageInfos, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{Cleanup: true}, ratelimit.New())
 
 			require.NoError(t, err)
 			require.Len(t, report.Updated(), 1) // Only database is stale
@@ -1994,11 +1929,7 @@ func TestUpdateAction_Dependencies(t *testing.T) {
 				false,
 			)
 
-			report, cleanupImageInfos, err := actions.Update(newTestLogger(t),
-				t.Context(),
-				client,
-				types.UpdateParams{Cleanup: true, RollingRestart: true},
-			)
+			report, cleanupImageInfos, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{Cleanup: true, RollingRestart: true}, ratelimit.New())
 
 			require.NoError(t, err)
 			require.Len(t, report.Updated(), 4)
@@ -2093,11 +2024,7 @@ func TestUpdateAction_Dependencies(t *testing.T) {
 				false,
 			)
 
-			report, cleanupImageInfos, err := actions.Update(newTestLogger(t),
-				t.Context(),
-				client,
-				types.UpdateParams{Cleanup: true},
-			)
+			report, cleanupImageInfos, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{Cleanup: true}, ratelimit.New())
 
 			require.NoError(t, err)
 			require.Len(t, report.Updated(), 3)
@@ -2126,11 +2053,7 @@ func TestUpdateAction_Dependencies(t *testing.T) {
 			testData := getNetworkModeTestData()
 			client := mockActions.CreateMockClient(testData, false, false)
 
-			report, cleanupImageInfos, err := actions.Update(newTestLogger(t),
-				t.Context(),
-				client,
-				types.UpdateParams{Cleanup: true},
-			)
+			report, cleanupImageInfos, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{Cleanup: true}, ratelimit.New())
 
 			require.NoError(t, err)
 			require.Len(t, report.Updated(), 1)
@@ -2153,11 +2076,7 @@ func TestUpdateAction_Dependencies(t *testing.T) {
 			testData := getComposeDependsOnWithNetworkModeTestData()
 			client := mockActions.CreateMockClient(testData, false, false)
 
-			report, cleanupImageInfos, err := actions.Update(newTestLogger(t),
-				t.Context(),
-				client,
-				types.UpdateParams{Cleanup: true},
-			)
+			report, cleanupImageInfos, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{Cleanup: true}, ratelimit.New())
 
 			require.NoError(t, err)
 			require.Len(t, report.Updated(), 1)
@@ -2241,11 +2160,8 @@ func TestUpdateAction_Dependencies(t *testing.T) {
 				false,
 			)
 
-			report, _, err := actions.Update(newTestLogger(t),
-				t.Context(),
-				client,
-				types.UpdateParams{Cleanup: true},
-			)
+			report, _, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{Cleanup: true}, ratelimit.New())
+
 			require.NoError(t, err)
 			require.Len(t, report.Updated(), 1)
 			assert.True(t, web.ToRestart())
@@ -2310,11 +2226,8 @@ func TestUpdateAction_Dependencies(t *testing.T) {
 				false,
 			)
 
-			report, _, err := actions.Update(newTestLogger(t),
-				t.Context(),
-				client,
-				types.UpdateParams{Cleanup: true},
-			)
+			report, _, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{Cleanup: true}, ratelimit.New())
+
 			require.NoError(t, err)
 			require.Len(t, report.Updated(), 1)
 			assert.True(t, gluetun.ToRestart())
@@ -2379,11 +2292,8 @@ func TestUpdateAction_Dependencies(t *testing.T) {
 				false,
 			)
 
-			report, _, err := actions.Update(newTestLogger(t),
-				t.Context(),
-				client,
-				types.UpdateParams{Cleanup: true},
-			)
+			report, _, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{Cleanup: true}, ratelimit.New())
+
 			require.NoError(t, err)
 			require.Len(t, report.Updated(), 1)
 			assert.True(t, gluetun.ToRestart())
@@ -2452,11 +2362,8 @@ func TestUpdateAction_Dependencies(t *testing.T) {
 				false,
 			)
 
-			report, _, err := actions.Update(newTestLogger(t),
-				t.Context(),
-				client,
-				types.UpdateParams{Cleanup: true},
-			)
+			report, _, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{Cleanup: true}, ratelimit.New())
+
 			require.NoError(t, err)
 			require.Len(t, report.Updated(), 1)
 			assert.True(t, gluetun.ToRestart())
@@ -2540,11 +2447,8 @@ func TestUpdateAction_Dependencies(t *testing.T) {
 				false,
 			)
 
-			report, _, err := actions.Update(newTestLogger(t),
-				t.Context(),
-				client,
-				types.UpdateParams{Cleanup: true},
-			)
+			report, _, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{Cleanup: true}, ratelimit.New())
+
 			require.NoError(t, err)
 			require.Len(t, report.Updated(), 1)
 			assert.True(t, gluetun.ToRestart())
@@ -2613,11 +2517,7 @@ func TestUpdateAction_Dependencies(t *testing.T) {
 				false,
 			)
 
-			report, cleanupImageInfos, err := actions.Update(newTestLogger(t),
-				t.Context(),
-				client,
-				types.UpdateParams{Cleanup: true},
-			)
+			report, cleanupImageInfos, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{Cleanup: true}, ratelimit.New())
 
 			require.NoError(t, err)
 			require.Len(t, report.Updated(), 1)
@@ -2693,11 +2593,7 @@ func TestUpdateAction_Dependencies(t *testing.T) {
 				false,
 			)
 
-			report, cleanupImageInfos, err := actions.Update(newTestLogger(t),
-				t.Context(),
-				client,
-				types.UpdateParams{Cleanup: true},
-			)
+			report, cleanupImageInfos, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{Cleanup: true}, ratelimit.New())
 
 			require.NoError(t, err)
 			require.Len(t, report.Updated(), 2)
@@ -2775,11 +2671,7 @@ func TestUpdateAction_Dependencies(t *testing.T) {
 				false,
 			)
 
-			report, cleanupImageInfos, err := actions.Update(newTestLogger(t),
-				t.Context(),
-				client,
-				types.UpdateParams{Cleanup: true},
-			)
+			report, cleanupImageInfos, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{Cleanup: true}, ratelimit.New())
 
 			require.NoError(t, err)
 			require.Len(t, report.Updated(), 1)
@@ -2858,11 +2750,7 @@ func TestUpdateAction_Dependencies(t *testing.T) {
 				false,
 			)
 
-			report, cleanupImageInfos, err := actions.Update(newTestLogger(t),
-				t.Context(),
-				client,
-				types.UpdateParams{Cleanup: true},
-			)
+			report, cleanupImageInfos, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{Cleanup: true}, ratelimit.New())
 
 			require.NoError(t, err)
 			require.Len(t, report.Updated(), 1)
@@ -2938,11 +2826,7 @@ func TestUpdateAction_Dependencies(t *testing.T) {
 				false,
 			)
 
-			report, cleanupImageInfos, err := actions.Update(newTestLogger(t),
-				t.Context(),
-				client,
-				types.UpdateParams{Cleanup: true},
-			)
+			report, cleanupImageInfos, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{Cleanup: true}, ratelimit.New())
 
 			require.NoError(t, err)
 			require.Len(t, report.Updated(), 1)
@@ -3025,11 +2909,7 @@ func TestUpdateAction_Dependencies(t *testing.T) {
 				false,
 			)
 
-			report, cleanupImageInfos, err := actions.Update(newTestLogger(t),
-				t.Context(),
-				client,
-				types.UpdateParams{Cleanup: true},
-			)
+			report, cleanupImageInfos, err := update(newTestLogger(t), t.Context(), client, types.UpdateParams{Cleanup: true}, ratelimit.New())
 
 			require.NoError(t, err)
 			require.Len(t, report.Updated(), 1)

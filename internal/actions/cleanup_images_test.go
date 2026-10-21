@@ -48,6 +48,26 @@ func imageEntries(infos []types.RemovedImageInfo) []string {
 	return entries
 }
 
+// removedImageIDs returns the image ID of each entry.
+func removedImageIDs(infos []types.RemovedImageInfo) []types.ImageID {
+	ids := make([]types.ImageID, 0, len(infos))
+	for _, info := range infos {
+		ids = append(ids, info.ImageID)
+	}
+
+	return ids
+}
+
+// removedContainerNames returns the container name of each entry.
+func removedContainerNames(infos []types.RemovedImageInfo) []string {
+	names := make([]string, 0, len(infos))
+	for _, info := range infos {
+		names = append(names, info.ContainerName)
+	}
+
+	return names
+}
+
 // TestRemoveExcessContainers_CallerListCollectsImages verifies that when the
 // caller passes an image list, the images of removed instances are added to
 // it once per container, without removing them and without touching the
@@ -85,10 +105,11 @@ func TestRemoveExcessContainers_CallerListCollectsImages(t *testing.T) {
 
 // TestRemoveExcessContainers_PartialFailureKeepsCallerList verifies that when
 // an instance cannot be stopped, no image of this cleanup is collected, and
-// the caller's earlier entries stay on the list. It runs sequentially because
-// the retries read the removalRetryDelay package variable, which the Ginkgo
-// suite sets. The retry delays pass on the synctest clock.
+// the caller's earlier entries stay on the list. The retry delays pass on the
+// synctest clock.
 func TestRemoveExcessContainers_PartialFailureKeepsCallerList(t *testing.T) {
+	t.Parallel()
+
 	synctest.Test(t, func(t *testing.T) {
 		current := cleanupTestWatchtower("c000000000000000000000000000000000000000000000000000000000000000",
 			"watchtower", "org/watchtower:2")
@@ -116,9 +137,10 @@ func TestRemoveExcessContainers_PartialFailureKeepsCallerList(t *testing.T) {
 // TestRemoveExcessContainers_CancelKeepsRemovedInstanceImages verifies that
 // when the cleanup is canceled while retrying an instance, the images of the
 // instances already removed stay on the caller's list, except images that an
-// instance left in place still uses. It runs sequentially because the retries
-// read the removalRetryDelay package variable, which the Ginkgo suite sets.
+// instance left in place still uses.
 func TestRemoveExcessContainers_CancelKeepsRemovedInstanceImages(t *testing.T) {
+	t.Parallel()
+
 	synctest.Test(t, func(t *testing.T) {
 		current := cleanupTestWatchtower("c000000000000000000000000000000000000000000000000000000000000000",
 			"watchtower", "org/watchtower:5")
