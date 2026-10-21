@@ -24,10 +24,10 @@ import (
 
 	registryConfig "github.com/nicholas-fedor/watchtower/internal/config/registry"
 	"github.com/nicholas-fedor/watchtower/internal/meta"
+	"github.com/nicholas-fedor/watchtower/internal/registry/auth"
+	mockAuth "github.com/nicholas-fedor/watchtower/internal/registry/auth/mocks"
+	"github.com/nicholas-fedor/watchtower/internal/registry/ratelimit"
 	"github.com/nicholas-fedor/watchtower/internal/testutil/httpstub"
-	"github.com/nicholas-fedor/watchtower/pkg/registry/auth"
-	mockAuth "github.com/nicholas-fedor/watchtower/pkg/registry/auth/mocks"
-	"github.com/nicholas-fedor/watchtower/pkg/registry/ratelimit"
 	mockTypes "github.com/nicholas-fedor/watchtower/pkg/types/mocks"
 )
 

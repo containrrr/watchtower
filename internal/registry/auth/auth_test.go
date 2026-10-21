@@ -17,9 +17,9 @@ import (
 
 	registryConfig "github.com/nicholas-fedor/watchtower/internal/config/registry"
 	"github.com/nicholas-fedor/watchtower/internal/meta"
+	mockAuth "github.com/nicholas-fedor/watchtower/internal/registry/auth/mocks"
+	"github.com/nicholas-fedor/watchtower/internal/registry/ratelimit"
 	"github.com/nicholas-fedor/watchtower/internal/testutil/httpstub"
-	mockAuth "github.com/nicholas-fedor/watchtower/pkg/registry/auth/mocks"
-	"github.com/nicholas-fedor/watchtower/pkg/registry/ratelimit"
 	mockTypes "github.com/nicholas-fedor/watchtower/pkg/types/mocks"
 )
 

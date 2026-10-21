@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nicholas-fedor/watchtower/pkg/registry/hosts"
+	"github.com/nicholas-fedor/watchtower/internal/registry/hosts"
 )
 
 // hostState holds the cooldown and token-bucket budget for one registry host.

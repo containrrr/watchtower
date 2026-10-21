@@ -9,7 +9,7 @@ import (
 	"github.com/distribution/reference"
 	"github.com/rs/zerolog"
 
-	"github.com/nicholas-fedor/watchtower/pkg/registry/hosts"
+	"github.com/nicholas-fedor/watchtower/internal/registry/hosts"
 )
 
 // challengeHeaderName is the HTTP Header containing challenge instructions.

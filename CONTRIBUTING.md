@@ -146,7 +146,7 @@ Go saves that input under the package's `testdata/fuzz` directory, where `go tes
 Three variables adjust the run:
 
 * `FUZZTIME` - how long to fuzz each target, for example `task fuzz FUZZTIME=1m`
-* `FUZZPKGS` - the packages to fuzz, for example `task fuzz FUZZPKGS=./pkg/registry/...`
+* `FUZZPKGS` - the packages to fuzz, for example `task fuzz FUZZPKGS=./internal/registry/...`
 * `FUZZPARALLEL` - the number of fuzzing workers, 8 by default
 
 ### Golden Files

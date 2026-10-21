@@ -10,8 +10,8 @@ import (
 	dockerSystem "github.com/moby/moby/api/types/system"
 	dockerClient "github.com/moby/moby/client"
 
-	"github.com/nicholas-fedor/watchtower/pkg/registry/auth"
-	"github.com/nicholas-fedor/watchtower/pkg/registry/hosts"
+	"github.com/nicholas-fedor/watchtower/internal/registry/auth"
+	"github.com/nicholas-fedor/watchtower/internal/registry/hosts"
 )
 
 // daemonInfoTTL is how long a Docker Info and mirrors snapshot is reused.

@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	registryConfig "github.com/nicholas-fedor/watchtower/internal/config/registry"
-	"github.com/nicholas-fedor/watchtower/pkg/registry/ratelimit"
+	"github.com/nicholas-fedor/watchtower/internal/registry/ratelimit"
 	"github.com/nicholas-fedor/watchtower/pkg/types"
 )
 

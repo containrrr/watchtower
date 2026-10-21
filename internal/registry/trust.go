@@ -19,7 +19,7 @@ import (
 	dockerConfigCredentials "github.com/docker/cli/cli/config/credentials"
 	dockerConfig "github.com/docker/cli/cli/config/types"
 
-	"github.com/nicholas-fedor/watchtower/pkg/registry/auth"
+	"github.com/nicholas-fedor/watchtower/internal/registry/auth"
 )
 
 const (

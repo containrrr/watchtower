@@ -20,7 +20,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	registryConfig "github.com/nicholas-fedor/watchtower/internal/config/registry"
-	mockAuth "github.com/nicholas-fedor/watchtower/pkg/registry/auth/mocks"
+	mockAuth "github.com/nicholas-fedor/watchtower/internal/registry/auth/mocks"
 	"github.com/nicholas-fedor/watchtower/pkg/types"
 )
 

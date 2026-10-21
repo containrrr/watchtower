@@ -340,11 +340,11 @@ linters:
         linters:
           - gocyclo
         text: 'of func `\(\*gitSession\)\.applyCompose` is high'
-      - path: "pkg/registry/digest/digest.go"
+      - path: "internal/registry/digest/digest.go"
         linters:
           - gocyclo
         text: "of func `handleManifestResponse` is high"
-      - path: "pkg/registry/age.go"
+      - path: "internal/registry/age.go"
         linters:
           - gocyclo
         text: "of func `fetchPlatformManifestWithRetry` is high"
@@ -352,7 +352,7 @@ linters:
         linters:
           - gocyclo
         text: "of func `BuildFilter` is high"
-      - path: "pkg/registry/digest/digest.go"
+      - path: "internal/registry/digest/digest.go"
         linters:
           - gocyclo
         text: "of func `fetchDigest` is high"

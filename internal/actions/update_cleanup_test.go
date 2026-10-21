@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	mockActions "github.com/nicholas-fedor/watchtower/internal/actions/mocks"
-	"github.com/nicholas-fedor/watchtower/pkg/registry/ratelimit"
+	"github.com/nicholas-fedor/watchtower/internal/registry/ratelimit"
 	"github.com/nicholas-fedor/watchtower/pkg/types"
 )
 

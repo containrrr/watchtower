@@ -10,8 +10,8 @@ import (
 
 	dockerClient "github.com/moby/moby/client"
 
-	"github.com/nicholas-fedor/watchtower/pkg/registry/auth"
-	"github.com/nicholas-fedor/watchtower/pkg/registry/hosts"
+	"github.com/nicholas-fedor/watchtower/internal/registry/auth"
+	"github.com/nicholas-fedor/watchtower/internal/registry/hosts"
 	"github.com/nicholas-fedor/watchtower/pkg/types"
 )
 

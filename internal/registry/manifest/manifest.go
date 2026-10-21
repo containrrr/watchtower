@@ -11,7 +11,7 @@ import (
 	"github.com/distribution/reference"
 	"github.com/rs/zerolog"
 
-	"github.com/nicholas-fedor/watchtower/pkg/registry/auth"
+	"github.com/nicholas-fedor/watchtower/internal/registry/auth"
 )
 
 // Errors for manifest operations.

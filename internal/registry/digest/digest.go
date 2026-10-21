@@ -18,10 +18,10 @@ import (
 
 	registryConfig "github.com/nicholas-fedor/watchtower/internal/config/registry"
 	"github.com/nicholas-fedor/watchtower/internal/meta"
-	"github.com/nicholas-fedor/watchtower/pkg/registry/auth"
-	"github.com/nicholas-fedor/watchtower/pkg/registry/hosts"
-	"github.com/nicholas-fedor/watchtower/pkg/registry/manifest"
-	"github.com/nicholas-fedor/watchtower/pkg/registry/ratelimit"
+	"github.com/nicholas-fedor/watchtower/internal/registry/auth"
+	"github.com/nicholas-fedor/watchtower/internal/registry/hosts"
+	"github.com/nicholas-fedor/watchtower/internal/registry/manifest"
+	"github.com/nicholas-fedor/watchtower/internal/registry/ratelimit"
 	"github.com/nicholas-fedor/watchtower/pkg/types"
 )
 
