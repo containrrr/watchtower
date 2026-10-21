@@ -97,6 +97,27 @@ type dockerConnectionConfig struct {
 	CertBinds []string
 }
 
+// EphemeralAPI is the Docker API subset used to create, start, and clean up the
+// ephemeral orchestrator container.
+type EphemeralAPI interface {
+	ContainerCreate(
+		ctx context.Context,
+		options dockerClient.ContainerCreateOptions,
+	) (dockerClient.ContainerCreateResult, error)
+	ContainerStart(
+		ctx context.Context,
+		containerID string,
+		options dockerClient.ContainerStartOptions,
+	) (dockerClient.ContainerStartResult, error)
+	ContainerRemove(
+		ctx context.Context,
+		containerID string,
+		options dockerClient.ContainerRemoveOptions,
+	) (dockerClient.ContainerRemoveResult, error)
+}
+
+var _ EphemeralAPI = dockerClient.APIClient(nil)
+
 // CreateEphemeralOrchestrator creates a short-lived container that orchestrates
 // the Watchtower self-update transition.
 //
@@ -125,7 +146,34 @@ func (c *client) CreateEphemeralOrchestrator(
 	containerChain string,
 	cleanup bool,
 ) (types.ContainerID, error) {
-	clogVal := c.log.With().
+	return createEphemeralOrchestrator(c.log, ctx, c.api, sourceContainer, newImage, containerChain, cleanup)
+}
+
+// createEphemeralOrchestrator creates and starts the ephemeral orchestrator for
+// a self-update, and removes it again when it cannot be started.
+//
+// Parameters:
+//   - log: Logger for the self-update.
+//   - ctx: Context for cancellation and timeout control.
+//   - api: Docker API that creates, starts, and removes the container.
+//   - sourceContainer: Current Watchtower container being replaced.
+//   - newImage: Image reference for the new Watchtower container.
+//   - containerChain: Container chain label for lineage tracking.
+//   - cleanup: When true, the orchestrator removes the old image after handoff.
+//
+// Returns:
+//   - types.ContainerID: ID of the ephemeral orchestrator container.
+//   - error: Non-nil if creation or start fails, nil on success.
+func createEphemeralOrchestrator(
+	log *zerolog.Logger,
+	ctx context.Context,
+	api EphemeralAPI,
+	sourceContainer types.Container,
+	newImage string,
+	containerChain string,
+	cleanup bool,
+) (types.ContainerID, error) {
+	clogVal := log.With().
 		Str("source_container", sourceContainer.Name()).
 		Str("source_id", sourceContainer.ID().ShortID()).
 		Str("new_image", newImage).
@@ -164,7 +212,7 @@ func (c *client) CreateEphemeralOrchestrator(
 		Msg("Creating ephemeral orchestrator container")
 
 	// Create the container without specifying a platform.
-	resp, err := c.api.ContainerCreate(
+	resp, err := api.ContainerCreate(
 		ctx,
 		dockerClient.ContainerCreateOptions{
 			Config:           config,
@@ -188,7 +236,7 @@ func (c *client) CreateEphemeralOrchestrator(
 		Msg("Created ephemeral orchestrator container")
 
 	// Start the orchestrator container.
-	_, err = c.api.ContainerStart(
+	_, err = api.ContainerStart(
 		ctx,
 		resp.ID,
 		dockerClient.ContainerStartOptions{},
@@ -207,7 +255,7 @@ func (c *client) CreateEphemeralOrchestrator(
 		defer cancelCleanup()
 
 		//nolint:contextcheck // Fresh context intentional for cleanup to survive parent cancellation.
-		_, cleanupErr := c.api.ContainerRemove(
+		_, cleanupErr := api.ContainerRemove(
 			ctxCleanup,
 			resp.ID,
 			dockerClient.ContainerRemoveOptions{Force: true},

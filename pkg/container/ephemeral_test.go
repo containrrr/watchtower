@@ -1,16 +1,12 @@
 package container
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
-	"net/http"
 	"testing"
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
-	"github.com/onsi/gomega/ghttp"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 
@@ -615,27 +611,22 @@ var _ = ginkgo.Describe("Ephemeral Orchestrator", func() {
 	})
 
 	ginkgo.Describe("CreateEphemeralOrchestrator", func() {
+		const orchestratorName = "watchtower-orchestrator-source123"
+
 		var (
-			mockServer *ghttp.Server
-			dockerAPI  dockerClient.APIClient
-			testClient *client
-			source     types.Container
-			ctx        context.Context
+			api    *mockContainer.MockEphemeralAPI
+			source types.Container
+			ctx    context.Context
 		)
+
+		// createOptions matches the create options of the orchestrator for source.
+		createOptions := mock.MatchedBy(func(options dockerClient.ContainerCreateOptions) bool {
+			return options.Name == orchestratorName && options.Config != nil && options.Config.Image == "watchtower:v2"
+		})
 
 		ginkgo.BeforeEach(func() {
 			ctx = context.Background()
-			mockServer = ghttp.NewServer()
-			docker, err := dockerClient.New(
-				dockerClient.WithHost(mockServer.URL()),
-				dockerClient.WithHTTPClient(mockServer.HTTPTestServer.Client()),
-			)
-			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
-			mockServer.AppendHandlers(APIVersionPingHandler())
-
-			dockerAPI = docker
-			testClient = &client{log: nopLog(), api: dockerAPI}
+			api = mockContainer.NewMockEphemeralAPI(ginkgo.GinkgoT())
 			source = MockContainer(
 				WithID("source123"),
 				WithName("watchtower-source"),
@@ -643,50 +634,17 @@ var _ = ginkgo.Describe("Ephemeral Orchestrator", func() {
 			)
 		})
 
-		ginkgo.AfterEach(func() {
-			mockServer.Close()
-		})
-
 		ginkgo.When("creation and start succeed", func() {
 			ginkgo.BeforeEach(func() {
-				mockServer.AppendHandlers(
-					// ContainerCreate handler.
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("POST", gomega.HaveSuffix("/containers/create")),
-						func(w http.ResponseWriter, _ *http.Request) {
-							w.Header().Set("Content-Type", "application/json")
-
-							var buf bytes.Buffer
-
-							err := json.NewEncoder(&buf).Encode(dockerContainer.CreateResponse{
-								ID: "orchestrator-id-123",
-							})
-							if err != nil {
-								ginkgo.GinkgoWriter.Printf(
-									"failed to encode CreateResponse: %v\n", err,
-								)
-								gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
-								return
-							}
-
-							w.WriteHeader(http.StatusCreated)
-							_, _ = w.Write(buf.Bytes())
-						},
-					),
-					// ContainerStart handler.
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("POST", gomega.HaveSuffix("/containers/orchestrator-id-123/start")),
-						func(w http.ResponseWriter, _ *http.Request) {
-							w.WriteHeader(http.StatusNoContent)
-						},
-					),
-				)
+				api.EXPECT().ContainerCreate(mock.Anything, createOptions).
+					Return(dockerClient.ContainerCreateResult{ID: "orchestrator-id-123"}, nil).Once()
+				api.EXPECT().ContainerStart(mock.Anything, "orchestrator-id-123", dockerClient.ContainerStartOptions{}).
+					Return(dockerClient.ContainerStartResult{}, nil).Once()
 			})
 
 			ginkgo.It("should return the orchestrator container ID", func() {
-				orchestratorID, err := testClient.CreateEphemeralOrchestrator(
-					ctx, source, "watchtower:v2", "chain1", false,
+				orchestratorID, err := createEphemeralOrchestrator(
+					nopLog(), ctx, api, source, "watchtower:v2", "chain1", false,
 				)
 
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
@@ -696,83 +654,39 @@ var _ = ginkgo.Describe("Ephemeral Orchestrator", func() {
 
 		ginkgo.When("ContainerCreate fails", func() {
 			ginkgo.BeforeEach(func() {
-				mockServer.AppendHandlers(
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("POST", gomega.HaveSuffix("/containers/create")),
-						func(w http.ResponseWriter, _ *http.Request) {
-							w.WriteHeader(http.StatusInternalServerError)
-						},
-					),
-				)
+				api.EXPECT().ContainerCreate(mock.Anything, createOptions).
+					Return(dockerClient.ContainerCreateResult{}, errors.New("Error response from daemon: internal server error")).Once()
 			})
 
 			ginkgo.It("should return an error wrapping errEphemeralCreateFailed", func() {
-				orchestratorID, err := testClient.CreateEphemeralOrchestrator(
-					ctx, source, "watchtower:v2", "chain1", false,
+				orchestratorID, err := createEphemeralOrchestrator(
+					nopLog(), ctx, api, source, "watchtower:v2", "chain1", false,
 				)
 
-				gomega.Expect(err).To(gomega.MatchError(gomega.ContainSubstring(
-					errEphemeralCreateFailed.Error(),
-				)))
+				gomega.Expect(err).To(gomega.MatchError(errEphemeralCreateFailed))
 				gomega.Expect(orchestratorID).To(gomega.BeEmpty())
 			})
 		})
 
 		ginkgo.When("ContainerStart fails", func() {
 			ginkgo.BeforeEach(func() {
-				mockServer.AppendHandlers(
-					// ContainerCreate succeeds.
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("POST", gomega.HaveSuffix("/containers/create")),
-						func(w http.ResponseWriter, _ *http.Request) {
-							w.Header().Set("Content-Type", "application/json")
-
-							var buf bytes.Buffer
-
-							err := json.NewEncoder(&buf).Encode(dockerContainer.CreateResponse{
-								ID: "orchestrator-fail-start",
-							})
-							if err != nil {
-								ginkgo.GinkgoWriter.Printf(
-									"failed to encode CreateResponse: %v\n", err,
-								)
-								gomega.Expect(err).NotTo(gomega.HaveOccurred())
-
-								return
-							}
-
-							w.WriteHeader(http.StatusCreated)
-							_, _ = w.Write(buf.Bytes())
-						},
-					),
-					// ContainerStart fails.
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("POST", gomega.HaveSuffix("/containers/orchestrator-fail-start/start")),
-						func(w http.ResponseWriter, _ *http.Request) {
-							w.WriteHeader(http.StatusInternalServerError)
-						},
-					),
-					// ContainerRemove for cleanup.
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("DELETE", gomega.HaveSuffix("/containers/orchestrator-fail-start")),
-						func(w http.ResponseWriter, _ *http.Request) {
-							w.WriteHeader(http.StatusNoContent)
-						},
-					),
-				)
+				api.EXPECT().ContainerCreate(mock.Anything, createOptions).
+					Return(dockerClient.ContainerCreateResult{ID: "orchestrator-fail-start"}, nil).Once()
+				api.EXPECT().ContainerStart(mock.Anything, "orchestrator-fail-start", dockerClient.ContainerStartOptions{}).
+					Return(dockerClient.ContainerStartResult{}, errors.New("Error response from daemon: internal server error")).Once()
+				// The created container is removed, with a context of its own so
+				// cleanup survives a canceled parent.
+				api.EXPECT().ContainerRemove(mock.Anything, "orchestrator-fail-start", dockerClient.ContainerRemoveOptions{Force: true}).
+					Return(dockerClient.ContainerRemoveResult{}, nil).Once()
 			})
 
 			ginkgo.It("should attempt cleanup and return errEphemeralStartFailed", func() {
-				orchestratorID, err := testClient.CreateEphemeralOrchestrator(
-					ctx, source, "watchtower:v2", "chain1", false,
+				orchestratorID, err := createEphemeralOrchestrator(
+					nopLog(), ctx, api, source, "watchtower:v2", "chain1", false,
 				)
 
-				gomega.Expect(err).To(gomega.MatchError(gomega.ContainSubstring(
-					errEphemeralStartFailed.Error(),
-				)))
+				gomega.Expect(err).To(gomega.MatchError(errEphemeralStartFailed))
 				gomega.Expect(orchestratorID).To(gomega.BeEmpty())
-				// Verify all handlers were called (including cleanup remove).
-				gomega.Expect(mockServer.ReceivedRequests()).To(gomega.HaveLen(4))
 			})
 		})
 	})
