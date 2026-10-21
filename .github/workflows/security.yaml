@@ -46,7 +46,7 @@ jobs:
           args: "-exclude-generated -no-fail -fmt sarif -out ${{ env.OUTPUT_FILE }} ./..."
 
       - name: Upload SARIF file
-        uses: github/codeql-action/upload-sarif@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
+        uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
         with:
           sarif_file: ${{ env.OUTPUT_FILE }}
           category: gosec-sarif
@@ -72,7 +72,7 @@ jobs:
           go-version-file: "go.mod"
 
       - name: Upload SARIF file
-        uses: github/codeql-action/upload-sarif@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
+        uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
         with:
           sarif_file: ${{ env.OUTPUT_FILE }}
           category: govulncheck-sarif
@@ -100,7 +100,7 @@ jobs:
           cache-dependency-path: tools/tplprev/go.sum
 
       - name: Upload SARIF file
-        uses: github/codeql-action/upload-sarif@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
+        uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
         with:
           sarif_file: ${{ env.OUTPUT_FILE }}
           category: govulncheck-tplprev-sarif
