@@ -95,6 +95,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Chores
 
+- Update nicholas-fedor/govulncheck-action action to v1.1.2 by @renovate[bot] in [#3000](https://github.com/nicholas-fedor/watchtower/pull/3000)
 - Update dependency python to v3.15.1 by @renovate[bot] in [#2995](https://github.com/nicholas-fedor/watchtower/pull/2995)
 - Update github/codeql-action action to v4.39.1 by @renovate[bot] in [#2996](https://github.com/nicholas-fedor/watchtower/pull/2996)
 - Update module github.com/docker/compose/v5 to v5.6.1 by @renovate[bot] in [#2981](https://github.com/nicholas-fedor/watchtower/pull/2981)
