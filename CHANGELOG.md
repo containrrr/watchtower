@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Send the registry token only to same-origin manifest redirects by @nicholas-fedor in [#3032](https://github.com/nicholas-fedor/watchtower/pull/3032)
 
+### Changed
+
+- Drop the duplicate platform manifest request by @nicholas-fedor in [#3036](https://github.com/nicholas-fedor/watchtower/pull/3036)
+
 ### Chores
 
 - Update actions/setup-python action to v7.1.0 by @renovate[bot] in [#3033](https://github.com/nicholas-fedor/watchtower/pull/3033)
