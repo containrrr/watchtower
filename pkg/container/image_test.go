@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	cerrdefs "github.com/containerd/errdefs"
+	dockerspec "github.com/moby/docker-image-spec/specs-go/v1"
 	dockerContainer "github.com/moby/moby/api/types/container"
 	dockerImage "github.com/moby/moby/api/types/image"
 	dockerClient "github.com/moby/moby/client"
@@ -23,6 +24,7 @@ import (
 	"github.com/nicholas-fedor/watchtower/internal/registry/ratelimit"
 	"github.com/nicholas-fedor/watchtower/internal/testutil/httpstub"
 	mockContainer "github.com/nicholas-fedor/watchtower/pkg/container/mocks"
+	"github.com/nicholas-fedor/watchtower/pkg/container/oci"
 	"github.com/nicholas-fedor/watchtower/pkg/types"
 )
 
@@ -796,6 +798,37 @@ func TestImageClient_IsContainerStale_noPull(t *testing.T) {
 			assert.Equal(t, types.ImageID(newImageID), latestID)
 			assert.Contains(t, logbuf.String(), `msg="Skipping image pull due to no-pull setting - checking local image only"`)
 			assert.Contains(t, logbuf.String(), `msg="Found new image"`)
+		})
+
+		t.Run("should log the OCI version transition when labelled", func(t *testing.T) {
+			t.Parallel()
+
+			currentImageID := "sha256:" + randomSHA256()
+			newImage := inspected("sha256:" + randomSHA256())
+			newImage.Config = &dockerspec.DockerOCIImageConfig{}
+			newImage.Config.Labels = map[string]string{oci.VersionLabel: "v0.16.0"}
+
+			api := newImageAPI(t)
+			api.EXPECT().ImageInspect(mock.Anything, "test-image:latest").Return(newImage, nil).Once()
+
+			log, logbuf := newCapturedLogger(zerolog.InfoLevel)
+			c := newTestImageClient(api, log, registryConfig.Registry{}, ratelimit.New())
+
+			running := MockContainer(
+				WithImageName("test-image:latest"),
+				WithImageLabels(map[string]string{oci.VersionLabel: "v0.15.0"}),
+				func(container *dockerContainer.InspectResponse, image *dockerImage.InspectResponse) {
+					container.Image = currentImageID
+					image.ID = currentImageID
+				},
+			)
+
+			stale, _, _, err := c.IsContainerStale(t.Context(), running, types.UpdateParams{NoPull: true}, "")
+			require.NoError(t, err)
+			assert.True(t, stale)
+			assert.Contains(t, logbuf.String(), `msg="Found new image"`)
+			assert.Contains(t, logbuf.String(), `old_version=v0.15.0`)
+			assert.Contains(t, logbuf.String(), `new_version=v0.16.0`)
 		})
 	})
 

@@ -12,6 +12,7 @@ import (
 	"golang.org/x/text/language"
 
 	"github.com/nicholas-fedor/watchtower/internal/util"
+	"github.com/nicholas-fedor/watchtower/pkg/types"
 )
 
 // templateFuncs defines utility functions for notification templates.
@@ -24,6 +25,29 @@ var templateFuncs = template.FuncMap{
 	"RFC1123":         formatRFC1123,
 	"HasKey":          hasKey,
 	"FormatDiskSpace": formatDiskSpace,
+	"VersionInfo":     versionInfo,
+}
+
+// versionInfo renders a container's OCI version transition for report templates.
+//
+// It returns "v1 -> v2" for a real transition, a single version when only one side
+// is labelled, and an empty string when neither is, so templates can guard on it
+// with {{with}} and omit the field entirely for unlabelled images.
+func versionInfo(report types.ContainerReport) string {
+	if report == nil {
+		return ""
+	}
+
+	oldVersion, newVersion := report.CurrentImageVersion(), report.LatestImageVersion()
+
+	switch {
+	case oldVersion != "" && newVersion != "" && oldVersion != newVersion:
+		return oldVersion + " -> " + newVersion
+	case newVersion != "":
+		return newVersion
+	default:
+		return oldVersion
+	}
 }
 
 // hasKey reports whether key is present in m.

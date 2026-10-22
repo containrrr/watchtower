@@ -34,7 +34,7 @@ var commonTemplates = map[string]string{
 {{- $msg := $e.Message -}}
 {{- /* Format based on specific message types */ -}}
 {{- if eq $msg "Found new image" -}}
-    Found new image: {{index $e.Data "image"}} ({{with (index $e.Data "new_id")}}{{.}}{{else}}unknown{{end}})
+    Found new image: {{index $e.Data "image"}} ({{with (index $e.Data "new_id")}}{{.}}{{else}}unknown{{end}}){{if or (index $e.Data "old_version") (index $e.Data "new_version")}} {{with (index $e.Data "old_version")}}{{.}} {{end}}-> {{with (index $e.Data "new_version")}}{{.}}{{end}}{{end}}
 {{- else if eq $msg "Stopping container" -}}
     Stopped stale container: {{index $e.Data "container"}} ({{with (index $e.Data "id")}}{{.}}{{else}}unknown{{end}})
 {{- else if eq $msg "Started new container" -}}
@@ -128,7 +128,7 @@ var commonTemplates = map[string]string{
 
 	// "default" template provides a human-readable summary report of container update operations.
 	// If .Report exists, displays counts of scanned/updated/failed containers, then lists details for each category.
-	// Updated containers show name, image, and old/new image IDs.
+	// Updated containers show name, image, old/new image IDs, the OCI version transition when labelled, and Git ref and changelog when known.
 	// Restarted containers show name, image, and state.
 	// Fresh containers (no update needed) show name, image, and state.
 	// Skipped containers show name, image, state, and error reason.
@@ -143,7 +143,7 @@ var commonTemplates = map[string]string{
     {{len .Scanned}} Scanned, {{len .Updated}} Updated, {{len .Restarted}} Restarted, {{len .Failed}} Failed, {{len .Fresh}} Fresh, {{len .Skipped}} Skipped
       {{- /* List successfully updated containers */ -}}
       {{- range .Updated}}
-- {{.Name}} ({{.ImageName}}): {{.CurrentImageID.ShortID}} updated to {{.LatestImageID.ShortID}}{{with .GitRef}} ref {{.}}{{end}}{{with .Changelog}} {{.}}{{end}}
+- {{.Name}} ({{.ImageName}}): {{.CurrentImageID.ShortID}} updated to {{.LatestImageID.ShortID}}{{with VersionInfo .}} ({{.}}){{end}}{{with .GitRef}} ref {{.}}{{end}}{{with .Changelog}} {{.}}{{end}}
       {{- end -}}
       {{- /* List restarted containers */ -}}
       {{- range .Restarted}}

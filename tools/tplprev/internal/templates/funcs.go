@@ -34,6 +34,27 @@ var Funcs = template.FuncMap{
 	"RFC1123":         formatRFC1123,
 	"HasKey":          hasKey,
 	"FormatDiskSpace": formatDiskSpace,
+	"VersionInfo":     versionInfo,
+}
+
+// versionInfo renders a container's OCI version transition, mirroring the
+// helper of the same name in Watchtower's notifications package.
+func versionInfo(containerReport report.ContainerReport) string {
+	if containerReport == nil {
+		return ""
+	}
+
+	oldVersion := containerReport.CurrentImageVersion()
+	newVersion := containerReport.LatestImageVersion()
+
+	switch {
+	case oldVersion != "" && newVersion != "" && oldVersion != newVersion:
+		return oldVersion + " -> " + newVersion
+	case newVersion != "":
+		return newVersion
+	default:
+		return oldVersion
+	}
 }
 
 // hasKey reports whether key is present in m.

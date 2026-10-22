@@ -314,9 +314,20 @@ func (c imageClient) HasNewImage(
 			nil
 	}
 
-	clog.Info().
-		Str("new_id", newImageID.ShortID()).
-		Msg("Found new image")
+	// The notification hook reads the version fields off this event, which is how
+	// the legacy template renders "v0.15.0 -> v0.16.0".
+	foundEvent := clog.Info().Str("new_id", newImageID.ShortID())
+	if oldVersion := oci.Read(sourceContainer).Version; oldVersion != "" {
+		foundEvent.Str("old_version", oldVersion)
+	}
+
+	if newImageInfo.Config != nil {
+		if newVersion := oci.FromLabels(newImageInfo.Config.Labels).Version; newVersion != "" {
+			foundEvent.Str("new_version", newVersion)
+		}
+	}
+
+	foundEvent.Msg("Found new image")
 
 	return true,
 		newImageID,

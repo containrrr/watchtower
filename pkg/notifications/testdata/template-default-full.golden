@@ -1,5 +1,5 @@
 5 Scanned, 2 Updated, 1 Restarted, 1 Failed, 1 Fresh, 1 Skipped
-- updt1 (mock/updt1:latest): 01d110000000 updated to d0a110000000 ref v1.2.0 https://github.com/org/app/releases/tag/v1.2.0
+- updt1 (mock/updt1:latest): 01d110000000 updated to d0a110000000 (1.1.0 -> 1.2.0) ref v1.2.0 https://github.com/org/app/releases/tag/v1.2.0
 - updt2 (mock/updt2:latest): 01d120000000 updated to d0a120000000
 - rstr1 (mock/rstr1:latest): Restarted
 - frsh1 (mock/frsh1:latest): Fresh
