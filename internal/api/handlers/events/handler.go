@@ -3,6 +3,7 @@ package events
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/url"
 	"time"
 
@@ -151,28 +152,40 @@ func (h *Handler) subscribe() (<-chan Event, <-chan struct{}, error) {
 // Returns:
 //   - error: Non-nil if the SSE middleware fails to start or the stream errors.
 func (h *Handler) serveStream(c fiber.Ctx, subCh <-chan Event, done <-chan struct{}) error {
+	// The server closes this channel when it starts shutting down. The stream's
+	// own context does not end then, and its Done channel closes only after a
+	// failed write, so without it a stream would hold the shutdown open until
+	// the next heartbeat.
+	shutdown := c.RequestCtx().Done()
+	conn := c.RequestCtx().Conn()
+
 	return sse.New(sse.Config{
 		Retry: sseRetryInterval,
 		OnClose: func(_ fiber.Ctx, _ error) {
 			h.Broadcaster.Unsubscribe(subCh)
 		},
 		Handler: func(c fiber.Ctx, stream *sse.Stream) error {
-			return h.dispatchEvents(stream, subCh, done)
+			go failWritesOnShutdown(conn, shutdown, stream.Done())
+
+			return h.dispatchEvents(stream, subCh, done, shutdown)
 		},
 	})(c)
 }
 
 // dispatchEvents reads from the subscriber channel and writes each event to
-// the SSE stream until the subscriber is unsubscribed or the stream ends.
+// the SSE stream until the subscriber is unsubscribed, the stream ends, or the
+// server shuts down.
 //
 // Parameters:
 //   - stream: The SSE stream for writing events.
 //   - subCh: The event channel for receiving SSE events.
 //   - done: The done channel closed when the subscriber is unsubscribed.
+//   - shutdown: The channel the server closes when it starts shutting down.
 //
 // Returns:
-//   - error: Non-nil if a stream write fails. Nil on normal unsubscribe or stream close.
-func (h *Handler) dispatchEvents(stream *sse.Stream, subCh <-chan Event, done <-chan struct{}) error {
+//   - error: Non-nil if a stream write fails. Nil on normal unsubscribe,
+//     stream close, or server shutdown.
+func (h *Handler) dispatchEvents(stream *sse.Stream, subCh <-chan Event, done, shutdown <-chan struct{}) error {
 	for {
 		select {
 		case event, ok := <-subCh:
@@ -201,7 +214,26 @@ func (h *Handler) dispatchEvents(stream *sse.Stream, subCh <-chan Event, done <-
 			return nil
 		case <-stream.Done():
 			return fmt.Errorf("stream error: %w", stream.Err())
+		case <-shutdown:
+			return nil
 		}
+	}
+}
+
+// failWritesOnShutdown makes writes to conn fail at once when the server starts
+// shutting down. The server sets no write timeout, so a write to a client that
+// has stopped reading would otherwise block and hold the shutdown open until
+// its grace period ends.
+//
+// Parameters:
+//   - conn: The stream's connection.
+//   - shutdown: The channel the server closes when it starts shutting down.
+//   - streamDone: The channel the stream closes when it ends.
+func failWritesOnShutdown(conn net.Conn, shutdown, streamDone <-chan struct{}) {
+	select {
+	case <-shutdown:
+		_ = conn.SetWriteDeadline(time.Now())
+	case <-streamDone:
 	}
 }
 
