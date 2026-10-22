@@ -3,6 +3,8 @@ package digest
 import (
 	"cmp"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -62,6 +64,35 @@ const testDigestHash = "sha256:d68e1e532088964195ad3a0a71526bc2f11a78de0def85629
 
 // testRepoDigest is the repo digest of the image the stub registry containers run.
 const testRepoDigest = "ghcr.io/k6io/operator@" + testDigestHash
+
+// testIndexBody is an OCI image index without a top-level digest field.
+const testIndexBody = `{"schemaVersion":2,"mediaType":"application/vnd.oci.image.index.v1+json","manifests":[` +
+	`{"mediaType":"application/vnd.oci.image.manifest.v1+json","digest":"sha256:` +
+	`1111111111111111111111111111111111111111111111111111111111111111","size":512,` +
+	`"platform":{"architecture":"amd64","os":"linux"}}]}`
+
+// testImageManifestBody is an OCI image manifest without a top-level digest field.
+const testImageManifestBody = `{"schemaVersion":2,"mediaType":"application/vnd.oci.image.manifest.v1+json",` +
+	`"config":{"mediaType":"application/vnd.oci.image.config.v1+json","digest":"sha256:` +
+	`4444444444444444444444444444444444444444444444444444444444444444","size":1024},` +
+	`"layers":[{"mediaType":"application/vnd.oci.image.layer.v1.tar+gzip","digest":"sha256:` +
+	`5555555555555555555555555555555555555555555555555555555555555555","size":2048}]}`
+
+// testManifestListBody is a Docker manifest list as a registry serves it, with
+// indentation and a trailing newline that are part of the hashed bytes.
+const testManifestListBody = `{
+   "schemaVersion": 2,
+   "mediaType": "application/vnd.docker.distribution.manifest.list.v2+json",
+   "manifests": [
+      {
+         "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+         "digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+         "size": 527,
+         "platform": {"architecture": "arm64", "os": "linux"}
+      }
+   ]
+}
+`
 
 // newRegistryContainer returns a mock container that runs image, whose image has
 // repoDigests as its repo digests.
@@ -192,6 +223,20 @@ func manifestHandler(t *testing.T, method, path string, status int, header http.
 //   - http.Header: Headers with the Docker-Content-Digest header set.
 func digestHeader(digest string) http.Header {
 	return http.Header{ContentDigestHeader: {digest}}
+}
+
+// sha256Hex returns the hex sha256 of body, the digest a registry gives a
+// manifest served as body.
+//
+// Parameters:
+//   - body: Manifest bytes.
+//
+// Returns:
+//   - string: Hex digest without the "sha256:" prefix.
+func sha256Hex(body string) string {
+	sum := sha256.Sum256([]byte(body))
+
+	return hex.EncodeToString(sum[:])
 }
 
 // newLocalOnlyContainer returns a mock container for a locally built image
@@ -810,6 +855,40 @@ func TestCompareDigest_StubRegistry(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestCompareDigest_HashesManifestWithoutDigestHeader verifies that when a
+// registry sends no digest header, the comparison uses the sha256 of the
+// manifest list it serves, so an image pulled from that list matches.
+func TestCompareDigest_HashesManifestWithoutDigestHeader(t *testing.T) {
+	t.Parallel()
+
+	const manifestPath = "/v2/test/image/manifests/latest"
+
+	server := httpstub.New(t)
+	server.AppendHandlers(
+		bearerChallengeHandler(t, server.Addr(), "repository:test/image:pull"),
+		tokenHandler(t),
+		manifestHandler(t, http.MethodHead, manifestPath, http.StatusOK, digestHeader("sha256:")),
+		bearerChallengeHandler(t, server.Addr(), "repository:test/image:pull"),
+		httpstub.CombineHandlers(
+			httpstub.VerifyRequest(t, http.MethodGet, httpstub.Path(manifestPath)),
+			httpstub.RespondWith(http.StatusOK, testManifestListBody, http.Header{
+				"Content-Type": {"application/vnd.docker.distribution.manifest.list.v2+json"},
+			}),
+		),
+	)
+
+	container := newRegistryContainer(t,
+		server.Addr()+"/test/image:latest",
+		server.Addr()+"/test/image@sha256:"+sha256Hex(testManifestListBody),
+	)
+
+	match, remoteDigest, err := CompareDigestWithRemote(newTestLogger(t), t.Context(),
+		container, "token", registryConfig.Registry{TLSSkip: true}, ratelimit.New())
+	require.NoError(t, err)
+	assert.True(t, match)
+	assert.Equal(t, "sha256:"+sha256Hex(testManifestListBody), remoteDigest)
 }
 
 // TestCompareDigest_RedirectedLSCRImage verifies that an lscr.io image whose
@@ -2149,6 +2228,83 @@ func TestExtractGetDigest(t *testing.T) {
 			},
 			wantErr:     true,
 			errContains: "missing digest header and empty body",
+		},
+		{
+			name: "computes the digest of an OCI image index body without a digest field",
+			setupResp: func() *http.Response {
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Status:     "200 OK",
+					Header:     http.Header{"Content-Type": []string{"application/vnd.oci.image.index.v1+json"}},
+					Body:       io.NopCloser(strings.NewReader(testIndexBody)),
+				}
+			},
+			expected: sha256Hex(testIndexBody),
+		},
+		{
+			name: "computes the digest of a Docker manifest list body from its exact bytes",
+			setupResp: func() *http.Response {
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Status:     "200 OK",
+					Header:     http.Header{"Content-Type": []string{"application/vnd.docker.distribution.manifest.list.v2+json"}},
+					Body:       io.NopCloser(strings.NewReader(testManifestListBody)),
+				}
+			},
+			expected: sha256Hex(testManifestListBody),
+		},
+		{
+			name: "computes the digest of an OCI image manifest body without a digest field",
+			setupResp: func() *http.Response {
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Status:     "200 OK",
+					Header:     http.Header{"Content-Type": []string{"application/vnd.oci.image.manifest.v1+json"}},
+					Body:       io.NopCloser(strings.NewReader(testImageManifestBody)),
+				}
+			},
+			expected: sha256Hex(testImageManifestBody),
+		},
+		{
+			name: "returns error for schema 2 JSON that is not a manifest",
+			setupResp: func() *http.Response {
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Status:     "200 OK",
+					Header:     http.Header{"Content-Type": []string{"application/json"}},
+					Body:       io.NopCloser(strings.NewReader(`{"schemaVersion": 2, "status": "pending"}`)),
+				}
+			},
+			wantErr:     true,
+			errContains: "empty digest in JSON manifest",
+		},
+		{
+			name: "returns error for a schema 2 manifest without layers",
+			setupResp: func() *http.Response {
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Status:     "200 OK",
+					Header:     http.Header{"Content-Type": []string{"application/vnd.oci.image.manifest.v1+json"}},
+					Body: io.NopCloser(strings.NewReader(
+						`{"schemaVersion": 2, "config": {"digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"}}`,
+					)),
+				}
+			},
+			wantErr:     true,
+			errContains: "empty digest in JSON manifest",
+		},
+		{
+			name: "returns error for a schema 1 manifest without a digest field",
+			setupResp: func() *http.Response {
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Status:     "200 OK",
+					Header:     http.Header{"Content-Type": []string{"application/vnd.docker.distribution.manifest.v1+prettyjws"}},
+					Body:       io.NopCloser(strings.NewReader(`{"schemaVersion": 1, "name": "test/image", "tag": "latest"}`)),
+				}
+			},
+			wantErr:     true,
+			errContains: "empty digest in JSON manifest",
 		},
 		{
 			name: "returns error when JSON body digest has no hash",

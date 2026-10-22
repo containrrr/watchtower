@@ -71,6 +71,8 @@ func FuzzExtractGetDigest(f *testing.F) {
 	f.Add([]byte(`{"digest": ""}`), "application/vnd.oci.image.index.v1+json", "")
 	f.Add([]byte(`{"digest": "sha256:abc123"}`), "text/plain", "")
 	f.Add([]byte(`invalid json`), "", "sha256:abc123")
+	f.Add([]byte(`{"schemaVersion":2,"mediaType":"application/vnd.oci.image.index.v1+json","manifests":[]}`),
+		"application/vnd.oci.image.index.v1+json", "")
 
 	f.Fuzz(func(t *testing.T, body []byte, contentType, headerValue string) {
 		resp := &http.Response{

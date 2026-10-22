@@ -4,6 +4,8 @@ package digest
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -32,6 +34,28 @@ const ContentDigestHeader = "Docker-Content-Digest"
 
 // maxManifestSize is the maximum allowed size for a digest GET fallback body (1 MiB).
 const maxManifestSize = 1 << 20
+
+// schema2Version is the schemaVersion of OCI and Docker schema 2 manifests and
+// indexes, whose digest is the sha256 of their bytes.
+const schema2Version = 2
+
+// manifestBody holds the fields of a manifest response body that tell whether
+// it carries a digest or is a schema 2 manifest or index.
+type manifestBody struct {
+	// Digest is a digest some registries add to the body.
+	Digest string `json:"digest"`
+	// SchemaVersion is 2 for OCI and Docker schema 2 manifests and indexes.
+	SchemaVersion int `json:"schemaVersion"`
+	// Manifests lists the platform manifests of an index. Nil when absent.
+	Manifests *[]json.RawMessage `json:"manifests"`
+	// Config is the config descriptor of an image manifest. Nil when absent.
+	Config *struct {
+		// Digest is the config blob's digest.
+		Digest string `json:"digest"`
+	} `json:"config"`
+	// Layers lists the layer descriptors of an image manifest. Nil when absent.
+	Layers *[]json.RawMessage `json:"layers"`
+}
 
 // Errors for digest retrieval operations.
 var (
@@ -1225,9 +1249,13 @@ func extractHeadDigest(log *zerolog.Logger, resp *http.Response) (string, error)
 // extractGetDigest extracts the image digest from a GET response's headers or body.
 //
 // It first tries to retrieve the digest from the "Docker-Content-Digest" header.
-// If the header is missing, it falls back to parsing the response body as a JSON
-// manifest or as a plain text digest for non-standard registries.
-// The fallback body is limited to maxManifestSize.
+// If the header is missing, it falls back to the response body. A JSON body
+// with a top-level "digest" field gives that digest. A schema 2 index, or a
+// schema 2 image manifest with a config and layers, without one gives the
+// sha256 of its exact bytes, which is how a registry computes a manifest's
+// digest. Any other body is read as a plain text
+// digest for non-standard registries. The fallback body is limited to
+// maxManifestSize.
 // When attempting JSON parsing, the Content-Type header must contain "application/json",
 // "application/vnd.oci", or "application/vnd.docker".
 // The digest is normalized for consistency.
@@ -1309,10 +1337,7 @@ func extractGetDigest(log *zerolog.Logger, resp *http.Response) (string, error) 
 			)
 		}
 		// Try to parse as JSON manifest first (standard OCI/Docker format).
-		// Define a struct to hold the expected JSON structure with a digest field.
-		var manifest struct {
-			Digest string `json:"digest"`
-		}
+		var manifest manifestBody
 		// Attempt to unmarshal the response body as JSON.
 		jsonErr := json.Unmarshal(bodyBytes, &manifest)
 		if jsonErr == nil {
@@ -1326,10 +1351,28 @@ func extractGetDigest(log *zerolog.Logger, resp *http.Response) (string, error) 
 
 				return normalizedDigest, nil
 			}
-			// JSON parsed successfully, but the digest field is missing or has no hash.
+			// A schema 2 manifest's digest is the sha256 of its bytes as served.
+			// Schema 1 manifests are signed, and their digest leaves the
+			// signatures out, so they are not hashed here, and neither is JSON
+			// that does not have the shape of a manifest or index.
+			if manifest.isSchema2() {
+				sum := sha256.Sum256(bodyBytes)
+				computedDigest := hex.EncodeToString(sum[:])
+
+				log.Debug().
+					Str("digest", computedDigest).
+					Int("body_length", len(bodyBytes)).
+					Msg("Computed digest from JSON manifest body")
+
+				return computedDigest, nil
+			}
+
+			// JSON parsed successfully, but it is not a schema 2 manifest and its
+			// digest field is missing or has no hash.
 			log.Debug().
 				Str("status", resp.Status).
-				Str("body", bodyStr).
+				Int("body_length", len(bodyStr)).
+				Str("content_type", contentType).
 				Msg("JSON manifest parsed but digest field is empty")
 
 			return "", fmt.Errorf("%w: empty digest in JSON manifest", errInvalidRegistryResponse)
@@ -1350,7 +1393,6 @@ func extractGetDigest(log *zerolog.Logger, resp *http.Response) (string, error) 
 			Str("status", resp.Status).
 			Int("body_length", len(bodyStr)).
 			Str("content_type", resp.Header.Get("Content-Type")).
-			Str("body", bodyStr).
 			Msg("Response body does not appear to be a valid digest")
 
 		return "", fmt.Errorf("%w: invalid digest format in body", errInvalidRegistryResponse)
@@ -1363,6 +1405,24 @@ func extractGetDigest(log *zerolog.Logger, resp *http.Response) (string, error) 
 		Msg("Extracted digest from plain text body")
 
 	return normalizedDigest, nil
+}
+
+// isSchema2 reports whether the body is a schema 2 index, which lists its
+// manifests, or a schema 2 image manifest, which has a config digest and a
+// list of layers.
+//
+// Returns:
+//   - bool: True for a schema 2 index or image manifest.
+func (m manifestBody) isSchema2() bool {
+	if m.SchemaVersion != schema2Version {
+		return false
+	}
+
+	if m.Manifests != nil {
+		return true
+	}
+
+	return m.Config != nil && m.Config.Digest != "" && m.Layers != nil
 }
 
 // digestsMatch compares a list of local digests with a remote digest to determine if there's a match.
