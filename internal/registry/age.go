@@ -869,14 +869,13 @@ func fetchPlatformManifestWithRetry(log *zerolog.Logger,
 
 	platformPathPrefix := parsedURL.Path[:idx+len("/manifests/")]
 
-	// Build list of hosts to try: primary (current), then challenge, then original.
+	// Build list of hosts to try: the primary (current) host, then the challenge
+	// host when it differs.
 	// This mirrors the retry chain in digest.go's handleManifestResponse.
 	type hostCandidate struct {
 		host string
 		name string
 	}
-
-	originalHost := parsedURL.Host
 
 	hosts := []hostCandidate{{host: parsedURL.Host, name: "primary"}}
 
@@ -979,102 +978,6 @@ func fetchPlatformManifestWithRetry(log *zerolog.Logger,
 				)
 
 				continue
-			}
-
-			// On non-redirected registries, try challenge host for 401/404 on original.
-			if (status == http.StatusUnauthorized || status == http.StatusNotFound) &&
-				challengeHost != "" && candidate.host == originalHost {
-				log.Debug().
-					Fields(fields).
-					Int("status", status).
-					Msg("Platform manifest failed on original host, trying challenge host")
-
-				retryURL := *parsedURL
-				retryURL.Host = challengeHost
-				retryURL.Path = platformPathPrefix + selectedDigest
-
-				retryReq, retryErr := http.NewRequestWithContext(
-					ctx,
-					http.MethodGet,
-					retryURL.String(),
-					nil,
-				)
-				if retryErr != nil {
-					return "",
-						"",
-						fmt.Errorf("%w: %w", errFetchManifestFailed, retryErr)
-				}
-
-				if token != "" {
-					retryReq.Header.Set("Authorization", token)
-				}
-
-				retryReq.Header.Set(
-					"Accept",
-					strings.Join(
-						[]string{
-							"application/vnd.oci.image.manifest.v1+json",
-							"application/vnd.docker.distribution.manifest.v2+json",
-						},
-						", ",
-					),
-				)
-				retryReq.Header.Set("User-Agent", meta.UserAgent)
-
-				retryResp, retryErr := doRegistryRequest(log, ctx, client, limiter, retryReq, limitKey)
-				if retryErr != nil {
-					if ratelimit.Is(retryErr) {
-						return "", "", retryErr
-					}
-
-					return "",
-						"",
-						fmt.Errorf("%w: %w", errFetchManifestFailed, retryErr)
-				}
-
-				if retryResp.StatusCode != http.StatusOK {
-					retryStatus := retryResp.StatusCode
-					retryResp.Body.Close()
-
-					log.Debug().
-						Fields(fields).
-						Int("status", retryStatus).
-						Msg("Platform manifest retry also failed")
-
-					return "",
-						"",
-						fmt.Errorf(
-							"%w: status %d",
-							errFetchManifestFailed,
-							retryStatus,
-						)
-				}
-
-				var retryManifest imageManifest
-
-				err = json.NewDecoder(io.LimitReader(retryResp.Body, maxManifestSize)).Decode(&retryManifest)
-				retryResp.Body.Close()
-
-				if err != nil {
-					log.Debug().
-						Err(err).
-						Fields(fields).
-						Msg("Failed to parse platform manifest JSON")
-
-					return "",
-						"",
-						fmt.Errorf("%w: %w", errFetchManifestFailed, err)
-				}
-
-				if retryManifest.Config.Digest == "" {
-					log.Debug().
-						Fields(fields).
-						Msg("Platform manifest does not contain config digest")
-
-					return "", "", errNoConfigDigest
-				}
-
-				return retryManifest.Config.Digest, challengeHost, nil
 			}
 
 			log.Debug().

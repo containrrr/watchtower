@@ -7,7 +7,6 @@ import (
 	"runtime"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -296,11 +295,11 @@ func TestFetchImageCreationTime_ChallengeHostFallback(t *testing.T) {
 	}, realm.served())
 }
 
-// TestFetchImageCreationTime_PlatformManifestRetry records that when the
-// bearer realm is on the image registry's own host and the platform manifest
-// is missing, the identical platform manifest request is sent a second time
-// before the fetch fails.
-func TestFetchImageCreationTime_PlatformManifestRetry(t *testing.T) {
+// TestFetchImageCreationTime_PlatformManifestMissingOnSameHost verifies that
+// when the bearer realm is on the image registry's own host, there is no other
+// host to try, so a missing platform manifest is requested once and the fetch
+// fails.
+func TestFetchImageCreationTime_PlatformManifestMissingOnSameHost(t *testing.T) {
 	registry := newFakeRegistry(t)
 	registry.handle("/v2/", bearerChallenge(registry))
 	registry.handle("/token", tokenEndpoint())
@@ -314,7 +313,6 @@ func TestFetchImageCreationTime_PlatformManifestRetry(t *testing.T) {
 		"GET /v2/",
 		"GET /token",
 		"GET " + fakeManifestTagPath + " (authorized)",
-		platformRequest,
 		platformRequest,
 	}, registry.served())
 }
@@ -485,32 +483,4 @@ func TestFetchImageCreationTime_PlatformManifestOnChallengeHost(t *testing.T) {
 		"GET " + fakeRepositoryPath + "/manifests/" + fakeRuntimeManifest + " (authorized)",
 		"GET " + fakeRepositoryPath + "/blobs/" + fakeConfigDigest + " (authorized)",
 	}, realm.served())
-}
-
-// TestFetchImageCreationTime_PlatformManifestRetrySucceeds records that when
-// the bearer realm is on the image registry's own host, a platform manifest
-// that is missing on the first request and present on the identical second
-// request is used.
-func TestFetchImageCreationTime_PlatformManifestRetrySucceeds(t *testing.T) {
-	var attempts atomic.Int32
-
-	registry := newFakeRegistry(t)
-	registry.handle("/v2/", bearerChallenge(registry))
-	registry.handle("/token", tokenEndpoint())
-	registry.handle(fakeManifestTagPath, requireBearer(platformIndex()))
-	registry.handle(fakeRepositoryPath+"/manifests/"+fakeRuntimeManifest, requireBearer(func(w http.ResponseWriter, r *http.Request) {
-		if attempts.Add(1) == 1 {
-			http.NotFound(w, r)
-
-			return
-		}
-
-		singlePlatformManifest(fakeConfigDigest)(w, r)
-	}))
-	registry.handle(fakeRepositoryPath+"/blobs/"+fakeConfigDigest, requireBearer(configBlob(testCreatedTimestamp)))
-
-	created, err := fetchCreated(t, registry, "library/app:1.0")
-	require.NoError(t, err)
-	assert.True(t, mustParseTime(t, testCreatedTimestamp).Equal(created))
-	assert.Equal(t, int32(2), attempts.Load())
 }

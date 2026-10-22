@@ -344,10 +344,6 @@ linters:
         linters:
           - gocyclo
         text: "of func `handleManifestResponse` is high"
-      - path: "internal/registry/age.go"
-        linters:
-          - gocyclo
-        text: "of func `fetchPlatformManifestWithRetry` is high"
       - path: "pkg/filters/filters.go"
         linters:
           - gocyclo
