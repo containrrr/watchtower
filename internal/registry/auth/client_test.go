@@ -2,6 +2,7 @@ package auth
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"net/http"
 	"sync"
@@ -65,6 +66,62 @@ func Test_registryClient_Do(t *testing.T) {
 		require.ErrorContains(t, err, "failed to execute HTTP request")
 		assert.Nil(t, resp)
 	})
+
+	t.Run("request failure leaves the redirect target's query out of the error", func(t *testing.T) {
+		t.Parallel()
+
+		target := httpstub.New(t)
+		target.Close()
+
+		server := httpstub.New(t)
+		server.AppendHandlers(httpstub.RespondWith(http.StatusTemporaryRedirect, "",
+			http.Header{"Location": {target.URL() + "/blob?sig=secret"}}))
+
+		resp, err := (&registryClient{client: server.Client()}).Do(mustNewRequest(t, server.URL()+"/v2/")) //nolint:bodyclose // The request fails, so there is no response.
+		require.ErrorContains(t, err, target.URL()+"/blob")
+		assert.NotContains(t, err.Error(), "sig=secret")
+		assert.Nil(t, resp)
+	})
+
+	t.Run("unparseable redirect leaves the raw Location out of the error", func(t *testing.T) {
+		t.Parallel()
+
+		server := httpstub.New(t)
+		server.AppendHandlers(httpstub.RespondWith(http.StatusTemporaryRedirect, "",
+			http.Header{"Location": {"https://cdn.example.com/%zz?sig=secret"}}))
+
+		resp, err := (&registryClient{client: server.Client()}).Do(mustNewRequest(t, server.URL()+"/v2/")) //nolint:bodyclose // The request fails, so there is no response.
+		require.ErrorIs(t, err, errUnparseableRedirect)
+		assert.NotContains(t, err.Error(), "sig=secret")
+		assert.Nil(t, resp)
+	})
+
+	t.Run("canceled request keeps its cause", func(t *testing.T) {
+		t.Parallel()
+
+		server := httpstub.New(t)
+
+		ctx, cancel := context.WithCancel(t.Context())
+		cancel()
+
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, server.URL()+"/v2/", nil)
+		require.NoError(t, err)
+
+		resp, err := (&registryClient{client: server.Client()}).Do(req) //nolint:bodyclose // The request fails, so there is no response.
+		require.ErrorIs(t, err, context.Canceled)
+		assert.Nil(t, resp)
+	})
+}
+
+// TestRedactURL verifies that URLs for logs and errors lose their query and
+// user information, which can hold signed parameters or credentials.
+func TestRedactURL(t *testing.T) {
+	t.Parallel()
+
+	assert.Equal(t, "https://cdn.example.com/blob", RedactURL("https://cdn.example.com/blob?sig=secret&exp=1"))
+	assert.Equal(t, "https://cdn.example.com/blob", RedactURL("https://user:secret@cdn.example.com/blob?sig=secret"))
+	assert.Equal(t, "https://registry.example.com/v2/a", RedactURL("https://registry.example.com/v2/a"))
+	assert.Equal(t, "<unparseable>", RedactURL("http://[::1"))
 }
 
 // Test_configureTLS verifies that configureTLS applies the minimum TLS version

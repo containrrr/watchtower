@@ -891,6 +891,100 @@ func TestCompareDigest_HashesManifestWithoutDigestHeader(t *testing.T) {
 	assert.Equal(t, "sha256:"+sha256Hex(testManifestListBody), remoteDigest)
 }
 
+// TestSameOrigin verifies which redirect targets count as the registry's own
+// origin, so they may receive its token.
+func TestSameOrigin(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		from string
+		to   string
+		want bool
+	}{
+		{name: "same scheme and host", from: "https://registry.example.com/v2/a", to: "https://registry.example.com/b?x=1", want: true},
+		{name: "host case differs", from: "https://Registry.example.com/v2/a", to: "https://registry.example.com/b", want: true},
+		{name: "another host", from: "https://registry.example.com/v2/a", to: "https://cdn.example.com/b"},
+		{name: "another port", from: "https://registry.example.com/v2/a", to: "https://registry.example.com:8443/b"},
+		{name: "explicit default https port", from: "https://registry.example.com/v2/a", to: "https://registry.example.com:443/b", want: true},
+		{name: "explicit default http port", from: "http://registry.example.com:80/v2/a", to: "http://registry.example.com/b", want: true},
+		{name: "same non-default port", from: "https://registry.example.com:8443/v2/a", to: "https://REGISTRY.example.com:8443/b", want: true},
+		{name: "another non-default port", from: "https://registry.example.com:8443/v2/a", to: "https://registry.example.com:9443/b"},
+		{name: "ipv6 host with default port", from: "https://[::1]/v2/a", to: "https://[::1]:443/b", want: true},
+		{name: "http port on https", from: "https://registry.example.com/v2/a", to: "https://registry.example.com:80/b"},
+		{name: "downgrade to http", from: "https://registry.example.com/v2/a", to: "http://registry.example.com/b"},
+		{name: "unparseable target", from: "https://registry.example.com/v2/a", to: "http://[::1"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, tt.want, sameOrigin(tt.from, tt.to))
+		})
+	}
+}
+
+// TestFetchDigestWithGet_RedirectPastClientLimit verifies the retry Watchtower
+// makes when a registry keeps redirecting a manifest request past the client's
+// redirect limit. The retry goes to the redirect's whole URL, and it carries
+// the registry token only when the redirect stays on the registry's origin.
+func TestFetchDigestWithGet_RedirectPastClientLimit(t *testing.T) {
+	t.Parallel()
+
+	const manifestPath = "/v2/test/image/manifests/latest"
+
+	tests := []struct {
+		name string
+		// crossOrigin sends the last redirect to another server.
+		crossOrigin bool
+		// wantAuthorization is the Authorization header the redirect target expects.
+		wantAuthorization string
+	}{
+		{name: "same origin keeps the token", wantAuthorization: "Bearer mock-token"},
+		{name: "another origin gets no token", crossOrigin: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			registry := httpstub.New(t)
+			other := httpstub.New(t)
+
+			target := registry
+			if tt.crossOrigin {
+				target = other
+			}
+
+			// The client follows three redirects and returns the next one, so the
+			// third hop's Location is the one Watchtower retries.
+			redirect := func(location string) http.HandlerFunc {
+				return httpstub.RespondWith(http.StatusTemporaryRedirect, "", http.Header{"Location": {location}})
+			}
+			registry.RouteToHandler(http.MethodGet, httpstub.Path(manifestPath), redirect("/hop1"))
+			registry.RouteToHandler(http.MethodGet, httpstub.Path("/hop1"), redirect("/hop2"))
+			registry.RouteToHandler(http.MethodGet, httpstub.Path("/hop2"),
+				redirect("http://"+target.Addr()+"/final?sig=abc"))
+			target.RouteToHandler(http.MethodGet, httpstub.Path("/final"), httpstub.CombineHandlers(
+				httpstub.VerifyQuery(t, "sig=abc"),
+				func(_ http.ResponseWriter, r *http.Request) {
+					assert.Equal(t, tt.wantAuthorization, r.Header.Get("Authorization"))
+				},
+				httpstub.RespondWith(http.StatusOK, "", digestHeader(testDigestHash)),
+			))
+			registry.AppendHandlers(bearerChallengeHandlers(t, registry.Addr(), "repository:test/image:pull")...)
+
+			container := newRegistryContainer(t, registry.Addr()+"/test/image:latest", testRepoDigest)
+
+			got, err := fetchDigestWithGet(newTestLogger(t), t.Context(),
+				container, "token", registryConfig.Registry{TLSSkip: true}, ratelimit.New())
+			require.NoError(t, err)
+			assert.Equal(t, NormalizeDigest(newTestLogger(t), testDigestHash), got)
+		})
+	}
+}
+
 // TestCompareDigest_RedirectedLSCRImage verifies that an lscr.io image whose
 // registry redirects the /v2/ challenge to another host still compares its
 // digest with a HEAD request.
@@ -1769,6 +1863,41 @@ func TestHandleManifestResponse(t *testing.T) {
 			wantErr:       false,
 		},
 		{
+			name:   "3xx redirect keeps the Location's path and query",
+			method: http.MethodGet,
+			setupResponse: func() *http.Response {
+				return &http.Response{
+					StatusCode: http.StatusTemporaryRedirect,
+					Status:     "307 Temporary Redirect",
+					Header:     http.Header{"Location": []string{"/v2/mirror/manifests/latest?sig=abc"}},
+					Body:       http.NoBody,
+					Request:    &http.Request{URL: mustParseURL("https://registry.example.com/v2/manifests/latest")},
+				}
+			},
+			originalHost:  "registry.example.com",
+			parsedURL:     mustParseURL("https://registry.example.com/v2/manifests/latest"),
+			currentHost:   "registry.example.com",
+			expectedURL:   "https://registry.example.com/v2/mirror/manifests/latest?sig=abc",
+			expectedRetry: true,
+		},
+		{
+			name:   "3xx redirect to the request URL is not retried",
+			method: http.MethodGet,
+			setupResponse: func() *http.Response {
+				return &http.Response{
+					StatusCode: http.StatusFound,
+					Status:     "302 Found",
+					Header:     http.Header{"Location": []string{"/v2/manifests/latest"}},
+					Body:       http.NoBody,
+					Request:    &http.Request{URL: mustParseURL("https://registry.example.com/v2/manifests/latest")},
+				}
+			},
+			originalHost: "registry.example.com",
+			parsedURL:    mustParseURL("https://registry.example.com/v2/manifests/latest"),
+			currentHost:  "registry.example.com",
+			wantErr:      true,
+		},
+		{
 			name:   "401 on redirected host retries on original host",
 			method: http.MethodGet,
 			setupResponse: func() *http.Response {
@@ -2506,6 +2635,8 @@ func TestRetryManifestRequest(t *testing.T) {
 		wantErrIs error
 		// wantErrContains, when set, is text the error must contain.
 		wantErrContains string
+		// wantErrNotContains, when set, is text the error must not contain.
+		wantErrNotContains string
 		// challengeHost is the token host. Empty means ghcr.io.
 		challengeHost string
 		// currentURL is the URL the retry runs on. Empty means the original host.
@@ -2606,6 +2737,19 @@ func TestRetryManifestRequest(t *testing.T) {
 			wantErrContains: "https://registry.example.com/v2/manifests/latest",
 		},
 		{
+			name:        "leaves the query out of the URL the registry asked for",
+			method:      http.MethodGet,
+			updatedURL:  "https://ghcr.io/v2/manifests/latest?sig=secret",
+			currentURL:  "https://ghcr.io/v2/manifests/latest?sig=secret",
+			setupClient: unauthorizedManifestClient,
+			wantErr:     true,
+			wantErrIs:   errUnresolvedManifestRetry,
+			// The redirect target's signed query stays on the URL Watchtower
+			// would request next, but not in the error.
+			wantErrContains:    "https://registry.example.com/v2/manifests/latest",
+			wantErrNotContains: "sig=secret",
+		},
+		{
 			name:          "returns an empty digest when the HEAD retry on a same-host token host asks again",
 			method:        http.MethodHead,
 			updatedURL:    "https://registry.example.com/v2/manifests/latest",
@@ -2666,6 +2810,10 @@ func TestRetryManifestRequest(t *testing.T) {
 
 				if tt.wantErrContains != "" {
 					require.ErrorContains(t, err, tt.wantErrContains)
+				}
+
+				if tt.wantErrNotContains != "" {
+					assert.NotContains(t, err.Error(), tt.wantErrNotContains)
 				}
 
 				return

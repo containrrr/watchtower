@@ -876,6 +876,9 @@ func fetchDigest(log *zerolog.Logger,
 			digest     string
 			updatedURL string
 			retry      bool
+			// redirectRetry reports that a retry follows the registry's redirect
+			// rather than a host Watchtower chose.
+			redirectRetry bool
 		)
 
 		err = limiter.Do(ctx, log, limitKey, func() error {
@@ -890,6 +893,9 @@ func fetchDigest(log *zerolog.Logger,
 			}
 
 			var handleErr error
+
+			redirectRetry = resp.StatusCode >= http.StatusMultipleChoices &&
+				resp.StatusCode < http.StatusBadRequest
 
 			digest, updatedURL, retry, handleErr = handleManifestResponse(log,
 				resp,
@@ -923,14 +929,27 @@ func fetchDigest(log *zerolog.Logger,
 			log.Debug().
 				Fields(fields).
 				Fields(epFields).
-				Str("retry_url", updatedURL).
+				Str("retry_url", auth.RedactURL(updatedURL)).
 				Msg("Retrying manifest request with updated URL")
+
+			// A redirect can point anywhere, so the token goes only to the same
+			// origin. Hosts Watchtower picks for a retry serve the same registry.
+			retryToken := token
+
+			if redirectRetry && !sameOrigin(manifestURL, updatedURL) {
+				log.Debug().
+					Fields(fields).
+					Fields(epFields).
+					Msg("Manifest redirect leaves the registry's origin, retrying without the token")
+
+				retryToken = ""
+			}
 
 			digest, err = retryManifestRequest(log,
 				ctx,
 				method,
 				updatedURL,
-				token,
+				retryToken,
 				originalHost,
 				challengeHost,
 				redirected,
@@ -944,7 +963,7 @@ func fetchDigest(log *zerolog.Logger,
 					Err(err).
 					Fields(fields).
 					Fields(epFields).
-					Str("retry_url", updatedURL).
+					Str("retry_url", auth.RedactURL(updatedURL)).
 					Msg("Failed to retry manifest request")
 				lastErr = err
 
@@ -1045,7 +1064,7 @@ func handleManifestResponse(log *zerolog.Logger,
 
 			log.Debug().
 				Fields(fields).
-				Str("retry_url", manifestURL).
+				Str("retry_url", auth.RedactURL(manifestURL)).
 				Msg("Setting retry due to HEAD failure on original host")
 
 			return "", manifestURL, true, nil
@@ -1067,26 +1086,26 @@ func handleManifestResponse(log *zerolog.Logger,
 		Msg("Checking redirect condition")
 
 	if redirectCondition {
-		// Handle manifest request redirects by updating URL to redirected host
+		// The client follows redirects itself, so a redirect reaches here only
+		// past its redirect limit. The retry goes to the whole Location,
+		// resolved against the request, so its path and query are kept.
 		location := resp.Header.Get("Location")
 		if location != "" {
-			redirectURL, err := url.Parse(location)
-			if err == nil && redirectURL.Host != "" && redirectURL.Host != currentHost {
-				log.Debug().
-					Fields(fields).
-					Str("redirect_location", location).
-					Str("redirect_host", redirectURL.Host).
-					Msg("Manifest request redirected, updating URL host")
+			locationURL, err := url.Parse(location)
+			if err == nil {
+				target := resp.Request.URL.ResolveReference(locationURL)
+				if target.Host != "" && target.String() != resp.Request.URL.String() {
+					// The Location can carry signed query parameters, so only its
+					// host is logged.
+					log.Debug().
+						Fields(fields).
+						Str("redirect_host", target.Host).
+						Msg("Manifest request redirected, retrying at the redirect target")
 
-				parsedURL.Host = redirectURL.Host
-				manifestURL = parsedURL.String()
+					*parsedURL = *target
 
-				log.Debug().
-					Fields(fields).
-					Str("retry_url", manifestURL).
-					Msg("Setting retry due to redirect")
-
-				return "", manifestURL, true, nil
+					return "", target.String(), true, nil
+				}
 			}
 		}
 	}
@@ -1128,7 +1147,7 @@ func handleManifestResponse(log *zerolog.Logger,
 
 			log.Debug().
 				Fields(fields).
-				Str("retry_url", manifestURL).
+				Str("retry_url", auth.RedactURL(manifestURL)).
 				Msg("Setting retry due to 401/404 on redirected host")
 
 			return "", manifestURL, true, nil
@@ -1147,7 +1166,7 @@ func handleManifestResponse(log *zerolog.Logger,
 
 			log.Debug().
 				Fields(fields).
-				Str("retry_url", manifestURL).
+				Str("retry_url", auth.RedactURL(manifestURL)).
 				Msg("Setting retry due to 401/404 on original host with challenge host")
 
 			return "", manifestURL, true, nil
@@ -1494,6 +1513,56 @@ func digestsMatch(log *zerolog.Logger, localDigests []string, remoteDigest strin
 	return false
 }
 
+// sameOrigin reports whether two URLs share a scheme, host name, and port,
+// which decides whether a redirect may receive the registry token. A URL
+// without a port uses its scheme's default port.
+//
+// Parameters:
+//   - requestURL: URL of the request that was redirected.
+//   - redirectURL: URL the redirect points to.
+//
+// Returns:
+//   - bool: True when both parse and have the same scheme, host name, and port.
+func sameOrigin(requestURL, redirectURL string) bool {
+	from, err := url.Parse(requestURL)
+	if err != nil {
+		return false
+	}
+
+	target, err := url.Parse(redirectURL)
+	if err != nil {
+		return false
+	}
+
+	return strings.EqualFold(from.Scheme, target.Scheme) &&
+		strings.EqualFold(from.Hostname(), target.Hostname()) &&
+		effectivePort(from) == effectivePort(target)
+}
+
+// effectivePort returns the port a URL connects to, which is its scheme's
+// default port when the URL names none.
+//
+// Parameters:
+//   - u: URL to read the port of.
+//
+// Returns:
+//   - string: The URL's port, "443" or "80" by default for HTTPS or HTTP, or
+//     empty for another scheme without a port.
+func effectivePort(u *url.URL) string {
+	if port := u.Port(); port != "" {
+		return port
+	}
+
+	switch strings.ToLower(u.Scheme) {
+	case "https":
+		return "443"
+	case "http":
+		return "80"
+	default:
+		return ""
+	}
+}
+
 // makeManifestRequest creates an HTTP request for fetching the manifest with proper headers and authentication.
 //
 // Parameters:
@@ -1601,7 +1670,7 @@ func retryManifestRequest(
 		// with an empty digest. A GET request is the last attempt, and an
 		// empty digest would mark the image as out of date.
 		if retry && method != http.MethodHead {
-			return fmt.Errorf("%w: %s", errUnresolvedManifestRetry, nextURL)
+			return fmt.Errorf("%w: %s", errUnresolvedManifestRetry, auth.RedactURL(nextURL))
 		}
 
 		digest = got

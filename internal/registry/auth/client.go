@@ -2,9 +2,11 @@ package auth
 
 import (
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -35,6 +37,14 @@ var tlsVersionMap = map[string]uint16{
 	"TLS1.2": tls.VersionTLS12,
 	"TLS1.3": tls.VersionTLS13,
 }
+
+// errUnparseableRedirect replaces the client's error for a redirect whose
+// Location header does not parse, which quotes the raw Location.
+var errUnparseableRedirect = errors.New("failed to parse redirect Location header")
+
+// unparseableRedirectPrefix starts the HTTP client's error for a redirect
+// whose Location header does not parse.
+const unparseableRedirectPrefix = "failed to parse Location header"
 
 // Cached clients, one per TLS configuration, so registry requests made with
 // the same settings share one connection pool.
@@ -85,16 +95,52 @@ type registryClient struct {
 // Parameters:
 //   - request: The HTTP request to execute.
 //
+// The error of a failed request names the last URL requested, which can be a
+// redirect target, so that URL is redacted with [RedactURL]. The client quotes
+// the raw Location of a redirect it cannot parse, so that error is replaced
+// with errUnparseableRedirect. Other causes stay wrapped, so callers can still
+// tell a canceled or timed-out request apart.
+//
 // Returns:
 //   - *http.Response: The HTTP response from the registry, if successful.
 //   - error: Non-nil if the request fails, nil otherwise.
 func (r *registryClient) Do(request *http.Request) (*http.Response, error) {
 	response, err := r.client.Do(request)
 	if err != nil {
+		if urlErr, ok := errors.AsType[*url.Error](err); ok {
+			urlErr.URL = RedactURL(urlErr.URL)
+
+			if urlErr.Err != nil && strings.HasPrefix(urlErr.Err.Error(), unparseableRedirectPrefix) {
+				urlErr.Err = errUnparseableRedirect
+			}
+		}
+
 		return nil, fmt.Errorf("failed to execute HTTP request: %w", err)
 	}
 
 	return response, nil
+}
+
+// RedactURL returns rawURL without its query and user information, for logs
+// and errors, since a redirect URL can carry signed query parameters or
+// credentials.
+//
+// Parameters:
+//   - rawURL: URL to redact.
+//
+// Returns:
+//   - string: rawURL without its query and user information, or a placeholder
+//     when it does not parse.
+func RedactURL(rawURL string) string {
+	parsed, err := url.Parse(rawURL)
+	if err != nil {
+		return "<unparseable>"
+	}
+
+	parsed.User = nil
+	parsed.RawQuery = ""
+
+	return parsed.String()
 }
 
 // configureTLS applies the registry TLS settings to a TLS configuration.
