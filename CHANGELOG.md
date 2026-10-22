@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Chores
+
+- Update actions/setup-python action to v7.1.0 by @renovate[bot] in [#3033](https://github.com/nicholas-fedor/watchtower/pull/3033)
+
+## [1.23.2] - 2026-10-22
+
 ### Fixed
 
 - End event streams when the server shuts down by @nicholas-fedor in [#3027](https://github.com/nicholas-fedor/watchtower/pull/3027)
@@ -4052,7 +4058,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Compare Releases
 
-- [unreleased](https://github.com/nicholas-fedor/watchtower/compare/v1.23.1...HEAD)
+- [unreleased](https://github.com/nicholas-fedor/watchtower/compare/v1.23.2...HEAD)
+- [1.23.2](https://github.com/nicholas-fedor/watchtower/compare/v1.23.1...v1.23.2)
 - [1.23.1](https://github.com/nicholas-fedor/watchtower/compare/v1.23.0...v1.23.1)
 - [1.23.0](https://github.com/nicholas-fedor/watchtower/compare/v1.22.3...v1.23.0)
 - [1.22.3](https://github.com/nicholas-fedor/watchtower/compare/v1.22.2...v1.22.3)
