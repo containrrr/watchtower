@@ -106,6 +106,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Chores
 
+- Update golang:alpine3.24 docker digest to d530cf6 by @renovate[bot] in [#3030](https://github.com/nicholas-fedor/watchtower/pull/3030)
+- Update golang:1.27.3-alpine docker digest to d530cf6 by @renovate[bot] in [#3029](https://github.com/nicholas-fedor/watchtower/pull/3029)
 - Update alpine docker tag to v3.24.3 by @renovate[bot] in [#3019](https://github.com/nicholas-fedor/watchtower/pull/3019)
 - Update module github.com/nicholas-fedor/shoutrrr to v0.22.1 by @renovate[bot] in [#3015](https://github.com/nicholas-fedor/watchtower/pull/3015)
 - Update nicholas-fedor/govulncheck-action action to v1.1.2 by @renovate[bot] in [#3000](https://github.com/nicholas-fedor/watchtower/pull/3000)
