@@ -1,0 +1,482 @@
+basePath: /
+consumes:
+- application/json
+definitions:
+  check.CheckResponse:
+    properties:
+      api_version:
+        type: string
+      containers:
+        items:
+          $ref: '#/definitions/check.ContainerCheck'
+        type: array
+      count:
+        type: integer
+      timestamp:
+        type: string
+    type: object
+  check.ContainerCheck:
+    properties:
+      changelog:
+        type: string
+      current_image_version:
+        type: string
+      current_revision:
+        type: string
+      digest:
+        type: string
+      documentation:
+        type: string
+      error:
+        type: string
+      git_commit:
+        type: string
+      git_ref:
+        type: string
+      git_repo:
+        type: string
+      image:
+        type: string
+      image_id:
+        type: string
+      image_url:
+        type: string
+      latest_digest:
+        type: string
+      latest_image_id:
+        type: string
+      latest_image_version:
+        type: string
+      latest_revision:
+        type: string
+      name:
+        type: string
+      oci_source:
+        type: string
+      timestamp:
+        type: string
+      update_available:
+        type: boolean
+      update_source:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact:
+    name: Nicholas Fedor
+    url: https://github.com/nicholas-fedor/watchtower
+  description: Watchtower HTTP API for container update management, metrics, and health
+    probes.
+  license:
+    name: Apache-2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0
+  title: Watchtower HTTP API
+  version: "1.0"
+paths:
+  /livez:
+    get:
+      description: Returns 200 OK if the Watchtower HTTP server is running. Used by
+        orchestrators (e.g., Kubernetes) to determine if the process is alive.
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+      summary: Liveness probe
+      tags:
+      - health
+  /readyz:
+    get:
+      description: Returns 200 OK if the Watchtower HTTP server is running and the
+        Docker client is connected and responsive. Used by orchestrators to determine
+        if the service is ready to accept
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "503":
+          description: Docker client not connected
+          schema:
+            type: string
+      summary: Readiness probe
+      tags:
+      - health
+  /startupz:
+    get:
+      description: Returns 200 OK if the Watchtower HTTP server has started. Used
+        by orchestrators (e.g., Kubernetes) to determine if the process has finished
+        startup.
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+      summary: Startup probe
+      tags:
+      - health
+  /v1/check:
+    post:
+      consumes:
+      - application/json
+      description: Checks each watched container for available updates. Associated
+        Git-watched containers compare the hosted Git ref (no clone or build). Other
+        containers query the registry for the
+      parameters:
+      - description: Image names to check (comma-separated, repeatable). When combined
+          with container, only containers matching both are checked.
+        in: query
+        name: image
+        type: string
+      - description: Container names to check (comma-separated, repeatable). When
+          combined with image, only containers matching both are checked.
+        in: query
+        name: container
+        type: string
+      - description: Per-request timeout override (e.g. 30s, 2m). Bounded by the configured
+          check API timeout.
+        in: query
+        name: timeout
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Container update availability results
+          schema:
+            $ref: '#/definitions/check.CheckResponse'
+        "401":
+          description: Missing or invalid API token
+          schema:
+            type: string
+        "500":
+          description: Failed to check for updates
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Check for available container updates
+      tags:
+      - check
+  /v1/config:
+    get:
+      consumes:
+      - application/json
+      description: Returns the active Watchtower configuration settings. Sensitive
+        values (notification URLs, tokens) are redacted.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Config object with timestamp and api_version
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Missing or invalid API token
+          schema:
+            type: string
+        "500":
+          description: Failed to get configuration
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Get current configuration
+      tags:
+      - config
+  /v1/containers:
+    get:
+      consumes:
+      - application/json
+      description: Returns the current image identity and digest for every watched
+        container. Optionally filter by container name or image name.
+      parameters:
+      - description: Filter by container name (exact match)
+        in: query
+        name: name
+        type: string
+      - description: Filter by image name (exact match)
+        in: query
+        name: image
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Container statuses with count and timestamp
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Missing or invalid API token
+          schema:
+            type: string
+        "500":
+          description: Failed to list containers
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: List watched container statuses
+      tags:
+      - containers
+  /v1/containers/details:
+    get:
+      consumes:
+      - application/json
+      description: Returns detailed information about each watched container, including
+        running state, image identity, and configuration flags. Optionally filter
+        by container name or image name.
+      parameters:
+      - description: Filter by container name (exact match)
+        in: query
+        name: name
+        type: string
+      - description: Filter by image name (exact match)
+        in: query
+        name: image
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Container details with count and timestamp
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Missing or invalid API token
+          schema:
+            type: string
+        "500":
+          description: Failed to get container details
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Detailed container status
+      tags:
+      - containers
+  /v1/events:
+    get:
+      description: |-
+        Streams Watchtower operational events (scan started/completed, update started/completed/failed) via Server-Sent Events (SSE).
+
+        **SSE is not supported by "Try it out"**.
+      produces:
+      - text/event-stream
+      responses:
+        "200":
+          description: Event stream (SSE)
+          schema:
+            type: string
+        "401":
+          description: Missing or invalid events token
+          schema:
+            type: string
+      security:
+      - EventsToken: []
+      summary: Real-time events stream
+      tags:
+      - events
+  /v1/history:
+    get:
+      consumes:
+      - application/json
+      description: Returns historical scan results from the in-memory ring buffer
+        (up to 500 entries). Optionally filter by time range and limit the number
+        of results.
+      parameters:
+      - description: Include entries at or after this RFC3339 timestamp
+        in: query
+        name: since
+        type: string
+      - description: Include entries at or before this RFC3339 timestamp
+        in: query
+        name: until
+        type: string
+      - description: 'Maximum number of entries to return (default: all)'
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: History entries with count and timestamp
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid query parameter
+          schema:
+            type: string
+        "401":
+          description: Missing or invalid API token
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Scan history
+      tags:
+      - history
+  /v1/images:
+    get:
+      consumes:
+      - application/json
+      description: Returns the current image identity and digest for every image tracked
+        by Watchtower. Optionally filter by image name or image ID.
+      parameters:
+      - description: Filter by image name (exact match)
+        in: query
+        name: name
+        type: string
+      - description: Filter by image ID (sha256:...)
+        in: query
+        name: id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Image statuses with count and timestamp
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Missing or invalid API token
+          schema:
+            type: string
+        "500":
+          description: Failed to list images
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: List tracked images
+      tags:
+      - images
+  /v1/metrics:
+    get:
+      description: Returns Watchtower scan metrics in Prometheus exposition format.
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: Prometheus exposition format metrics
+          schema:
+            type: string
+        "401":
+          description: Missing or invalid API token
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Prometheus metrics
+      tags:
+      - metrics
+  /v1/status:
+    get:
+      consumes:
+      - application/json
+      description: Returns the summary of the most recent Watchtower scan, including
+        counts of scanned, updated, failed, restarted, and skipped containers.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Scan summary with counts and timestamp
+          schema:
+            additionalProperties: true
+            type: object
+        "204":
+          description: No Content
+        "401":
+          description: Missing or invalid API token
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Last scan status
+      tags:
+      - metrics
+  /v1/update:
+    post:
+      consumes:
+      - application/json
+      description: Scans watched containers for image updates and applies them. Supports
+        both full scans and targeted updates filtered by image name or container name.
+        Container patterns support Go
+      parameters:
+      - description: Comma-separated image names to update (repeatable)
+        in: query
+        name: image
+        type: string
+      - description: Container name patterns to update (repeatable, supports Go regex)
+        in: query
+        name: container
+        type: string
+      - description: When 'true', runs update asynchronously and returns 202 Accepted
+        in: query
+        name: async
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Synchronous update results with summary and timing
+          schema:
+            additionalProperties: true
+            type: object
+        "202":
+          description: Asynchronous update accepted
+          schema:
+            type: string
+        "401":
+          description: Missing or invalid API token
+          schema:
+            type: string
+        "429":
+          description: Another update is already running
+          headers:
+            Retry-After:
+              description: Seconds to wait before retrying
+              type: string
+          schema:
+            type: string
+        "503":
+          description: Request cancelled while waiting for lock
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Trigger container update scan
+      tags:
+      - update
+produces:
+- application/json
+schemes:
+- http
+- https
+securityDefinitions:
+  BearerAuth:
+    description: 'Paste the HTTP API token only (WATCHTOWER_HTTP_API_TOKEN). Swagger
+      UI sends it as the Authorization header value. curl clients should use "Authorization:
+      Bearer <token>".'
+    in: header
+    name: Authorization
+    type: apiKey
+  EventsToken:
+    description: Paste the events API token only (WATCHTOWER_HTTP_API_EVENTS_TOKEN).
+      Swagger UI sends it as the Authorization header value.
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

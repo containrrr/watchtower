@@ -1,0 +1,43 @@
+name: "Clean GH Actions Cache"
+description: "Remove GH Actions cache entries for closed branches."
+
+inputs:
+  gh-token:
+    description: "GitHub token for API access"
+    required: true
+  gh-repo:
+    description: "GitHub repository in owner/repo format"
+    required: true
+  branch:
+    description: "Target branch"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Clean Cache
+      shell: bash
+      env:
+        # https://cli.github.com/manual/gh_help_environment
+        GH_TOKEN: ${{ inputs.gh-token }}
+        GH_REPO: ${{ inputs.gh-repo }}
+        BRANCH: ${{ inputs.branch }}
+      run: |
+        # Setting this to not fail the workflow while listing/deleting cache entries.
+        set +e
+
+        # Get cache IDs for target branch
+        echo "Fetching list of cache IDs for $BRANCH"
+        cacheIDs=$(gh cache list --ref "$BRANCH" --json id --jq '.[].id')
+
+        # Delete the cache entries
+        if [ -z "$cacheIDs" ]; then
+          echo "No cache entries found for $BRANCH"
+        else
+          echo "Deleting caches..."
+        fi
+        for cacheID in $cacheIDs
+        do
+          gh cache delete "$cacheID"
+        done
+        echo "Done"

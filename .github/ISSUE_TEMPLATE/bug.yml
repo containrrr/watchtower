@@ -1,71 +1,154 @@
 name: 🐛 Bug report
-description: Create a report to help us improve
-labels: ["Priority: Medium, Status: Available, Type: Bug"]
+description: Report a bug or issue with Watchtower.
+title: "[Bug]:"
+assignees: "nicholas-fedor"
+labels: "bug"
+projects: "nicholas-fedor/3"
 
 body:
   - type: markdown
     attributes:
-      value: Before submitting your issue, please make sure you're using the containrrr/watchtower:latest image. If not, switch to this image prior to posting your report. Other forks, or the old `v2tec` image are **not** supported.
+      value: |
+        ### Thank you for reporting a bug!
+
+        - Check [existing issues](https://github.com/nicholas-fedor/watchtower/issues) to avoid duplicates!
+        - For support, [start a discussion](https://github.com/nicholas-fedor/watchtower/discussions/new?category=support).
+        - For features, use the [feature request form](https://github.com/nicholas-fedor/watchtower/issues/new?template=feature_request.yml).
+        - If you have additional items to share, such as debug log files or screenshots, then you may attach them in subsequent messages.
+
+        ⚠️ Do NOT submit sensitive information in logs, screenshots, etc that could lead to system/account compromise.
+        ❗ Low quality bug reports, such as those that fail to provide adequate diagnostic information, are subject to closure.
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Bug Report Checklist
+      options:
+        - label: I checked [existing issues](https://github.com/nicholas-fedor/watchtower/issues) and found no duplicates.
+          required: true
+        - label: I have reviewed Watchtower's [documentation](https://watchtower.nickfedor.com/latest/) and confirmed compliance with documented configuration specifications.
+          required: true
+        - label: I have restarted Docker, re-pulled the `latest` image, and confirmed that the issue persists.
+          required: true
 
   - type: textarea
     id: description
     attributes:
-      label: Describe the bug
-      description: A clear and concise description of what the bug is
+      label: Bug Description
+      description: Describe the issue clearly and concisely.
+      placeholder: e.g., Watchtower fails to update containers with scoped registries.
     validations:
       required: true
 
   - type: textarea
     id: reproduce
     attributes:
-      label: Steps to reproduce
-      description: Steps to reproduce the behavior
-      value: |
-        1. Go to '...'
-        2. Click on '....'
-        3. Scroll down to '....'
-        4. See error
+      label: Steps to Reproduce
+      description: Provide detailed steps to reproduce the issue.
+      placeholder: |
+        1. Start Watchtower with Docker Compose: `docker compose up -d`
+        2. Wait for the update cycle
+        3. Observe the errant behavior in Docker logs or notifications
     validations:
       required: true
 
   - type: textarea
     id: expected
     attributes:
-      label: Expected behavior
+      label: Expected Behavior
       description: A clear and concise description of what you expected to happen.
+      placeholder: e.g., Watchtower should update all eligible containers without errors.
+    validations:
+      required: true
+
+  - type: input
+    id: watchtower_version
+    attributes:
+      label: Watchtower Version
+      description: Which version of Watchtower are you using?
+      placeholder: e.g., latest, v1.14.0, or commit hash
     validations:
       required: true
 
   - type: textarea
-    id: screenshots
+    id: docker_version
     attributes:
-      label: Screenshots
-      description: Please add screenshots if applicable
+      label: Docker Version
+      description: Run the terminal command `docker version`. Copy and paste the result below.
+      render: bash
+    validations:
+      required: true
+
+  - type: textarea
+    id: docker_info
+    attributes:
+      label: Docker Info (optional)
+      description: Run the terminal command `docker info`. Copy and paste the result below.
+      render: bash
     validations:
       required: false
 
   - type: textarea
+    id: docker-compose
     attributes:
-      label: Environment
-      description: We would want to know the following things
+      label: Docker Compose Configuration
+      description: |
+        If you are running Watchtower using Docker Compose, then please share your Compose file.
+      placeholder: |
+        services:
+          watchtower:
+            image: nickfedor/watchtower:latest
+            restart: unless-stopped
+            volumes:
+              - /var/run/docker.sock:/var/run/docker.sock
+      render: yaml
+    validations:
+      required: false
+
+  - type: textarea
+    id: docker-cli
+    attributes:
+      label: Docker CLI Command
+      description: |
+        If you are running Watchtower using the Docker CLI, then please share the command.
+      placeholder: |
+        docker run --rm \
+          -v /var/run/docker.sock:/var/run/docker.sock \
+          nickfedor/watchtower:latest \
+          --debug \
+          --interval 30 \
+          --cleanup
+      render: bash
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Debug Logs
+      description: |
+        Paste or attach the logs from running Watchtower with the `--debug` or `WATCHTOWER_DEBUG=true` option.  
+        ❗ Info-level logs are not sufficient for debugging issues!  
+        Logs must show the errors and/or relevant execution necessary for debugging and issue resolution.
+      placeholder: |
+        time="2023-01-01T00:00:00Z" level=debug msg="Checking for updates..."
+        time="2023-01-01T00:00:00Z" level=error msg="Failed to check for updates: ..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: |
+        Add any other context about the problem here, such as related issues, workarounds you've tried, or specific container images affected.
+    validations:
+      required: false
+
+  - type: markdown
+    attributes:
       value: |
-        - Platform
-        - Architecture
-        - Docker Version
-    validations:
-      required: true
-
-  - type: textarea
-    attributes:
-      label: Your logs
-      description: Paste the logs from running watchtower with the `--debug` option.
-      render: text
-    validations:
-      required: true
-
-  - type: textarea
-    attributes:
-      label: Additional context
-      description: Add any other context about the problem here.
-    validations:
-      required: false
+        Before you submit:
+          - You are expected to perform your own due diligence prior to submitting issues for review.
+          - Please double-check that you have provided sufficient information to allow for replication and debugging of the issue!
+          - Issues that are duplicates, configuration issues, and/or fail to provide sufficient information are subject to immediate closure.

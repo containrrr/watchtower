@@ -1,0 +1,115 @@
+---
+name: Publish Documentation
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: "Version to deploy (e.g., v1.21.1). Leave empty for dev."
+        required: false
+        type: string
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to deploy (e.g., v1.21.1). Leave empty for dev."
+        required: false
+        type: string
+  push:
+    branches: [main]
+    paths:
+      - docs/**
+      - build/mkdocs/**
+      - tools/tplprev/**
+  release:
+    types: [published]
+
+concurrency:
+  group: publish-docs
+  cancel-in-progress: false
+
+permissions:
+  contents: read # Set default read-only permissions
+
+jobs:
+  build-docs:
+    name: Publish Docs
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2 # v2.22.2
+        with:
+          egress-policy: audit
+
+      - name: Checkout Repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Configure Git Credentials
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          cache: false
+          go-version-file: go.mod
+
+      - name: Make Script Executable
+        run: chmod +x ./scripts/build-tplprev.sh
+
+      - name: Build tplprev
+        run: |
+          go mod download
+          go clean -cache  # Clear build cache
+          ./scripts/build-tplprev.sh
+
+      - name: Setup Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.15.1"
+
+      - name: Install mkdocs
+        run: |
+          pip install -r build/mkdocs/docs-requirements.txt
+
+      - name: Determine Mike Version and Aliases
+        id: mike
+        env:
+          TAG_NAME: ${{ github.event.release.tag_name }}
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          if [[ "${{ github.event_name }}" == "release" ]]; then
+            echo "version=${TAG_NAME}" >> "$GITHUB_OUTPUT"
+            echo "aliases=latest" >> "$GITHUB_OUTPUT"
+          elif [[ -n "${INPUT_VERSION}" ]]; then
+            echo "version=${INPUT_VERSION}" >> "$GITHUB_OUTPUT"
+            echo "aliases=latest" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=dev" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build and Deploy
+        env:
+          ALIASES: ${{ steps.mike.outputs.aliases }}
+          VERSION: ${{ steps.mike.outputs.version }}
+        run: |
+          if [ -n "${ALIASES}" ]; then
+            mike deploy \
+              --config-file build/mkdocs/mkdocs.yaml \
+              --push \
+              --update-aliases "${VERSION}" "${ALIASES}"
+          else
+            mike deploy \
+              --config-file build/mkdocs/mkdocs.yaml \
+              --push \
+              "${VERSION}"
+          fi

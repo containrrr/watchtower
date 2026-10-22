@@ -12,10 +12,9 @@ if [ -z "$OPENVPN_USER" ]; then exit_env_err "OPENVPN_USER"; fi
 if [ -z "$OPENVPN_PASSWORD" ]; then exit_env_err "OPENVPN_PASSWORD"; fi
 # if [ -z "$SERVER_COUNTRIES" ]; then exit_env_err "SERVER_COUNTRIES"; fi
 
-
 export SERVER_COUNTRIES=${SERVER_COUNTRIES:"Sweden"}
 REPO_ROOT="$(git rev-parse --show-toplevel)"
-COMPOSE_FILE="$REPO_ROOT/dockerfiles/container-networking/docker-compose.yml"
+COMPOSE_FILE="$REPO_ROOT/test/data/container-networking/docker-compose.yml"
 DEFAULT_WATCHTOWER="$REPO_ROOT/watchtower"
 WATCHTOWER="$*"
 WATCHTOWER=${WATCHTOWER:-$DEFAULT_WATCHTOWER}

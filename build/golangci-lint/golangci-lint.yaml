@@ -1,0 +1,389 @@
+######################################################################################################
+#                                                                                                    #
+#                              Watchtower golangci-lint Configuration                                #
+#                                                                                                    #
+# Repository: https://github.com/nicholas-fedor/watchtower/                                          #
+# License: Apache 2.0                                                                                #
+# Golangci-lint: https://golangci-lint.run/                                                          #
+# yaml-language-server: $schema=https://golangci-lint.run/jsonschema/golangci.jsonschema.json        #
+#                                                                                                    #
+######################################################################################################
+
+version: "2"
+
+# Run Configuration
+run:
+  timeout: 5m # Maximum time allowed for linting (5 minutes)
+  allow-parallel-runners: true # Allow multiple parallel golangci-lint instances running.
+  allow-serial-runners: true # Allow multiple golangci-lint instances running, but serialize them around a lock.
+
+# Formatters Configuration
+formatters:
+  enable:
+    - gci # Check if code and import statements are formatted, with additional rules.
+    - gofmt # Standard Go code formatter
+    - gofumpt # Enforce a stricter format than gofmt, while being backwards compatible.
+    - goimports # Manages Go import lines, adds missing imports, removes unused ones
+    - golines # Checks if code is formatted, and fixes long lines.
+
+  settings:
+    gci:
+      sections:
+        - standard # Standard section: captures all standard packages.
+        - default # Default section: contains all imports that could not be matched to another section type.
+        - prefix(github.com/nicholas-fedor/watchtower) # Custom section: groups all imports with the specified Prefix.
+        - blank # Blank section: contains all blank imports. This section is not present unless explicitly enabled.
+        - dot # Dot section: contains all dot imports. This section is not present unless explicitly enabled.
+        - alias # Alias section: contains all alias imports. This section is not present unless explicitly enabled.
+        - localmodule # Local module section: contains all local packages. This section is not present unless explicitly enabled.
+    gofmt:
+      rewrite-rules:
+        # Go 1.18+: replace interface{} with any
+        - pattern: "interface{}"
+          replacement: "any"
+        # Slice expressions: a[b:len(a)] → a[b:]
+        - pattern: "a[b:len(a)]"
+          replacement: "a[b:]"
+        # a[:len(a)] → a[:] (full slice)
+        - pattern: "a[:len(a)]"
+          replacement: "a[:]"
+        # Go 1.21+: use slices.Clone instead of append(make([]T, len(s)), s...)
+        - pattern: "append(make([]T, len(s)), s...)"
+          replacement: "slices.Clone(s)"
+        # Go 1.21+: use slices.Delete instead of manual delete patterns
+        # i:j+1 where j = i + k, common delete pattern
+        - pattern: "a[:i+i+k:k+i+k]"
+          replacement: "slices.Delete(a, i, i+k)"
+        # strings.Clone (Go 1.20+)
+        - pattern: "string([]byte(s))"
+          replacement: "strings.Clone(s)"
+        # bytes.Clone (Go 1.20+)
+        - pattern: "append([]byte(nil), b...)"
+          replacement: "bytes.Clone(b)"
+        - pattern: "append(make([]byte, 0, len(b)), b...)"
+          replacement: "bytes.Clone(b)"
+        # Remove redundant type conversions in append
+        - pattern: "append([]T(nil), x)"
+          replacement: "append(make([]T, 0), x)"
+          # or better: just "[]T{x}" if building a new slice
+    gofumpt:
+      module-path: "github.com/nicholas-fedor/watchtower"
+      # Extra formatting rules.
+      extra:
+        # Groups function parameters with repeated types.
+        # Default: false
+        group-params: true
+        # Clothes naked returns in functions with named results.
+        # Default: false
+        clothe-returns: true
+        # Multi-line function calls with the opening parenthesis at the end of a line should place the closing parenthesis at the start of a line.
+        # Default: false
+        balance-calls: true
+    golines:
+      # Target maximum line length.
+      # Default: 100
+      max-len: 200
+      # Length of a tabulation.
+      # Default: 4
+      tab-len: 4
+      # Shorten single-line comments.
+      # Default: false
+      shorten-comments: true
+      # Default: true
+      reformat-tags: true
+      # Split chained methods on the dots as opposed to the arguments.
+      # Default: true
+      chain-split-dots: true
+
+# Linters Configuration
+linters:
+  enable:
+    # Enabled linters that automatically resolve issues
+    - canonicalheader # Canonicalheader checks whether net/http.Header uses canonical header.
+    - copyloopvar # A linter detects places where loop variables are copied.
+    - dupword # Checks for duplicate words in the source code.
+    - err113 # Go linter to check the errors handling expressions.
+    - errorlint # Errorlint is a linter for that can be used to find code that will cause problems with the error wrapping scheme introduced in Go 1.13.
+    - exptostd # Detects functions from golang.org/x/exp/ that can be replaced by std functions.
+    - fatcontext # Detects nested contexts in loops and function literals.
+    - gocritic # Provides diagnostics that check for bugs, performance and style issues.
+    - godot # Check if comments end in a period.
+    - goheader # Checks if file header matches to pattern.
+    - govet # Vet examines Go source code and reports suspicious constructs. It is roughly the same as 'go vet' and uses its passes.
+    - iface # Detect the incorrect use of interfaces, helping developers avoid interface pollution.
+    - importas # Enforces consistent import aliases.
+    - intrange # Intrange is a linter to find places where for loops could make use of an integer range.
+    - mirror # Reports wrong mirror patterns of bytes/strings usage.
+    - misspell # Finds commonly misspelled English words.
+    - modernize # A suite of analyzers that suggest simplifications to Go code, using modern language and library features.
+    - nakedret # Checks that functions with naked returns are not longer than a maximum size (can be zero).
+    - nlreturn # Nlreturn checks for a new line before return and branch statements to increase code clarity.
+    - noinlineerr # Disallows inline error handling (if err := ...; err != nil {).
+    - nolintlint # Reports ill-formed or insufficient nolint directives.
+    - perfsprint # Checks that fmt.Sprintf can be replaced with a faster alternative.
+    - protogetter # Reports direct reads from proto message fields when getters should be used. [auto-fix]
+    - revive # Fast, configurable, extensible, flexible, and beautiful linter for Go. Drop-in replacement of golint.
+    - sloglint # Ensure consistent code style when using log/slog.
+    - staticcheck # It's a set of rules from staticcheck. It's not the same thing as the staticcheck binary. The author of staticcheck doesn't support or approve the use of the staticcheck as a library inside golangci-lint.
+    - tagalign # Check that struct tags are well aligned.
+    - testifylint # Checks usage of github.com/stretchr/testify.
+    - usestdlibvars # A linter that detect the possibility to use variables/constants from the Go standard library.
+    - usetesting # Reports uses of functions with replacement inside the testing package.
+    - whitespace # Whitespace is a linter that checks for unnecessary newlines at the start and end of functions, if, for, etc.
+    - wsl_v5 # Add or remove empty lines.
+    # Enabled linters that require manual issue resolution
+    - asasalint # Check for pass []any as any in variadic func(...any).
+    - asciicheck # Checks that all code identifiers does not have non-ASCII symbols in the name.
+    - bidichk # Checks for dangerous unicode character sequences.
+    - bodyclose # Checks whether HTTP response body is closed successfully.
+    - containedctx # Containedctx is a linter that detects struct contained context.Context field.
+    - contextcheck # Check whether the function uses a non-inherited context.
+    - decorder # Check declaration order and count of types, constants, variables and functions.
+    - dogsled # Checks assignments with too many blank identifiers (e.g. x, _, _, _, := f()).
+    - dupl # Detects duplicate fragments of code.
+    - durationcheck # Check for two durations multiplied together.
+    - embeddedstructfieldcheck # Embedded types should be at the top of the field list of a struct, and there must be an empty line separating embedded fields from regular fields.
+    - errchkjson # Checks types passed to the json encoding functions. Reports unsupported types and reports occurrences where the check for the returned error can be omitted.
+    - errname # Checks that sentinel errors are prefixed with the `Err` and error types are suffixed with the `Error`.
+    - errcheck # Errcheck is a program for checking for unchecked errors in Go code. These unchecked errors can be critical bugs in some cases.
+    - exhaustive # Check exhaustiveness of enum switch statements.
+    - forbidigo # Forbids identifiers.
+    - forcetypeassert # Finds forced type assertions.
+    - funcorder # Checks the order of functions, methods, and constructors.
+    - gocheckcompilerdirectives # Checks that go compiler directive comments (//go:) are valid.
+    - gochecksumtype # Run exhaustiveness checks on Go "sum types".
+    - gocyclo # Computes and checks the cyclomatic complexity of functions. [fast]
+    - godoclint # Checks Golang's documentation practice (godoc).
+    - godox # Detects usage of FIXME, TODO and other keywords inside comments.
+    - gomoddirectives # Manage the use of 'replace', 'retract', and 'excludes' directives in go.mod.
+    - goprintffuncname # Checks that printf-like functions are named with `f` at the end.
+    - gosec # Inspects source code for security problems.
+    - gosmopolitan # Report certain i18n/l10n anti-patterns in your Go codebase.
+    - grouper # Analyze expression groups.
+    - inamedparam # Reports interfaces with unnamed method parameters.
+    - ineffassign # Detects when assignments to existing variables are not used.
+    - iotamixing # Checks if iotas are being used in const blocks with other non-iota declarations.
+    - loggercheck # Checks key value pairs for common logger libraries (kitlog,klog,logr,zap).
+    - makezero # Finds slice declarations with non-zero initial length.
+    - mnd # An analyzer to detect magic numbers.
+    - musttag # Enforce field tags in (un)marshaled structs.
+    - nilerr # Finds the code that returns nil even if it checks that the error is not nil.
+    - nilnesserr # Reports constructs that checks for err != nil, but returns a different nil value error.
+    - nilnil # Checks that there is no simultaneous return of `nil` error and an invalid value.
+    - noctx # Finds sending http request without context.Context.
+    - nonamedreturns # Reports all named returns.
+    - nosprintfhostport # Checks for misuse of Sprintf to construct a host with port in a URL.
+    - prealloc # Finds slice declarations that could potentially be pre-allocated.
+    - predeclared # Find code that shadows one of Go's predeclared identifiers.
+    - promlinter # Check Prometheus metrics naming via promlint.
+    - reassign # Checks that package variables are not reassigned.
+    - recvcheck # Checks for receiver type consistency.
+    - testableexamples # Linter checks if examples are testable (have an expected output). [fast]
+    - thelper # Thelper detects tests helpers which is not start with t.Helper() method.
+    - tparallel # Tparallel detects inappropriate usage of t.Parallel() method in your Go test codes.
+    - unconvert # Remove unnecessary type conversions.
+    - unparam # Reports unused function parameters.
+    - unqueryvet # Detects SELECT \* in SQL queries and SQL builders, preventing performance issues and encouraging explicit column selection.
+    - unused # Checks Go code for unused constants, variables, functions and types.
+    - varnamelen # Checks that the length of a variable's name matches its scope.
+    - wastedassign # Finds wasted assignment statements.
+    - wrapcheck # Checks that errors returned from external packages are wrapped.
+    - zerologlint # Detects the wrong usage of zerolog that a user forgets to dispatch with Send or Msg.
+  disable:
+    - arangolint # Opinionated best practices for arangodb client.
+    - cyclop # Checks function and package cyclomatic complexity.
+    - depguard # Checks if package imports are in a list of acceptable packages.
+    - exhaustruct # Checks if all structure fields are initialized.
+    - funlen # Checks for long functions.
+    - ginkgolinter # Enforces standards of using ginkgo and gomega.
+    - gochecknoglobals # Check that no global variables exist.
+    - gochecknoinits # Checks that no init functions are present in Go code.
+    - gocognit # Computes and checks the cognitive complexity of functions.
+    - goconst # Finds repeated strings that could be replaced by a constant.
+    - gomodguard # Allow and blocklist linter for direct Go module dependencies. This is different from depguard where there are different block types for example version constraints and module recommendations.
+    - interfacebloat # A linter that checks the number of methods inside an interface. [fast]
+    - ireturn # Accept Interfaces, Return Concrete Types.
+    - lll # Reports long lines.
+    - maintidx # Maintidx measures the maintainability index of each function.
+    - nestif # Reports deeply nested if statements.
+    - paralleltest # Detects missing usage of t.Parallel() method in your Go test.
+    - rowserrcheck # Checks whether Rows.Err of rows is checked successfully.
+    - spancheck # Checks for mistakes with OpenTelemetry/Census spans.
+    - sqlclosecheck # Checks that sql.Rows, sql.Stmt, sqlx.NamedStmt, pgx.Query are closed.
+    - tagliatelle # Checks the struct tags.
+    - testpackage # Linter that makes you use a separate _test package.
+    - wsl # deprecated, replaced by wsl_v5 (whitespace linter)
+  settings:
+    revive:
+      enable-all-rules: false
+      # Configure rules
+      rules:
+        # Rule to check for meaningless package names
+        # https://github.com/mgechev/revive/blob/HEAD/RULES_DESCRIPTIONS.md#var-naming
+        - name: var-naming
+          severity: warning
+          disabled: false
+          exclude: [""]
+          arguments:
+            - [""] # AllowList
+            - [""] # DenyList
+            - - skip-initialism-name-checks: false
+                upper-case-const: true
+                skip-package-name-checks: true
+                skip-package-name-collision-with-go-std: true
+                extra-bad-package-names:
+                  - helpers
+                  - models
+        # Rule to check for package name conflicts
+        # https://github.com/mgechev/revive/blob/HEAD/RULES_DESCRIPTIONS.md#package-comments
+        - name: package-comments
+          severity: warning
+          disabled: false
+          exclude:
+            - ".*internal/metrics/.*"
+    wrapcheck:
+      # Constructors that build a new error rather than return one from another call.
+      extra-ignore-sigs:
+        - ratelimit.FromResponse(
+        - ratelimit.FromErrorMessage(
+    gocyclo:
+      # Functions above this complexity are reported. The functions listed under
+      # exclusions are already above it and are excluded until they are split up.
+      min-complexity: 25
+    testifylint:
+      enable-all: true
+    varnamelen:
+      max-distance: 5
+      min-name-length: 3
+      check-return: true
+      check-type-param: true
+      ignore-type-assert-ok: true
+      ignore-map-index-ok: true
+      ignore-chan-recv-ok: true
+      ignore-names:
+        - err
+        - b
+        - c
+        - ctx
+        - i
+        - tt
+        - ok
+      ignore-decls:
+        - b strings.Builder{}
+        - c echo.Context
+        - t testing.T
+        - f *foo.Bar
+        - e error
+        - i int
+        - const C
+        - T any
+        - m map[string]int
+        - w http.ResponseWriter
+        - r *http.Request
+        - r http.Request
+        - r *http.Request
+        - r http.Request
+        - r *mux.Router
+        - r *mux.Router
+  exclusions:
+    presets:
+      - comments
+      - std-error-handling
+      - common-false-positives
+      - legacy
+    rules:
+      - path: _test\.go
+        linters:
+          - dupl
+          - err113
+          - errcheck
+          - errorlint
+          - exhaustive
+          - forcetypeassert
+          - funlen
+          - gocyclo
+          - gosec
+          - promlinter
+          - usetesting
+          - wrapcheck
+          - varnamelen
+      - path: "doc.go$"
+        linters:
+          - dupword
+      # Exclude G117 (potential exposure of secrets via JSON marshaling) false positives for struct field names
+      - path: "pkg/notifications/email.go"
+        linters:
+          - gosec
+        text: "G117"
+      - path: "pkg/types/config.go"
+        linters:
+          - gosec
+        text: "G117"
+      - path: "pkg/types/registry_credentials.go"
+        linters:
+          - gosec
+        text: "G117"
+      # Functions above the gocyclo threshold today. Remove an entry when its function is split up.
+      - path: "internal/actions/update.go"
+        linters:
+          - gocyclo
+        text: "of func `update` is high"
+      - path: "internal/git/project/checkout.go"
+        linters:
+          - gocyclo
+        text: "of func `Checkout` is high"
+      - path: "internal/actions/update.go"
+        linters:
+          - gocyclo
+        text: "of func `restartStaleContainer` is high"
+      - path: "internal/actions/git_compose.go"
+        linters:
+          - gocyclo
+        text: 'of func `\(\*gitSession\)\.applyCompose` is high'
+      - path: "internal/registry/digest/digest.go"
+        linters:
+          - gocyclo
+        text: "of func `handleManifestResponse` is high"
+      - path: "pkg/filters/filters.go"
+        linters:
+          - gocyclo
+        text: "of func `BuildFilter` is high"
+      - path: "internal/registry/digest/digest.go"
+        linters:
+          - gocyclo
+        text: "of func `fetchDigest` is high"
+      - path: "internal/scheduling/scheduling.go"
+        linters:
+          - gocyclo
+        text: "of func `RunUpgradesOnSchedule` is high"
+      - path: "internal/actions/cleanup.go"
+        linters:
+          - gocyclo
+        text: "of func `getChainedContainers` is high"
+    paths:
+      - ".*/mocks/.*"
+      - ".*/internal/api/swagger/.*"
+    warn-unused: true
+
+# Issues Configuration
+issues:
+  max-issues-per-linter: 0 # Unlimited issues per linter (0 = no limit)
+  max-same-issues: 0 # Unlimited same issues (0 = no limit)
+  whole-files: true # Show issues in any part of update files
+  fix: true # Fix found issues
+
+# Output Configuration
+output:
+  formats:
+    text:
+      print-linter-name: true
+      print-issued-lines: true
+      colors: true
+    tab:
+      print-linter-name: true
+      colors: true
+  path-mode: abs
+  sort-order:
+    - linter
+    - severity
+    - file

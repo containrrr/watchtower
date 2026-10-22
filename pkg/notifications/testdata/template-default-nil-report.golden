@@ -1,0 +1,44 @@
+Found new image
+Found new Git revision
+Stopping container
+Started new container
+Stopping linked container
+Started linked container
+Container updated
+Removing image
+Failed to list containers for image usage check, skipping removal
+Image is within cooldown period - not eligible for update
+Image age exceeds cooldown - eligible for update
+Image creation time unavailable - update check unavailable
+Detected multiple Watchtower instances - initiating cleanup
+Successfully removed all excess Watchtower containers
+Docker image usage budget enabled
+Docker image usage exceeds configured maximum
+Docker image usage exceeds configured warning threshold
+Failed to query Docker image disk usage
+Changelog
+Built image from Git URL context
+Built Compose project
+Git build failed. Leaving running container untouched
+Compose apply failed. Docker Compose may have partially recreated services
+Compose apply finished with unconfirmed service results
+Compose apply result omitted this service. Runtime state is unknown
+Compose apply did not return an identifiable instance for this replica. Runtime state is unknown
+Compose apply skipped. Container has no compose service label
+Compose batch dependencies are cyclic. Appending unresolved batches in first-seen order
+Compose project directory is not readable. Leaving the running container untouched
+Compose update failed before container replacement
+Could not dependency-sort Compose batches. Using the existing container order
+Could not order Compose batches by dependencies. Using first-seen order
+Skipped container with an invalid git-host
+Skipped container with an invalid git semver policy
+Skipping Watchtower self-update in run-once mode
+Only checking containers in scope
+Starting HTTP API server
+HTTP API server is enabled
+Registry rate limit retries exhausted. Container failed for this cycle
+Ignoring depends-on entry that names no container
+Skipping container update (self-dependency)
+Skipping container update (circular dependency)
+Unrecognized message with fields
+Unrecognized message without fields

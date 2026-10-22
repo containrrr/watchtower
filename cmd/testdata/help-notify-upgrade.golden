@@ -1,0 +1,118 @@
+Converts legacy Watchtower notification settings into shoutrrr URL format and writes them to a temporary file.
+
+Usage:
+  watchtower notify-upgrade [flags]
+
+Flags:
+  -h, --help   help for notify-upgrade
+
+Global Flags:
+  -a, --api-version string                          api version to use by docker client (omit for autonegotiation)
+      --cert-path string                            Path to TLS certificates
+  -c, --cleanup                                     Remove previously used images after updating
+      --compose-project stringArray                 Map a Compose project name to a project directory inside Watchtower (name=/path, repeatable)
+      --cooldown-delay string                       Minimum time since image creation before allowing updates. Supports h, m, s, d (days), w (weeks), M (months) (e.g., 24h, 3d, 1w, 1M)
+      --cpu-copy-mode string                        CPU copy mode for container recreation, used for compatibility with Podman. Options: auto, full, none (default "auto")
+  -d, --debug                                       Enable debug mode with verbose logging
+  -x, --disable-containers strings                  Comma-separated list of containers to explicitly exclude from watching.
+      --disable-containers-by-label strings         Comma-separated list of key=value label pairs to exclude matching containers from monitoring.
+      --disable-memory-swappiness                   Label used for setting memory swappiness as nil when recreating the container, used for compatibility with podman
+      --disk-space-max string                       Block the update session when Docker image usage reaches this size (e.g., 40GB, 20GiB)
+      --disk-space-warn string                      Warn when Docker image usage reaches this size or percent of --disk-space-max (e.g., 30GB, 80%)
+      --enable-changelog                            Include a release-notes link in notifications. Resolving the exact release tag adds one or two extra registry requests per updated container
+      --enable-containers-by-label strings          Comma-separated list of key=value label pairs to restrict monitoring to matching containers.
+      --enable-lifecycle-hooks                      Enable the execution of commands triggered by pre- and post-update lifecycle hooks
+      --ephemeral-self-update                       Use an ephemeral container to orchestrate Watchtower self-updates (experimental)
+      --git-auth-token string                       Git authentication token (HTTPS). Takes priority over username/password and SSH
+      --git-ca-bundle string                        Path to a PEM CA bundle for Git HTTPS (clone, ls-remote, REST probes, and local path project checkout)
+      --git-compose-stash                           Save and restore local Compose project changes (for example an untracked .env) around checkout
+      --git-context string                          Default subdirectory of a Git URL context used as the Docker build context (empty means the repository root)
+      --git-dockerfile string                       Default Dockerfile path relative to the build context (empty means Dockerfile)
+      --git-enable                                  Use Git ref change detection as the staleness signal for associated containers (process-wide watch default)
+      --git-image stringArray                       Associate an image with a Git repository (repeatable). Format: image=repo[#ref][@policy]
+      --git-insecure-skip-tls                       Skip TLS verification for Git HTTPS (clone, ls-remote, REST probes, and local path project checkout)
+      --git-password string                         Git basic-auth password
+      --git-ssh-key-path string                     Path to an SSH private key for Git clone, ls-remote, and local path project checkout
+      --git-ssh-known-hosts string                  Path to an SSH known_hosts file used to verify Git hosts
+      --git-timeout duration                        Timeout for Git network operations (e.g., 30s, 1m) (default 30s)
+      --git-username string                         Git basic-auth username
+      --health-check                                Do health check and exit
+  -H, --host string                                 daemon socket to connect to (default "unix:///var/run/docker.sock")
+      --http-api-check-timeout duration             Maximum duration for the /v1/check API endpoint (e.g. 30s, 2m, 5m). Default: 5m
+      --http-api-containers                         Runs Watchtower with the read-only containers API enabled, exposing each watched container's current image digest (DEPRECATED: Use the http-api-endpoints configuration option instead.)
+      --http-api-cors-origins strings               Comma-separated list of allowed CORS origins for cross-origin requests (e.g. https://app.example.com). If unset, CORS is disabled and only same-origin requests are allowed.
+      --http-api-endpoints strings                  HTTP API endpoints to enable (health, update, metrics, containers, check, history, images, config, events, swagger), or "all". Comma- or space-separated. Empty disables the HTTP API.
+      --http-api-events-token string                Sets an authentication token for the events SSE endpoint. Required when the events endpoint is enabled. Supports Bearer header and query parameter access_token (for browser EventSource)
+      --http-api-host string                        Host to bind the HTTP API to (default: empty, binds to all IPv4 interfaces; allows empty or valid IP address)
+      --http-api-metrics                            Runs Watchtower with the Prometheus metrics API enabled (DEPRECATED: Use the http-api-endpoints configuration option instead.)
+      --http-api-periodic-polls                     Also run periodic updates (specified with --interval and --schedule) if HTTP API is enabled
+      --http-api-port string                        Port to bind the HTTP API to (default: 8080) (default "8080")
+      --http-api-proxy-header string                Header to use for real client IP when behind a reverse proxy (default: X-Forwarded-For). Only used when http-api-trusted-proxies is set
+      --http-api-rate-limit int                     Maximum authentication requests per minute per IP address for the HTTP API (default: 60) (default 60)
+      --http-api-tls-cert string                    Path to TLS certificate file for the HTTP API
+      --http-api-tls-key string                     Path to TLS key file for the HTTP API
+      --http-api-token string                       Sets an authentication token for HTTP API requests (required when any non-health endpoint is enabled)
+      --http-api-trusted-proxies strings            Comma-separated list of trusted proxy IP addresses or CIDR ranges for reverse proxy support (e.g. 10.0.0.0/8,172.16.0.0/12). When set, enables proxy header processing for client IP and scheme detection
+      --http-api-update                             Runs Watchtower in HTTP API mode, so that image updates must be triggered by a request (DEPRECATED: Use the http-api-endpoints configuration option instead.)
+      --http-api-update-timeout duration            Maximum duration for the /v1/update API endpoint (e.g. 1m, 10m, 30m). Default: 10m
+      --include-restarting                          Will also include restarting containers
+  -S, --include-stopped                             Will also include created and exited containers
+  -i, --interval int                                Poll interval (in seconds) (default 86400)
+  -e, --label-enable                                Watch containers where the com.centurylinklabs.watchtower.enable label is true
+      --label-take-precedence                       Label applied to containers take precedence over arguments
+      --lifecycle-gid int                           Default GID to run lifecycle hooks as (can be overridden by container labels)
+      --lifecycle-uid int                           Default UID to run lifecycle hooks as (can be overridden by container labels)
+  -l, --log-format string                           Sets what logging format to use for console output. Possible values: Auto, LogFmt, Pretty, JSON (default "auto")
+      --log-level string                            The maximum log level that will be written to STDERR. Possible values: panic, fatal, error, warn, info, debug or trace (default "info")
+      --monitor-image-names strings                 Comma-separated list of image names to monitor.
+  -m, --monitor-only                                Will only monitor for new images, not update the containers
+      --no-color                                    Disable ANSI color escape codes in log output
+      --no-pull                                     Do not pull any new images
+      --no-restart                                  Do not restart any containers
+      --no-startup-message                          Prevents watchtower from sending a startup message
+      --notification-email-delay int                Delay before sending notifications, expressed in seconds (DEPRECATED: Use --notifications-delay instead.)
+      --notification-email-from string              Address to send notification emails from (DEPRECATED: Use --notification-url with an smtp:// URL.)
+      --notification-email-server string            SMTP server to send notification emails through (DEPRECATED: Use --notification-url with an smtp:// URL.)
+      --notification-email-server-password string   SMTP server password for sending notifications (DEPRECATED: Use --notification-url with an smtp:// URL.)
+      --notification-email-server-port int          SMTP server port to send notification emails through (default 25) (DEPRECATED: Use --notification-url with an smtp:// URL.)
+      --notification-email-server-tls-skip-verify   Controls whether watchtower verifies the SMTP server's certificate chain and host name. Should only be used for testing. (DEPRECATED: Use --notification-url with an smtp:// URL.)
+      --notification-email-server-user string       SMTP server user for sending notifications (DEPRECATED: Use --notification-url with an smtp:// URL.)
+      --notification-email-subjecttag string        Subject prefix tag for notifications via mail (DEPRECATED: Use --notification-title-tag instead.)
+      --notification-email-to string                Address to send notification emails to (DEPRECATED: Use --notification-url with an smtp:// URL.)
+      --notification-gotify-tls-skip-verify         Controls whether watchtower verifies the Gotify server's certificate chain and host name. Should only be used for testing. (DEPRECATED: Use --notification-url with a gotify:// URL.)
+      --notification-gotify-token string            The Gotify Application required to query the Gotify API (DEPRECATED: Use --notification-url with a gotify:// URL.)
+      --notification-gotify-url string              The Gotify URL to send notifications to (DEPRECATED: Use --notification-url with a gotify:// URL.)
+      --notification-log-stdout                     Write notification logs to stdout instead of logging (to stderr)
+      --notification-msteams-hook string            The MSTeams WebHook URL to send notifications to (DEPRECATED: Use --notification-url with a teams:// URL.)
+      --notification-report                         Use the session report as the notification template data
+      --notification-skip-title                     Do not pass the title param to notifications
+      --notification-slack-channel string           A Slack channel ID which overrides the default channel of a legacy webhook. Example: C0123456789 (DEPRECATED: Use --notification-url with a slack:// or discord:// URL.)
+      --notification-slack-hook-url string          The Slack Hook URL to send notifications to (DEPRECATED: Use --notification-url with a slack:// or discord:// URL.)
+      --notification-slack-icon-emoji string        An emoji code string to use in place of the default icon (DEPRECATED: Use --notification-url with a slack:// or discord:// URL.)
+      --notification-slack-icon-url string          An icon image URL string to use in place of the default icon (DEPRECATED: Use --notification-url with a slack:// or discord:// URL.)
+      --notification-slack-identifier string        A string which will be used to identify the messages coming from this watchtower instance (default "watchtower") (DEPRECATED: Use --notification-url with a slack:// or discord:// URL.)
+      --notification-split-by-container             Send separate notifications for each updated container instead of grouping them
+      --notification-template string                The shoutrrr text/template for the messages
+      --notification-template-file string           Path to a file containing the Shoutrrr text/template for the messages
+      --notification-title-tag string               Title prefix tag for notifications
+      --notification-url stringArray                The shoutrrr URL to send notifications to
+  -n, --notifications strings                       Notification types to send [legacy types (email, slack, msteams, gotify)]. (DEPRECATED: Use --notification-url with the appropriate Shoutrrr URL scheme instead.)
+      --notifications-delay int                     Delay before sending notifications, expressed in seconds
+      --notifications-hostname string               Custom hostname for notification titles
+      --notifications-level string                  The log level used for sending notifications. Possible values: panic, fatal, error, warn, info or debug (default "info")
+  -P, --porcelain string                            Write session results to stdout using a stable versioned format. Supported values: "v1", "json"
+      --registry-tls-min-version string             Minimum TLS version for registry connections (e.g., TLS1.0, TLS1.1, TLS1.2, TLS1.3); default is TLS1.2 (default "TLS1.2")
+      --registry-tls-skip                           Disable TLS verification for registry connections; allows HTTP or insecure TLS registries (use with caution)
+      --remove-volumes                              Remove attached volumes before updating
+      --revive-stopped                              Will also start stopped containers that were updated, if include-stopped is active
+      --rolling-restart                             Restart containers one at a time
+  -R, --run-once                                    Run once now and exit
+  -s, --schedule string                             The cron expression which defines when to update
+      --scope string                                Defines a monitoring scope for the Watchtower instance.
+      --skip-image-names strings                    Comma-separated list of image names to explicitly exclude from monitoring.
+  -t, --stop-timeout duration                       Timeout before a container is forcefully stopped (e.g., 30s, 1m, 5m) (default 30s)
+  -v, --tlsverify                                   use TLS and verify the remote
+      --trace                                       Enable trace mode with very verbose logging - caution, exposes credentials
+      --update-on-start                             Perform an update check on startup, then continue with periodic updates
+      --use-compose-depends-on                      Include Docker Compose depends_on label when determining container update order (default true)
+      --warn-on-head-failure string                 When to warn about HEAD pull requests failing. Possible values: always, auto or never

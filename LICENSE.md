@@ -201,6 +201,7 @@
    limitations under the License.
 
 Watchtower contains code that is licensed under a BSD-license:
- - Copyright (c) 2009 The Go Authors. All rights reserved.
-   
-   For details see https://golang.org/LICENSE
+
+- Copyright (c) 2009 The Go Authors. All rights reserved.
+
+   For details see <https://golang.org/LICENSE>

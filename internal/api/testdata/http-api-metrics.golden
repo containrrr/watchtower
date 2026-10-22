@@ -1,0 +1,29 @@
+header: Content-Type: text/plain; version=0.0.4; charset=utf-8; escaping=underscores
+# HELP watchtower_containers_failed Number of containers where update failed during the last scan
+# TYPE watchtower_containers_failed gauge
+# HELP watchtower_containers_restarted Number of containers restarted due to linked dependencies during the last scan
+# TYPE watchtower_containers_restarted gauge
+# HELP watchtower_containers_restarted_total Total number of containers restarted due to linked dependencies
+# TYPE watchtower_containers_restarted_total counter
+# HELP watchtower_containers_scanned Number of containers scanned for changes by watchtower during the last scan
+# TYPE watchtower_containers_scanned gauge
+# HELP watchtower_containers_skipped Number of containers skipped during the last scan
+# TYPE watchtower_containers_skipped gauge
+# HELP watchtower_containers_updated Number of containers updated by watchtower during the last scan
+# TYPE watchtower_containers_updated gauge
+# HELP watchtower_disk_space_max_bytes Configured Docker image-usage maximum in bytes (0 if unset)
+# TYPE watchtower_disk_space_max_bytes gauge
+# HELP watchtower_disk_space_warn_bytes Configured Docker image-usage warning threshold in bytes (0 if unset)
+# TYPE watchtower_disk_space_warn_bytes gauge
+# HELP watchtower_docker_images_bytes Docker image storage usage in bytes reported by the last disk-space check
+# TYPE watchtower_docker_images_bytes gauge
+# HELP watchtower_docker_images_reclaimable_bytes Reclaimable Docker image storage in bytes reported by the last disk-space check
+# TYPE watchtower_docker_images_reclaimable_bytes gauge
+# HELP watchtower_metrics_dropped_total Number of metrics dropped due to full channel
+# TYPE watchtower_metrics_dropped_total counter
+# HELP watchtower_scans_failed_total Number of scans that ended in an error since watchtower started
+# TYPE watchtower_scans_failed_total counter
+# HELP watchtower_scans_skipped_total Number of skipped scans since watchtower started
+# TYPE watchtower_scans_skipped_total counter
+# HELP watchtower_scans_total Number of scans since the watchtower started
+# TYPE watchtower_scans_total counter

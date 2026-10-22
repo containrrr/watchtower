@@ -1,0 +1,120 @@
+=== common headers
+header: Cross-Origin-Embedder-Policy: require-corp
+header: Cross-Origin-Opener-Policy: same-origin
+header: Cross-Origin-Resource-Policy: same-origin
+header: Origin-Agent-Cluster: ?1
+header: Referrer-Policy: no-referrer
+header: Vary: Accept-Encoding
+header: X-Content-Type-Options: nosniff
+header: X-Dns-Prefetch-Control: off
+header: X-Download-Options: noopen
+header: X-Frame-Options: SAMEORIGIN
+header: X-Permitted-Cross-Domain-Policies: none
+header: X-Ratelimit-Limit: 1000
+header: X-Ratelimit-Remaining: <varies>
+header: X-Ratelimit-Reset: <varies>
+header: X-Request-Id: <varies>
+header: X-Xss-Protection: 0
+
+=== GET /v1/containers (no token)
+status: 401
+header: Content-Type: text/plain; charset=utf-8
+body:
+missing or invalid API Key
+
+=== GET /v1/containers (token: wrong-token)
+status: 401
+header: Content-Type: text/plain; charset=utf-8
+body:
+missing or invalid API Key
+
+=== GET /v1/events (no token)
+status: 401
+header: Content-Type: text/plain; charset=utf-8
+body:
+missing or invalid API Key
+
+=== GET /v1/events (token: wrong-token)
+status: 401
+header: Content-Type: text/plain; charset=utf-8
+body:
+missing or invalid API Key
+
+=== GET /v1/history?since=yesterday
+status: 400
+header: Content-Type: text/plain; charset=utf-8
+body:
+invalid 'since' parameter: invalid time parameter: parsing time "yesterday" as "2006-01-02T15:04:05Z07:00": cannot parse "yesterday" as "2006"
+
+=== GET /v1/history?until=
+status: 400
+header: Content-Type: text/plain; charset=utf-8
+body:
+invalid 'until' parameter: empty value
+
+=== GET /v1/history?limit=-1
+status: 400
+header: Content-Type: text/plain; charset=utf-8
+body:
+invalid 'limit' parameter: limit must be non-negative
+
+=== GET /v1/history?since=2026-10-08T00:00:00Z&until=2026-10-07T00:00:00Z
+status: 400
+header: Content-Type: text/plain; charset=utf-8
+body:
+invalid time range: 'since' must not be after 'until'
+
+=== GET /v1/unknown
+status: 404
+header: Content-Type: text/plain; charset=utf-8
+missing header: Vary
+body:
+Not Found
+
+=== POST /v1/update
+status: 429
+header: Content-Type: application/json; charset=utf-8
+header: Retry-After: 30
+body:
+{
+  "api_version": "v1",
+  "error": "another update is already running",
+  "timestamp": "<timestamp>"
+}
+
+=== GET /readyz (no token)
+status: 503
+header: Content-Type: text/plain; charset=utf-8
+body:
+Service Unavailable
+
+=== GET /v1/containers
+status: 500
+header: Content-Type: text/plain; charset=utf-8
+body:
+failed to list containers
+
+=== GET /v1/containers/details
+status: 500
+header: Content-Type: text/plain; charset=utf-8
+body:
+failed to get container details
+
+=== GET /v1/images
+status: 500
+header: Content-Type: text/plain; charset=utf-8
+body:
+failed to list images
+
+=== POST /v1/check
+status: 500
+header: Content-Type: text/plain; charset=utf-8
+body:
+failed to check for updates
+
+=== POST /v1/update
+status: 500
+header: Content-Type: text/plain; charset=utf-8
+missing header: Vary
+body:
+Internal Server Error

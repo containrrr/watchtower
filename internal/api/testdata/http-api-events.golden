@@ -1,0 +1,23 @@
+header: Content-Type: text/event-stream
+--- check request
+retry: 5000
+
+event: scan_started
+data: {"type":"scan_started","timestamp":"<timestamp>","data":{"cleanup":true,"no_restart":false,"monitor_only":false,"lifecycle_hooks":true,"rolling_restart":false,"label_precedence":false,"no_pull":false,"run_once":false,"use_compose_depends_on":false,"skip_self_update":false,"ephemeral_self_update":false,"revive_stopped":false}}
+
+event: scan_completed
+data: {"type":"scan_completed","timestamp":"<timestamp>","data":{"scanned":5,"updated":0,"failed":1,"skipped":0}}
+
+--- update session
+event: scan_started
+data: {"type":"scan_started","timestamp":"<timestamp>","data":{"cleanup":true,"no_restart":false,"monitor_only":false,"lifecycle_hooks":true,"rolling_restart":false,"label_precedence":false,"no_pull":false,"run_once":true,"use_compose_depends_on":true,"skip_self_update":false,"ephemeral_self_update":false,"revive_stopped":false}}
+
+event: scan_failed
+data: {"type":"scan_failed","timestamp":"<timestamp>","data":{"error":"failed to list containers"}}
+
+event: image_cleanup
+data: {"type":"image_cleanup","timestamp":"<timestamp>","data":{"images":[{"image_id":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","image_name":"nginx:1.26","container_id":"1111111111111111111111111111111111111111111111111111111111111111","container_name":"web"}]}}
+
+event: scan_completed
+data: {"type":"scan_completed","timestamp":"<timestamp>","data":{"scanned":5,"updated":2,"failed":1,"skipped":1}}
+

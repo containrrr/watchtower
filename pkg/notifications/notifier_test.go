@@ -1,154 +1,208 @@
-package notifications_test
+package notifications
 
 import (
+	"bytes"
 	"fmt"
 	"net/url"
+	"os"
+	"slices"
+	"strings"
+	"sync"
+	"testing"
 	"time"
 
-	"github.com/containrrr/watchtower/cmd"
-	"github.com/containrrr/watchtower/internal/flags"
-	"github.com/containrrr/watchtower/pkg/notifications"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+	"github.com/rs/zerolog"
+	"github.com/spf13/cobra"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/nicholas-fedor/watchtower/internal/config"
+	notifyConfig "github.com/nicholas-fedor/watchtower/internal/config/notify"
+	"github.com/nicholas-fedor/watchtower/internal/flags"
 )
 
-var _ = Describe("notifications", func() {
-	Describe("the notifier", func() {
-		When("only empty notifier types are provided", func() {
+// fatalExitMu serializes the tests that replace zerolog.FatalExitFunc, which
+// is process-wide.
+var fatalExitMu sync.Mutex
 
-			command := cmd.NewRootCommand()
-			flags.RegisterNotificationFlags(command)
+// TestNotifier verifies the notifier that NewNotifier builds from the
+// notification settings: its services, title, delay, and the shoutrrr URLs of
+// the legacy notifiers, and that a legacy email notifier without a required
+// setting is fatal.
+func TestNotifier(t *testing.T) {
+	t.Parallel()
 
-			err := command.ParseFlags([]string{
-				"--notifications",
-				"shoutrrr",
+	t.Run("the notifier", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("only empty notifier types are provided", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should configure no services", func(t *testing.T) {
+				t.Parallel()
+
+				notifier := NewNotifier(newTestLogger(t), loadNotify(t, []string{
+					"--notifications",
+					"shoutrrr",
+				}))
+
+				assert.Empty(t, notifier.GetNames())
 			})
-			Expect(err).NotTo(HaveOccurred())
-			notif := notifications.NewNotifier(command)
-
-			Expect(notif.GetNames()).To(BeEmpty())
 		})
-		When("title is overriden in flag", func() {
-			It("should use the specified hostname in the title", func() {
-				command := cmd.NewRootCommand()
-				flags.RegisterNotificationFlags(command)
+		t.Run("title is overridden in flag", func(t *testing.T) {
+			t.Parallel()
 
-				err := command.ParseFlags([]string{
+			t.Run("should use the specified hostname in the title", func(t *testing.T) {
+				t.Parallel()
+
+				data := templateDataFromFlags(t, []string{
 					"--notifications-hostname",
 					"test.host",
 				})
-				Expect(err).NotTo(HaveOccurred())
-				data := notifications.GetTemplateData(command)
 				title := data.Title
-				Expect(title).To(Equal("Watchtower updates on test.host"))
+				assert.Equal(t, "Watchtower updates on test.host", title)
 			})
 		})
-		When("no hostname can be resolved", func() {
-			It("should use the default simple title", func() {
-				title := notifications.GetTitle("", "")
-				Expect(title).To(Equal("Watchtower updates"))
-			})
-		})
-		When("title tag is set", func() {
-			It("should use the prefix in the title", func() {
-				command := cmd.NewRootCommand()
-				flags.RegisterNotificationFlags(command)
+		t.Run("no hostname can be resolved", func(t *testing.T) {
+			t.Parallel()
 
-				Expect(command.ParseFlags([]string{
+			t.Run("should use the default simple title", func(t *testing.T) {
+				t.Parallel()
+
+				title := getTitle(newTestLogger(t), "", "")
+				assert.Equal(t, "Watchtower updates", title)
+			})
+		})
+		t.Run("title tag is set", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should use the prefix in the title", func(t *testing.T) {
+				t.Parallel()
+
+				data := templateDataFromFlags(t, []string{
 					"--notification-title-tag",
 					"PREFIX",
-				})).To(Succeed())
-
-				data := notifications.GetTemplateData(command)
-				Expect(data.Title).To(HavePrefix("[PREFIX]"))
+				})
+				assert.True(t, strings.HasPrefix(data.Title, "[PREFIX]"))
 			})
 		})
-		When("legacy email tag is set", func() {
-			It("should use the prefix in the title", func() {
-				command := cmd.NewRootCommand()
-				flags.RegisterNotificationFlags(command)
+		t.Run("legacy email tag is set", func(t *testing.T) {
+			t.Parallel()
 
-				Expect(command.ParseFlags([]string{
+			//nolint:godox
+			// TODO: Remove legacy email subjecttag test when legacy notification types are removed.
+			t.Run("should use the prefix in the title", func(t *testing.T) {
+				t.Parallel()
+
+				data := templateDataFromFlags(t, []string{
 					"--notification-email-subjecttag",
 					"PREFIX",
-				})).To(Succeed())
-
-				data := notifications.GetTemplateData(command)
-				Expect(data.Title).To(HavePrefix("[PREFIX]"))
+				})
+				assert.True(t, strings.HasPrefix(data.Title, "[PREFIX]"))
 			})
 		})
-		When("the skip title flag is set", func() {
-			It("should return an empty title", func() {
-				command := cmd.NewRootCommand()
-				flags.RegisterNotificationFlags(command)
+		t.Run("the skip title flag is set", func(t *testing.T) {
+			t.Parallel()
 
-				Expect(command.ParseFlags([]string{
+			t.Run("should return an empty title", func(t *testing.T) {
+				t.Parallel()
+
+				data := templateDataFromFlags(t, []string{
 					"--notification-skip-title",
-				})).To(Succeed())
-
-				data := notifications.GetTemplateData(command)
-				Expect(data.Title).To(BeEmpty())
-			})
-		})
-		When("no delay is defined", func() {
-			It("should use the default delay", func() {
-				command := cmd.NewRootCommand()
-				flags.RegisterNotificationFlags(command)
-
-				delay := notifications.GetDelay(command, time.Duration(0))
-				Expect(delay).To(Equal(time.Duration(0)))
-			})
-		})
-		When("delay is defined", func() {
-			It("should use the specified delay", func() {
-				command := cmd.NewRootCommand()
-				flags.RegisterNotificationFlags(command)
-
-				err := command.ParseFlags([]string{
-					"--notifications-delay",
-					"5",
 				})
-				Expect(err).NotTo(HaveOccurred())
-				delay := notifications.GetDelay(command, time.Duration(0))
-				Expect(delay).To(Equal(time.Duration(5) * time.Second))
+				assert.Empty(t, data.Title)
 			})
 		})
-		When("legacy delay is defined", func() {
-			It("should use the specified legacy delay", func() {
-				command := cmd.NewRootCommand()
-				flags.RegisterNotificationFlags(command)
-				delay := notifications.GetDelay(command, time.Duration(5)*time.Second)
-				Expect(delay).To(Equal(time.Duration(5) * time.Second))
-			})
-		})
-		When("legacy delay and delay is defined", func() {
-			It("should use the specified legacy delay and ignore the specified delay", func() {
-				command := cmd.NewRootCommand()
-				flags.RegisterNotificationFlags(command)
+		t.Run("no delay is defined", func(t *testing.T) {
+			t.Parallel()
 
-				err := command.ParseFlags([]string{
-					"--notifications-delay",
-					"0",
-				})
-				Expect(err).NotTo(HaveOccurred())
-				delay := notifications.GetDelay(command, time.Duration(7)*time.Second)
-				Expect(delay).To(Equal(time.Duration(7) * time.Second))
+			t.Run("should use the default delay", func(t *testing.T) {
+				t.Parallel()
+
+				delay := getDelay(newTestLogger(t), 0, time.Duration(0))
+				assert.Equal(t, time.Duration(0), delay)
+			})
+		})
+		t.Run("delay is defined", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should use the specified delay", func(t *testing.T) {
+				t.Parallel()
+
+				delay := getDelay(newTestLogger(t), 5, time.Duration(0))
+				assert.Equal(t, 5*time.Second, delay)
+			})
+		})
+		t.Run("legacy delay is defined", func(t *testing.T) {
+			t.Parallel()
+
+			//nolint:godox
+			// TODO: Remove legacy delay tests when legacy notification types are removed.
+			t.Run("should use the specified legacy delay", func(t *testing.T) {
+				t.Parallel()
+
+				delay := getDelay(newTestLogger(t), 0, 5*time.Second)
+				assert.Equal(t, 5*time.Second, delay)
+			})
+		})
+		t.Run("legacy delay and delay is defined", func(t *testing.T) {
+			t.Parallel()
+
+			//nolint:godox
+			// TODO: Remove legacy delay tests when legacy notification types are removed.
+			t.Run("should use the specified legacy delay and ignore the specified delay", func(t *testing.T) {
+				t.Parallel()
+
+				delay := getDelay(newTestLogger(t), 5, 7*time.Second)
+				assert.Equal(t, 7*time.Second, delay)
+			})
+		})
+		t.Run("notification template file is specified", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should load template from file", func(t *testing.T) {
+				t.Parallel()
+
+				content := "{{.Data.Host}} updated"
+				tmpFile, err := os.CreateTemp("", "template")
+				require.NoError(t, err)
+
+				defer os.Remove(tmpFile.Name())
+
+				_, err = tmpFile.WriteString(content)
+				require.NoError(t, err)
+				tmpFile.Close()
+
+				notifier := NewNotifier(newTestLogger(t), loadNotify(t, []string{
+					"--notification-url",
+					"logger://",
+					"--notification-template-file",
+					tmpFile.Name(),
+				}))
+				require.NotNil(t, notifier)
+				assert.Contains(t, notifier.GetNames(), "logger")
 			})
 		})
 	})
-	Describe("the slack notifier", func() {
-		// builderFn := notifications.NewSlackNotifier
+	//nolint:godox
+	// TODO: Remove legacy slack notifier tests when legacy notification types are removed.
+	t.Run("the slack notifier", func(t *testing.T) {
+		t.Parallel()
 
-		When("passing a discord url to the slack notifier", func() {
-			command := cmd.NewRootCommand()
-			flags.RegisterNotificationFlags(command)
+		t.Run("passing a discord url to the slack notifier", func(t *testing.T) {
+			t.Parallel()
 
 			channel := "123456789"
 			token := "abvsihdbau"
-			color := notifications.ColorInt
+			color := colorInt
 			username := "containrrrbot"
-			iconURL := "https://containrrr.dev/watchtower-sq180.png"
-			expected := fmt.Sprintf("discord://%s@%s?color=0x%x&colordebug=0x0&colorerror=0x0&colorinfo=0x0&colorwarn=0x0&username=watchtower", token, channel, color)
+			iconURL := "https://github.com/nicholas-fedor/watchtower/blob/main/watchtower-sq180.png"
+			expected := fmt.Sprintf(
+				"discord://%s@%s?color=0x%x&colordebug=0x0&colorerror=0x0&colorinfo=0x0&colorwarn=0x0&username=watchtower",
+				token,
+				channel,
+				color,
+			)
 			buildArgs := func(url string) []string {
 				return []string{
 					"--notifications",
@@ -158,19 +212,49 @@ var _ = Describe("notifications", func() {
 				}
 			}
 
-			It("should return a discord url when using a hook url with the domain discord.com", func() {
-				hookURL := fmt.Sprintf("https://%s/api/webhooks/%s/%s/slack", "discord.com", channel, token)
-				testURL(buildArgs(hookURL), expected, time.Duration(0))
+			t.Run("should return a discord url when using a hook url with the domain discord.com", func(t *testing.T) {
+				t.Parallel()
+
+				hookURL := fmt.Sprintf(
+					"https://%s/api/webhooks/%s/%s/slack",
+					"discord.com",
+					channel,
+					token,
+				)
+				testURL(t, buildArgs(hookURL), expected, time.Duration(0))
 			})
-			It("should return a discord url when using a hook url with the domain discordapp.com", func() {
-				hookURL := fmt.Sprintf("https://%s/api/webhooks/%s/%s/slack", "discordapp.com", channel, token)
-				testURL(buildArgs(hookURL), expected, time.Duration(0))
+			t.Run("should return a discord url when using a hook url with the domain discordapp.com", func(t *testing.T) {
+				t.Parallel()
+
+				hookURL := fmt.Sprintf(
+					"https://%s/api/webhooks/%s/%s/slack",
+					"discordapp.com",
+					channel,
+					token,
+				)
+				testURL(t, buildArgs(hookURL), expected, time.Duration(0))
 			})
-			When("icon URL and username are specified", func() {
-				It("should return the expected URL", func() {
-					hookURL := fmt.Sprintf("https://%s/api/webhooks/%s/%s/slack", "discord.com", channel, token)
-					expectedOutput := fmt.Sprintf("discord://%s@%s?avatar=%s&color=0x%x&colordebug=0x0&colorerror=0x0&colorinfo=0x0&colorwarn=0x0&username=%s", token, channel, url.QueryEscape(iconURL), color, username)
-					expectedDelay := time.Duration(7) * time.Second
+			t.Run("icon URL and username are specified", func(t *testing.T) {
+				t.Parallel()
+
+				t.Run("should return the expected URL", func(t *testing.T) {
+					t.Parallel()
+
+					hookURL := fmt.Sprintf(
+						"https://%s/api/webhooks/%s/%s/slack",
+						"discord.com",
+						channel,
+						token,
+					)
+					expectedOutput := fmt.Sprintf(
+						"discord://%s@%s?avatar=%s&color=0x%x&colordebug=0x0&colorerror=0x0&colorinfo=0x0&colorwarn=0x0&username=%s",
+						token,
+						channel,
+						url.QueryEscape(iconURL),
+						color,
+						username,
+					)
+					expectedDelay := 7 * time.Second
 					args := []string{
 						"--notifications",
 						"slack",
@@ -184,27 +268,43 @@ var _ = Describe("notifications", func() {
 						fmt.Sprint(expectedDelay.Seconds()),
 					}
 
-					testURL(args, expectedOutput, expectedDelay)
+					testURL(t, args, expectedOutput, expectedDelay)
 				})
 			})
 		})
-		When("converting a slack service config into a shoutrrr url", func() {
-			command := cmd.NewRootCommand()
-			flags.RegisterNotificationFlags(command)
+		t.Run("converting a slack service config into a shoutrrr url", func(t *testing.T) {
+			t.Parallel()
+
 			username := "containrrrbot"
 			tokenA := "AAAAAAAAA"
 			tokenB := "BBBBBBBBB"
 			tokenC := "123456789123456789123456"
-			color := url.QueryEscape(notifications.ColorHex)
-			iconURL := "https://containrrr.dev/watchtower-sq180.png"
+			color := url.QueryEscape(colorHex)
+			iconURL := "https://github.com/nicholas-fedor/watchtower/blob/main/watchtower-sq180.png"
 			iconEmoji := "whale"
 
-			When("icon URL is specified", func() {
-				It("should return the expected URL", func() {
+			t.Run("icon URL is specified", func(t *testing.T) {
+				t.Parallel()
 
-					hookURL := fmt.Sprintf("https://hooks.slack.com/services/%s/%s/%s", tokenA, tokenB, tokenC)
-					expectedOutput := fmt.Sprintf("slack://hook:%s-%s-%s@webhook?botname=%s&color=%s&icon=%s", tokenA, tokenB, tokenC, username, color, url.QueryEscape(iconURL))
-					expectedDelay := time.Duration(7) * time.Second
+				t.Run("should return the expected URL", func(t *testing.T) {
+					t.Parallel()
+
+					hookURL := fmt.Sprintf(
+						"https://hooks.slack.com/services/%s/%s/%s",
+						tokenA,
+						tokenB,
+						tokenC,
+					)
+					expectedOutput := fmt.Sprintf(
+						"slack://hook:%s-%s-%s@webhook?botname=%s&color=%s&icon=%s",
+						tokenA,
+						tokenB,
+						tokenC,
+						username,
+						color,
+						url.QueryEscape(iconURL),
+					)
+					expectedDelay := 7 * time.Second
 
 					args := []string{
 						"--notifications",
@@ -219,14 +319,31 @@ var _ = Describe("notifications", func() {
 						fmt.Sprint(expectedDelay.Seconds()),
 					}
 
-					testURL(args, expectedOutput, expectedDelay)
+					testURL(t, args, expectedOutput, expectedDelay)
 				})
 			})
 
-			When("icon emoji is specified", func() {
-				It("should return the expected URL", func() {
-					hookURL := fmt.Sprintf("https://hooks.slack.com/services/%s/%s/%s", tokenA, tokenB, tokenC)
-					expectedOutput := fmt.Sprintf("slack://hook:%s-%s-%s@webhook?botname=%s&color=%s&icon=%s", tokenA, tokenB, tokenC, username, color, iconEmoji)
+			t.Run("icon emoji is specified", func(t *testing.T) {
+				t.Parallel()
+
+				t.Run("should return the expected URL", func(t *testing.T) {
+					t.Parallel()
+
+					hookURL := fmt.Sprintf(
+						"https://hooks.slack.com/services/%s/%s/%s",
+						tokenA,
+						tokenB,
+						tokenC,
+					)
+					expectedOutput := fmt.Sprintf(
+						"slack://hook:%s-%s-%s@webhook?botname=%s&color=%s&icon=%s",
+						tokenA,
+						tokenB,
+						tokenC,
+						username,
+						color,
+						iconEmoji,
+					)
 
 					args := []string{
 						"--notifications",
@@ -239,17 +356,34 @@ var _ = Describe("notifications", func() {
 						iconEmoji,
 					}
 
-					testURL(args, expectedOutput, time.Duration(0))
+					testURL(t, args, expectedOutput, time.Duration(0))
 				})
+			})
+		})
+		t.Run("the hook URL is empty", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should fatal with a clear missing argument message", func(t *testing.T) {
+				t.Parallel()
+
+				expectNewNotifierFatal(t, []string{
+					"--notifications",
+					"slack",
+				}, "Slack hook URL is empty.")
 			})
 		})
 	})
 
-	Describe("the gotify notifier", func() {
-		When("converting a gotify service config into a shoutrrr url", func() {
-			It("should return the expected URL", func() {
-				command := cmd.NewRootCommand()
-				flags.RegisterNotificationFlags(command)
+	//nolint:godox
+	// TODO: Remove legacy gotify notifier tests when legacy notification types are removed.
+	t.Run("the gotify notifier", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("converting a gotify service config into a shoutrrr url", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should return the expected URL", func(t *testing.T) {
+				t.Parallel()
 
 				token := "aaa"
 				host := "shoutrrr.local"
@@ -260,29 +394,89 @@ var _ = Describe("notifications", func() {
 					"--notifications",
 					"gotify",
 					"--notification-gotify-url",
-					fmt.Sprintf("https://%s", host),
+					"https://" + host,
 					"--notification-gotify-token",
 					token,
 				}
 
-				testURL(args, expectedOutput, time.Duration(0))
+				testURL(t, args, expectedOutput, time.Duration(0))
+			})
+		})
+		t.Run("initializing a gotify notifier via NewNotifier", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should configure with valid flags", func(t *testing.T) {
+				t.Parallel()
+
+				args := []string{
+					"--notifications",
+					"gotify",
+					"--notification-gotify-url",
+					"https://gotify.example.com",
+					"--notification-gotify-token",
+					"Atesttoken12345",
+					"--notification-gotify-tls-skip-verify",
+				}
+				notifier := NewNotifier(newTestLogger(t), loadNotify(t, args))
+				names := notifier.GetNames()
+				assert.Contains(t, names, "gotify")
+
+				urls := notifier.GetURLs()
+				assert.True(
+					t,
+					slices.ContainsFunc(urls, func(u string) bool { return strings.Contains(u, "gotify://gotify.example.com/Atesttoken12345") }),
+					"no URL contains %q: %v",
+					"gotify://gotify.example.com/Atesttoken12345",
+					urls,
+				)
+			})
+
+			t.Run("should log the token length, not the token, at trace level", func(t *testing.T) {
+				t.Parallel()
+
+				args := []string{
+					"--notifications",
+					"gotify",
+					"--notification-gotify-url",
+					"https://gotify.example.com",
+					"--notification-gotify-token",
+					"Atesttoken12345",
+				}
+
+				var buf lockedBuffer
+
+				log := zerolog.New(&buf).Level(zerolog.TraceLevel)
+
+				notifier := NewNotifier(&log, loadNotify(t, args))
+				assert.Contains(t, notifier.GetNames(), "gotify")
+
+				out := buf.String()
+				assert.Contains(t, out, `"token_length":15,"message":"Gotify notifier token loaded"`)
+				assert.NotContains(t, out, "Atesttoken12345")
 			})
 		})
 	})
 
-	Describe("the teams notifier", func() {
-		When("converting a teams service config into a shoutrrr url", func() {
-			It("should return the expected URL", func() {
-				command := cmd.NewRootCommand()
-				flags.RegisterNotificationFlags(command)
+	//nolint:godox
+	// TODO: Remove legacy msteams notifier tests when legacy notification types are removed.
+	t.Run("the teams notifier", func(t *testing.T) {
+		t.Parallel()
 
-				tokenA := "11111111-4444-4444-8444-cccccccccccc@22222222-4444-4444-8444-cccccccccccc"
-				tokenB := "33333333012222222222333333333344"
-				tokenC := "44444444-4444-4444-8444-cccccccccccc"
-				color := url.QueryEscape(notifications.ColorHex)
+		t.Run("converting a teams service config into a shoutrrr url", func(t *testing.T) {
+			t.Parallel()
 
-				hookURL := fmt.Sprintf("https://outlook.office.com/webhook/%s/IncomingWebhook/%s/%s", tokenA, tokenB, tokenC)
-				expectedOutput := fmt.Sprintf("teams://%s/%s/%s?color=%s", tokenA, tokenB, tokenC, color)
+			t.Run("should return the expected URL", func(t *testing.T) {
+				t.Parallel()
+
+				color := url.QueryEscape(colorHex)
+
+				// Power Automate workflow incoming webhook URL.
+				hookURL := "https://default.environment.api.powerplatform.com/powerautomate/automations/direct/workflows/abc123/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=XXXXXXXX"
+				expectedOutput := fmt.Sprintf(
+					"teams:?color=%s&host=%s",
+					color,
+					url.QueryEscape(hookURL),
+				)
 
 				args := []string{
 					"--notifications",
@@ -291,17 +485,33 @@ var _ = Describe("notifications", func() {
 					hookURL,
 				}
 
-				testURL(args, expectedOutput, time.Duration(0))
+				testURL(t, args, expectedOutput, time.Duration(0))
 			})
 		})
 	})
 
-	Describe("the email notifier", func() {
-		When("converting an email service config into a shoutrrr url", func() {
-			It("should set the from address in the URL", func() {
+	//nolint:godox
+	// TODO: Remove legacy email notifier tests when legacy notification types are removed.
+	t.Run("the email notifier", func(t *testing.T) {
+		t.Parallel()
+
+		t.Run("converting an email service config into a shoutrrr url", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should set the from address in the URL", func(t *testing.T) {
+				t.Parallel()
+
 				fromAddress := "lala@example.com"
-				expectedOutput := buildExpectedURL("containrrrbot", "secret-password", "mail.containrrr.dev", 25, fromAddress, "mail@example.com", "Plain")
-				expectedDelay := time.Duration(7) * time.Second
+				expectedOutput := buildExpectedURL(
+					"containrrrbot",
+					"secret-password",
+					"mail.watchtower.dev",
+					25,
+					fromAddress,
+					"mail@example.com",
+					"Plain",
+				)
+				expectedDelay := 7 * time.Second
 
 				args := []string{
 					"--notifications",
@@ -315,19 +525,28 @@ var _ = Describe("notifications", func() {
 					"--notification-email-server-password",
 					"secret-password",
 					"--notification-email-server",
-					"mail.containrrr.dev",
+					"mail.watchtower.dev",
 					"--notifications-delay",
 					fmt.Sprint(expectedDelay.Seconds()),
 				}
-				testURL(args, expectedOutput, expectedDelay)
+				testURL(t, args, expectedOutput, expectedDelay)
 			})
 
-			It("should return the expected URL", func() {
+			t.Run("should return the expected URL", func(t *testing.T) {
+				t.Parallel()
 
 				fromAddress := "sender@example.com"
 				toAddress := "receiver@example.com"
-				expectedOutput := buildExpectedURL("containrrrbot", "secret-password", "mail.containrrr.dev", 25, fromAddress, toAddress, "Plain")
-				expectedDelay := time.Duration(7) * time.Second
+				expectedOutput := buildExpectedURL(
+					"containrrrbot",
+					"secret-password",
+					"mail.watchtower.dev",
+					25,
+					fromAddress,
+					toAddress,
+					"Plain",
+				)
+				expectedDelay := 7 * time.Second
 
 				args := []string{
 					"--notifications",
@@ -341,37 +560,167 @@ var _ = Describe("notifications", func() {
 					"--notification-email-server-password",
 					"secret-password",
 					"--notification-email-server",
-					"mail.containrrr.dev",
+					"mail.watchtower.dev",
 					"--notification-email-delay",
 					fmt.Sprint(expectedDelay.Seconds()),
 				}
 
-				testURL(args, expectedOutput, expectedDelay)
+				testURL(t, args, expectedOutput, expectedDelay)
+			})
+		})
+		t.Run("a required field is empty", func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("should fatal when the from address is empty", func(t *testing.T) {
+				t.Parallel()
+
+				expectNewNotifierFatal(t, []string{
+					"--notifications",
+					"email",
+					"--notification-email-to",
+					"to@example.com",
+					"--notification-email-server",
+					"mail.example.com",
+				}, "Email from address is empty.")
+			})
+
+			t.Run("should fatal when the to address is empty", func(t *testing.T) {
+				t.Parallel()
+
+				expectNewNotifierFatal(t, []string{
+					"--notifications",
+					"email",
+					"--notification-email-from",
+					"from@example.com",
+					"--notification-email-server",
+					"mail.example.com",
+				}, "Email to address is empty.")
+			})
+
+			t.Run("should fatal when the server is empty", func(t *testing.T) {
+				t.Parallel()
+
+				expectNewNotifierFatal(t, []string{
+					"--notifications",
+					"email",
+					"--notification-email-from",
+					"from@example.com",
+					"--notification-email-to",
+					"to@example.com",
+				}, "Email server is empty.")
 			})
 		})
 	})
-})
+}
 
-func buildExpectedURL(username string, password string, host string, port int, from string, to string, auth string) string {
-	var template = "smtp://%s:%s@%s:%d/?auth=%s&fromaddress=%s&fromname=Watchtower&subject=&toaddresses=%s"
+// expectNewNotifierFatal runs NewNotifier under a temporary FatalExitFunc
+// that panics instead of os.Exit, captures buffer-backed fatal log output, and
+// restores the previous exit callback.
+//
+// Parameters:
+//   - t: Test that receives the failures.
+//   - args: CLI flags to load before constructing the notifier
+//   - wantMsg: exact fatal message text expected in the log output
+func expectNewNotifierFatal(t *testing.T, args []string, wantMsg string) {
+	t.Helper()
+
+	fatalExitMu.Lock()
+	defer fatalExitMu.Unlock()
+
+	oldFatalExit := zerolog.FatalExitFunc
+	defer func() { zerolog.FatalExitFunc = oldFatalExit }()
+
+	var buf bytes.Buffer
+
+	log := zerolog.New(&buf).Level(zerolog.FatalLevel)
+
+	zerolog.FatalExitFunc = func() {
+		panic("fatal exit")
+	}
+
+	cfg := loadNotify(t, args)
+
+	assert.PanicsWithValue(t, "fatal exit", func() {
+		NewNotifier(&log, cfg)
+	})
+
+	out := buf.String()
+	assert.Contains(t, out, `"message":"`+wantMsg+`"`, "expected exact fatal message %q in output:\n%s", wantMsg, out)
+}
+
+// TODO: Remove buildExpectedURL helper when legacy notification tests are removed.
+//
+//nolint:godox
+func buildExpectedURL(
+	username string,
+	password string,
+	host string,
+	port int,
+	from string,
+	destAddress string,
+	auth string,
+) string {
+	template := "smtp://%s:%s@%s:%d/?auth=%s&clienthost=localhost&encryption=Auto&fromaddress=%s&fromname=Watchtower&subject=&toaddresses=%s&usehtml=No&usestarttls=Yes&timeout=10s"
+
 	return fmt.Sprintf(template,
 		url.QueryEscape(username),
 		url.QueryEscape(password),
 		host, port, auth,
 		url.QueryEscape(from),
-		url.QueryEscape(to))
+		url.QueryEscape(destAddress))
 }
 
-func testURL(args []string, expectedURL string, expectedDelay time.Duration) {
-	defer GinkgoRecover()
+// TODO: Remove testURL helper when legacy notification tests are removed.
+//
+//nolint:godox
+func testURL(t *testing.T, args []string, expectedURL string, expectedDelay time.Duration) {
+	t.Helper()
 
-	command := cmd.NewRootCommand()
-	flags.RegisterNotificationFlags(command)
+	cfg := loadNotify(t, args)
 
-	Expect(command.ParseFlags(args)).To(Succeed())
+	urls, legacyDelay := appendLegacyURLs(newTestLogger(t), []string{}, cfg.LegacyTypes, cfg.Legacy)
+	delay := getDelay(newTestLogger(t), cfg.DelaySeconds, legacyDelay)
 
-	urls, delay := notifications.AppendLegacyUrls([]string{}, command)
+	assert.Contains(t, urls, expectedURL)
+	assert.Equal(t, expectedDelay, delay)
+}
 
-	Expect(urls).To(ContainElement(expectedURL))
-	Expect(delay).To(Equal(expectedDelay))
+// loadNotify loads the notification settings from args the way production
+// does, by parsing them into a command with every flag registered and running
+// config.Load.
+//
+// Parameters:
+//   - t: Test that receives the failures.
+//   - args: CLI flags to parse.
+//
+// Returns:
+//   - notifyConfig.Notify: The resolved notification settings.
+func loadNotify(t *testing.T, args []string) notifyConfig.Notify {
+	t.Helper()
+
+	command := &cobra.Command{Use: "watchtower"}
+	flags.RegisterAll(command)
+	require.NoError(t, command.ParseFlags(args))
+
+	cfg, err := config.Load(newTestLogger(t), command, nil)
+	require.NoError(t, err)
+
+	return cfg.Notify
+}
+
+// templateDataFromFlags returns the static notification data for the settings loaded
+// from args.
+//
+// Parameters:
+//   - t: Test that receives the failures.
+//   - args: CLI flags to parse.
+//
+// Returns:
+//   - StaticData: Host and title for notification templates.
+func templateDataFromFlags(t *testing.T, args []string) StaticData {
+	t.Helper()
+
+	cfg := loadNotify(t, args)
+
+	return templateData(newTestLogger(t), cfg.Hostname, cfg.TitleTag, cfg.EmailSubjectTag, cfg.SkipTitle)
 }

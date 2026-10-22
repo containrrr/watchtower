@@ -1,0 +1,48 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:best-practices", ":semanticCommits"],
+  "postUpdateOptions": ["gomodTidy"],
+  "packageRules": [
+    {
+      "matchManagers": ["gomod"],
+      "semanticCommitType": "chore"
+    },
+    {
+      "matchManagers": ["gomod"],
+      "matchDepNames": ["go"],
+      "matchDepTypes": ["golang"],
+      "rangeStrategy": "bump",
+      "semanticCommitType": "chore"
+    },
+    {
+      "matchManagers": ["gomod"],
+      "matchDepTypes": ["indirect"],
+      "semanticCommitType": "chore",
+      "enabled": true
+    },
+    {
+      "description": "A new major version of a Go module is a new module path, so it only becomes a requirement when a direct dependency imports it. Mockery is excluded because go.mod marks the tool as indirect.",
+      "matchManagers": ["gomod"],
+      "matchDepTypes": ["indirect"],
+      "matchUpdateTypes": ["major"],
+      "matchPackageNames": ["!github.com/vektra/mockery/v3"],
+      "enabled": false
+    },
+    {
+      "description": "Automerge non-major updates",
+      "matchUpdateTypes": ["minor", "patch", "digest"],
+      "automerge": true
+    },
+    {
+      "description": "compose-go v2.16+ does not compile against docker/compose v5.5.1. Do not update it on its own. A released docker/compose module raises this requirement through go get when that module requires a newer compose-go.",
+      "matchManagers": ["gomod"],
+      "matchDepNames": ["github.com/compose-spec/compose-go/v2"],
+      "matchPackageNames": ["github.com/compose-spec/compose-go/v2"],
+      "enabled": false,
+      "automerge": false
+    }
+  ],
+  "vulnerabilityAlerts": {
+    "enabled": true
+  }
+}

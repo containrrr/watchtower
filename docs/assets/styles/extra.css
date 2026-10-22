@@ -1,0 +1,30 @@
+/* Center h1 elements with the default foreground color */
+.md-typeset h1 {
+  color: var(--md-default-fg-color);
+  text-align: center;
+}
+
+/* Style the main content grid to control width and margins */
+.md-grid {
+  margin-left: auto; /* Center horizontally */
+  margin-right: auto; /* Center horizontally */
+  max-width: 80rem; /* Set wider content width for large screens */
+  padding-left: 1rem; /* Add padding to prevent content from touching edges */
+  padding-right: 1rem; /* Add padding to prevent content from touching edges */
+}
+
+/* Adjust content width for smaller screens */
+@media screen and (max-width: 76.1875em) {
+  .md-grid {
+    max-width: 61rem; /* Use narrower width for medium screens */
+  }
+}
+
+/* Optimize content width for mobile devices */
+@media screen and (max-width: 48em) {
+  .md-grid {
+    max-width: 100%; /* Use full width on mobile */
+    padding-left: 0.5rem; /* Reduced padding for mobile */
+    padding-right: 0.5rem; /* Reduced padding for mobile */
+  }
+}

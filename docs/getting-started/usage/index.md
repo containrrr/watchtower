@@ -1,0 +1,109 @@
+# Usage
+
+## Running Watchtower as a Docker Container
+
+Watchtower is released as a container image, which makes getting started as simple as pulling the `nickfedor/watchtower` image.
+
+!!! Note
+    If you are using an ARM-based system, then remember to pull the appropriate `nickfedor/watchtower:armhf-<tag>` image from [Docker Hub](https://hub.docker.com/r/nickfedor/watchtower/tags/){target="_blank" rel="noopener noreferrer"}.
+
+### Docker Socket Requirement
+
+Since Watchtower needs to interact with the Docker API in order to monitor and update containers, you need to mount `/var/run/docker.sock` to the Watchtower container with the `-v` flag or specify a host with the `DOCKER_HOST` [variable](../../configuration/docker-connection/index.md#docker_host).
+
+### Docker Engine Dependency
+
+It is recommended to use the latest version of Docker. You can check your host's Docker version using the following CLI command:
+
+```bash
+docker version
+```
+
+[Docker CLI Command Reference](https://docs.docker.com/reference/cli/docker/version/){target="_blank" rel="noopener noreferrer"}
+
+Watchtower autonegotiates the API version by default.
+If the `DOCKER_API_VERSION` [variable](../../configuration/docker-connection/index.md#docker_api_version) is explicitly set, then Watchtower validates the version and falls back to autonegotiation on failure.
+
+This version of Watchtower has been tested to support Docker v1.43 and higher.
+There is an increased probability of failures when using outdated versions of Docker.
+
+### Running the Container
+
+Run the `watchtower` container with the following command:
+
+```bash
+docker run -d \
+  --name watchtower \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  --restart unless-stopped \
+  nickfedor/watchtower
+```
+
+### Git Monitoring
+
+Registry digest comparison is the default staleness signal.
+To rebuild from source when a hosted Git branch or tag changes, see [Git Monitoring](../../advanced-features/git-monitoring/index.md).
+
+### Private Registries
+
+If pulling images from private Docker registries, then supply registry authentication credentials with the environment variables `REPO_USER` and `REPO_PASS`
+or by mounting the host's docker config file into the container (at the root of the container filesystem `/`).
+
+### Passing Environment Variables
+
+```bash
+docker run -d \
+  --name watchtower \
+  -e REPO_USER=username \
+  -e REPO_PASS=password \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  --restart unless-stopped \
+  nickfedor/watchtower container_to_watch --debug
+```
+
+Also check out [this Stack Overflow answer](https://stackoverflow.com/a/30494145/7872793) for more options on how to pass environment variables.
+
+### Docker Hub Credentials
+
+Alternatively, if you 2FA authentication setup on Docker Hub, then passing username and password will be insufficient.
+Instead you can run `docker login` to store your credentials in `$HOME/.docker/config.json` and then mount this config file to make it available to the Watchtower container:
+
+```bash
+docker run -d \
+  --name watchtower \
+  -v $HOME/.docker/config.json:/config.json \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  --restart unless-stopped \
+  nickfedor/watchtower container_to_watch --debug
+```
+
+!!! Note "Changes to config.json while running"
+    If you mount `config.json` in the manner above, changes from the host system will (generally) not be propagated to the running container.
+
+    Mounting files into the Docker daemon uses bind mounts, which are based on inodes.
+
+    Most applications (including `docker login` and `vim`) will not directly edit the file, but instead make a copy and replace the original file, which results in a new inode which in turn _breaks_ the bind mount.
+
+    **As a workaround**, you can create a symlink to your `config.json` file and then mount the symlink in the container.
+    The symlinked file will always have the same inode, which keeps the bind mount intact and will ensure changes to the original file are propagated to the running container (regardless of the inode of the source file!).
+
+If you mount the config file as described above, be sure to also prepend the URL for the registry when starting up your watched image (you can omit the https://).
+
+Here is a complete docker-compose.yml file that starts up a docker container from a private repo on the GitHub Registry and monitors it with Watchtower.
+Note the command argument changing the interval to 30s rather than the default 24 hours.
+
+```yaml
+version: "3"
+services:
+  cavo:
+    image: ghcr.io/<org>/<image>:<tag>
+    ports:
+      - "443:3443"
+      - "80:3080"
+  watchtower:
+    image: nickfedor/watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /root/.docker/config.json:/config.json
+    command: --interval 30
+```

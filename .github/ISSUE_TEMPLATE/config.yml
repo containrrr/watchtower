@@ -1,5 +1,11 @@
 blank_issues_enabled: false
 contact_links:
-  - name: Ask a question
-    url: https://github.com/containrrr/watchtower/discussions
-    about: Ask questions and discuss with other community members
+  - name: 💬 Support and Questions
+    url: https://github.com/nicholas-fedor/watchtower/discussions
+    about: Ask questions or seek support in the Discussions forum.
+  - name: 🌟 Feature Requests
+    url: https://github.com/nicholas-fedor/watchtower/issues/new?template=feature_request.yml
+    about: Suggest new features or enhancements for Watchtower.
+  - name: 📖 Documentation and Contributing
+    url: https://github.com/nicholas-fedor/watchtower/blob/main/CONTRIBUTING.md
+    about: Learn how to contribute or report issues effectively.

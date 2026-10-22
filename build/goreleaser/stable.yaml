@@ -1,0 +1,327 @@
+################################################################################
+#                                                                              #
+#                  GoReleaser OSS Stable Release Configuration                 #
+#                                                                              #
+# Project: Watchtower                                                          #
+# Repository: https://github.com/nicholas-fedor/watchtower/                    #
+#                                                                              #
+# GoReleaser URL: https://goreleaser.com/                                      #
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json      #
+# vim: set ts=2 sw=2 tw=0 fo=cnqoj                                             #
+#                                                                              #
+################################################################################
+
+################################################################################
+# Configuration Version
+version: 2
+################################################################################
+
+################################################################################
+# Project Configuration
+# https://goreleaser.com/customization/project/
+################################################################################
+project_name: "watchtower"
+
+################################################################################
+# Verifiable Builds (Supply Chain Security)
+# https://goreleaser.com/customization/builds/verifiable_builds/
+################################################################################
+gomod:
+  proxy: true
+  env:
+    - GOPROXY=https://proxy.golang.org,direct
+    - GOSUMDB=sum.golang.org
+
+################################################################################
+# Go Binary Build Configuration
+# https://goreleaser.com/customization/builds/go/
+################################################################################
+builds:
+  - id: "watchtower-binary"
+    main: "main.go"
+    binary: "watchtower"
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+      - -X github.com/nicholas-fedor/watchtower/internal/meta.Version={{ .Version }}
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - "386"
+      - arm
+      - arm64
+      - riscv64
+    ignore:
+      - goos: windows
+        goarch: riscv64
+      - goos: windows
+        goarch: arm
+      - goos: darwin
+        goarch: "386"
+      - goos: darwin
+        goarch: arm
+      - goos: darwin
+        goarch: riscv64
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+################################################################################
+# Binary Archive Configuration
+# https://goreleaser.com/customization/package/archives/
+################################################################################
+archives:
+  - formats: ["tar.gz"]
+    name_template: >-
+      {{- .ProjectName }}_
+      {{- if eq .Os "darwin" }}macOS
+      {{- else }}{{ .Os }}{{ end }}_
+      {{- if eq .Arch "amd64" }}amd64
+      {{- else if eq .Arch "386" }}i386
+      {{- else if eq .Arch "arm" }}armhf
+      {{- else if eq .Arch "arm64" }}arm64v8
+      {{- else if eq .Arch "riscv64" }}riscv64
+      {{- else }}{{ .Arch }}{{ end }}_
+      {{- .Version -}}
+    format_overrides:
+      - goos: windows
+        formats: ["zip"]
+    files:
+      - LICENSE.md
+    builds_info:
+      mtime: "{{ .CommitDate }}"
+
+################################################################################
+# Source Archive Configuration
+################################################################################
+source:
+  enabled: true
+  name_template: "watchtower.src"
+
+################################################################################
+# Checksums Configuration
+# https://goreleaser.com/customization/package/checksum/
+################################################################################
+checksum:
+  name_template: "checksums.txt"
+
+################################################################################
+# Docker Digests Configuration
+# https://goreleaser.com/customization/package/docker_digests/
+################################################################################
+docker_digest:
+  name_template: "digests.txt"
+
+################################################################################
+# Docker Image Build Configuration
+# https://goreleaser.com/customization/package/dockers_v2/
+################################################################################
+dockers_v2:
+  ##############################################################################
+  # Multi-platform manifest (all platforms) - non-prefixed tags only
+  ##############################################################################
+  - id: "watchtower-manifest"
+    ids: ["watchtower-binary"]
+    images:
+      - "nickfedor/watchtower"
+      - "ghcr.io/nicholas-fedor/watchtower"
+    tags:
+      - "{{ .Major }}"
+      - "{{ .Major }}.{{ .Minor }}"
+      - "{{ .Version }}"
+      - "latest"
+    dockerfile: build/docker/Dockerfile
+    platforms:
+      - linux/amd64
+      - linux/386
+      - linux/arm/v6
+      - linux/arm64
+      - linux/riscv64
+    labels:
+      org.opencontainers.image.name: "Watchtower"
+      org.opencontainers.image.created: "{{ .Date }}"
+      org.opencontainers.image.version: "{{ .Version }}"
+      org.opencontainers.image.revision: "{{ .FullCommit }}"
+      org.opencontainers.image.source: "{{ .GitURL }}"
+      org.opencontainers.image.description: "Automate Docker container updates."
+      org.opencontainers.image.licenses: "Apache-2.0"
+      org.opencontainers.image.url: "https://github.com/nicholas-fedor/watchtower"
+      org.opencontainers.image.documentation: "https://watchtower.nickfedor.com"
+      com.centurylinklabs.watchtower: "true"
+
+  ##############################################################################
+  # Platform-specific images - platform-prefixed tags only
+  ##############################################################################
+  - id: "watchtower-amd64"
+    ids: ["watchtower-binary"]
+    images:
+      - "nickfedor/watchtower"
+      - "ghcr.io/nicholas-fedor/watchtower"
+    tags:
+      - "amd64-{{ .Major }}"
+      - "amd64-{{ .Major }}.{{ .Minor }}"
+      - "amd64-{{ .Version }}"
+      - "amd64-latest"
+    dockerfile: build/docker/Dockerfile
+    platforms:
+      - linux/amd64
+    labels:
+      org.opencontainers.image.name: "Watchtower"
+      org.opencontainers.image.created: "{{ .Date }}"
+      org.opencontainers.image.version: "{{ .Version }}"
+      org.opencontainers.image.revision: "{{ .FullCommit }}"
+      org.opencontainers.image.source: "{{ .GitURL }}"
+      org.opencontainers.image.description: "Automate Docker container updates."
+      org.opencontainers.image.licenses: "Apache-2.0"
+      org.opencontainers.image.url: "https://github.com/nicholas-fedor/watchtower"
+      org.opencontainers.image.documentation: "https://watchtower.nickfedor.com"
+      com.centurylinklabs.watchtower: "true"
+
+  - id: "watchtower-i386"
+    ids: ["watchtower-binary"]
+    images:
+      - "nickfedor/watchtower"
+      - "ghcr.io/nicholas-fedor/watchtower"
+    tags:
+      - "i386-{{ .Major }}"
+      - "i386-{{ .Major }}.{{ .Minor }}"
+      - "i386-{{ .Version }}"
+      - "i386-latest"
+    dockerfile: build/docker/Dockerfile
+    platforms:
+      - linux/386
+    labels:
+      org.opencontainers.image.name: "Watchtower"
+      org.opencontainers.image.created: "{{ .Date }}"
+      org.opencontainers.image.version: "{{ .Version }}"
+      org.opencontainers.image.revision: "{{ .FullCommit }}"
+      org.opencontainers.image.source: "{{ .GitURL }}"
+      org.opencontainers.image.description: "Automate Docker container updates."
+      org.opencontainers.image.licenses: "Apache-2.0"
+      org.opencontainers.image.url: "https://github.com/nicholas-fedor/watchtower"
+      org.opencontainers.image.documentation: "https://watchtower.nickfedor.com"
+      com.centurylinklabs.watchtower: "true"
+
+  - id: "watchtower-armhf"
+    ids: ["watchtower-binary"]
+    images:
+      - "nickfedor/watchtower"
+      - "ghcr.io/nicholas-fedor/watchtower"
+    tags:
+      - "armhf-{{ .Major }}"
+      - "armhf-{{ .Major }}.{{ .Minor }}"
+      - "armhf-{{ .Version }}"
+      - "armhf-latest"
+    dockerfile: build/docker/Dockerfile
+    platforms:
+      - linux/arm/v6
+    labels:
+      org.opencontainers.image.name: "Watchtower"
+      org.opencontainers.image.created: "{{ .Date }}"
+      org.opencontainers.image.version: "{{ .Version }}"
+      org.opencontainers.image.revision: "{{ .FullCommit }}"
+      org.opencontainers.image.source: "{{ .GitURL }}"
+      org.opencontainers.image.description: "Automate Docker container updates."
+      org.opencontainers.image.licenses: "Apache-2.0"
+      org.opencontainers.image.url: "https://github.com/nicholas-fedor/watchtower"
+      org.opencontainers.image.documentation: "https://watchtower.nickfedor.com"
+      com.centurylinklabs.watchtower: "true"
+
+  - id: "watchtower-arm64v8"
+    ids: ["watchtower-binary"]
+    images:
+      - "nickfedor/watchtower"
+      - "ghcr.io/nicholas-fedor/watchtower"
+    tags:
+      - "arm64v8-{{ .Major }}"
+      - "arm64v8-{{ .Major }}.{{ .Minor }}"
+      - "arm64v8-{{ .Version }}"
+      - "arm64v8-latest"
+    dockerfile: build/docker/Dockerfile
+    platforms:
+      - linux/arm64
+    labels:
+      org.opencontainers.image.name: "Watchtower"
+      org.opencontainers.image.created: "{{ .Date }}"
+      org.opencontainers.image.version: "{{ .Version }}"
+      org.opencontainers.image.revision: "{{ .FullCommit }}"
+      org.opencontainers.image.source: "{{ .GitURL }}"
+      org.opencontainers.image.description: "Automate Docker container updates."
+      org.opencontainers.image.licenses: "Apache-2.0"
+      org.opencontainers.image.url: "https://github.com/nicholas-fedor/watchtower"
+      org.opencontainers.image.documentation: "https://watchtower.nickfedor.com"
+      com.centurylinklabs.watchtower: "true"
+
+  - id: "watchtower-riscv64"
+    ids: ["watchtower-binary"]
+    images:
+      - "nickfedor/watchtower"
+      - "ghcr.io/nicholas-fedor/watchtower"
+    tags:
+      - "riscv64-{{ .Major }}"
+      - "riscv64-{{ .Major }}.{{ .Minor }}"
+      - "riscv64-{{ .Version }}"
+      - "riscv64-latest"
+    dockerfile: build/docker/Dockerfile
+    platforms:
+      - linux/riscv64
+    labels:
+      org.opencontainers.image.name: "Watchtower"
+      org.opencontainers.image.created: "{{ .Date }}"
+      org.opencontainers.image.version: "{{ .Version }}"
+      org.opencontainers.image.revision: "{{ .FullCommit }}"
+      org.opencontainers.image.source: "{{ .GitURL }}"
+      org.opencontainers.image.description: "Automate Docker container updates."
+      org.opencontainers.image.licenses: "Apache-2.0"
+      org.opencontainers.image.url: "https://github.com/nicholas-fedor/watchtower"
+      org.opencontainers.image.documentation: "https://watchtower.nickfedor.com"
+      com.centurylinklabs.watchtower: "true"
+
+################################################################################
+# Software Bill of Materials (SBOM) Configuration
+# https://goreleaser.com/customization/sbom/
+################################################################################
+sboms:
+  - id: binaries
+    artifacts: archive
+  - id: source
+    artifacts: source
+
+################################################################################
+# Signing Configuration (Cosign - Keyless OIDC)
+# https://goreleaser.com/customization/sign/
+################################################################################
+signs:
+  - id: cosign-checksums
+    cmd: cosign
+    args:
+      - "sign-blob"
+      - "--bundle=${signature}"
+      - "${artifact}"
+      - "--yes"
+    artifacts: checksum
+    output: true
+
+################################################################################
+# Docker Image Signing (Cosign)
+# https://goreleaser.com/customization/sign/docker_sign/
+################################################################################
+docker_signs:
+  - id: cosign-images
+    cmd: cosign
+    args:
+      - "sign"
+      - "${artifact}@${digest}"
+      - "--yes"
+    output: true
+
+################################################################################
+# Changelog Configuration
+# https://goreleaser.com/customization/changelog/
+################################################################################
+changelog:
+  disable: true

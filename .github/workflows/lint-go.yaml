@@ -1,0 +1,62 @@
+---
+name: Lint Go
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - cmd/**
+      - internal/**
+      - pkg/**
+      - tools/tplprev/**
+      - go.mod
+      - go.sum
+      - main.go
+
+permissions:
+  contents: read # Set default read-only permissions
+
+jobs:
+  lint:
+    name: Run Golangci-lint
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    steps:
+      - name: Harden the Runner (Step Security)
+        uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2 # v2.22.2
+        with:
+          egress-policy: audit
+
+      - name: Checkout Repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          cache: true
+          cache-dependency-path: "**/go.sum"
+          go-version-file: go.mod
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
+        with:
+          args: --timeout=5m --config=build/golangci-lint/golangci-lint.yaml
+
+      - name: Lint tplprev
+        working-directory: tools/tplprev
+        run: golangci-lint run --config "${GITHUB_WORKSPACE}/build/golangci-lint/golangci-lint.yaml" ./...
+
+      - name: Check Swagger documents are up to date
+        run: |
+          check_dir="${RUNNER_TEMP}/swagger"
+          go tool swag init --quiet -d ./ -g main.go -o "${check_dir}"
+          for file in docs.go swagger.json swagger.yaml; do
+            if ! diff -u "internal/api/swagger/${file}" "${check_dir}/${file}"; then
+              echo "::error file=internal/api/swagger/${file}::Swagger documents are stale. Run 'task swag:gen' and commit the result."
+              exit 1
+            fi
+          done

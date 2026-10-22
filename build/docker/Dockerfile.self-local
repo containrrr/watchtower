@@ -1,0 +1,49 @@
+ARG BASE_IMAGE=golang:alpine3.24@sha256:d530cf60723abf1ffae0cd16bb546b379ec0550d2f3815e5b16ed69dbc00fba4
+
+# Builder Stage
+FROM ${BASE_IMAGE} AS builder
+
+RUN apk add --no-cache ca-certificates tzdata git alpine-sdk
+
+WORKDIR /watchtower
+
+COPY go.mod .
+COPY go.sum .
+
+RUN go mod download
+
+COPY . /watchtower
+
+RUN CGO_ENABLED=0 GOOS=linux go build \
+    -trimpath \
+    -a \
+    -ldflags "\
+    -s -w \
+    -X github.com/nicholas-fedor/watchtower/internal/meta.Version=$(git describe --tags --always) \
+    " \
+    -o ./bin/watchtower \
+    .
+
+
+# Final Build
+FROM scratch
+
+LABEL \
+    "com.centurylinklabs.watchtower"="true" \
+    "org.opencontainers.image.url"="https://watchtower.nickfedor.com" \
+    "org.opencontainers.image.documentation"="https://watchtower.nickfedor.com" \
+    "org.opencontainers.image.source"="https://github.com/nicholas-fedor/watchtower" \
+    "org.opencontainers.image.licenses"="Apache-2.0" \
+    "org.opencontainers.image.title"="Watchtower" \
+    "org.opencontainers.image.description"="Automate Docker container updates."
+
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
+
+COPY --chmod=0755 --from=builder /watchtower/bin/watchtower /watchtower
+
+EXPOSE 8080
+
+HEALTHCHECK CMD [ "/watchtower", "--health-check"]
+
+ENTRYPOINT ["/watchtower"]

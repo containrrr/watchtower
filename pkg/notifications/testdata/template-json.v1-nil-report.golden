@@ -1,0 +1,420 @@
+{
+  "entries": [
+    {
+      "data": {
+        "container": "app",
+        "image": "org/app:latest",
+        "new_id": "d0a110000000"
+      },
+      "level": "info",
+      "message": "Found new image",
+      "time": "2026-10-07T12:00:00Z"
+    },
+    {
+      "data": {
+        "container": "app",
+        "revision": "github.com/org/app@v1.2.0",
+        "short_commit": "0123456"
+      },
+      "level": "warning",
+      "message": "Found new Git revision",
+      "time": "2026-10-07T12:00:01Z"
+    },
+    {
+      "data": {
+        "container": "app",
+        "id": "c79110000000"
+      },
+      "level": "error",
+      "message": "Stopping container",
+      "time": "2026-10-07T12:00:02Z"
+    },
+    {
+      "data": {
+        "container": "app",
+        "new_id": "d0a110000000"
+      },
+      "level": "debug",
+      "message": "Started new container",
+      "time": "2026-10-07T12:00:03Z"
+    },
+    {
+      "data": {
+        "container": "app",
+        "id": "c79110000000"
+      },
+      "level": "info",
+      "message": "Stopping linked container",
+      "time": "2026-10-07T12:00:04Z"
+    },
+    {
+      "data": {
+        "container": "app",
+        "new_id": "d0a110000000"
+      },
+      "level": "warning",
+      "message": "Started linked container",
+      "time": "2026-10-07T12:00:05Z"
+    },
+    {
+      "data": {
+        "container": "app",
+        "image": "org/app:latest",
+        "new_id": "d0a110000000",
+        "old_id": "01d110000000"
+      },
+      "level": "error",
+      "message": "Container updated",
+      "time": "2026-10-07T12:00:06Z"
+    },
+    {
+      "data": {
+        "container_name": "app",
+        "image_id": "01d110000000",
+        "image_name": "org/app:latest"
+      },
+      "level": "debug",
+      "message": "Removing image",
+      "time": "2026-10-07T12:00:07Z"
+    },
+    {
+      "data": {
+        "error": "cannot connect to the Docker daemon",
+        "image_id": "01d110000000",
+        "image_name": "org/app:latest"
+      },
+      "level": "info",
+      "message": "Failed to list containers for image usage check, skipping removal",
+      "time": "2026-10-07T12:00:08Z"
+    },
+    {
+      "data": {
+        "cooldown": "1d",
+        "eligible_at": "2026-10-08T10:00:00Z",
+        "eligible_in": "22h",
+        "image": "org/app:latest",
+        "image_age": "2h"
+      },
+      "level": "warning",
+      "message": "Image is within cooldown period - not eligible for update",
+      "time": "2026-10-07T12:00:09Z"
+    },
+    {
+      "data": {
+        "cooldown": "1d",
+        "image": "org/app:latest",
+        "image_age": "2d"
+      },
+      "level": "error",
+      "message": "Image age exceeds cooldown - eligible for update",
+      "time": "2026-10-07T12:00:10Z"
+    },
+    {
+      "data": {
+        "cooldown": "1d",
+        "error": "manifest unknown",
+        "image": "org/app:latest"
+      },
+      "level": "debug",
+      "message": "Image creation time unavailable - update check unavailable",
+      "time": "2026-10-07T12:00:11Z"
+    },
+    {
+      "data": {
+        "count": 2
+      },
+      "level": "info",
+      "message": "Detected multiple Watchtower instances - initiating cleanup",
+      "time": "2026-10-07T12:00:12Z"
+    },
+    {
+      "data": {
+        "removed_instances": 1
+      },
+      "level": "warning",
+      "message": "Successfully removed all excess Watchtower containers",
+      "time": "2026-10-07T12:00:13Z"
+    },
+    {
+      "data": {
+        "disk_space_max": 10737418240,
+        "disk_space_warn": 8589934592
+      },
+      "level": "error",
+      "message": "Docker image usage budget enabled",
+      "time": "2026-10-07T12:00:14Z"
+    },
+    {
+      "data": {
+        "image_count": 3,
+        "max": 10737418240,
+        "reclaimable": 2147483648,
+        "usage": 11811160064,
+        "warn": 8589934592
+      },
+      "level": "debug",
+      "message": "Docker image usage exceeds configured maximum",
+      "time": "2026-10-07T12:00:15Z"
+    },
+    {
+      "data": {
+        "image_count": 3,
+        "max": 10737418240,
+        "reclaimable": 2147483648,
+        "usage": 9663676416,
+        "warn": 8589934592
+      },
+      "level": "info",
+      "message": "Docker image usage exceeds configured warning threshold",
+      "time": "2026-10-07T12:00:16Z"
+    },
+    {
+      "data": {
+        "error": "daemon disk usage unavailable"
+      },
+      "level": "warning",
+      "message": "Failed to query Docker image disk usage",
+      "time": "2026-10-07T12:00:17Z"
+    },
+    {
+      "data": {
+        "changelog": "https://github.com/org/app/releases/tag/v1.2.0",
+        "container": "app"
+      },
+      "level": "error",
+      "message": "Changelog",
+      "time": "2026-10-07T12:00:18Z"
+    },
+    {
+      "data": {
+        "container": "app",
+        "image": "org/app:latest",
+        "image_id": "b17d10000000"
+      },
+      "level": "debug",
+      "message": "Built image from Git URL context",
+      "time": "2026-10-07T12:00:19Z"
+    },
+    {
+      "data": {
+        "project": "stack",
+        "service": "web"
+      },
+      "level": "info",
+      "message": "Built Compose project",
+      "time": "2026-10-07T12:00:20Z"
+    },
+    {
+      "data": {
+        "container": "app",
+        "error": "example failure",
+        "image": "org/app:latest"
+      },
+      "level": "warning",
+      "message": "Git build failed. Leaving running container untouched",
+      "time": "2026-10-07T12:00:21Z"
+    },
+    {
+      "data": {
+        "container": "stack-web-1",
+        "dir": "/srv/stack",
+        "error": "example failure",
+        "image": "org/web:latest"
+      },
+      "level": "error",
+      "message": "Compose apply failed. Docker Compose may have partially recreated services",
+      "time": "2026-10-07T12:00:22Z"
+    },
+    {
+      "data": {
+        "project": "stack",
+        "service": "web, worker"
+      },
+      "level": "debug",
+      "message": "Compose apply finished with unconfirmed service results",
+      "time": "2026-10-07T12:00:23Z"
+    },
+    {
+      "data": {
+        "container": "stack-web-1",
+        "image": "org/web:latest",
+        "service": "web"
+      },
+      "level": "info",
+      "message": "Compose apply result omitted this service. Runtime state is unknown",
+      "time": "2026-10-07T12:00:24Z"
+    },
+    {
+      "data": {
+        "container": "stack-web-1",
+        "image": "org/web:latest",
+        "service": "web"
+      },
+      "level": "warning",
+      "message": "Compose apply did not return an identifiable instance for this replica. Runtime state is unknown",
+      "time": "2026-10-07T12:00:25Z"
+    },
+    {
+      "data": {
+        "container": "app",
+        "image": "org/app:latest"
+      },
+      "level": "error",
+      "message": "Compose apply skipped. Container has no compose service label",
+      "time": "2026-10-07T12:00:26Z"
+    },
+    {
+      "data": null,
+      "level": "debug",
+      "message": "Compose batch dependencies are cyclic. Appending unresolved batches in first-seen order",
+      "time": "2026-10-07T12:00:27Z"
+    },
+    {
+      "data": {
+        "container": "app",
+        "error": "example failure",
+        "image": "org/app:latest"
+      },
+      "level": "info",
+      "message": "Compose project directory is not readable. Leaving the running container untouched",
+      "time": "2026-10-07T12:00:28Z"
+    },
+    {
+      "data": {
+        "container": "stack-web-1",
+        "dir": "/srv/stack",
+        "error": "example failure",
+        "image": "org/web:latest"
+      },
+      "level": "warning",
+      "message": "Compose update failed before container replacement",
+      "time": "2026-10-07T12:00:29Z"
+    },
+    {
+      "data": {
+        "error": "circular reference detected"
+      },
+      "level": "error",
+      "message": "Could not dependency-sort Compose batches. Using the existing container order",
+      "time": "2026-10-07T12:00:30Z"
+    },
+    {
+      "data": {
+        "error": "circular reference detected"
+      },
+      "level": "debug",
+      "message": "Could not order Compose batches by dependencies. Using first-seen order",
+      "time": "2026-10-07T12:00:31Z"
+    },
+    {
+      "data": {
+        "container": "app",
+        "image": "org/app:latest"
+      },
+      "level": "info",
+      "message": "Skipped container with an invalid git-host",
+      "time": "2026-10-07T12:00:32Z"
+    },
+    {
+      "data": {
+        "container": "app",
+        "image": "org/app:latest"
+      },
+      "level": "warning",
+      "message": "Skipped container with an invalid git semver policy",
+      "time": "2026-10-07T12:00:33Z"
+    },
+    {
+      "data": {
+        "container": "app",
+        "image": "org/app:latest"
+      },
+      "level": "error",
+      "message": "Skipping Watchtower self-update in run-once mode",
+      "time": "2026-10-07T12:00:34Z"
+    },
+    {
+      "data": {
+        "scope": "production"
+      },
+      "level": "debug",
+      "message": "Only checking containers in scope",
+      "time": "2026-10-07T12:00:35Z"
+    },
+    {
+      "data": {
+        "host": "0.0.0.0",
+        "port": "8080",
+        "tls": true
+      },
+      "level": "info",
+      "message": "Starting HTTP API server",
+      "time": "2026-10-07T12:00:36Z"
+    },
+    {
+      "data": {
+        "host": "0.0.0.0",
+        "port": "8080",
+        "tls": true
+      },
+      "level": "warning",
+      "message": "HTTP API server is enabled",
+      "time": "2026-10-07T12:00:37Z"
+    },
+    {
+      "data": {
+        "container": "app",
+        "error": "image pull: registry rate limited: retry-after 347.256µs allowed 44000 per 1m0s",
+        "image": "org/app:latest"
+      },
+      "level": "error",
+      "message": "Registry rate limit retries exhausted. Container failed for this cycle",
+      "time": "2026-10-07T12:00:38Z"
+    },
+    {
+      "data": {
+        "container": "app",
+        "depends_on": "missing-db"
+      },
+      "level": "debug",
+      "message": "Ignoring depends-on entry that names no container",
+      "time": "2026-10-07T12:00:39Z"
+    },
+    {
+      "data": {
+        "container": "app",
+        "id": "abcdef123456"
+      },
+      "level": "info",
+      "message": "Skipping container update (self-dependency)",
+      "time": "2026-10-07T12:00:40Z"
+    },
+    {
+      "data": {
+        "container": "app",
+        "id": "abcdef123456"
+      },
+      "level": "warning",
+      "message": "Skipping container update (circular dependency)",
+      "time": "2026-10-07T12:00:41Z"
+    },
+    {
+      "data": {
+        "alpha": "one",
+        "beta": 2
+      },
+      "level": "info",
+      "message": "Unrecognized message with fields",
+      "time": "2026-10-07T13:00:00Z"
+    },
+    {
+      "data": null,
+      "level": "warning",
+      "message": "Unrecognized message without fields",
+      "time": "2026-10-07T14:00:00Z"
+    }
+  ],
+  "host": "golden-host",
+  "report": null,
+  "title": "Watchtower updates on golden-host"
+}

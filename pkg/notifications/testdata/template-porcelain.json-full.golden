@@ -1,0 +1,64 @@
+{
+  "containers": [
+    {
+      "name": "updt1",
+      "image": "mock/updt1:latest",
+      "image_id": "01d110000000",
+      "latest_image_id": "d0a110000000",
+      "state": "Updated",
+      "update_available": true,
+      "git_repo": "https://github.com/org/app.git",
+      "git_ref": "v1.2.0",
+      "changelog": "https://github.com/org/app/releases/tag/v1.2.0",
+      "oci_source": "https://github.com/org/app",
+      "image_url": "https://example.com/org/app",
+      "documentation": "https://example.com/org/app/docs",
+      "current_image_version": "1.1.0",
+      "latest_image_version": "1.2.0",
+      "current_revision": "1111111111111111111111111111111111111111",
+      "latest_revision": "2222222222222222222222222222222222222222"
+    },
+    {
+      "name": "updt2",
+      "image": "mock/updt2:latest",
+      "image_id": "01d120000000",
+      "latest_image_id": "d0a120000000",
+      "state": "Updated",
+      "update_available": true
+    },
+    {
+      "name": "fail1",
+      "image": "mock/fail1:latest",
+      "image_id": "01d210000000",
+      "latest_image_id": "d0a210000000",
+      "state": "Failed",
+      "update_available": true,
+      "error": "pull access denied for org/fail1"
+    },
+    {
+      "name": "frsh1",
+      "image": "mock/frsh1:latest",
+      "image_id": "01d310000000",
+      "latest_image_id": "01d310000000",
+      "state": "Fresh",
+      "update_available": false
+    },
+    {
+      "name": "skip1",
+      "image": "mock/skip1:latest",
+      "image_id": "01d410000000",
+      "latest_image_id": "01d410000000",
+      "state": "Skipped",
+      "update_available": false,
+      "error": "container is not running"
+    },
+    {
+      "name": "rstr1",
+      "image": "mock/rstr1:latest",
+      "image_id": "01d510000000",
+      "latest_image_id": "01d510000000",
+      "state": "Restarted",
+      "update_available": false
+    }
+  ]
+}

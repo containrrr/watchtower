@@ -1,14 +1,94 @@
 root = true
 
 [*]
-end_of_line = lf
-insert_final_newline = true
 charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 4
+insert_final_newline = true
+trim_trailing_whitespace = true
 
-[*.css]
+# General Markdown files (GitHub/CommonMark - 2 spaces)
+[*.md]
 indent_style = space
 indent_size = 2
+trim_trailing_whitespace = false
 
+# MkDocs documentation (Python Markdown - 4 spaces)
+[docs/**/*.md]
+indent_style = space
+indent_size = 4
+trim_trailing_whitespace = false
+
+# Configuration files
+[*.{yml,yaml}]
+indent_style = space
+indent_size = 2
+trim_trailing_whitespace = true
+
+[*.toml]
+indent_style = space
+indent_size = 2
+trim_trailing_whitespace = true
+
+[*.json]
+indent_style = space
+indent_size = 2
+trim_trailing_whitespace = true
+
+# Scripts
+[*.sh]
+indent_style = space
+indent_size = 4
+trim_trailing_whitespace = true
+
+[*.ps1]
+indent_style = space
+indent_size = 4
+trim_trailing_whitespace = true
+
+# Web files
+[*.{js,css,html}]
+indent_style = space
+indent_size = 2
+trim_trailing_whitespace = true
+
+# Text files
+[*.txt]
+indent_style = space
+indent_size = 4
+trim_trailing_whitespace = true
+
+# Build files
+[Dockerfile]
+indent_style = space
+indent_size = 4
+trim_trailing_whitespace = true
+
+[Makefile]
+indent_style = tab
+indent_size = 4
+trim_trailing_whitespace = true
+
+# Git and ignore files
+[{.gitignore,.gitattributes,.dockerignore}]
+indent_style = space
+indent_size = 2
+trim_trailing_whitespace = true
+
+# Special config files
+[.editorconfig]
+indent_style = space
+indent_size = 2
+trim_trailing_whitespace = true
+
+[.all-contributorsrc]
+indent_style = space
+indent_size = 2
+trim_trailing_whitespace = true
+
+# Go files
 [{go.mod,go.sum,*.go}]
 indent_style = tab
 indent_size = 4
+trim_trailing_whitespace = true

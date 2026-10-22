@@ -1,0 +1,43 @@
+# Normalize all text files to LF line endings
+* text=auto eol=lf
+
+# Explicitly set Go-related text files to LF
+*.go text eol=lf
+*.mod text eol=lf
+*.sum text eol=lf
+*.work text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.json text eol=lf
+*.proto text eol=lf
+
+# Treat configuration and script files as text with LF
+*.toml text eol=lf
+*.ini text eol=lf
+*.sh text eol=lf
+Dockerfile text eol=lf
+*.dockerignore text eol=lf
+*.gitignore text eol=lf
+*.gitattributes text eol=lf
+
+# Treat binary files as binary (no line-ending conversion or diff)
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.tar binary
+*.gz binary
+*.exe binary
+*.dll binary
+*.so binary
+*.db binary
+*.sqlite binary
+
+# Ensure generated Go binaries or test caches are treated as binary
+*.out binary
+*.test binary

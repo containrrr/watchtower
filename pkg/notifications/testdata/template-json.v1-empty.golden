@@ -1,0 +1,14 @@
+{
+  "entries": [],
+  "host": "golden-host",
+  "report": {
+    "failed": [],
+    "fresh": [],
+    "restarted": [],
+    "scanned": [],
+    "skipped": [],
+    "stale": [],
+    "updated": []
+  },
+  "title": "Watchtower updates on golden-host"
+}

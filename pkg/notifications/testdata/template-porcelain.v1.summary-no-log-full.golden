@@ -1,0 +1,6 @@
+updt1 (mock/updt1:latest): Updated
+updt2 (mock/updt2:latest): Updated
+fail1 (mock/fail1:latest): Failed Error: pull access denied for org/fail1
+frsh1 (mock/frsh1:latest): Fresh
+skip1 (mock/skip1:latest): Skipped Error: container is not running
+rstr1 (mock/rstr1:latest): Restarted

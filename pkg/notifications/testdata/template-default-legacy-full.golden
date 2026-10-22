@@ -1,0 +1,44 @@
+Found new image: org/app:latest (d0a110000000)
+Found new Git revision: github.com/org/app@v1.2.0 (0123456)
+Stopped stale container: app (c79110000000)
+Started new container: app (d0a110000000)
+Stopped linked container: app (c79110000000)
+Started linked container: app (d0a110000000)
+Updated container: app (org/app:latest): 01d110000000 updated to d0a110000000
+Cleaned up old image: org/app:latest (01d110000000)
+Skipped image cleanup: org/app:latest (01d110000000): cannot connect to the Docker daemon
+org/app:latest created less than 1d ago - eligible in 22h (Thu, 08 Oct 2026 10:00:00 UTC)
+org/app:latest created more than 1d ago - eligible for update
+org/app:latest creation time unavailable (cooldown: 1d) - update check unavailable
+Detected 2 Watchtower instances - initiating cleanup
+Successfully removed 1 old Watchtower container
+Docker image usage budget enabled: maximum 10.74 GB, warning at 8.59 GB
+Docker image usage exceeds configured maximum: 11.81 GB of 10.74 GB used (2.15 GB reclaimable, 3 images)
+Docker image usage exceeds configured warning threshold: 9.66 GB of 8.59 GB used (2.15 GB reclaimable, 3 images)
+Failed to query Docker image disk usage: daemon disk usage unavailable
+Changelog: https://github.com/org/app/releases/tag/v1.2.0
+Built image: org/app:latest (b17d10000000)
+Built Compose project: stack (web)
+Git update failed for app. The running container was left in place: example failure
+Compose update failed for stack-web-1. Docker Compose may have partially recreated services: example failure
+Compose update finished with unconfirmed results for web, worker
+Skipped stack-web-1: compose result did not include web
+Skipped stack-web-1: compose result did not identify this replica
+Skipped app: container has no compose service label
+Compose dependency order is unavailable. Using the current container order
+Skipped app: compose directory is not readable
+Compose update failed for stack-web-1. The running container was left in place: example failure
+Compose dependency order is unavailable. Using the current container order
+Compose dependency order is unavailable. Using the current container order
+Skipped app: invalid git-host
+Skipped app: invalid git semver policy
+Run once mode: Watchtower self-update skipped
+Only checking containers in scope: production
+Starting HTTP API server at https://0.0.0.0:8080
+HTTP API server is available at https://0.0.0.0:8080
+Update failed for app (org/app:latest): image pull: registry rate limited: retry-after 347.256µs allowed 44000 per 1m0s
+Ignored depends-on missing-db for app: no container has that name
+Skipped app: depends on itself
+Skipped app: circular dependency
+Unrecognized message with fields | alpha=one beta=2 
+Unrecognized message without fields

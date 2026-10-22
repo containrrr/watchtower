@@ -1,0 +1,25 @@
+---
+name: Refresh pkg.go.dev
+
+on:
+  - workflow_dispatch
+  - workflow_call
+
+permissions:
+  contents: read # Set default read-only permissions
+
+jobs:
+  update-go-docs:
+    name: Update pkg.go.dev
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden the Runner (Step Security)
+        uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2 # v2.22.2
+        with:
+          egress-policy: audit
+
+      - name: Run pkg.go.dev Update
+        uses: nicholas-fedor/go-proxy-pull-action@8f784b07227e87c2d6555d3805c3a83e02e29227 # v1.1.52
+        with:
+          goproxy: https://proxy.golang.org
+          import_path: github.com/nicholas-fedor/watchtower

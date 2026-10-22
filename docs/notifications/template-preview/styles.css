@@ -1,0 +1,339 @@
+/* Form Layout */
+/* Styles for the main form container, ensuring proper layout and constraints */
+#tplprev {
+  display: flex; /* Use flexbox for column layout */
+  flex-direction: column; /* Stack children vertically */
+  row-gap: 1rem; /* Space between rows */
+  box-sizing: border-box; /* Include padding and border in width/height calculations */
+  position: relative; /* Establish positioning context for absolute children */
+  width: 100%; /* Full width of parent */
+  padding: 0; /* Add horizontal padding */
+  margin-left: 0;
+  height: 100%; /* Fill available height */
+  max-height: 100%; /* Prevent expansion beyond parent height */
+  overflow: hidden; /* Clip any overflow to prevent footer issues */
+}
+
+/* Styles for the template textarea, allowing user input for templates */
+#tplprev textarea {
+  box-decoration-break: slice; /* Control box decoration breaking */
+  overflow: auto; /* Enable scrolling if content overflows */
+  padding: 0.77em 1.18em; /* Match preview-output padding for consistency */
+  scrollbar-color: var(--md-default-fg-color--lighter) transparent; /* Custom scrollbar color */
+  scrollbar-width: auto; /* Thin scrollbar for better UI */
+  touch-action: auto; /* Allow touch interactions */
+  min-height: 475px; /* Set minimum text area height to handle template length */
+  white-space: pre-wrap; /* Preserve whitespace and wrap, matching preview-output */
+  word-break: normal; /* Prevent word breaking, matching preview-output */
+  flex: 1; /* Grow to fill available space */
+  width: 100%; /* Full width */
+  box-sizing: border-box; /* Include padding in height/width */
+  background-color: var(
+    --md-code-bg-color
+  ); /* Match preview-output background */
+  border-width: 0; /* No border, matching preview-output */
+  border-radius: 0.1rem; /* Slight rounding */
+  color: var(--md-code-fg-color); /* Match preview-output text color */
+  font-feature-settings: "kern"; /* Enable kerning */
+  font-family: var(--md-code-font-family); /* Match preview-output font */
+  font-size: 0.7rem; /* Match preview-output text size */
+}
+
+/* Focus state for textarea to enhance usability */
+#tplprev textarea:focus {
+  outline: 2px solid var(--md-accent-fg-color); /* Highlight on focus, using theme accent */
+  outline-offset: -1px; /* Keep outline within element bounds */
+}
+
+/* Styles for the template header container, isolating the header for reliable rendering */
+#tplprev .template-wrapper .template-header-container {
+  display: flex;
+  flex-direction: row;
+  background: var(--md-default-bg-color--lighter) !important;
+  border-bottom: 1px solid var(--md-default-fg-color--lightest); /* Match tab-header border */
+  position: sticky; /* Stick to top when scrolling textarea */
+  top: 0; /* Align to top edge */
+  z-index: 2; /* Ensure above textarea content */
+  flex-shrink: 0; /* Prevent shrinking */
+}
+
+/* Styles for the template header bar within its container */
+#tplprev .template-wrapper .template-header {
+  padding: 0.5rem 1rem; /* Match tab-header padding */
+  color: var(--md-default-fg-color--light); /* Match tab-header text color */
+  font-family: var(--md-default-font-family); /* Match Material theme font */
+  font-size: 0.9rem; /* Slightly larger for header clarity */
+  font-weight: 500; /* Medium weight for consistency with tab labels */
+  transition: background 0.2s, color 0.2s; /* Smooth transitions, matching tab labels */
+}
+
+/* Hover state for template header to match tab label interactivity */
+#tplprev .template-wrapper .template-header:hover {
+  background: var(
+    --md-default-bg-color--light
+  ); /* Match tab label hover background */
+  color: var(--md-default-fg-color); /* Match tab label hover text color */
+}
+
+/* Styles for the controls container, organizing input fields */
+#tplprev .controls {
+  display: flex; /* Use flexbox */
+  flex-direction: row; /* Horizontal layout */
+  flex-wrap: wrap; /* Wrap to next line if needed */
+  column-gap: 0.5rem; /* Space between columns */
+  row-gap: 0.5rem; /* Space between rows */
+}
+
+/* Shared styles for input elements within the form */
+#tplprev input {
+  background-color: var(--md-code-bg-color); /* Match code background */
+  border-width: 0; /* No border */
+  border-radius: 0.1rem; /* Slight rounding */
+  color: var(--md-code-fg-color); /* Text color */
+  font-feature-settings: "kern"; /* Enable kerning */
+  font-family: var(--md-code-font-family); /* Use code font */
+}
+
+/* Styles for number field labels */
+.numfield {
+  font-size: 0.7rem; /* Smaller text for labels */
+  display: flex; /* Use flexbox */
+  flex-direction: row; /* Horizontal layout for label and input */
+  align-items: center; /* Center vertically */
+  column-gap: 0.5rem; /* Space between label and input */
+  min-width: 120px; /* Minimum width for alignment */
+}
+
+/* Styles for number inputs */
+#tplprev input[type="number"] {
+  width: 5ch; /* Width based on character count */
+  flex: 1; /* Grow to fill available space */
+  font-size: 0.7rem; /* Match label size */
+}
+
+/* Styles for fieldsets within controls */
+#tplprev fieldset {
+  margin-top: -0.5rem; /* Adjust spacing above fieldset */
+  display: flex; /* Use flexbox */
+  flex: 1; /* Grow to fill space */
+  column-gap: 0.5rem; /* Space between columns */
+  flex-wrap: wrap; /* Wrap if needed */
+  row-gap: 0.5rem; /* Space between rows */
+}
+
+/* Styles for template wrapper */
+#tplprev .template-wrapper {
+  display: flex; /* Use flexbox */
+  flex-direction: column; /* Stack header container and textarea vertically */
+  flex: 1; /* Grow to fill space */
+  width: 100%; /* Full width */
+  background: var(
+    --md-code-bg-color
+  ); /* Match tabs and textarea for consistent blending */
+}
+
+/* Styles for result wrapper */
+#tplprev .result-wrapper {
+  flex: 1; /* Grow to fill space */
+  display: flex; /* Use flexbox */
+  width: 100%; /* Full width */
+  overflow: hidden; /* Prevent overflow */
+  max-height: 100%; /* Limit to parent height */
+}
+
+/* Styles for result preview area */
+#result {
+  font-size: 0.7rem; /* Match textarea text size */
+  background-color: var(--md-code-bg-color); /* Match code background */
+  scrollbar-color: var(--md-default-fg-color--lighter) transparent; /* Custom scrollbar */
+  scrollbar-width: thin; /* Thin scrollbar */
+  touch-action: auto; /* Allow touch interactions */
+  overflow: hidden; /* Prevent overflow */
+  padding: 0; /* No padding */
+  margin: 0; /* No margin */
+  min-height: 200px; /* Minimum height */
+  height: 100%; /* Fill available space */
+  flex: 1; /* Grow to fill space */
+  width: 100%; /* Full width */
+  box-sizing: border-box; /* Include padding in height/width */
+  border-radius: 0.1rem; /* Slight rounding */
+}
+
+/* Styles for bold text in preview */
+#result b {
+  color: var(--md-code-hl-special-color); /* Highlight color for bold */
+}
+
+/* Styles for italic text in preview */
+#result i {
+  color: var(--md-code-hl-keyword-color); /* Highlight color for italic */
+}
+
+/* Styles for loading indicator */
+#tplprev .loading {
+  position: absolute; /* Position over form */
+  inset: 0; /* Cover entire form area */
+  display: flex; /* Center content */
+  align-items: center; /* Vertically center text */
+  justify-content: center; /* Horizontally center text */
+  padding: 1rem; /* Inner padding */
+  box-sizing: border-box; /* Include padding in size */
+  background: var(
+    --md-default-bg-color
+  ); /* Solid background to cover elements */
+  margin-top: 0; /* No top margin */
+  z-index: 10; /* Ensure on top of other elements */
+  font-size: 1rem; /* Adjust font size for visibility */
+  color: var(--md-default-fg-color--light); /* Text color for readability */
+}
+
+/* Tab Layout */
+.tabs {
+  position: relative; /* Positioning context */
+  margin: 0; /* No margins */
+  background: var(--md-code-bg-color); /* Match background */
+  border-radius: 0.1rem; /* Slight rounding */
+  overflow: hidden; /* Clip content */
+  display: flex; /* Use flexbox */
+  flex-direction: column; /* Stack vertically */
+  height: 100%; /* Fill parent height */
+  min-height: 100px; /* Minimum height */
+}
+
+.tabs .tab-header {
+  display: flex; /* Use flexbox */
+  flex-direction: row; /* Horizontal layout */
+  background: var(
+    --md-default-bg-color--lighter
+  ) !important; /* Match template-header background, override parent styles */
+  border-bottom: 1px solid var(--md-default-fg-color--lightest); /* Match template-header border */
+  position: sticky; /* Stick to top on scroll */
+  top: 0; /* Align to top edge */
+  z-index: 2; /* Ensure above tab content */
+  flex-shrink: 0; /* Prevent shrinking */
+}
+
+.tabs input[type="radio"] {
+  position: absolute; /* Position off-screen */
+  opacity: 0; /* Hide visually */
+}
+
+.tabs label {
+  flex: 0 0 auto; /* Fixed size, no shrink/grow */
+  padding: 0.5rem 1rem; /* Inner padding */
+  cursor: pointer; /* Indicate clickable */
+  color: var(--md-default-fg-color--light); /* Light text color */
+  border-bottom: 2px solid transparent; /* Initial border */
+  transition: background 0.2s, color 0.2s; /* Smooth transitions */
+}
+
+.tabs label:hover {
+  background: var(--md-default-bg-color--light); /* Hover background */
+  color: var(--md-default-fg-color); /* Hover text color */
+}
+
+.tabs input:checked + label {
+  background: var(--md-accent-fg-color); /* Selected background */
+  color: var(--md-primary-bg-color); /* Selected text color */
+  border-bottom: 2px solid var(--md-primary-fg-color); /* Selected border */
+}
+
+.tabs .tab {
+  flex: 1; /* Grow to fill remaining space */
+  display: none; /* Hidden by default */
+  padding: 0; /* No padding */
+  background: var(--md-code-bg-color); /* Match background */
+  visibility: hidden; /* Hidden for accessibility */
+  opacity: 0; /* Fully transparent when hidden */
+  overflow: auto; /* Enable scrolling if content overflows */
+  box-sizing: border-box; /* Include padding in size */
+}
+
+.tabs input:checked + .tab {
+  display: block; /* Show when selected */
+  visibility: visible; /* Visible for accessibility */
+  opacity: 1; /* Fully opaque when selected */
+}
+
+/* Preview Output */
+.tabs .tab .preview-output {
+  font-size: 0.7rem; /* Match textarea text size */
+  background-color: var(--md-code-bg-color); /* Match background */
+  scrollbar-color: var(--md-default-fg-color--lighter) transparent; /* Custom scrollbar */
+  scrollbar-width: thin; /* Thin scrollbar */
+  touch-action: auto; /* Allow touch interactions */
+  padding: 0.77em 1.18em; /* Inner padding */
+  margin: 0; /* No margins */
+  white-space: pre-wrap; /* Preserve whitespace and wrap */
+  word-break: normal; /* Prevent word breaking */
+  min-height: 100px; /* Minimum height */
+  height: 100%; /* Fill tab height */
+}
+
+.tabs .tab .preview-output b {
+  color: var(--md-code-hl-special-color); /* Highlight color for bold */
+}
+
+.tabs .tab .preview-output i {
+  color: var(--md-code-hl-keyword-color); /* Highlight color for italic */
+}
+
+/* Error message styling */
+.error {
+  color: var(--md-code-hl-error-color); /* Error text color */
+  font-size: 0.7rem; /* Match other text */
+  padding: 0.77em 1.18em; /* Inner padding */
+  background-color: var(--md-code-bg-color); /* Match background */
+  border-radius: 0.1rem; /* Slight rounding */
+}
+
+/* Responsive Design */
+@media screen and (max-width: 768px) {
+  #tplprev {
+    padding: 0 0.5rem; /* Reduced padding on small screens */
+  }
+
+  #tplprev .template-wrapper {
+    flex-direction: column; /* Stack on small screens */
+    column-gap: 0; /* No gap */
+    row-gap: 1rem; /* Space between rows */
+  }
+
+  #tplprev textarea {
+    min-height: 200px; /* Adjusted for small screens */
+  }
+
+  #tplprev .controls {
+    flex-direction: column; /* Stack controls */
+    align-items: stretch; /* Stretch items */
+  }
+
+  #tplprev fieldset {
+    flex-direction: column; /* Stack fields */
+    align-items: stretch; /* Stretch items */
+  }
+
+  .tabs .tab-header {
+    flex-wrap: wrap; /* Wrap labels on small screens */
+  }
+
+  .tabs label {
+    flex: 1 0 auto; /* Equal width, no shrink */
+    text-align: center; /* Center text */
+  }
+
+  .tabs .tab .preview-output {
+    min-height: 80px; /* Minimum height on small screens */
+  }
+}
+
+/* Override for dark mode to make headers distinct */
+/* [data-md-color-scheme="watchtower-dark"]
+  .template-wrapper
+  .template-header-container {
+  background-color: hsl(var(--md-hue) 15% 25% / 100%) !important;
+}
+
+[data-md-color-scheme="watchtower-dark"] .tabs .tab-header {
+  background-color: hsl(var(--md-hue) 15% 25% / 100%) !important;
+} */

@@ -1,0 +1,504 @@
+=== common headers
+header: Cross-Origin-Embedder-Policy: require-corp
+header: Cross-Origin-Opener-Policy: same-origin
+header: Cross-Origin-Resource-Policy: same-origin
+header: Origin-Agent-Cluster: ?1
+header: Referrer-Policy: no-referrer
+header: Vary: Accept-Encoding
+header: X-Content-Type-Options: nosniff
+header: X-Dns-Prefetch-Control: off
+header: X-Download-Options: noopen
+header: X-Frame-Options: SAMEORIGIN
+header: X-Permitted-Cross-Domain-Policies: none
+header: X-Ratelimit-Limit: 1000
+header: X-Ratelimit-Remaining: <varies>
+header: X-Ratelimit-Reset: <varies>
+header: X-Request-Id: <varies>
+header: X-Xss-Protection: 0
+
+=== GET /livez (no token)
+status: 200
+header: Content-Type: text/plain; charset=utf-8
+body:
+OK
+
+=== GET /readyz (no token)
+status: 200
+header: Content-Type: text/plain; charset=utf-8
+body:
+OK
+
+=== GET /startupz (no token)
+status: 200
+header: Content-Type: text/plain; charset=utf-8
+body:
+OK
+
+=== GET /v1/config
+status: 200
+header: Content-Type: application/json; charset=utf-8
+body:
+{
+  "api_version": "v1",
+  "config": {
+    "monitor_only": false,
+    "cleanup": true,
+    "no_pull": false,
+    "no_restart": false,
+    "rolling_restart": false,
+    "include_stopped": true,
+    "include_restarting": false,
+    "lifecycle_hooks": true,
+    "label_enable": false,
+    "filter_desc": "Checking all containers (except explicitly disabled with label)",
+    "scope": "",
+    "git_enable": false
+  },
+  "timestamp": "<timestamp>"
+}
+
+=== GET /v1/containers
+status: 200
+header: Content-Type: application/json; charset=utf-8
+body:
+{
+  "api_version": "v1",
+  "containers": [
+    {
+      "name": "web",
+      "image": "nginx:1.27",
+      "image_id": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    },
+    {
+      "name": "web-2",
+      "image": "nginx:1.27",
+      "image_id": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    },
+    {
+      "name": "worker",
+      "image": "ghcr.io/org/worker:latest",
+      "image_id": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    {
+      "name": "cache",
+      "image": "redis:7",
+      "image_id": "",
+      "digest": ""
+    },
+    {
+      "name": "watchtower",
+      "image": "nickfedor/watchtower:latest",
+      "image_id": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999"
+    }
+  ],
+  "count": 5,
+  "timestamp": "<timestamp>"
+}
+
+=== GET /v1/containers?name=worker
+status: 200
+header: Content-Type: application/json; charset=utf-8
+body:
+{
+  "api_version": "v1",
+  "containers": [
+    {
+      "name": "worker",
+      "image": "ghcr.io/org/worker:latest",
+      "image_id": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    }
+  ],
+  "count": 1,
+  "timestamp": "<timestamp>"
+}
+
+=== GET /v1/containers?name=missing
+status: 200
+header: Content-Type: application/json; charset=utf-8
+body:
+{
+  "api_version": "v1",
+  "containers": [],
+  "count": 0,
+  "timestamp": "<timestamp>"
+}
+
+=== GET /v1/containers/details
+status: 200
+header: Content-Type: application/json; charset=utf-8
+body:
+{
+  "api_version": "v1",
+  "containers": [
+    {
+      "name": "web",
+      "image": "nginx:1.27",
+      "image_id": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "running": true,
+      "watchtower": false,
+      "monitor_only": false,
+      "no_pull": false,
+      "enabled": true,
+      "stale": false,
+      "scope": "prod"
+    },
+    {
+      "name": "web-2",
+      "image": "nginx:1.27",
+      "image_id": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "running": true,
+      "watchtower": false,
+      "monitor_only": false,
+      "no_pull": false,
+      "enabled": true,
+      "stale": false,
+      "scope": "prod"
+    },
+    {
+      "name": "worker",
+      "image": "ghcr.io/org/worker:latest",
+      "image_id": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "running": true,
+      "watchtower": false,
+      "monitor_only": true,
+      "no_pull": false,
+      "enabled": true,
+      "stale": false,
+      "scope": ""
+    },
+    {
+      "name": "cache",
+      "image": "redis:7",
+      "image_id": "",
+      "digest": "",
+      "running": false,
+      "watchtower": false,
+      "monitor_only": false,
+      "no_pull": true,
+      "enabled": true,
+      "stale": false,
+      "scope": ""
+    },
+    {
+      "name": "watchtower",
+      "image": "nickfedor/watchtower:latest",
+      "image_id": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+      "running": true,
+      "watchtower": true,
+      "monitor_only": false,
+      "no_pull": false,
+      "enabled": true,
+      "stale": false,
+      "scope": ""
+    }
+  ],
+  "count": 5,
+  "timestamp": "<timestamp>"
+}
+
+=== GET /v1/containers/details?image=redis:7
+status: 200
+header: Content-Type: application/json; charset=utf-8
+body:
+{
+  "api_version": "v1",
+  "containers": [
+    {
+      "name": "cache",
+      "image": "redis:7",
+      "image_id": "",
+      "digest": "",
+      "running": false,
+      "watchtower": false,
+      "monitor_only": false,
+      "no_pull": true,
+      "enabled": true,
+      "stale": false,
+      "scope": ""
+    }
+  ],
+  "count": 1,
+  "timestamp": "<timestamp>"
+}
+
+=== GET /v1/images
+status: 200
+header: Content-Type: application/json; charset=utf-8
+body:
+{
+  "api_version": "v1",
+  "count": 4,
+  "images": [
+    {
+      "name": "ghcr.io/org/worker:latest",
+      "image_id": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "containers": 1
+    },
+    {
+      "name": "nginx:1.27",
+      "image_id": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "containers": 2
+    },
+    {
+      "name": "nickfedor/watchtower:latest",
+      "image_id": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+      "containers": 1
+    },
+    {
+      "name": "redis:7",
+      "image_id": "",
+      "digest": "",
+      "containers": 1
+    }
+  ],
+  "timestamp": "<timestamp>"
+}
+
+=== GET /v1/images?name=missing
+status: 200
+header: Content-Type: application/json; charset=utf-8
+body:
+{
+  "api_version": "v1",
+  "count": 0,
+  "images": [],
+  "timestamp": "<timestamp>"
+}
+
+=== GET /v1/status
+status: 204
+
+=== GET /v1/history
+status: 200
+header: Content-Type: application/json; charset=utf-8
+body:
+{
+  "api_version": "v1",
+  "count": 0,
+  "entries": [],
+  "timestamp": "<timestamp>"
+}
+
+=== POST /v1/update
+status: 200
+header: Content-Type: application/json; charset=utf-8
+body:
+{
+  "api_version": "v1",
+  "summary": {
+    "failed": 1,
+    "restarted": 0,
+    "scanned": 5,
+    "skipped": 1,
+    "updated": 2
+  },
+  "timestamp": "<timestamp>",
+  "timing": {
+    "duration": "<duration>",
+    "duration_ms": 0
+  }
+}
+
+=== GET /v1/status
+status: 200
+header: Content-Type: application/json; charset=utf-8
+body:
+{
+  "api_version": "v1",
+  "summary": {
+    "failed": 1,
+    "restarted": 0,
+    "scanned": 5,
+    "skipped": 1,
+    "updated": 2
+  },
+  "timestamp": "<timestamp>"
+}
+
+=== GET /v1/history
+status: 200
+header: Content-Type: application/json; charset=utf-8
+body:
+{
+  "api_version": "v1",
+  "count": 1,
+  "entries": [
+    {
+      "timestamp": "<timestamp>",
+      "scanned": 5,
+      "updated": 2,
+      "failed": 1,
+      "restarted": 0,
+      "skipped": 1
+    }
+  ],
+  "timestamp": "<timestamp>"
+}
+
+=== POST /v1/check
+status: 200
+header: Content-Type: application/json; charset=utf-8
+body:
+{
+  "containers": [
+    {
+      "name": "web",
+      "image": "nginx:1.27",
+      "image_id": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "update_available": true,
+      "latest_image_id": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+      "latest_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+      "timestamp": "<timestamp>",
+      "update_source": "registry"
+    },
+    {
+      "name": "web-2",
+      "image": "nginx:1.27",
+      "image_id": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "update_available": true,
+      "latest_image_id": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+      "latest_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+      "timestamp": "<timestamp>",
+      "update_source": "registry"
+    },
+    {
+      "name": "worker",
+      "image": "ghcr.io/org/worker:latest",
+      "image_id": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "update_available": false,
+      "latest_image_id": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "latest_digest": "",
+      "timestamp": "<timestamp>",
+      "update_source": "registry"
+    },
+    {
+      "name": "cache",
+      "image": "redis:7",
+      "image_id": "",
+      "digest": "",
+      "update_available": false,
+      "latest_image_id": "",
+      "latest_digest": "",
+      "error": "registry returned 503 Service Unavailable",
+      "timestamp": "<timestamp>",
+      "update_source": "registry"
+    },
+    {
+      "name": "watchtower",
+      "image": "nickfedor/watchtower:latest",
+      "image_id": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+      "update_available": false,
+      "latest_image_id": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "latest_digest": "",
+      "timestamp": "<timestamp>",
+      "update_source": "registry"
+    }
+  ],
+  "count": 5,
+  "timestamp": "<timestamp>",
+  "api_version": "v1"
+}
+
+=== POST /v1/check?container=web
+status: 200
+header: Content-Type: application/json; charset=utf-8
+body:
+{
+  "containers": [
+    {
+      "name": "web",
+      "image": "nginx:1.27",
+      "image_id": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "update_available": true,
+      "latest_image_id": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+      "latest_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+      "timestamp": "<timestamp>",
+      "update_source": "registry"
+    }
+  ],
+  "count": 1,
+  "timestamp": "<timestamp>",
+  "api_version": "v1"
+}
+
+=== POST /v1/update?async=true
+status: 202
+header: Content-Type: text/plain; charset=utf-8
+body:
+Accepted
+
+=== POST /v1/update
+status: 200
+header: Content-Type: application/json; charset=utf-8
+body:
+{
+  "api_version": "v1",
+  "summary": {
+    "failed": 0,
+    "restarted": 0,
+    "scan_failed": true,
+    "scanned": 5,
+    "skipped": 0,
+    "updated": 1
+  },
+  "timestamp": "<timestamp>",
+  "timing": {
+    "duration": "<duration>",
+    "duration_ms": 0
+  }
+}
+
+=== GET /v1/status
+status: 200
+header: Content-Type: application/json; charset=utf-8
+body:
+{
+  "api_version": "v1",
+  "summary": {
+    "failed": 0,
+    "restarted": 0,
+    "scan_failed": true,
+    "scanned": 5,
+    "skipped": 0,
+    "updated": 1
+  },
+  "timestamp": "<timestamp>"
+}
+
+=== GET /v1/history
+status: 200
+header: Content-Type: application/json; charset=utf-8
+body:
+{
+  "api_version": "v1",
+  "count": 1,
+  "entries": [
+    {
+      "timestamp": "<timestamp>",
+      "scanned": 5,
+      "updated": 1,
+      "failed": 0,
+      "restarted": 0,
+      "skipped": 0,
+      "scan_failed": true
+    }
+  ],
+  "timestamp": "<timestamp>"
+}

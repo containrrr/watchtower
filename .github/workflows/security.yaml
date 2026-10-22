@@ -1,0 +1,106 @@
+---
+name: Run Security Checks
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+    paths:
+      - cmd/**
+      - pkg/**
+      - internal/**
+      - tools/tplprev/**
+      - main.go
+      - go.mod
+      - go.sum
+  schedule:
+    - cron: "0 0 * * *"
+
+env:
+  OUTPUT_FILE: results.sarif
+
+permissions:
+  contents: read # Set default read-only permissions
+
+jobs:
+  gosec:
+    name: Run gosec Scanner
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Harden the Runner (Step Security)
+        uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2 # v2.22.2
+        with:
+          egress-policy: audit
+
+      - name: Checkout Repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Run Gosec Security Scanner
+        uses: securego/gosec@deb54465fea23d19a77f037e11e6589021f8501d # v2.29.0
+        with:
+          args: "-exclude-generated -no-fail -fmt sarif -out ${{ env.OUTPUT_FILE }} ./..."
+
+      - name: Upload SARIF file
+        uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        with:
+          sarif_file: ${{ env.OUTPUT_FILE }}
+          category: gosec-sarif
+
+  govulncheck:
+    name: Run govulncheck Scanner
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Harden the Runner (Step Security)
+        uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2 # v2.22.2
+        with:
+          egress-policy: audit
+
+      - name: Run govulncheck
+        id: govulncheck
+        uses: nicholas-fedor/govulncheck-action@694df29e64ce246bd2a8cf18e6a9b5f45bd49d30 # v1.1.2
+        with:
+          output-format: sarif
+          output-file: ${{ env.OUTPUT_FILE }}
+          go-version-file: "go.mod"
+
+      - name: Upload SARIF file
+        uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        with:
+          sarif_file: ${{ env.OUTPUT_FILE }}
+          category: govulncheck-sarif
+
+  govulncheck-tplprev:
+    name: Run govulncheck Scanner on tplprev
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Harden the Runner (Step Security)
+        uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2 # v2.22.2
+        with:
+          egress-policy: audit
+
+      - name: Run govulncheck
+        id: govulncheck
+        uses: nicholas-fedor/govulncheck-action@694df29e64ce246bd2a8cf18e6a9b5f45bd49d30 # v1.1.2
+        with:
+          output-format: sarif
+          output-file: ${{ env.OUTPUT_FILE }}
+          go-version-file: tools/tplprev/go.mod
+          work-dir: tools/tplprev
+          cache-dependency-path: tools/tplprev/go.sum
+
+      - name: Upload SARIF file
+        uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        with:
+          sarif_file: ${{ env.OUTPUT_FILE }}
+          category: govulncheck-tplprev-sarif

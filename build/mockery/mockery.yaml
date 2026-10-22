@@ -1,0 +1,177 @@
+######################################################################################################
+#                                                                                                    #
+#                                    Watchtower Mockery Configuration                                #
+#                                                                                                    #
+# Watchtower: https://github.com/nicholas-fedor/watchtower/                                          #
+# Mockery: https://vektra.github.io/mockery/latest/                                                  #
+# Configuration: https://vektra.github.io/mockery/latest/configuration                               #
+# Mockery Major Version: 3.x.x                                                                       #
+#                                                                                                    #
+######################################################################################################
+
+######################################################################################################
+# Mockery Usage                                                                                      #
+#                                                                                                    #
+# Mockery is pinned as a Go tool in go.mod, so no separate install is needed.                        #
+#                                                                                                    #
+# Run from the repository root:                                                                      #
+# task mocks (removes the generated mocks, then runs                                                 #
+# go tool mockery --config build/mockery/mockery.yaml)                                               #
+# task mocks:check (regenerates the mocks and fails if they differ from the committed ones)          #
+#                                                                                                    #
+# Expected Result:                                                                                   #
+# Mockery recursively traverses the configured packages, finds every interface, and writes           #
+# one mock per interface into a 'mocks' subdirectory, in a file named for the interface.             #
+# Mockery never deletes a mock whose interface is gone, so task mocks removes the files that         #
+# carry the generated header first. Hand-written fakes in the same directories are kept.             #
+######################################################################################################
+
+######################################################################################################
+# Configuration Structure                                                                            #
+#                                                                                                    #
+# Mockery Configuration File: Settings for locating the config file                                  #
+# Logging Configuration: Options for controlling output verbosity                                    #
+# Interface Discovery Configuration: Settings for finding and filtering interfaces to mock           #
+# Mock Generation Configuration: Options for the template, names, and formatting of the mocks        #
+# File Output Configuration: Settings for naming and placing generated mock files                    #
+#                                                                                                    #
+######################################################################################################
+
+######################################################################################################
+# Mockery Configuration File Settings                                                                #
+######################################################################################################
+
+# Set the location of the mockery config file.
+# Overrides the search for .mockery.yaml or .mockery.yml in the current directory and its parents.
+# task mocks passes it with --config instead.
+# Default: ""
+# config: ""
+
+######################################################################################################
+# Logging Configuration                                                                              #
+######################################################################################################
+
+# Set the logging verbosity level.
+# Options: debug, info, warn, error.
+# Default: info
+# log-level: debug
+
+######################################################################################################
+# Interface Discovery Configuration                                                                  #
+######################################################################################################
+
+# Packages to process for mock generation, keyed by import path.
+# Each entry can carry its own config and interfaces maps, which override the top-level settings.
+# Default: null
+packages:
+  # Top-level pkg directory, recursively includes all subpackages (e.g., pkg/types, pkg/container)
+  github.com/nicholas-fedor/watchtower/pkg: {}
+
+  # Top-level internal directory, recursively includes all subpackages (e.g., internal/actions)
+  github.com/nicholas-fedor/watchtower/internal: {}
+
+  # The Docker SDK's client, which the container package's tests use in place of a Docker
+  # daemon, and the image pull response a mocked ImagePull returns. Only these interfaces
+  # are generated, into pkg/container/mocks.
+  github.com/moby/moby/client:
+    config:
+      all: false
+      recursive: false
+      dir: pkg/container/mocks
+    interfaces:
+      APIClient: {}
+      ImagePullResponse: {}
+
+# Generate mocks for every interface in the configured packages, exported or not.
+# When false, only interfaces listed under interfaces, matching include-interface-regex, or marked
+# with a //mockery:generate directive comment are generated.
+# Default: false
+all: true
+
+# Generate only the interfaces whose names match this regular expression.
+# Ignored when all: true.
+# Default: ""
+# include-interface-regex: ""
+
+# Skip interfaces that match include-interface-regex and also match this regular expression.
+# Ignored when all: true or when include-interface-regex is not set.
+# Default: ""
+# exclude-interface-regex: ""
+
+# Search every subpackage of the configured packages for interfaces.
+# Default: false
+recursive: true
+
+# Regular expressions for subpackages to skip when recursive: true.
+# Default: []
+# exclude-subpkg-regex: []
+
+# Parse files marked as generated (e.g., "// Code generated ... DO NOT EDIT.") when true.
+# Default: false
+# include-auto-generated: true
+
+# Space-separated list of additional build tags to use when loading packages.
+# Default: ""
+# build-tags: ""
+
+######################################################################################################
+# Mock Generation Configuration                                                                      #
+######################################################################################################
+
+# Template used to render the mocks.
+# testify generates github.com/stretchr/testify/mock implementations with EXPECT() helpers.
+# Options: testify, matryer, or a path to a custom template.
+# Default: testify
+template: testify
+
+# Options passed to the template. The testify template accepts:
+#   boilerplate-file: File whose contents (e.g., a license header) are prepended to every mock.
+#   mock-build-tags: Build constraint written at the top of every mock (e.g., "integration").
+#   unroll-variadic: Match variadic arguments one by one when true. Unset, they match as one slice.
+# Default: {}
+# template-data:
+#   boilerplate-file: ""
+#   mock-build-tags: ""
+#   unroll-variadic: false
+
+# Name of the generated mock type, as a Go template.
+# {{.Mock}} is "Mock" for exported interfaces and "mock" for unexported ones.
+# Default: "{{.Mock}}{{.InterfaceName}}"
+# structname: "{{.Mock}}{{.InterfaceName}}"
+
+# Package name for generated mock files.
+# Default: "{{.SrcPackageName}}"
+pkgname: "mocks"
+
+# Override the detection of whether the mock is written inside the interface's own package.
+# Default: unset (detected automatically)
+# inpackage: true
+
+# Replace types in the generated mocks (e.g., to use a type alias's original package).
+# Default: {}
+# replace-type: {}
+
+# Formatter applied to the rendered mocks.
+# Options: goimports, gofmt, noop.
+# Default: goimports
+# formatter: goimports
+
+######################################################################################################
+# File Output Configuration                                                                          #
+######################################################################################################
+
+# Output directory for each mock, as a Go template.
+# "{{.InterfaceDir}}/mocks" places mocks in a subdirectory of the interface's source directory.
+# Default: "{{.InterfaceDir}}"
+dir: "{{.InterfaceDir}}/mocks"
+
+# Name of the file each mock is written to, as a Go template.
+# Default: "mocks_test.go"
+filename: "{{.InterfaceName}}.go"
+
+# Overwrite existing mock files when true. When false, mockery fails if an output file exists.
+# Default: true
+# force-file-write: false
+######################################################################################################
+# End of Mockery Configuration                                                                       #
+######################################################################################################

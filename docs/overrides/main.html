@@ -1,0 +1,15 @@
+{% extends "base.html" %} {% block extrahead %}
+<meta name="color-scheme" content="light dark" />
+<style>
+  [data-md-color-scheme="watchtower"] {
+    --md-default-bg-color: #f5f5f5;
+  }
+  [data-md-color-scheme="watchtower-dark"] {
+    --md-default-bg-color: hsl(199deg 15% 21% / 100%);
+  }
+  .md-main,
+  .md-content {
+    background-color: var(--md-default-bg-color);
+  }
+</style>
+{% endblock %}

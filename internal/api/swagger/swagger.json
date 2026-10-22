@@ -1,0 +1,706 @@
+{
+    "consumes": [
+        "application/json"
+    ],
+    "produces": [
+        "application/json"
+    ],
+    "schemes": [
+        "http",
+        "https"
+    ],
+    "swagger": "2.0",
+    "info": {
+        "description": "Watchtower HTTP API for container update management, metrics, and health probes.",
+        "title": "Watchtower HTTP API",
+        "contact": {
+            "name": "Nicholas Fedor",
+            "url": "https://github.com/nicholas-fedor/watchtower"
+        },
+        "license": {
+            "name": "Apache-2.0",
+            "url": "https://www.apache.org/licenses/LICENSE-2.0"
+        },
+        "version": "1.0"
+    },
+    "host": "localhost:8080",
+    "basePath": "/",
+    "paths": {
+        "/livez": {
+            "get": {
+                "description": "Returns 200 OK if the Watchtower HTTP server is running. Used by orchestrators (e.g., Kubernetes) to determine if the process is alive.",
+                "produces": [
+                    "text/plain"
+                ],
+                "tags": [
+                    "health"
+                ],
+                "summary": "Liveness probe",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/readyz": {
+            "get": {
+                "description": "Returns 200 OK if the Watchtower HTTP server is running and the Docker client is connected and responsive. Used by orchestrators to determine if the service is ready to accept",
+                "produces": [
+                    "text/plain"
+                ],
+                "tags": [
+                    "health"
+                ],
+                "summary": "Readiness probe",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "503": {
+                        "description": "Docker client not connected",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/startupz": {
+            "get": {
+                "description": "Returns 200 OK if the Watchtower HTTP server has started. Used by orchestrators (e.g., Kubernetes) to determine if the process has finished startup.",
+                "produces": [
+                    "text/plain"
+                ],
+                "tags": [
+                    "health"
+                ],
+                "summary": "Startup probe",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/check": {
+            "post": {
+                "description": "Checks each watched container for available updates. Associated Git-watched containers compare the hosted Git ref (no clone or build). Other containers query the registry for the",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "check"
+                ],
+                "summary": "Check for available container updates",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Image names to check (comma-separated, repeatable). When combined with container, only containers matching both are checked.",
+                        "name": "image",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Container names to check (comma-separated, repeatable). When combined with image, only containers matching both are checked.",
+                        "name": "container",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Per-request timeout override (e.g. 30s, 2m). Bounded by the configured check API timeout.",
+                        "name": "timeout",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Container update availability results",
+                        "schema": {
+                            "$ref": "#/definitions/check.CheckResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Missing or invalid API token",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to check for updates",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1/config": {
+            "get": {
+                "description": "Returns the active Watchtower configuration settings. Sensitive values (notification URLs, tokens) are redacted.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "config"
+                ],
+                "summary": "Get current configuration",
+                "responses": {
+                    "200": {
+                        "description": "Config object with timestamp and api_version",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Missing or invalid API token",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to get configuration",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1/containers": {
+            "get": {
+                "description": "Returns the current image identity and digest for every watched container. Optionally filter by container name or image name.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "containers"
+                ],
+                "summary": "List watched container statuses",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by container name (exact match)",
+                        "name": "name",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by image name (exact match)",
+                        "name": "image",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Container statuses with count and timestamp",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Missing or invalid API token",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to list containers",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1/containers/details": {
+            "get": {
+                "description": "Returns detailed information about each watched container, including running state, image identity, and configuration flags. Optionally filter by container name or image name.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "containers"
+                ],
+                "summary": "Detailed container status",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by container name (exact match)",
+                        "name": "name",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by image name (exact match)",
+                        "name": "image",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Container details with count and timestamp",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Missing or invalid API token",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to get container details",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1/events": {
+            "get": {
+                "description": "Streams Watchtower operational events (scan started/completed, update started/completed/failed) via Server-Sent Events (SSE).\n\n**SSE is not supported by \"Try it out\"**.",
+                "produces": [
+                    "text/event-stream"
+                ],
+                "tags": [
+                    "events"
+                ],
+                "summary": "Real-time events stream",
+                "responses": {
+                    "200": {
+                        "description": "Event stream (SSE)",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Missing or invalid events token",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "EventsToken": []
+                    }
+                ]
+            }
+        },
+        "/v1/history": {
+            "get": {
+                "description": "Returns historical scan results from the in-memory ring buffer (up to 500 entries). Optionally filter by time range and limit the number of results.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "history"
+                ],
+                "summary": "Scan history",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Include entries at or after this RFC3339 timestamp",
+                        "name": "since",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Include entries at or before this RFC3339 timestamp",
+                        "name": "until",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Maximum number of entries to return (default: all)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "History entries with count and timestamp",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid query parameter",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Missing or invalid API token",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1/images": {
+            "get": {
+                "description": "Returns the current image identity and digest for every image tracked by Watchtower. Optionally filter by image name or image ID.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "images"
+                ],
+                "summary": "List tracked images",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by image name (exact match)",
+                        "name": "name",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by image ID (sha256:...)",
+                        "name": "id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Image statuses with count and timestamp",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Missing or invalid API token",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to list images",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1/metrics": {
+            "get": {
+                "description": "Returns Watchtower scan metrics in Prometheus exposition format.",
+                "produces": [
+                    "text/plain"
+                ],
+                "tags": [
+                    "metrics"
+                ],
+                "summary": "Prometheus metrics",
+                "responses": {
+                    "200": {
+                        "description": "Prometheus exposition format metrics",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Missing or invalid API token",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1/status": {
+            "get": {
+                "description": "Returns the summary of the most recent Watchtower scan, including counts of scanned, updated, failed, restarted, and skipped containers.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "metrics"
+                ],
+                "summary": "Last scan status",
+                "responses": {
+                    "200": {
+                        "description": "Scan summary with counts and timestamp",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "401": {
+                        "description": "Missing or invalid API token",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/v1/update": {
+            "post": {
+                "description": "Scans watched containers for image updates and applies them. Supports both full scans and targeted updates filtered by image name or container name. Container patterns support Go",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "update"
+                ],
+                "summary": "Trigger container update scan",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Comma-separated image names to update (repeatable)",
+                        "name": "image",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Container name patterns to update (repeatable, supports Go regex)",
+                        "name": "container",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "When 'true', runs update asynchronously and returns 202 Accepted",
+                        "name": "async",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Synchronous update results with summary and timing",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "202": {
+                        "description": "Asynchronous update accepted",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Missing or invalid API token",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "429": {
+                        "description": "Another update is already running",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "headers": {
+                            "Retry-After": {
+                                "type": "string",
+                                "description": "Seconds to wait before retrying"
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Request cancelled while waiting for lock",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        }
+    },
+    "definitions": {
+        "check.CheckResponse": {
+            "type": "object",
+            "properties": {
+                "api_version": {
+                    "type": "string"
+                },
+                "containers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/check.ContainerCheck"
+                    }
+                },
+                "count": {
+                    "type": "integer"
+                },
+                "timestamp": {
+                    "type": "string"
+                }
+            }
+        },
+        "check.ContainerCheck": {
+            "type": "object",
+            "properties": {
+                "changelog": {
+                    "type": "string"
+                },
+                "current_image_version": {
+                    "type": "string"
+                },
+                "current_revision": {
+                    "type": "string"
+                },
+                "digest": {
+                    "type": "string"
+                },
+                "documentation": {
+                    "type": "string"
+                },
+                "error": {
+                    "type": "string"
+                },
+                "git_commit": {
+                    "type": "string"
+                },
+                "git_ref": {
+                    "type": "string"
+                },
+                "git_repo": {
+                    "type": "string"
+                },
+                "image": {
+                    "type": "string"
+                },
+                "image_id": {
+                    "type": "string"
+                },
+                "image_url": {
+                    "type": "string"
+                },
+                "latest_digest": {
+                    "type": "string"
+                },
+                "latest_image_id": {
+                    "type": "string"
+                },
+                "latest_image_version": {
+                    "type": "string"
+                },
+                "latest_revision": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "oci_source": {
+                    "type": "string"
+                },
+                "timestamp": {
+                    "type": "string"
+                },
+                "update_available": {
+                    "type": "boolean"
+                },
+                "update_source": {
+                    "type": "string"
+                }
+            }
+        }
+    },
+    "securityDefinitions": {
+        "BearerAuth": {
+            "description": "Paste the HTTP API token only (WATCHTOWER_HTTP_API_TOKEN). Swagger UI sends it as the Authorization header value. curl clients should use \"Authorization: Bearer \u003ctoken\u003e\".",
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
+        },
+        "EventsToken": {
+            "description": "Paste the events API token only (WATCHTOWER_HTTP_API_EVENTS_TOKEN). Swagger UI sends it as the Authorization header value.",
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
+        }
+    }
+}

@@ -1,0 +1,49 @@
+=== grouped
+--- message 1
+Only checking containers in scope: production
+org/web:1.0 created less than 1d ago - eligible in 2h (Wed, 07 Oct 2026 14:00:00 UTC)
+Found new image: org/web:1.0 (aaa111111111)
+Found new image: org/db:2 (bbb222222222)
+Found new Git revision: github.com/org/web@v1.1 (0123456)
+Stopped stale container: web1 (111111111111)
+Stopped stale container: web2 (222222222222)
+Started new container: web1 (aaa111111111)
+Started new container: web2 (aaa111111111)
+Cleaned up old image: org/web:1.0 (01d111111111)
+
+=== focused on web1
+--- message 1
+org/web:1.0 created less than 1d ago - eligible in 2h (Wed, 07 Oct 2026 14:00:00 UTC)
+Found new image: org/web:1.0 (aaa111111111)
+Found new Git revision: github.com/org/web@v1.1 (0123456)
+Stopped stale container: web1 (111111111111)
+Started new container: web1 (aaa111111111)
+Cleaned up old image: org/web:1.0 (01d111111111)
+--- still queued
+Only checking containers in scope map[scope:production]
+Found new image map[container:web2 image:org/web:1.0 new_id:aaa111111111]
+Found new image map[container:db image:org/db:2 new_id:bbb222222222]
+Found new Git revision map[container:web2 revision:github.com/org/web@v1.1 short_commit:0123456]
+Stopping container map[container:web2 id:222222222222]
+Started new container map[container:web2 new_id:aaa111111111]
+Removing image map[container_name:web2 image_id:01d111111111 image_name:org/web:1.0]
+
+=== split by container (sorted)
+--- message 1
+Found new image: org/db:2 (bbb222222222)
+--- message 2
+Found new image: org/web:1.0 (aaa111111111)
+Found new Git revision: github.com/org/web@v1.1 (0123456)
+Stopped stale container: web1 (111111111111)
+Started new container: web1 (aaa111111111)
+Cleaned up old image: org/web:1.0 (01d111111111)
+--- message 3
+Found new image: org/web:1.0 (aaa111111111)
+Found new Git revision: github.com/org/web@v1.1 (0123456)
+Stopped stale container: web2 (222222222222)
+Started new container: web2 (aaa111111111)
+Cleaned up old image: org/web:1.0 (01d111111111)
+--- message 4
+Only checking containers in scope: production
+org/web:1.0 created less than 1d ago - eligible in 2h (Wed, 07 Oct 2026 14:00:00 UTC)
+org/web:1.0 created less than 1d ago - eligible in 2h (Wed, 07 Oct 2026 14:00:00 UTC)

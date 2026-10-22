@@ -4,704 +4,704 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
-	"regexp"
 	"strings"
-	"time"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
+
+	"github.com/nicholas-fedor/watchtower/internal/flags/docker"
+	"github.com/nicholas-fedor/watchtower/internal/flags/schedule"
+	"github.com/nicholas-fedor/watchtower/internal/logging"
 )
 
-// DockerAPIMinVersion is the minimum version of the docker api required to
-// use watchtower
-const DockerAPIMinVersion string = "1.25"
-
-var defaultInterval = int((time.Hour * 24).Seconds())
-
-// RegisterDockerFlags that are used directly by the docker api client
-func RegisterDockerFlags(rootCmd *cobra.Command) {
-	flags := rootCmd.PersistentFlags()
-	flags.StringP("host", "H", envString("DOCKER_HOST"), "daemon socket to connect to")
-	flags.BoolP("tlsverify", "v", envBool("DOCKER_TLS_VERIFY"), "use TLS and verify the remote")
-	flags.StringP("api-version", "a", envString("DOCKER_API_VERSION"), "api version to use by docker client")
-}
-
-// RegisterSystemFlags that are used by watchtower to modify the program flow
-func RegisterSystemFlags(rootCmd *cobra.Command) {
-	flags := rootCmd.PersistentFlags()
-	flags.IntP(
-		"interval",
-		"i",
-		envInt("WATCHTOWER_POLL_INTERVAL"),
-		"Poll interval (in seconds)")
-
-	flags.StringP(
-		"schedule",
-		"s",
-		envString("WATCHTOWER_SCHEDULE"),
-		"The cron expression which defines when to update")
-
-	flags.DurationP(
-		"stop-timeout",
-		"t",
-		envDuration("WATCHTOWER_TIMEOUT"),
-		"Timeout before a container is forcefully stopped")
-
-	flags.BoolP(
-		"no-pull",
-		"",
-		envBool("WATCHTOWER_NO_PULL"),
-		"Do not pull any new images")
-
-	flags.BoolP(
-		"no-restart",
-		"",
-		envBool("WATCHTOWER_NO_RESTART"),
-		"Do not restart any containers")
-
-	flags.BoolP(
-		"no-startup-message",
-		"",
-		envBool("WATCHTOWER_NO_STARTUP_MESSAGE"),
-		"Prevents watchtower from sending a startup message")
-
-	flags.BoolP(
-		"cleanup",
-		"c",
-		envBool("WATCHTOWER_CLEANUP"),
-		"Remove previously used images after updating")
-
-	flags.BoolP(
-		"remove-volumes",
-		"",
-		envBool("WATCHTOWER_REMOVE_VOLUMES"),
-		"Remove attached volumes before updating")
-
-	flags.BoolP(
-		"label-enable",
-		"e",
-		envBool("WATCHTOWER_LABEL_ENABLE"),
-		"Watch containers where the com.centurylinklabs.watchtower.enable label is true")
-
-	flags.StringSliceP(
-		"disable-containers",
-		"x",
-		// Due to issue spf13/viper#380, can't use viper.GetStringSlice:
-		regexp.MustCompile("[, ]+").Split(envString("WATCHTOWER_DISABLE_CONTAINERS"), -1),
-		"Comma-separated list of containers to explicitly exclude from watching.")
-
-	flags.StringP(
-		"log-format",
-		"l",
-		viper.GetString("WATCHTOWER_LOG_FORMAT"),
-		"Sets what logging format to use for console output. Possible values: Auto, LogFmt, Pretty, JSON")
-
-	flags.BoolP(
-		"debug",
-		"d",
-		envBool("WATCHTOWER_DEBUG"),
-		"Enable debug mode with verbose logging")
-
-	flags.BoolP(
-		"trace",
-		"",
-		envBool("WATCHTOWER_TRACE"),
-		"Enable trace mode with very verbose logging - caution, exposes credentials")
-
-	flags.BoolP(
-		"monitor-only",
-		"m",
-		envBool("WATCHTOWER_MONITOR_ONLY"),
-		"Will only monitor for new images, not update the containers")
-
-	flags.BoolP(
-		"run-once",
-		"R",
-		envBool("WATCHTOWER_RUN_ONCE"),
-		"Run once now and exit")
-
-	flags.BoolP(
-		"include-restarting",
-		"",
-		envBool("WATCHTOWER_INCLUDE_RESTARTING"),
-		"Will also include restarting containers")
-
-	flags.BoolP(
-		"include-stopped",
-		"S",
-		envBool("WATCHTOWER_INCLUDE_STOPPED"),
-		"Will also include created and exited containers")
-
-	flags.BoolP(
-		"revive-stopped",
-		"",
-		envBool("WATCHTOWER_REVIVE_STOPPED"),
-		"Will also start stopped containers that were updated, if include-stopped is active")
-
-	flags.BoolP(
-		"enable-lifecycle-hooks",
-		"",
-		envBool("WATCHTOWER_LIFECYCLE_HOOKS"),
-		"Enable the execution of commands triggered by pre- and post-update lifecycle hooks")
-
-	flags.BoolP(
-		"rolling-restart",
-		"",
-		envBool("WATCHTOWER_ROLLING_RESTART"),
-		"Restart containers one at a time")
-
-	flags.BoolP(
-		"http-api-update",
-		"",
-		envBool("WATCHTOWER_HTTP_API_UPDATE"),
-		"Runs Watchtower in HTTP API mode, so that image updates must to be triggered by a request")
-	flags.BoolP(
-		"http-api-metrics",
-		"",
-		envBool("WATCHTOWER_HTTP_API_METRICS"),
-		"Runs Watchtower with the Prometheus metrics API enabled")
-
-	flags.StringP(
-		"http-api-token",
-		"",
-		envString("WATCHTOWER_HTTP_API_TOKEN"),
-		"Sets an authentication token to HTTP API requests.")
-
-	flags.BoolP(
-		"http-api-periodic-polls",
-		"",
-		envBool("WATCHTOWER_HTTP_API_PERIODIC_POLLS"),
-		"Also run periodic updates (specified with --interval and --schedule) if HTTP API is enabled")
-
-	// https://no-color.org/
-	flags.BoolP(
-		"no-color",
-		"",
-		viper.IsSet("NO_COLOR"),
-		"Disable ANSI color escape codes in log output")
-
-	flags.StringP(
-		"scope",
-		"",
-		envString("WATCHTOWER_SCOPE"),
-		"Defines a monitoring scope for the Watchtower instance.")
-
-	flags.StringP(
-		"porcelain",
-		"P",
-		envString("WATCHTOWER_PORCELAIN"),
-		`Write session results to stdout using a stable versioned format. Supported values: "v1"`)
-
-	flags.String(
-		"log-level",
-		envString("WATCHTOWER_LOG_LEVEL"),
-		"The maximum log level that will be written to STDERR. Possible values: panic, fatal, error, warn, info, debug or trace")
-
-	flags.BoolP(
-		"health-check",
-		"",
-		false,
-		"Do health check and exit")
-
-	flags.BoolP(
-		"label-take-precedence",
-		"",
-		envBool("WATCHTOWER_LABEL_TAKE_PRECEDENCE"),
-		"Label applied to containers take precedence over arguments")
-}
-
-// RegisterNotificationFlags that are used by watchtower to send notifications
-func RegisterNotificationFlags(rootCmd *cobra.Command) {
-	flags := rootCmd.PersistentFlags()
-
-	flags.StringSliceP(
-		"notifications",
-		"n",
-		envStringSlice("WATCHTOWER_NOTIFICATIONS"),
-		" Notification types to send (valid: email, slack, msteams, gotify, shoutrrr)")
-
-	flags.String(
-		"notifications-level",
-		envString("WATCHTOWER_NOTIFICATIONS_LEVEL"),
-		"The log level used for sending notifications. Possible values: panic, fatal, error, warn, info or debug")
-
-	flags.IntP(
-		"notifications-delay",
-		"",
-		envInt("WATCHTOWER_NOTIFICATIONS_DELAY"),
-		"Delay before sending notifications, expressed in seconds")
-
-	flags.StringP(
-		"notifications-hostname",
-		"",
-		envString("WATCHTOWER_NOTIFICATIONS_HOSTNAME"),
-		"Custom hostname for notification titles")
-
-	flags.StringP(
-		"notification-email-from",
-		"",
-		envString("WATCHTOWER_NOTIFICATION_EMAIL_FROM"),
-		"Address to send notification emails from")
-
-	flags.StringP(
-		"notification-email-to",
-		"",
-		envString("WATCHTOWER_NOTIFICATION_EMAIL_TO"),
-		"Address to send notification emails to")
-
-	flags.IntP(
-		"notification-email-delay",
-		"",
-		envInt("WATCHTOWER_NOTIFICATION_EMAIL_DELAY"),
-		"Delay before sending notifications, expressed in seconds")
-
-	flags.StringP(
-		"notification-email-server",
-		"",
-		envString("WATCHTOWER_NOTIFICATION_EMAIL_SERVER"),
-		"SMTP server to send notification emails through")
-
-	flags.IntP(
-		"notification-email-server-port",
-		"",
-		envInt("WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PORT"),
-		"SMTP server port to send notification emails through")
-
-	flags.BoolP(
-		"notification-email-server-tls-skip-verify",
-		"",
-		envBool("WATCHTOWER_NOTIFICATION_EMAIL_SERVER_TLS_SKIP_VERIFY"),
-		`Controls whether watchtower verifies the SMTP server's certificate chain and host name.
-Should only be used for testing.`)
-
-	flags.StringP(
-		"notification-email-server-user",
-		"",
-		envString("WATCHTOWER_NOTIFICATION_EMAIL_SERVER_USER"),
-		"SMTP server user for sending notifications")
-
-	flags.StringP(
-		"notification-email-server-password",
-		"",
-		envString("WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PASSWORD"),
-		"SMTP server password for sending notifications")
-
-	flags.StringP(
-		"notification-email-subjecttag",
-		"",
-		envString("WATCHTOWER_NOTIFICATION_EMAIL_SUBJECTTAG"),
-		"Subject prefix tag for notifications via mail")
-
-	flags.StringP(
-		"notification-slack-hook-url",
-		"",
-		envString("WATCHTOWER_NOTIFICATION_SLACK_HOOK_URL"),
-		"The Slack Hook URL to send notifications to")
-
-	flags.StringP(
-		"notification-slack-identifier",
-		"",
-		envString("WATCHTOWER_NOTIFICATION_SLACK_IDENTIFIER"),
-		"A string which will be used to identify the messages coming from this watchtower instance")
-
-	flags.StringP(
-		"notification-slack-channel",
-		"",
-		envString("WATCHTOWER_NOTIFICATION_SLACK_CHANNEL"),
-		"A string which overrides the webhook's default channel. Example: #my-custom-channel")
-
-	flags.StringP(
-		"notification-slack-icon-emoji",
-		"",
-		envString("WATCHTOWER_NOTIFICATION_SLACK_ICON_EMOJI"),
-		"An emoji code string to use in place of the default icon")
-
-	flags.StringP(
-		"notification-slack-icon-url",
-		"",
-		envString("WATCHTOWER_NOTIFICATION_SLACK_ICON_URL"),
-		"An icon image URL string to use in place of the default icon")
-
-	flags.StringP(
-		"notification-msteams-hook",
-		"",
-		envString("WATCHTOWER_NOTIFICATION_MSTEAMS_HOOK_URL"),
-		"The MSTeams WebHook URL to send notifications to")
-
-	flags.BoolP(
-		"notification-msteams-data",
-		"",
-		envBool("WATCHTOWER_NOTIFICATION_MSTEAMS_USE_LOG_DATA"),
-		"The MSTeams notifier will try to extract log entry fields as MSTeams message facts")
-
-	flags.StringP(
-		"notification-gotify-url",
-		"",
-		envString("WATCHTOWER_NOTIFICATION_GOTIFY_URL"),
-		"The Gotify URL to send notifications to")
-
-	flags.StringP(
-		"notification-gotify-token",
-		"",
-		envString("WATCHTOWER_NOTIFICATION_GOTIFY_TOKEN"),
-		"The Gotify Application required to query the Gotify API")
-
-	flags.BoolP(
-		"notification-gotify-tls-skip-verify",
-		"",
-		envBool("WATCHTOWER_NOTIFICATION_GOTIFY_TLS_SKIP_VERIFY"),
-		`Controls whether watchtower verifies the Gotify server's certificate chain and host name.
-Should only be used for testing.`)
-
-	flags.String(
-		"notification-template",
-		envString("WATCHTOWER_NOTIFICATION_TEMPLATE"),
-		"The shoutrrr text/template for the messages")
-
-	flags.StringArray(
-		"notification-url",
-		envStringSlice("WATCHTOWER_NOTIFICATION_URL"),
-		"The shoutrrr URL to send notifications to")
-
-	flags.Bool("notification-report",
-		envBool("WATCHTOWER_NOTIFICATION_REPORT"),
-		"Use the session report as the notification template data")
-
-	flags.StringP(
-		"notification-title-tag",
-		"",
-		envString("WATCHTOWER_NOTIFICATION_TITLE_TAG"),
-		"Title prefix tag for notifications")
-
-	flags.Bool("notification-skip-title",
-		envBool("WATCHTOWER_NOTIFICATION_SKIP_TITLE"),
-		"Do not pass the title param to notifications")
-
-	flags.String(
-		"warn-on-head-failure",
-		envString("WATCHTOWER_WARN_ON_HEAD_FAILURE"),
-		"When to warn about HEAD pull requests failing. Possible values: always, auto or never")
-
-	flags.Bool(
-		"notification-log-stdout",
-		envBool("WATCHTOWER_NOTIFICATION_LOG_STDOUT"),
-		"Write notification logs to stdout instead of logging (to stderr)")
-}
-
-func envString(key string) string {
-	viper.MustBindEnv(key)
-	return viper.GetString(key)
-}
-
-func envStringSlice(key string) []string {
-	viper.MustBindEnv(key)
-	return viper.GetStringSlice(key)
-}
-
-func envInt(key string) int {
-	viper.MustBindEnv(key)
-	return viper.GetInt(key)
-}
-
-func envBool(key string) bool {
-	viper.MustBindEnv(key)
-	return viper.GetBool(key)
-}
-
-func envDuration(key string) time.Duration {
-	viper.MustBindEnv(key)
-	return viper.GetDuration(key)
-}
-
-// SetDefaults provides default values for environment variables
-func SetDefaults() {
-	viper.AutomaticEnv()
-	viper.SetDefault("DOCKER_HOST", "unix:///var/run/docker.sock")
-	viper.SetDefault("DOCKER_API_VERSION", DockerAPIMinVersion)
-	viper.SetDefault("WATCHTOWER_POLL_INTERVAL", defaultInterval)
-	viper.SetDefault("WATCHTOWER_TIMEOUT", time.Second*10)
-	viper.SetDefault("WATCHTOWER_NOTIFICATIONS", []string{})
-	viper.SetDefault("WATCHTOWER_NOTIFICATIONS_LEVEL", "info")
-	viper.SetDefault("WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PORT", 25)
-	viper.SetDefault("WATCHTOWER_NOTIFICATION_EMAIL_SUBJECTTAG", "")
-	viper.SetDefault("WATCHTOWER_NOTIFICATION_SLACK_IDENTIFIER", "watchtower")
-	viper.SetDefault("WATCHTOWER_LOG_LEVEL", "info")
-	viper.SetDefault("WATCHTOWER_LOG_FORMAT", "auto")
-}
-
-// EnvConfig translates the command-line options into environment variables
-// that will initialize the api client
-func EnvConfig(cmd *cobra.Command) error {
-	var err error
-	var host string
-	var tls bool
-	var version string
-
-	flags := cmd.PersistentFlags()
-
-	if host, err = flags.GetString("host"); err != nil {
-		return err
-	}
-	if tls, err = flags.GetBool("tlsverify"); err != nil {
-		return err
-	}
-	if version, err = flags.GetString("api-version"); err != nil {
-		return err
-	}
-	if err = setEnvOptStr("DOCKER_HOST", host); err != nil {
-		return err
-	}
-	if err = setEnvOptBool("DOCKER_TLS_VERIFY", tls); err != nil {
-		return err
-	}
-	if err = setEnvOptStr("DOCKER_API_VERSION", version); err != nil {
-		return err
-	}
-	return nil
-}
-
-// ReadFlags reads common flags used in the main program flow of watchtower
-func ReadFlags(cmd *cobra.Command) (bool, bool, bool, time.Duration) {
-	flags := cmd.PersistentFlags()
-
-	var err error
-	var cleanup bool
-	var noRestart bool
-	var monitorOnly bool
-	var timeout time.Duration
-
-	if cleanup, err = flags.GetBool("cleanup"); err != nil {
-		log.Fatal(err)
-	}
-	if noRestart, err = flags.GetBool("no-restart"); err != nil {
-		log.Fatal(err)
-	}
-	if monitorOnly, err = flags.GetBool("monitor-only"); err != nil {
-		log.Fatal(err)
-	}
-	if timeout, err = flags.GetDuration("stop-timeout"); err != nil {
-		log.Fatal(err)
+// DockerAPIMinVersion sets the minimum Docker API version supported by Watchtower.
+const DockerAPIMinVersion string = "1.24"
+
+// Errors for flag and environment configuration.
+var (
+	// errInvalidLogFormat indicates an invalid log format was specified in configuration.
+	errInvalidLogFormat = errors.New("invalid log format specified")
+	// errInvalidLogLevel indicates an invalid log level was specified in configuration.
+	errInvalidLogLevel = errors.New("invalid log level specified")
+	// errSetEnvFailed indicates a failure to set an environment variable during configuration.
+	errSetEnvFailed = errors.New("failed to set environment variable")
+	// errOpenFileFailed indicates a failure to open a file when reading secrets.
+	errOpenFileFailed = errors.New("failed to open secret file")
+	// errReplaceSliceFailed indicates a failure to replace a slice value in a flag.
+	errReplaceSliceFailed = errors.New("failed to replace slice value in flag")
+	// errReadFileFailed indicates a failure to read a file's contents for secrets.
+	errReadFileFailed = errors.New("failed to read secret file")
+	// errInvalidSecretURL indicates an invalid URL was found in a secret file.
+	errInvalidSecretURL = errors.New("invalid notification URL in secret file")
+	// errSetFlagFailed indicates a failure to set a flag's value during configuration.
+	errSetFlagFailed = errors.New("failed to set flag value")
+	// errInvalidFlagName indicates an invalid flag name was provided for modification.
+	errInvalidFlagName = errors.New("invalid flag name provided")
+	// errNotSliceValue indicates a flag does not support slice values for appending.
+	errNotSliceValue = errors.New("flag does not support slice values")
+)
+
+// EnvConfig sets Docker environment variables from flags.
+//
+// Parameters:
+//   - log: Logger for configuration diagnostics.
+//   - cmd: Cobra command with flags.
+//
+// Returns:
+//   - error: Non-nil if flag retrieval fails, nil on success.
+func EnvConfig(log *zerolog.Logger, cmd *cobra.Command) error {
+	flagSet := cmd.PersistentFlags()
+
+	// Resolve Docker settings via Viper (flag > env > static default) after BindAll.
+	vCfg := viper.New()
+
+	err := BindAll(vCfg, flagSet, docker.Specs())
+	if err != nil {
+		return fmt.Errorf("bind docker flags: %w", err)
 	}
 
-	return cleanup, noRestart, monitorOnly, timeout
-}
+	host := vCfg.GetString("host")
+	tls := vCfg.GetBool("tlsverify")
+	version := strings.Trim(vCfg.GetString("api-version"), "\"")
+	certPath := vCfg.GetString("cert-path")
 
-func setEnvOptStr(env string, opt string) error {
-	if opt == "" || opt == os.Getenv(env) {
-		return nil
+	// Convert tcp:// to https:// when TLS is enabled.
+	if tls && strings.HasPrefix(host, "tcp://") {
+		host = strings.Replace(host, "tcp://", "https://", 1)
 	}
-	err := os.Setenv(env, opt)
+
+	// Warn about mismatched TLS settings.
+	if tls {
+		if strings.HasPrefix(host, "http://") {
+			log.Warn().
+				Msg("TLS verification is enabled but DOCKER_HOST uses insecure scheme 'http://'. Consider using 'https://' or disable TLS verification.")
+		} else if strings.HasPrefix(host, "unix://") {
+			log.Warn().
+				Msg("TLS verification is enabled but DOCKER_HOST uses local socket 'unix://'. TLS is not applicable for local sockets. Consider disabling TLS verification.")
+		}
+	}
+
+	// Set environment variables.
+	err = setEnvOptStr(log, "DOCKER_HOST", host)
 	if err != nil {
 		return err
 	}
-	return nil
-}
 
-func setEnvOptBool(env string, opt bool) error {
-	if opt {
-		return setEnvOptStr(env, "1")
+	err = setEnvOptBool(log, "DOCKER_TLS_VERIFY", tls)
+	if err != nil {
+		return err
 	}
+
+	err = setEnvOptStr(log, "DOCKER_API_VERSION", version)
+	if err != nil {
+		return err
+	}
+
+	err = setEnvOptStr(log, "DOCKER_CERT_PATH", certPath)
+	if err != nil {
+		return err
+	}
+
+	log.Debug().
+		Str("host", host).
+		Bool("tls", tls).
+		Str("version", version).
+		Str("certPath", certPath).
+		Msg("Configured Docker environment variables")
+
 	return nil
 }
 
-// GetSecretsFromFiles checks if passwords/tokens/webhooks have been passed as a file instead of plaintext.
-// If so, the value of the flag will be replaced with the contents of the file.
-func GetSecretsFromFiles(rootCmd *cobra.Command) {
-	flags := rootCmd.PersistentFlags()
+// setEnvOptStr sets an environment variable if needed.
+//
+// Parameters:
+//   - log: Logger for configuration diagnostics.
+//   - env: Environment variable name.
+//   - opt: Value to set.
+//
+// Returns:
+//   - error: Non-nil if set fails, nil if skipped or successful.
+func setEnvOptStr(log *zerolog.Logger, env, opt string) error {
+	if opt == "" || opt == os.Getenv(env) {
+		return nil
+	}
 
+	err := os.Setenv(env, opt)
+	if err != nil {
+		log.Debug().
+			Err(err).
+			Str("env", env).
+			Str("value", opt).
+			Msg("Failed to set environment variable")
+
+		return fmt.Errorf("%w: %s: %w", errSetEnvFailed, env, err)
+	}
+
+	log.Debug().
+		Str("env", env).
+		Str("value", opt).
+		Msg("Set environment variable")
+
+	return nil
+}
+
+// setEnvOptBool sets an environment variable to "1" if true.
+//
+// Parameters:
+//   - log: Logger for configuration diagnostics.
+//   - env: Environment variable name.
+//   - opt: Boolean value.
+//
+// Returns:
+//   - error: Non-nil if set fails, nil otherwise.
+func setEnvOptBool(log *zerolog.Logger, env string, opt bool) error {
+	if opt {
+		return setEnvOptStr(log, env, "1")
+	}
+
+	return nil
+}
+
+// GetSecretsFromFiles updates flags with file contents for secrets.
+//
+// Parameters:
+//   - log: Logger for secret-loading diagnostics and fatal failures.
+//   - rootCmd: Root Cobra command.
+//
+//nolint:godox
+func GetSecretsFromFiles(log *zerolog.Logger, rootCmd *cobra.Command) {
+	flags := rootCmd.PersistentFlags()
 	secrets := []string{
+		// TODO: Remove just before v2 Release.
 		"notification-email-server-password",
+		// TODO: Remove just before v2 Release.
 		"notification-slack-hook-url",
+		// TODO: Remove just before v2 Release.
 		"notification-msteams-hook",
+		// TODO: Remove just before v2 Release.
 		"notification-gotify-token",
 		"notification-url",
 		"http-api-token",
+		"http-api-events-token",
+		"git-auth-token",
+		"git-password",
 	}
+
+	// Process each secret flag.
 	for _, secret := range secrets {
-		if err := getSecretFromFile(flags, secret); err != nil {
-			log.Fatalf("failed to get secret from flag %v: %s", secret, err)
+		err := getSecretFromFile(log, flags, secret)
+		if err != nil {
+			log.Fatal().
+				Err(err).
+				Str("flag", secret).
+				Msg("Failed to load secret from file")
 		}
 	}
 }
 
-// getSecretFromFile will check if the flag contains a reference to a file; if it does, replaces the value of the flag with the contents of the file.
-func getSecretFromFile(flags *pflag.FlagSet, secret string) error {
+// getSecretFromFile reads file contents into a flag if applicable.
+//
+// Parameters:
+//   - log: Logger for secret-loading diagnostics.
+//   - flags: Flag set.
+//   - secret: Flag name.
+//
+// Returns:
+//   - error: Non-nil if file ops fail, nil on success or skip.
+func getSecretFromFile(log *zerolog.Logger, flags *pflag.FlagSet, secret string) error {
 	flag := flags.Lookup(secret)
+
+	// Handle slice flags.
 	if sliceValue, ok := flag.Value.(pflag.SliceValue); ok {
 		oldValues := sliceValue.GetSlice()
 		values := make([]string, 0, len(oldValues))
+
 		for _, value := range oldValues {
-			if value != "" && isFile(value) {
-				file, err := os.Open(value)
+			if value != "" && isFilePath(value) {
+				lines, err := readSecretFileLines(log, secret, value)
 				if err != nil {
 					return err
 				}
-				scanner := bufio.NewScanner(file)
-				for scanner.Scan() {
-					line := scanner.Text()
-					if line == "" {
-						continue
-					}
-					values = append(values, line)
-				}
-				if err := file.Close(); err != nil {
-					return err
-				}
+
+				values = append(values, lines...)
 			} else {
 				values = append(values, value)
 			}
 		}
-		return sliceValue.Replace(values)
+
+		err := sliceValue.Replace(values)
+		if err != nil {
+			log.Debug().
+				Err(err).
+				Str("flag", secret).
+				Msg("Failed to replace slice value in flag")
+
+			return fmt.Errorf("%w: %w", errReplaceSliceFailed, err)
+		}
+
+		// Mark the flag as explicitly set so downstream consumers read the expanded
+		// value from the flag rather than re-deriving from raw os.Getenv.
+		flag.Changed = true
+
+		return nil
 	}
 
+	// Handle string flags.
 	value := flag.Value.String()
-	if value != "" && isFile(value) {
+	if value != "" && isFilePath(value) {
 		content, err := os.ReadFile(value)
 		if err != nil {
-			return err
+			log.Debug().
+				Err(err).
+				Str("flag", secret).
+				Str("file", value).
+				Msg("Failed to read secret file")
+
+			return fmt.Errorf("%w: %w", errReadFileFailed, err)
 		}
-		return flags.Set(secret, strings.TrimSpace(string(content)))
+
+		err = flags.Set(secret, strings.TrimSpace(string(content)))
+		if err != nil {
+			log.Debug().
+				Err(err).
+				Str("flag", secret).
+				Msg("Failed to set flag from file contents")
+
+			return fmt.Errorf("%w: %w", errSetFlagFailed, err)
+		}
+
+		log.Debug().
+			Str("flag", secret).
+			Str("file", value).
+			Msg("Set flag from file contents")
 	}
 
 	return nil
 }
 
-func isFile(s string) bool {
-	firstColon := strings.IndexRune(s, ':')
+// readSecretFileLines reads the values of a list secret from a file.
+//
+// Blank lines and lines starting with "#" are skipped. The file is closed
+// before returning, so a list secret holds at most one file open at a time.
+//
+// Parameters:
+//   - log: Logger for secret-loading diagnostics.
+//   - secret: Flag name. Lines of the notification-url secret must be valid notification URLs.
+//   - path: Path of the secret file.
+//
+// Returns:
+//   - []string: Values read from the file.
+//   - error: Non-nil if the file cannot be opened or read, or holds an invalid notification URL.
+func readSecretFileLines(log *zerolog.Logger, secret, path string) ([]string, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		log.Debug().
+			Err(err).
+			Str("flag", secret).
+			Str("file", path).
+			Msg("Failed to open secret file")
+
+		return nil, fmt.Errorf("%w: %w", errOpenFileFailed, err)
+	}
+
+	defer func() { _ = file.Close() }()
+
+	var lines []string
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+
+		if secret == "notification-url" {
+			if !strings.Contains(line, "://") {
+				return nil, errInvalidSecretURL
+			}
+
+			parsedURL, err := url.Parse(line)
+			if err != nil || parsedURL.Scheme == "" {
+				return nil, errInvalidSecretURL
+			}
+
+			if parsedURL.Opaque == "" && parsedURL.Host == "" && parsedURL.Path == "" {
+				if parsedURL.Scheme != "logger" && parsedURL.Scheme != "mock" {
+					return nil, errInvalidSecretURL
+				}
+			}
+		}
+
+		lines = append(lines, line)
+	}
+
+	err = scanner.Err()
+	if err != nil {
+		log.Debug().
+			Err(err).
+			Str("flag", secret).
+			Str("file", path).
+			Msg("Failed to read secret file")
+
+		return nil, fmt.Errorf("%w: %w", errReadFileFailed, err)
+	}
+
+	log.Debug().
+		Str("flag", secret).
+		Str("file", path).
+		Msg("Read secret from file into slice")
+
+	return lines, nil
+}
+
+// isFilePath checks if a string is likely a file path.
+//
+// Parameters:
+//   - path: String to check.
+//
+// Returns:
+//   - bool: True if likely a file path, false otherwise.
+func isFilePath(path string) bool {
+	firstColon := strings.IndexRune(path, ':')
 	if firstColon != 1 && firstColon != -1 {
-		// If the string contains a ':', but it's not the second character, it's probably not a file
-		// and will cause a fatal error on windows if stat'ed
-		// This still allows for paths that start with 'c:\' etc.
+		// If ':' exists but isn't the second character, it's likely not a file path (e.g., URLs).
 		return false
 	}
-	_, err := os.Stat(s)
+
+	//nolint:gosec // G703: Path traversal via taint analysis - validating user-provided path exists
+	_, err := os.Stat(path)
+
 	return !errors.Is(err, os.ErrNotExist)
 }
 
-// ProcessFlagAliases updates the value of flags that are being set by helper flags
-func ProcessFlagAliases(flags *pflag.FlagSet) {
-
-	porcelain, err := flags.GetString(`porcelain`)
+// ProcessFlagAliases applies environment values then syncs flag aliases.
+//
+// It bridges env onto unset flags, then applies porcelain mode, interval versus
+// schedule conflicts, and debug/trace log-level forcing.
+//
+// Intended production order (see cmd preRun / notify-upgrade):
+//
+//  1. ApplyEnvToFlags (or rely on the bridge inside this function)
+//  2. SetupLogging — apply --log-format (and current level) so Fatal paths here
+//     use the user-selected format rather than zerolog's default JSON encoding
+//  3. ProcessFlagAliases — may force log-level to debug/trace and may Fatal
+//  4. SetupLogging again — re-apply level after alias mutations
+//  5. GetSecretsFromFiles / EnvConfig / config.Load
+//
+// Call after Cobra parse. Do not call only after a single post-alias SetupLogging
+// if format-before-fatal matters. Sandwich this between the two SetupLogging calls.
+//
+// Parameters:
+//   - log: Logger for alias diagnostics and fatal configuration errors.
+//   - flags: Parsed persistent flag set.
+func ProcessFlagAliases(log *zerolog.Logger, flags *pflag.FlagSet) {
+	// Ensure env-sourced values are visible to alias logic via flag Gets.
+	err := ApplyEnvToFlags(flags, AllSpecs())
 	if err != nil {
-		log.Fatalf(`Failed to get flag: %v`, err)
-	}
-	if porcelain != "" {
-		if porcelain != "v1" {
-			log.Fatalf(`Unknown porcelain version %q. Supported values: "v1"`, porcelain)
-		}
-		if err = appendFlagValue(flags, `notification-url`, `logger://`); err != nil {
-			log.Errorf(`Failed to set flag: %v`, err)
-		}
-		setFlagIfDefault(flags, `notification-log-stdout`, `true`)
-		setFlagIfDefault(flags, `notification-report`, `true`)
-		tpl := fmt.Sprintf(`porcelain.%s.summary-no-log`, porcelain)
-		setFlagIfDefault(flags, `notification-template`, tpl)
+		log.Fatal().Err(err).Msg("Failed to apply environment configuration")
 	}
 
-	scheduleChanged := flags.Changed(`schedule`)
-	intervalChanged := flags.Changed(`interval`)
-	// FIXME: snakeswap
-	// due to how viper is integrated by swapping the defaults for the flags, we need this hack:
-	if val, _ := flags.GetString(`schedule`); val != `` {
+	// Handle porcelain mode.
+	porcelain, err := flags.GetString("porcelain")
+	if err != nil {
+		log.Fatal().
+			Err(err).
+			Str("flag", "porcelain").
+			Msg("Failed to get porcelain flag")
+	}
+
+	if porcelain != "" {
+		switch porcelain {
+		case "v1", "json":
+		default:
+			log.Fatal().
+				Str("version", porcelain).
+				Msg("Unknown porcelain version, supported: v1, json")
+		}
+
+		err := appendFlagValue(log, flags, "notification-url", "logger://")
+		if err != nil {
+			log.Debug().Err(err).Msg("Failed to append notification-url")
+		}
+
+		setFlagIfDefault(log, flags, "notification-log-stdout", "true")
+		setFlagIfDefault(log, flags, "notification-report", "true")
+
+		var tpl string
+		if porcelain == "v1" {
+			tpl = "porcelain.v1.summary-no-log"
+		} else {
+			tpl = "porcelain.json"
+		}
+
+		setFlagIfDefault(log, flags, "notification-template", tpl)
+		log.Debug().
+			Str("porcelain", porcelain).
+			Msg("Configured porcelain mode")
+	}
+
+	// Handle interval vs. schedule conflicts.
+	scheduleChanged := flags.Changed("schedule")
+	intervalChanged := flags.Changed("interval")
+
+	if val, _ := flags.GetString("schedule"); val != "" {
 		scheduleChanged = true
 	}
-	if val, _ := flags.GetInt(`interval`); val != defaultInterval {
+
+	if val, _ := flags.GetInt("interval"); val != schedule.DefaultPollIntervalSeconds {
 		intervalChanged = true
 	}
 
 	if intervalChanged && scheduleChanged {
-		log.Fatal(`Only schedule or interval can be defined, not both.`)
+		log.Fatal().
+			Bool("interval", intervalChanged).
+			Bool("schedule", scheduleChanged).
+			Msg("Cannot define both interval and schedule")
 	}
 
-	// update schedule flag to match interval if it's set, or to the default if none of them are
+	// Update schedule to match interval or default if needed.
 	if intervalChanged || !scheduleChanged {
-		interval, _ := flags.GetInt(`interval`)
-		_ = flags.Set(`schedule`, fmt.Sprintf(`@every %ds`, interval))
+		interval, _ := flags.GetInt("interval")
+
+		scheduleValue := fmt.Sprintf("@every %ds", interval)
+
+		err := flags.Set("schedule", scheduleValue)
+		if err != nil {
+			log.Debug().
+				Err(err).
+				Int("interval", interval).
+				Msg("Failed to set schedule from interval")
+		} else {
+			log.Debug().
+				Int("interval", interval).
+				Str("schedule", scheduleValue).
+				Msg("Set default schedule from interval")
+		}
 	}
 
-	if flagIsEnabled(flags, `debug`) {
-		_ = flags.Set(`log-level`, `debug`)
+	// Adjust log level for debug/trace.
+	if flagIsEnabled(log, flags, "debug") {
+		err := flags.Set("log-level", "debug")
+		if err != nil {
+			log.Debug().Err(err).Msg("Failed to set debug log level")
+		}
 	}
 
-	if flagIsEnabled(flags, `trace`) {
-		_ = flags.Set(`log-level`, `trace`)
+	if flagIsEnabled(log, flags, "trace") {
+		err := flags.Set("log-level", "trace")
+		if err != nil {
+			log.Debug().Err(err).Msg("Failed to set trace log level")
+		}
 	}
-
 }
 
-// SetupLogging reads only the flags that is needed to set up logging and applies them to the global logger
-func SetupLogging(f *pflag.FlagSet) error {
-	logFormat, _ := f.GetString(`log-format`)
-	noColor, _ := f.GetBool("no-color")
+// SetupLogging configures format and level on the provided logger.
+//
+// Parameters:
+//   - log: Logger to reconfigure (typically from logging.New at process start).
+//   - flags: Flag set.
+//
+// Returns:
+//   - *zerolog.Logger: Logger with format writer and level applied.
+//   - error: Non-nil if config fails, nil on success.
+func SetupLogging(log *zerolog.Logger, flags *pflag.FlagSet) (*zerolog.Logger, error) {
+	logFormat, err := flags.GetString("log-format")
+	if err != nil {
+		log.Debug().
+			Err(err).
+			Str("flag", "log-format").
+			Msg("Failed to get log-format flag")
 
-	switch strings.ToLower(logFormat) {
-	case "auto":
-		// This will either use the "pretty" or "logfmt" format, based on whether the standard out is connected to a TTY
-		log.SetFormatter(&log.TextFormatter{
-			DisableColors: noColor,
-			// enable logrus built-in support for https://bixense.com/clicolors/
-			EnvironmentOverrideColors: true,
-		})
-	case "json":
-		log.SetFormatter(&log.JSONFormatter{})
-	case "logfmt":
-		log.SetFormatter(&log.TextFormatter{
-			DisableColors: true,
-			FullTimestamp: true,
-		})
-	case "pretty":
-		log.SetFormatter(&log.TextFormatter{
-			// "Pretty" format combined with `--no-color` will only change the timestamp to the time since start
-			ForceColors:   !noColor,
-			FullTimestamp: false,
-		})
-	default:
-		return fmt.Errorf("invalid log format: %s", logFormat)
+		return log, fmt.Errorf("%w: %w", errSetFlagFailed, err)
 	}
 
-	rawLogLevel, _ := f.GetString(`log-level`)
-	if logLevel, err := log.ParseLevel(rawLogLevel); err != nil {
-		return fmt.Errorf("invalid log level: %e", err)
-	} else {
-		log.SetLevel(logLevel)
+	// Default to "auto" when neither the flag nor WATCHTOWER_LOG_FORMAT is set.
+	// This prevents ConfigureWriter from failing on empty strings, which is the
+	// case when running the ephemeral orchestrator container without
+	// WATCHTOWER_LOG_FORMAT in its environment.
+	if logFormat == "" {
+		logFormat = "auto"
 	}
 
-	return nil
+	noColor, err := flags.GetBool("no-color")
+	if err != nil {
+		log.Debug().
+			Err(err).
+			Str("flag", "no-color").
+			Msg("Failed to get no-color flag")
+
+		return log, fmt.Errorf("%w: %w", errSetFlagFailed, err)
+	}
+
+	writer, err := logging.ConfigureWriter(logFormat, noColor)
+	if err != nil {
+		log.Debug().
+			Err(err).
+			Str("format", logFormat).
+			Msg("Invalid log format specified")
+
+		return log, fmt.Errorf("%w: %w", errInvalidLogFormat, err)
+	}
+
+	// Rebuild with the format writer, preserving the current level until
+	// --log-level (including debug/trace aliases) is applied below.
+	rebuilt := zerolog.New(writer).Level(log.GetLevel()).With().Timestamp().Logger()
+	log = &rebuilt
+
+	// Set log level only when explicitly specified.
+	rawLogLevel, err := flags.GetString("log-level")
+	if err != nil {
+		log.Debug().
+			Err(err).
+			Str("flag", "log-level").
+			Msg("Failed to get log-level flag")
+
+		return log, fmt.Errorf("%w: %w", errSetFlagFailed, err)
+	}
+
+	// Parse and apply log level when non-empty.
+	// Under normal registration the flag default is "info" (see flags/logging Specs),
+	// so GetString is rarely empty. The empty branch is defensive for tests or
+	// partial flag sets (for example orchestrator paths that never registered logging
+	// flags) and preserves the level already on log (typically InfoLevel from main).
+	// ProcessFlagAliases may have already forced debug/trace onto the log-level flag.
+	// Invalid levels fail fast (same contract as the previous SetupLogging behavior).
+	if rawLogLevel != "" {
+		level, parseErr := logging.ParseLevel(rawLogLevel)
+		if parseErr != nil {
+			log.Debug().
+				Err(parseErr).
+				Str("log_level", rawLogLevel).
+				Msg("Invalid log level specified")
+
+			return log, fmt.Errorf("%w: %w", errInvalidLogLevel, parseErr)
+		}
+
+		leveled := log.Level(level)
+		log = &leveled
+	}
+
+	log.Debug().
+		Str("format", logFormat).
+		Str("log_level", log.GetLevel().String()).
+		Bool("no_color", noColor).
+		Msg("Configured logging settings")
+
+	return log, nil
 }
 
-func flagIsEnabled(flags *pflag.FlagSet, name string) bool {
+// flagIsEnabled checks if a boolean flag is true.
+//
+// Parameters:
+//   - log: Logger for fatal flag retrieval failures.
+//   - flags: Flag set.
+//   - name: Flag name.
+//
+// Returns:
+//   - bool: True if enabled.
+func flagIsEnabled(log *zerolog.Logger, flags *pflag.FlagSet, name string) bool {
 	value, err := flags.GetBool(name)
 	if err != nil {
-		log.Fatalf(`The flag %q is not defined`, name)
+		log.Fatal().
+			Err(err).
+			Str("flag", name).
+			Msg("Failed to check flag status")
 	}
+
 	return value
 }
 
-func appendFlagValue(flags *pflag.FlagSet, name string, values ...string) error {
+// appendFlagValue appends values to a slice flag.
+//
+// Parameters:
+//   - log: Logger for append diagnostics.
+//   - flags: Flag set.
+//   - name: Flag name.
+//   - values: Values to append.
+//
+// Returns:
+//   - error: Non-nil if append fails, nil on success.
+func appendFlagValue(log *zerolog.Logger, flags *pflag.FlagSet, name string, values ...string) error {
 	flag := flags.Lookup(name)
 	if flag == nil {
-		return fmt.Errorf(`invalid flag name %q`, name)
+		log.Debug().
+			Str("flag", name).
+			Msg("Invalid flag name provided")
+
+		return fmt.Errorf("%w: %q", errInvalidFlagName, name)
 	}
 
 	if flagValues, ok := flag.Value.(pflag.SliceValue); ok {
 		for _, value := range values {
-			_ = flagValues.Append(value)
+			err := flagValues.Append(value)
+			if err != nil {
+				log.Debug().
+					Err(err).
+					Str("flag", name).
+					Str("value", value).
+					Msg("Failed to append value to flag")
+			}
 		}
 	} else {
-		return fmt.Errorf(`the value for flag %q is not a slice value`, name)
+		log.Debug().
+			Str("flag", name).
+			Msg("Flag does not support slice values")
+
+		return fmt.Errorf("%w: %q", errNotSliceValue, name)
 	}
 
 	return nil
 }
 
-func setFlagIfDefault(flags *pflag.FlagSet, name string, value string) {
-	if flags.Changed(name) {
+// setFlagIfDefault sets a flag's value unless it was set by a flag or by an
+// environment variable. ApplyEnvToFlags leaves environment values unmarked, so
+// they are checked separately.
+//
+// Parameters:
+//   - log: Logger for set diagnostics.
+//   - flags: Flag set.
+//   - name: Flag name.
+//   - value: Value to set.
+func setFlagIfDefault(log *zerolog.Logger, flags *pflag.FlagSet, name, value string) {
+	if flags.Changed(name) || setByEnv(name) {
 		return
 	}
-	if err := flags.Set(name, value); err != nil {
-		log.Errorf(`Failed to set flag: %v`, err)
+
+	err := flags.Set(name, value)
+	if err != nil {
+		log.Debug().
+			Err(err).
+			Str("flag", name).
+			Str("value", value).
+			Msg("Failed to set default flag value")
+	} else {
+		log.Debug().
+			Str("flag", name).
+			Str("value", value).
+			Msg("Set default flag value")
 	}
+}
+
+// setByEnv reports whether an environment variable supplies the flag's value,
+// using the same rule as ApplyEnvToFlags.
+//
+// Parameters:
+//   - name: Flag name.
+//
+// Returns:
+//   - bool: True if one of the flag's environment variables is set.
+func setByEnv(name string) bool {
+	for _, flagSpec := range AllSpecs() {
+		if flagSpec.Name == name {
+			_, ok := firstEnv(flagSpec.EnvKeys)
+
+			return ok
+		}
+	}
+
+	return false
 }

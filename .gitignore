@@ -1,13 +1,207 @@
-watchtower
-watchtower.exe
-vendor
+# Go-specific ignores
+# Ref: https://github.com/github/gitignore/blob/main/community/Golang/Go.AllowList.gitignore
+
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Go coverage tool output
+*.out
+
+# Dependency directories
+# vendor/
 .glide
-dist
-.idea
-.DS_Store
-/site
+
+# Go workspace files
+go.work
+go.work.sum
+
+# Environment variables files
+.env
+.env.local
+.env.*.local
+
+# Profiling data
+*.prof
+cpu.pprof
+mem.pprof
+block.pprof
+
+# Temporary directories
+tmp/
+temp/
+
+# Go module cache
+**/pkg/mod/
+
+# Coverage files
 coverage.out
 *.coverprofile
+cover.html
+coverage/
 
+# Build artifacts and executables
+watchtower
+watchtower.exe
+dist/
+bin/
+
+# Generated documentation assets
 docs/assets/wasm_exec.js
 docs/assets/*.wasm
+/site
+/site/
+docs/build/
+docs/public/
+
+# Visual Studio Code-specific ignores
+.vscode/*
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
+.history/
+*.vsix
+.vscode/settings.json
+.vscode/c_cpp_properties.json
+.vscode/keybindings.json
+
+# Other IDEs and editors
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
+# Vim temporary files
+[._]*.s[a-v][a-z]
+[._]*.sw[a-p]
+[._]s[a-rt-v][a-z]
+[._]ss[a-gi-z]
+[._]sw[a-p]
+
+# Emacs temporary files
+*~
+\#*\#
+
+# Sublime Text
+*.tmlanguage.cache
+*.tmPreferences.cache
+*.stTheme.cache
+*.sublime-workspace
+*.sublime-project
+
+# OS-specific files
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+.Icon
+
+
+# Thumbnails
+._*
+
+# macOS volume files
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# macOS AFP share directories
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# Docker-specific ignores
+.docker/
+Dockerfile.dev
+docker-compose.override.yml
+volumes/
+
+# General temporary files
+*.tmp
+*.bak
+*.gho
+*.ori
+*.orig
+*.swp
+*.rej
+*.*~
+*.pid
+*.seed
+*.pid.lock
+
+# Package manager locks
+go.sum.lock
+
+# Python/mkdocs-specific ignores
+watchtower-docs/
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+*.egg-info/
+.pytest_cache/
+.venv/
+env/
+venv/
+pip-wheel-metadata/
+*.whl
+site/
+mkdocs-gen-files/
+.nojekyll
+404.html
+sitemap.xml
+sitemap.xml.gz
+search/search_index.json
+
+# CI/CD artifacts
+.github/cache/
+codecov/
+test-reports/
+*.cover
+
+# All-contributors
+.all-contributors/
+
+# Logs
+/Logs
+*.log
+
+# TODO
+TODO/
+TODO.md

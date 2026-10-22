@@ -1,0 +1,880 @@
+--host
+  shorthand: "H"
+  kind: string
+  default: "unix:///var/run/docker.sock"
+  env: DOCKER_HOST
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--tlsverify
+  shorthand: "v"
+  kind: bool
+  default: false
+  env: DOCKER_TLS_VERIFY
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--api-version
+  shorthand: "a"
+  kind: string
+  default: ""
+  env: DOCKER_API_VERSION
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--cert-path
+  shorthand: ""
+  kind: string
+  default: ""
+  env: DOCKER_CERT_PATH
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--include-stopped
+  shorthand: "S"
+  kind: bool
+  default: false
+  env: WATCHTOWER_INCLUDE_STOPPED
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--include-restarting
+  shorthand: ""
+  kind: bool
+  default: false
+  env: WATCHTOWER_INCLUDE_RESTARTING
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--revive-stopped
+  shorthand: ""
+  kind: bool
+  default: false
+  env: WATCHTOWER_REVIVE_STOPPED
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--remove-volumes
+  shorthand: ""
+  kind: bool
+  default: false
+  env: WATCHTOWER_REMOVE_VOLUMES
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--warn-on-head-failure
+  shorthand: ""
+  kind: string
+  default: ""
+  env: WATCHTOWER_WARN_ON_HEAD_FAILURE
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--interval
+  shorthand: "i"
+  kind: int
+  default: 86400
+  env: WATCHTOWER_POLL_INTERVAL
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--schedule
+  shorthand: "s"
+  kind: string
+  default: ""
+  env: WATCHTOWER_SCHEDULE
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--update-on-start
+  shorthand: ""
+  kind: bool
+  default: false
+  env: WATCHTOWER_UPDATE_ON_START
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--run-once
+  shorthand: "R"
+  kind: bool
+  default: false
+  env: WATCHTOWER_RUN_ONCE
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--health-check
+  shorthand: ""
+  kind: bool
+  default: false
+  env: (none)
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--porcelain
+  shorthand: "P"
+  kind: string
+  default: ""
+  env: WATCHTOWER_PORCELAIN
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--no-startup-message
+  shorthand: ""
+  kind: bool
+  default: false
+  env: WATCHTOWER_NO_STARTUP_MESSAGE
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--self-update-orchestrator
+  shorthand: ""
+  kind: bool
+  default: false
+  env: (none)
+  list-parse: none
+  hidden: true
+  deprecated: ""
+--cleanup
+  shorthand: "c"
+  kind: bool
+  default: false
+  env: WATCHTOWER_CLEANUP
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--no-pull
+  shorthand: ""
+  kind: bool
+  default: false
+  env: WATCHTOWER_NO_PULL
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--enable-changelog
+  shorthand: ""
+  kind: bool
+  default: false
+  env: WATCHTOWER_ENABLE_CHANGELOG
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--no-restart
+  shorthand: ""
+  kind: bool
+  default: false
+  env: WATCHTOWER_NO_RESTART
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--monitor-only
+  shorthand: "m"
+  kind: bool
+  default: false
+  env: WATCHTOWER_MONITOR_ONLY
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--rolling-restart
+  shorthand: ""
+  kind: bool
+  default: false
+  env: WATCHTOWER_ROLLING_RESTART
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--stop-timeout
+  shorthand: "t"
+  kind: duration
+  default: time.Duration(30s)
+  env: WATCHTOWER_TIMEOUT
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--cooldown-delay
+  shorthand: ""
+  kind: string
+  default: ""
+  env: WATCHTOWER_COOLDOWN_DELAY
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--use-compose-depends-on
+  shorthand: ""
+  kind: bool
+  default: true
+  env: WATCHTOWER_USE_COMPOSE_DEPENDS_ON
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--label-take-precedence
+  shorthand: ""
+  kind: bool
+  default: false
+  env: WATCHTOWER_LABEL_TAKE_PRECEDENCE
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--ephemeral-self-update
+  shorthand: ""
+  kind: bool
+  default: false
+  env: WATCHTOWER_EPHEMERAL_SELF_UPDATE
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--disk-space-max
+  shorthand: ""
+  kind: string
+  default: ""
+  env: WATCHTOWER_DISK_SPACE_MAX
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--disk-space-warn
+  shorthand: ""
+  kind: string
+  default: ""
+  env: WATCHTOWER_DISK_SPACE_WARN
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--enable-lifecycle-hooks
+  shorthand: ""
+  kind: bool
+  default: false
+  env: WATCHTOWER_LIFECYCLE_HOOKS
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--lifecycle-uid
+  shorthand: ""
+  kind: int
+  default: 0
+  env: WATCHTOWER_LIFECYCLE_UID
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--lifecycle-gid
+  shorthand: ""
+  kind: int
+  default: 0
+  env: WATCHTOWER_LIFECYCLE_GID
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--label-enable
+  shorthand: "e"
+  kind: bool
+  default: false
+  env: WATCHTOWER_LABEL_ENABLE
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--disable-containers
+  shorthand: "x"
+  kind: string-slice
+  default: []string{}
+  env: WATCHTOWER_DISABLE_CONTAINERS
+  list-parse: comma-or-space
+  hidden: false
+  deprecated: ""
+--monitor-image-names
+  shorthand: ""
+  kind: string-slice
+  default: []string{}
+  env: WATCHTOWER_MONITOR_IMAGE_NAMES
+  list-parse: comma-or-space
+  hidden: false
+  deprecated: ""
+--skip-image-names
+  shorthand: ""
+  kind: string-slice
+  default: []string{}
+  env: WATCHTOWER_SKIP_IMAGE_NAMES
+  list-parse: comma-or-space
+  hidden: false
+  deprecated: ""
+--enable-containers-by-label
+  shorthand: ""
+  kind: string-slice
+  default: []string{}
+  env: WATCHTOWER_ENABLE_CONTAINERS_BY_LABEL
+  list-parse: comma-only
+  hidden: false
+  deprecated: ""
+--disable-containers-by-label
+  shorthand: ""
+  kind: string-slice
+  default: []string{}
+  env: WATCHTOWER_DISABLE_CONTAINERS_BY_LABEL
+  list-parse: comma-only
+  hidden: false
+  deprecated: ""
+--scope
+  shorthand: ""
+  kind: string
+  default: ""
+  env: WATCHTOWER_SCOPE
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--registry-tls-skip
+  shorthand: ""
+  kind: bool
+  default: false
+  env: WATCHTOWER_REGISTRY_TLS_SKIP
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--registry-tls-min-version
+  shorthand: ""
+  kind: string
+  default: "TLS1.2"
+  env: WATCHTOWER_REGISTRY_TLS_MIN_VERSION
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--disable-memory-swappiness
+  shorthand: ""
+  kind: bool
+  default: false
+  env: WATCHTOWER_DISABLE_MEMORY_SWAPPINESS
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--cpu-copy-mode
+  shorthand: ""
+  kind: string
+  default: "auto"
+  env: WATCHTOWER_CPU_COPY_MODE
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--http-api-endpoints
+  shorthand: ""
+  kind: string-slice
+  default: []string{}
+  env: WATCHTOWER_HTTP_API_ENDPOINTS
+  list-parse: comma-or-space
+  hidden: false
+  deprecated: ""
+--http-api-update
+  shorthand: ""
+  kind: bool
+  default: false
+  env: WATCHTOWER_HTTP_API_UPDATE
+  list-parse: none
+  hidden: false
+  deprecated: "Use the http-api-endpoints configuration option instead."
+--http-api-metrics
+  shorthand: ""
+  kind: bool
+  default: false
+  env: WATCHTOWER_HTTP_API_METRICS
+  list-parse: none
+  hidden: false
+  deprecated: "Use the http-api-endpoints configuration option instead."
+--http-api-containers
+  shorthand: ""
+  kind: bool
+  default: false
+  env: WATCHTOWER_HTTP_API_CONTAINERS
+  list-parse: none
+  hidden: false
+  deprecated: "Use the http-api-endpoints configuration option instead."
+--http-api-host
+  shorthand: ""
+  kind: string
+  default: ""
+  env: WATCHTOWER_HTTP_API_HOST
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--http-api-port
+  shorthand: ""
+  kind: string
+  default: "8080"
+  env: WATCHTOWER_HTTP_API_PORT
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--http-api-token
+  shorthand: ""
+  kind: string
+  default: ""
+  env: WATCHTOWER_HTTP_API_TOKEN
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--http-api-events-token
+  shorthand: ""
+  kind: string
+  default: ""
+  env: WATCHTOWER_HTTP_API_EVENTS_TOKEN
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--http-api-periodic-polls
+  shorthand: ""
+  kind: bool
+  default: false
+  env: WATCHTOWER_HTTP_API_PERIODIC_POLLS
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--http-api-rate-limit
+  shorthand: ""
+  kind: int
+  default: 60
+  env: WATCHTOWER_HTTP_API_RATE_LIMIT
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--http-api-tls-cert
+  shorthand: ""
+  kind: string
+  default: ""
+  env: WATCHTOWER_HTTP_API_TLS_CERT
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--http-api-tls-key
+  shorthand: ""
+  kind: string
+  default: ""
+  env: WATCHTOWER_HTTP_API_TLS_KEY
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--http-api-trusted-proxies
+  shorthand: ""
+  kind: string-slice
+  default: []string{}
+  env: WATCHTOWER_HTTP_API_TRUSTED_PROXIES
+  list-parse: comma-or-space
+  hidden: false
+  deprecated: ""
+--http-api-proxy-header
+  shorthand: ""
+  kind: string
+  default: ""
+  env: WATCHTOWER_HTTP_API_PROXY_HEADER
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--http-api-cors-origins
+  shorthand: ""
+  kind: string-slice
+  default: []string{}
+  env: WATCHTOWER_HTTP_API_CORS_ORIGINS
+  list-parse: comma-or-space
+  hidden: false
+  deprecated: ""
+--http-api-check-timeout
+  shorthand: ""
+  kind: duration
+  default: time.Duration(0s)
+  env: WATCHTOWER_HTTP_API_CHECK_TIMEOUT
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--http-api-update-timeout
+  shorthand: ""
+  kind: duration
+  default: time.Duration(0s)
+  env: WATCHTOWER_HTTP_API_UPDATE_TIMEOUT
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--notification-url
+  shorthand: ""
+  kind: string-array
+  default: []string{}
+  env: WATCHTOWER_NOTIFICATION_URL
+  list-parse: notification-urls
+  hidden: false
+  deprecated: ""
+--notifications-level
+  shorthand: ""
+  kind: string
+  default: "info"
+  env: WATCHTOWER_NOTIFICATIONS_LEVEL
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--notifications-delay
+  shorthand: ""
+  kind: int
+  default: 0
+  env: WATCHTOWER_NOTIFICATIONS_DELAY
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--notifications-hostname
+  shorthand: ""
+  kind: string
+  default: ""
+  env: WATCHTOWER_NOTIFICATIONS_HOSTNAME
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--notification-template
+  shorthand: ""
+  kind: string
+  default: ""
+  env: WATCHTOWER_NOTIFICATION_TEMPLATE
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--notification-template-file
+  shorthand: ""
+  kind: string
+  default: ""
+  env: WATCHTOWER_NOTIFICATION_TEMPLATE_FILE
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--notification-report
+  shorthand: ""
+  kind: bool
+  default: false
+  env: WATCHTOWER_NOTIFICATION_REPORT
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--notification-title-tag
+  shorthand: ""
+  kind: string
+  default: ""
+  env: WATCHTOWER_NOTIFICATION_TITLE_TAG
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--notification-skip-title
+  shorthand: ""
+  kind: bool
+  default: false
+  env: WATCHTOWER_NOTIFICATION_SKIP_TITLE
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--notification-log-stdout
+  shorthand: ""
+  kind: bool
+  default: false
+  env: WATCHTOWER_NOTIFICATION_LOG_STDOUT
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--notification-split-by-container
+  shorthand: ""
+  kind: bool
+  default: false
+  env: WATCHTOWER_NOTIFICATION_SPLIT_BY_CONTAINER
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--notifications
+  shorthand: "n"
+  kind: string-slice
+  default: []string{}
+  env: WATCHTOWER_NOTIFICATIONS
+  list-parse: comma-or-space
+  hidden: false
+  deprecated: "Use --notification-url with the appropriate Shoutrrr URL scheme instead."
+--notification-email-from
+  shorthand: ""
+  kind: string
+  default: ""
+  env: WATCHTOWER_NOTIFICATION_EMAIL_FROM
+  list-parse: none
+  hidden: false
+  deprecated: "Use --notification-url with an smtp:// URL."
+--notification-email-to
+  shorthand: ""
+  kind: string
+  default: ""
+  env: WATCHTOWER_NOTIFICATION_EMAIL_TO
+  list-parse: none
+  hidden: false
+  deprecated: "Use --notification-url with an smtp:// URL."
+--notification-email-delay
+  shorthand: ""
+  kind: int
+  default: 0
+  env: WATCHTOWER_NOTIFICATION_EMAIL_DELAY
+  list-parse: none
+  hidden: false
+  deprecated: "Use --notifications-delay instead."
+--notification-email-server
+  shorthand: ""
+  kind: string
+  default: ""
+  env: WATCHTOWER_NOTIFICATION_EMAIL_SERVER
+  list-parse: none
+  hidden: false
+  deprecated: "Use --notification-url with an smtp:// URL."
+--notification-email-server-port
+  shorthand: ""
+  kind: int
+  default: 25
+  env: WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PORT
+  list-parse: none
+  hidden: false
+  deprecated: "Use --notification-url with an smtp:// URL."
+--notification-email-server-tls-skip-verify
+  shorthand: ""
+  kind: bool
+  default: false
+  env: WATCHTOWER_NOTIFICATION_EMAIL_SERVER_TLS_SKIP_VERIFY
+  list-parse: none
+  hidden: false
+  deprecated: "Use --notification-url with an smtp:// URL."
+--notification-email-server-user
+  shorthand: ""
+  kind: string
+  default: ""
+  env: WATCHTOWER_NOTIFICATION_EMAIL_SERVER_USER
+  list-parse: none
+  hidden: false
+  deprecated: "Use --notification-url with an smtp:// URL."
+--notification-email-server-password
+  shorthand: ""
+  kind: string
+  default: ""
+  env: WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PASSWORD
+  list-parse: none
+  hidden: false
+  deprecated: "Use --notification-url with an smtp:// URL."
+--notification-email-subjecttag
+  shorthand: ""
+  kind: string
+  default: ""
+  env: WATCHTOWER_NOTIFICATION_EMAIL_SUBJECTTAG
+  list-parse: none
+  hidden: false
+  deprecated: "Use --notification-title-tag instead."
+--notification-slack-hook-url
+  shorthand: ""
+  kind: string
+  default: ""
+  env: WATCHTOWER_NOTIFICATION_SLACK_HOOK_URL
+  list-parse: none
+  hidden: false
+  deprecated: "Use --notification-url with a slack:// or discord:// URL."
+--notification-slack-identifier
+  shorthand: ""
+  kind: string
+  default: "watchtower"
+  env: WATCHTOWER_NOTIFICATION_SLACK_IDENTIFIER
+  list-parse: none
+  hidden: false
+  deprecated: "Use --notification-url with a slack:// or discord:// URL."
+--notification-slack-channel
+  shorthand: ""
+  kind: string
+  default: ""
+  env: WATCHTOWER_NOTIFICATION_SLACK_CHANNEL
+  list-parse: none
+  hidden: false
+  deprecated: "Use --notification-url with a slack:// or discord:// URL."
+--notification-slack-icon-emoji
+  shorthand: ""
+  kind: string
+  default: ""
+  env: WATCHTOWER_NOTIFICATION_SLACK_ICON_EMOJI
+  list-parse: none
+  hidden: false
+  deprecated: "Use --notification-url with a slack:// or discord:// URL."
+--notification-slack-icon-url
+  shorthand: ""
+  kind: string
+  default: ""
+  env: WATCHTOWER_NOTIFICATION_SLACK_ICON_URL
+  list-parse: none
+  hidden: false
+  deprecated: "Use --notification-url with a slack:// or discord:// URL."
+--notification-msteams-hook
+  shorthand: ""
+  kind: string
+  default: ""
+  env: WATCHTOWER_NOTIFICATION_MSTEAMS_HOOK_URL
+  list-parse: none
+  hidden: false
+  deprecated: "Use --notification-url with a teams:// URL."
+--notification-gotify-url
+  shorthand: ""
+  kind: string
+  default: ""
+  env: WATCHTOWER_NOTIFICATION_GOTIFY_URL
+  list-parse: none
+  hidden: false
+  deprecated: "Use --notification-url with a gotify:// URL."
+--notification-gotify-token
+  shorthand: ""
+  kind: string
+  default: ""
+  env: WATCHTOWER_NOTIFICATION_GOTIFY_TOKEN
+  list-parse: none
+  hidden: false
+  deprecated: "Use --notification-url with a gotify:// URL."
+--notification-gotify-tls-skip-verify
+  shorthand: ""
+  kind: bool
+  default: false
+  env: WATCHTOWER_NOTIFICATION_GOTIFY_TLS_SKIP_VERIFY
+  list-parse: none
+  hidden: false
+  deprecated: "Use --notification-url with a gotify:// URL."
+--log-format
+  shorthand: "l"
+  kind: string
+  default: "auto"
+  env: WATCHTOWER_LOG_FORMAT
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--log-level
+  shorthand: ""
+  kind: string
+  default: "info"
+  env: WATCHTOWER_LOG_LEVEL
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--debug
+  shorthand: "d"
+  kind: bool
+  default: false
+  env: WATCHTOWER_DEBUG
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--trace
+  shorthand: ""
+  kind: bool
+  default: false
+  env: WATCHTOWER_TRACE
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--no-color
+  shorthand: ""
+  kind: bool
+  default: false
+  env: NO_COLOR
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--git-enable
+  shorthand: ""
+  kind: bool
+  default: false
+  env: WATCHTOWER_GIT_ENABLE
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--git-image
+  shorthand: ""
+  kind: string-array
+  default: []string{}
+  env: WATCHTOWER_GIT_IMAGE
+  list-parse: newline
+  hidden: false
+  deprecated: ""
+--git-auth-token
+  shorthand: ""
+  kind: string
+  default: ""
+  env: WATCHTOWER_GIT_AUTH_TOKEN
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--git-username
+  shorthand: ""
+  kind: string
+  default: ""
+  env: WATCHTOWER_GIT_USERNAME
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--git-password
+  shorthand: ""
+  kind: string
+  default: ""
+  env: WATCHTOWER_GIT_PASSWORD
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--git-ssh-key-path
+  shorthand: ""
+  kind: string
+  default: ""
+  env: WATCHTOWER_GIT_SSH_KEY_PATH
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--git-ssh-known-hosts
+  shorthand: ""
+  kind: string
+  default: ""
+  env: WATCHTOWER_GIT_SSH_KNOWN_HOSTS
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--git-timeout
+  shorthand: ""
+  kind: duration
+  default: time.Duration(30s)
+  env: WATCHTOWER_GIT_TIMEOUT
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--git-ca-bundle
+  shorthand: ""
+  kind: string
+  default: ""
+  env: WATCHTOWER_GIT_CA_BUNDLE
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--git-insecure-skip-tls
+  shorthand: ""
+  kind: bool
+  default: false
+  env: WATCHTOWER_GIT_INSECURE_SKIP_TLS
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--git-compose-stash
+  shorthand: ""
+  kind: bool
+  default: false
+  env: WATCHTOWER_GIT_COMPOSE_STASH
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--compose-project
+  shorthand: ""
+  kind: string-array
+  default: []string{}
+  env: WATCHTOWER_COMPOSE_PROJECT
+  list-parse: newline
+  hidden: false
+  deprecated: ""
+--git-dockerfile
+  shorthand: ""
+  kind: string
+  default: ""
+  env: WATCHTOWER_GIT_DOCKERFILE
+  list-parse: none
+  hidden: false
+  deprecated: ""
+--git-context
+  shorthand: ""
+  kind: string
+  default: ""
+  env: WATCHTOWER_GIT_CONTEXT
+  list-parse: none
+  hidden: false
+  deprecated: ""

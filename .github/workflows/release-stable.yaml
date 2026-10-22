@@ -1,0 +1,60 @@
+---
+name: Release Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      DRY_RUN:
+        description: "Run in test mode without publishing artifacts"
+        required: false
+        default: false
+        type: boolean
+  push:
+    tags:
+      - "v[0-9]*.[0-9]*.[0-9]*"
+
+permissions:
+  contents: read # Set default read-only permissions
+
+jobs:
+  test:
+    name: Run Tests
+    uses: ./.github/workflows/test.yaml
+    permissions:
+      contents: read # For code checkout
+
+  build:
+    name: Run Build
+    needs: [test]
+    uses: ./.github/workflows/build.yaml
+    permissions:
+      contents: write # For code checkout and publishing releases
+      packages: write # For pushing images to registries
+      attestations: write # For generating provenance and SBOMs
+      id-token: write # For OIDC auth to Docker Hub and GHCR
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+    with:
+      ENVIRONMENT: CI-Release
+      BUILD_TYPE: stable
+      DRY_RUN: ${{ inputs.DRY_RUN || false }}
+
+  update-go-docs:
+    name: Run Go Pkg Update
+    needs: [build]
+    if: ${{ !inputs.DRY_RUN }}
+    permissions:
+      contents: read
+    uses: ./.github/workflows/update-go-docs.yaml
+
+  publish-docs:
+    name: Publish Documentation
+    needs: [build]
+    if: ${{ !inputs.DRY_RUN && github.ref_type == 'tag' }}
+    permissions:
+      contents: write
+      actions: read
+    uses: ./.github/workflows/publish-docs.yaml
+    with:
+      version: ${{ github.ref_name }}

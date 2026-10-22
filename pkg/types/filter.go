@@ -1,5 +1,10 @@
 package types
 
-// A Filter is a prototype for a function that can be used to filter the
-// results from a call to the ListContainers() method on the Client.
+// Filter defines a function to filter containers.
+//
+// Parameters:
+//   - c: Container to evaluate.
+//
+// Returns:
+//   - bool: True if container passes filter, false otherwise.
 type Filter func(FilterableContainer) bool

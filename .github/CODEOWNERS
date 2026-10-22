@@ -1,8 +1,8 @@
-pkg/notifications/smtp.go     @piksel
-pkg/notifications/email.go    @piksel
-pkg/notifications/shoutrrr.go @piksel @simskij @arnested
-pkg/container/*               @simskij
-pkg/api/*                     @victorcmoura
-.devbots/*                    @simskij
-.github/*                     @simskij
-docs/*                        @containrrr/watchtower-contributors
+pkg/notifications/smtp.go     @nicholas-fedor
+pkg/notifications/email.go    @nicholas-fedor
+pkg/notifications/shoutrrr.go @nicholas-fedor
+pkg/container/*               @nicholas-fedor
+pkg/api/*                     @nicholas-fedor
+.devbots/*                    @nicholas-fedor
+.github/*                     @nicholas-fedor
+docs/*                        @nicholas-fedor/watchtower-contributors

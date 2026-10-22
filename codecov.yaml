@@ -1,0 +1,103 @@
+codecov:
+  # # Ensures coverage is only uploaded if CI passes (e.g., tests succeed).
+  require_ci_to_pass: true
+
+coverage:
+  # Rounds coverage to 2 decimal places (e.g., 85.43%).
+  precision: 2
+  # Rounds down for conservative estimates.
+  round: down
+  # 40%+ green, below yellow, <20% red.
+  range: "40...70"
+
+  status:
+    # Overall project coverage.
+    project:
+      default:
+        # Aim for 50% coverage across the project.
+        target: 50%
+        # Allow 5% drop due to uncovered new code before failing.
+        threshold: 5%
+        # Compare against the base branch (e.g., main).
+        base: auto
+        # Apply to these branches.
+        branches:
+          - main
+        # Fail if CI fails.
+        if_ci_failed: error
+
+    # Coverage for new code in PRs.
+    patch:
+      default:
+        # Require 70% of new/changed code in PRs to be covered.
+        target: 70%
+        # Allow 5% uncovered new code before failing.
+        threshold: 5%
+        # Only apply to pull requests.
+        only_pulls: true
+
+    # Detect unexpected coverage changes outside the PR diff.
+    changes:
+      default:
+        enabled: true
+        # Report without failing. Main has no uploads between nightlies, so the base can be stale.
+        informational: true
+
+comment:
+  # Customize PR comment layout.
+  layout: "reach, diff, flags, files"
+  # Post comment on PRs with coverage info.
+  behavior: default
+  # Only comment if coverage changes.
+  require_changes: true
+
+parsers:
+  # For Go projects using `go test -cover` + `gocov`.
+  gcov:
+    branch_detection:
+      # Detect branch coverage if available.
+      conditional: yes
+      # Include loops in branch detection.
+      loop: yes
+      # Exclude method-level granularity.
+      method: no
+      # Exclude macros.
+      macro: no
+
+# Exclude files/directories from coverage.
+ignore:
+  # Command-line entry points, not core logic
+  - "cmd/*"
+  # Nested template-preview module
+  - "tools/tplprev/**"
+  # Markdown files
+  - "*.md"
+  # Vendored dependencies
+  - "vendor/*"
+  # Build/test scripts
+  - "scripts/*"
+  # Prometheus config
+  - "prometheus/*"
+  # Grafana dashboards/datasources
+  - "grafana/*"
+  # Documentation
+  - "docs/*"
+  # Docker configs
+  - "dockerfiles/*"
+  # Ignore all mocks subdirectories.
+  - "**/mocks/*"
+
+# Categorize coverage by module
+flags:
+  # Internal utilities and actions
+  internal:
+    paths:
+      - "internal/*"
+    # Persist coverage across commits
+    carryforward: true
+  # Core package logic
+  pkg:
+    paths:
+      - "pkg/*"
+    # Persist coverage across commits
+    carryforward: true

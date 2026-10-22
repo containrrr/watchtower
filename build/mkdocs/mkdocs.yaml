@@ -1,0 +1,282 @@
+---
+# Project Information:
+# https://www.mkdocs.org/user-guide/configuration/#project-information
+# https://squidfunk.github.io/mkdocs-material/setup/adding-a-git-repository/#repository-name
+site_name: Watchtower
+# https://www.mkdocs.org/user-guide/configuration/#site_url
+site_url: https://watchtower.nickfedor.com/
+# https://squidfunk.github.io/mkdocs-material/setup/adding-a-git-repository/#repository
+repo_url: https://github.com/nicholas-fedor/watchtower/
+
+# Path from repo_url to the docs directory for direct editing links.
+# Set to main branch.
+# https://www.mkdocs.org/user-guide/configuration/#edit_uri
+edit_uri: edit/main/docs/
+
+# Description for meta tags in HTML header.
+# https://www.mkdocs.org/user-guide/configuration/#site_description
+site_description: >
+  Documentation for Watchtower, a solution for automating Docker
+  container image updates.
+
+# Copyright information displayed in the documentation footer (Material theme).
+# https://squidfunk.github.io/mkdocs-material/setup/setting-up-the-footer/#copyright-notice
+copyright: Copyright © 2025 Nicholas Fedor
+
+# Theme Configuration: https://www.mkdocs.org/user-guide/configuration/#theme
+theme:
+  name: "material"
+  # Custom color scheme for the Material theme,
+  # defined in custom CSS or overrides.
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: watchtower
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: watchtower-dark
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  # Logo image for the site header, relative to docs_dir.
+  logo: assets/media/logo-450px.png
+  # Git icon for the site header.
+  # https://squidfunk.github.io/mkdocs-material/setup/adding-a-git-repository/#repository-icon
+  icon:
+    repo: fontawesome/brands/github
+  # Favicon for the site, relative to docs_dir.
+  favicon: assets/media/favicon.ico
+  # Directory for custom theme overrides, e.g., partials or main.html.
+  custom_dir: ../../docs/overrides
+  # Material theme features for enhanced navigation and usability.
+  features:
+    # https://squidfunk.github.io/mkdocs-material/setup/setting-up-navigation/#instant-loading
+    - navigation.instant
+    # https://squidfunk.github.io/mkdocs-material/setup/setting-up-navigation/#anchor-tracking
+    - navigation.tracking
+    # https://squidfunk.github.io/mkdocs-material/setup/setting-up-navigation/#navigation-tabs
+    - navigation.tabs
+    # https://squidfunk.github.io/mkdocs-material/setup/setting-up-navigation/#sticky-navigation-tabs-with-sticky-tabs
+    - navigation.tabs.sticky
+    # https://squidfunk.github.io/mkdocs-material/setup/setting-up-navigation/#navigation-sections
+    - navigation.sections
+    # https://squidfunk.github.io/mkdocs-material/setup/setting-up-navigation/#navigation-expansion
+    - navigation.expand
+    # https://squidfunk.github.io/mkdocs-material/setup/setting-up-navigation/#section-index-pages
+    # - navigation.indexes
+    # https://squidfunk.github.io/mkdocs-material/setup/setting-up-navigation/#anchor-following
+    - toc.follow
+    # https://squidfunk.github.io/mkdocs-material/setup/setting-up-navigation/#back-to-top-button
+    - navigation.top
+    # https://squidfunk.github.io/mkdocs-material/setup/setting-up-site-search/#search-suggestions
+    - search.suggest
+    # https://squidfunk.github.io/mkdocs-material/setup/setting-up-site-search/#search-highlighting
+    - search.highlight
+    # https://squidfunk.github.io/mkdocs-material/setup/setting-up-site-search/#search-sharing
+    - search.share
+    # https://squidfunk.github.io/mkdocs-material/reference/code-blocks/#code-copy-button
+    - content.code.copy
+    # https://squidfunk.github.io/mkdocs-material/reference/tooltips/#improved-tooltips
+    - content.tooltips
+    # https://squidfunk.github.io/mkdocs-material/reference/content-tabs/#linked-content-tabs
+    - content.tabs.link
+
+# Extra Configuration: Passed to templates for flexibility.
+extra:
+  # Version provider for the mike plugin to handle versioned documentation.
+  # https://squidfunk.github.io/mkdocs-material/setup/setting-up-versioning/#versioning
+  version:
+    provider: mike
+    alias: true
+    default:
+      - latest
+      - dev
+  # Social links displayed as icons in the footer (Material theme).
+  # https://squidfunk.github.io/mkdocs-material/setup/setting-up-the-footer/#social-links
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/nicholas-fedor/watchtower
+  # Disables the "Made with MkDocs" generator text in the footer.
+  # https://squidfunk.github.io/mkdocs-material/setup/setting-up-the-footer/#generator-notice
+  generator: false
+
+# Extra CSS: Stylesheets included by the theme, relative to docs_dir.
+extra_css:
+  - assets/styles/theme.css
+  - assets/styles/extra.css
+
+# Markdown Extensions:
+# https://www.mkdocs.org/user-guide/configuration/#markdown_extensions
+# Custom formatting extensions beyond default meta, toc,
+# tables, and fenced_code.
+markdown_extensions:
+  - toc:
+      # Enables permalinks for table of contents headings.
+      permalink: true
+      # Separator for permalinks in table of contents.
+      separator: "_"
+  # Enables admonition blocks (e.g., note, warning).
+  - admonition:
+  # Enables adding HTML attributes and CSS classes to Markdown elements.
+  # https://squidfunk.github.io/mkdocs-material/setup/extensions/python-markdown/#attribute-lists
+  - attr_list:
+  # Enable definition lists
+  # https://squidfunk.github.io/mkdocs-material/setup/extensions/python-markdown/#definition-lists
+  - def_list:
+  # Enables collapsible details blocks.
+  # https://facelessuser.github.io/pymdown-extensions/extensions/blocks/plugins/details/
+  - pymdownx.blocks.details:
+  # Enables code highlighting for fenced code blocks.
+  # https://facelessuser.github.io/pymdown-extensions/extensions/highlight/
+  - pymdownx.highlight:
+      anchor_linenums: true
+  # Enables inline code highlighting.
+  # https://facelessuser.github.io/pymdown-extensions/extensions/inlinehilite/
+  - pymdownx.inlinehilite:
+  # Enables nested fenced code blocks.
+  # https://facelessuser.github.io/pymdown-extensions/extensions/superfences/
+  - pymdownx.superfences:
+      custom_fences:
+        # https://squidfunk.github.io/mkdocs-material/reference/diagrams/#configuration
+        - name: mermaid
+          class: mermaid
+  # Enables automatic linking of URLs and emails.
+  # https://facelessuser.github.io/pymdown-extensions/extensions/magiclink/
+  - pymdownx.magiclink:
+      # Render commit, pull, and issue links in a shorthand syntax
+      repo_url_shortener: true
+      # The provider to use for repository shorthand syntax and shortener
+      provider: github
+      # The default user name to use for the specified provider
+      user: nicholas-fedor
+      # The default repository name to use for the specified user and provider
+      repo: watchtower
+  # https://facelessuser.github.io/pymdown-extensions/extensions/saneheaders/
+  - pymdownx.saneheaders:
+  # https://facelessuser.github.io/pymdown-extensions/extensions/striphtml/
+  - pymdownx.striphtml:
+  # Enables tabbed content blocks for examples or comparisons.
+  # https://facelessuser.github.io/pymdown-extensions/extensions/tabbed/
+  - pymdownx.tabbed:
+      alternate_style: true
+  # https://squidfunk.github.io/mkdocs-material/reference/data-tables/#data-tables
+  - tables:
+
+# Site structure with paths relative to docs_dir.
+# https://www.mkdocs.org/user-guide/configuration/#documentation-layout
+nav:
+  - Home: index.md
+  - Quickstart: quickstart/index.md
+  - Getting Started:
+      - Introduction: getting-started/introduction/index.md
+      - Installation: getting-started/installation/index.md
+      - Usage: getting-started/usage/index.md
+      - Container Selection: getting-started/container-selection/index.md
+      - Docker Secrets: getting-started/docker-secrets/index.md
+      - Updating Watchtower: getting-started/updating-watchtower/index.md
+  - Configuration:
+      - Introduction: configuration/introduction/index.md
+      - Docker Connection: configuration/docker-connection/index.md
+      - Container Selection: configuration/container-selection/index.md
+      - Scheduling: configuration/scheduling/index.md
+      - Registry and Authentication: configuration/registry-and-authentication/index.md
+      - Git Monitoring: configuration/git-monitoring/index.md
+      - Image Cooldown: configuration/image-cooldown/index.md
+      - Update Behavior: configuration/update-behavior/index.md
+      - Lifecycle Hooks: configuration/lifecycle-hooks/index.md
+      - Logging and Output: configuration/logging-and-output/index.md
+      - Notifications: configuration/notifications/index.md
+      - HTTP API: configuration/http-api/index.md
+  - Notifications:
+      - Introduction: notifications/introduction/index.md
+      - General Settings: notifications/general-settings/index.md
+      - Templates: notifications/templates/index.md
+      - Template Preview: notifications/template-preview/index.md
+      - Deprecations:
+          - Deprecation Notice: notifications/deprecations/deprecation-notice/index.md
+          - Migration Tool: notifications/deprecations/migration-tool/index.md
+          - Email: notifications/deprecations/email/index.md
+          - Gotify: notifications/deprecations/gotify/index.md
+          - Slack: notifications/deprecations/slack/index.md
+          - Teams: notifications/deprecations/teams/index.md
+      - Guides:
+          - Signal: notifications/guides/signal/index.md
+  - API:
+      - Overview: http-api/overview/index.md
+      - Configuration:
+          - Host and Port: http-api/configuration/host-and-port/index.md
+          - Authentication: http-api/configuration/authentication/index.md
+          - TLS: http-api/configuration/tls/index.md
+      - Endpoints:
+          - Check: http-api/endpoints/check/index.md
+          - Config: http-api/endpoints/config/index.md
+          - Container Details: http-api/endpoints/container-details/index.md
+          - Containers: http-api/endpoints/containers/index.md
+          - Events: http-api/endpoints/events/index.md
+          - Health: http-api/endpoints/health/index.md
+          - History: http-api/endpoints/history/index.md
+          - Images: http-api/endpoints/images/index.md
+          - Metrics: http-api/endpoints/metrics/index.md
+          - Status: http-api/endpoints/status/index.md
+          - Swagger UI: http-api/endpoints/swagger/index.md
+          - Update: http-api/endpoints/update/index.md
+  - Advanced Features:
+      - Ephemeral Self-Updates: advanced-features/ephemeral-self-updates/index.md
+      - Git Monitoring: advanced-features/git-monitoring/index.md
+      - Image Cooldown: advanced-features/image-cooldown/index.md
+      - Disk Usage Monitor: advanced-features/disk-usage-monitor/index.md
+      - Copy Files: advanced-features/copy-files/index.md
+      - Lifecycle Hooks: advanced-features/lifecycle-hooks/index.md
+      - Linked Containers: advanced-features/linked-containers/index.md
+      - Private Registries: advanced-features/private-registries/index.md
+      - Registry Mirrors: advanced-features/registry-mirrors/index.md
+      - Remote Hosts: advanced-features/remote-hosts/index.md
+      - Running Multiple Instances: advanced-features/running-multiple-instances/index.md
+      - Secure Connections: advanced-features/secure-connections/index.md
+      - Stop Signals: advanced-features/stop-signals/index.md
+
+# Plugins: https://www.mkdocs.org/user-guide/configuration/#plugins
+# Additional functionality for the site build.
+plugins:
+  # Enables search functionality with lunr.js.
+  - search
+  # Enables versioned documentation with version selector.
+  - mike:
+      version_selector: true
+      css_dir: assets/styles
+      alias_type: redirect
+  # Displays last updated dates on pages, formatted as time ago.
+  - git-revision-date-localized:
+      enable_creation_date: true
+      type: timeago
+
+# Build Directories:
+# https://www.mkdocs.org/user-guide/configuration/#build-directories
+# Default directories for documentation source and output.
+docs_dir: ../../docs
+site_dir: ../../site
+
+# Validation: https://www.mkdocs.org/user-guide/configuration/#validation
+# Strictness settings for link validation during builds.
+validation:
+  nav:
+    # Warns if files in docs_dir are not in nav.
+    omitted_files: warn
+    # Warns if absolute links are used in nav.
+    absolute_links: warn
+  links:
+    # Warns if linked files are not found.
+    not_found: warn
+    # Warns if anchors in links do not exist.
+    anchors: warn
+    # Treats absolute links as relative to docs_dir for validation.
+    absolute_links: relative_to_docs
+    # Warns if relative links are unrecognized.
+    unrecognized_links: warn
+
+# Live Reloading:
+# https://www.mkdocs.org/user-guide/configuration/#live-reloading
+# Directories to watch for changes during mkdocs serve.
+watch:
+  - ../../docs

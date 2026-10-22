@@ -1,0 +1,109 @@
+---
+name: Release Nightly
+
+on:
+  workflow_dispatch:
+    inputs:
+      DRY_RUN:
+        description: "Run in test mode without publishing artifacts"
+        required: false
+        default: false
+        type: boolean
+      FORCE_RELEASE:
+        description: "Skip change detection and force the release"
+        required: false
+        default: false
+        type: boolean
+  schedule:
+    - cron: "0 0 * * *"
+
+permissions:
+  contents: read # Set default read-only permissions
+
+jobs:
+  check_changes:
+    name: Check for Code Changes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # For code checkout
+      actions: read # For querying previous workflow runs via API
+    outputs:
+      has-changes: ${{ steps.check.outputs.has-changes }}
+    steps:
+      - name: Checkout Repository
+        if: ${{ inputs.FORCE_RELEASE != 'true' }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Get Last Successful Nightly Release
+        if: ${{ inputs.FORCE_RELEASE != 'true' }}
+        id: last-run
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          # Find the most recent successful run of this workflow (not failed/cancelled)
+          LAST_NIGHTLY_COMMIT=$(gh api repos/"${{ github.repository }}"/actions/runs | \
+            jq --arg branch "$BRANCH" -r '.workflow_runs[] | select(.status=="completed" and .conclusion=="success" and .path==".github/workflows/release-nightly.yaml" and .head_branch==$branch) | .head_sha' | head -1)
+          echo "last_nightly_commit=$LAST_NIGHTLY_COMMIT" >> "$GITHUB_OUTPUT"
+
+      - name: Check for Changes
+        id: check
+        env:
+          LAST_NIGHTLY_COMMIT: ${{ steps.last-run.outputs.last_nightly_commit }}
+        run: |
+          if [ "${{ inputs.FORCE_RELEASE }}" = "true" ]; then
+            echo "Force release enabled, skipping change detection"
+            echo "has-changes=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [ -z "$LAST_NIGHTLY_COMMIT" ]; then
+            echo "No previous successful nightly run found, proceeding with build"
+            echo "has-changes=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Check if there are any changes in the watched paths since last successful nightly run
+          if ! CHANGED=$(git diff --name-only "$LAST_NIGHTLY_COMMIT" HEAD -- "cmd/**" "pkg/**" "internal/**" main.go go.mod go.sum); then
+            echo "git diff failed, treating as changes present"
+            echo "has-changes=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [ -n "$CHANGED" ]; then
+            echo "Detected changes in watched paths:"
+            echo "$CHANGED"
+            echo "has-changes=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No changes detected in watched paths since last successful nightly run"
+            echo "has-changes=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  test:
+    name: Run Tests
+    needs: [check_changes]
+    if: ${{ needs.check_changes.outputs.has-changes == 'true' }}
+    uses: ./.github/workflows/test.yaml
+    permissions:
+      contents: read # For code checkout
+
+  build:
+    name: Run Build
+    needs: [check_changes, test]
+    if: ${{ needs.check_changes.outputs.has-changes == 'true' }}
+    uses: ./.github/workflows/build.yaml
+    permissions:
+      contents: write # For code checkout and uploading release artifacts
+      packages: write # For pushing images to registries
+      attestations: write # For generating provenance and SBOMs
+      id-token: write # For OIDC auth to Docker Hub and GHCR
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+    with:
+      ENVIRONMENT: CI-Release
+      BUILD_TYPE: nightly
+      DRY_RUN: ${{ inputs.DRY_RUN || false }}

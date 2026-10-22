@@ -1,0 +1,24 @@
+{
+  "name": "Watchtower",
+  "dockerFile": "Dockerfile",
+	// Use 'postCreateCommand' to run commands after the container is created.
+	//"postCreateCommand": "go version",
+	"customizations": {
+		// Configure properties specific to VS Code.
+		"vscode": {
+			"settings": {},
+			"extensions": [
+				"eamodio.gitlens",
+				"EditorConfig.EditorConfig",
+				"golang.Go",
+        		"github.vscode-github-actions"
+			]
+		}
+	},
+  "containerEnv": {
+    "GIT_EDITOR": "nano"
+  },
+	"mounts": [
+    "type=bind,source=${localEnv:HOME}/.ssh,target=/home/vscode/.ssh,readonly"
+	]
+}
