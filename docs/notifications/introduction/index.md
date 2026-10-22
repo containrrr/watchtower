@@ -18,6 +18,8 @@ The format is the same for all services, but the parameters, path, and credentia
 
 The [`NOTIFICATION URL`](../../configuration/notifications/index.md#notification_url) configuration option can also reference a file, in which case the contents of the file are used.
 
+Watchtower checks every notification URL when it starts. If Shoutrrr cannot use a URL, such as one with no host or with a token that is not in the service's format, Watchtower logs `Failed to initialize Shoutrrr notifications` with an error that names the service and the problem, then exits.
+
 ### Using Multiple Notification Services
 
 Watchtower supports using multiple Shoutrrr URLs to send notifications to multiple notification services.
