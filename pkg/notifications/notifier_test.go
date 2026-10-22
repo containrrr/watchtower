@@ -414,7 +414,7 @@ func TestNotifier(t *testing.T) {
 					"--notification-gotify-url",
 					"https://gotify.example.com",
 					"--notification-gotify-token",
-					"test-token",
+					"Atesttoken12345",
 					"--notification-gotify-tls-skip-verify",
 				}
 				notifier := NewNotifier(newTestLogger(t), loadNotify(t, args))
@@ -424,9 +424,9 @@ func TestNotifier(t *testing.T) {
 				urls := notifier.GetURLs()
 				assert.True(
 					t,
-					slices.ContainsFunc(urls, func(u string) bool { return strings.Contains(u, "gotify://gotify.example.com/test-token") }),
+					slices.ContainsFunc(urls, func(u string) bool { return strings.Contains(u, "gotify://gotify.example.com/Atesttoken12345") }),
 					"no URL contains %q: %v",
-					"gotify://gotify.example.com/test-token",
+					"gotify://gotify.example.com/Atesttoken12345",
 					urls,
 				)
 			})
@@ -440,7 +440,7 @@ func TestNotifier(t *testing.T) {
 					"--notification-gotify-url",
 					"https://gotify.example.com",
 					"--notification-gotify-token",
-					"test-token",
+					"Atesttoken12345",
 				}
 
 				var buf lockedBuffer
@@ -451,8 +451,8 @@ func TestNotifier(t *testing.T) {
 				assert.Contains(t, notifier.GetNames(), "gotify")
 
 				out := buf.String()
-				assert.Contains(t, out, `"token_length":10,"message":"Gotify notifier token loaded"`)
-				assert.NotContains(t, out, "test-token")
+				assert.Contains(t, out, `"token_length":15,"message":"Gotify notifier token loaded"`)
+				assert.NotContains(t, out, "Atesttoken12345")
 			})
 		})
 	})

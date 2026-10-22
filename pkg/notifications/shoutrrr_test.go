@@ -2456,7 +2456,7 @@ func TestSendNotification_SingleFocusKeepsBatchingActive(t *testing.T) {
 func TestCreateNotifier_AcceptsGotifyURLFromFileExpansion(t *testing.T) {
 	notifier := createTestNotifier(
 		newTestLogger(t),
-		[]string{"gotify://gotify.example.com/token123"},
+		[]string{"gotify://gotify.example.com/Atoken123456789"},
 		zerolog.InfoLevel,
 		true,
 		StaticData{},
