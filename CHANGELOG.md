@@ -74,6 +74,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 
+- Use valid gotify tokens in notifier tests by @nicholas-fedor in [#3021](https://github.com/nicholas-fedor/watchtower/pull/3021)
 - Use a neutral Git host in test data by @nicholas-fedor in [#3009](https://github.com/nicholas-fedor/watchtower/pull/3009)
 - Convert the notifier, shoutrrr, and JSON suites to testify by @nicholas-fedor in [#3004](https://github.com/nicholas-fedor/watchtower/pull/3004)
 - Convert the remaining update suites to testify by @nicholas-fedor in [#3002](https://github.com/nicholas-fedor/watchtower/pull/3002)
