@@ -69,6 +69,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Documentation
 
+- Note that notification urls are checked at startup by @nicholas-fedor in [#3023](https://github.com/nicholas-fedor/watchtower/pull/3023)
 - Correct stale code comments and package docs by @nicholas-fedor in [#2911](https://github.com/nicholas-fedor/watchtower/pull/2911)
 - Document the digest choice for container details by @nicholas-fedor in [#2807](https://github.com/nicholas-fedor/watchtower/pull/2807)
 
